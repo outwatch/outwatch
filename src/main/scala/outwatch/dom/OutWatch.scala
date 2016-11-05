@@ -4,5 +4,6 @@ import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
 
 object OutWatch {
-  def render(element: Element, vNode: VNode): Unit = DomUtils.render(element, vNode)
+  def render(querySelector: String, vNode: VNode): Unit =
+    DomUtils.render(document.querySelector(querySelector), vNode)
 }

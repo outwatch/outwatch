@@ -107,7 +107,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    OutWatch.render(root, vtree)
+    DomUtils.render(root, vtree)
     val patched = document.getElementById("input").asInstanceOf[HTMLInputElement]
 
     patched.value shouldBe ""
@@ -141,7 +141,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    OutWatch.render(root, vtree)
+    DomUtils.render(root, vtree)
     val list = document.getElementById("list")
 
     list.childElementCount shouldBe 0

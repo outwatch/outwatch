@@ -4,14 +4,6 @@ import org.scalajs.dom._
 import outwatch.dom._
 import rxscalajs.{Observable, Subject}
 
-case class EventEmitterBuilder(eventType: String) {
-  def -->(sink: Subject[Event]): EventEmitter = EventEmitter(eventType, sink)
-
-  def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
-
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
-}
-
 case class GenericEmitterBuilder[T](eventType: String, t: T) {
   def -->(sink: Subject[T]) = GenericEmitter(eventType, sink, t)
 }

@@ -1,5 +1,7 @@
 package outwatch
 
+import org.scalajs.dom.raw.KeyboardEvent
+import org.scalajs.dom.{MouseEvent, Event}
 import rxscalajs.{Observable, Subject}
 import outwatch.dom.helpers._
 
@@ -158,11 +160,18 @@ package object dom {
   lazy val keypress = KeyEventEmitterBuilder("keypress")
   lazy val inputString = StringEventEmitterBuilder("input")
   lazy val inputBool = BoolEventEmitterBuilder("input")
-  lazy val inputNumber = InputEventEmitterBuilder("input")
+  lazy val inputNumber = NumberEventEmitterBuilder("input")
 
   lazy val child = ChildStreamReceiverBuilder()
 
   lazy val children = ChildrenStreamReceiverBuilder()
+
+  def createInputHandler = Subject[InputEvent]
+  def createMouseHandler = Subject[MouseEvent]
+  def createKeyboardHandler = Subject[KeyboardEvent]
+  def createStringHandler = Subject[String]
+  def createBoolHandler = Subject[Boolean]
+  def createNumberHandler = Subject[Double]
 
 
 

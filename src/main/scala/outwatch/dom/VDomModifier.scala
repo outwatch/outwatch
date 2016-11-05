@@ -13,8 +13,10 @@ import scala.scalajs.js.JSON
 sealed trait VDomModifier extends Any
 
 sealed trait Emitter extends VDomModifier {
-  def eventType: String
+  val eventType: String
 }
+
+
 
 case class EventEmitter(eventType: String, sink: Subject[Event]) extends Emitter
 case class InputEventEmitter(eventType: String, sink: Subject[InputEvent]) extends Emitter
