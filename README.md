@@ -1,4 +1,4 @@
-# OutWatch - Functional and reactive UIs with Rx, VirtualDom and Scala
+# OutWatch - Functional and reactive UIs with Rx, VirtualDom and Scala [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-0.6.6.svg)](https://www.scala-js.org)
 
 
 ## Getting started
