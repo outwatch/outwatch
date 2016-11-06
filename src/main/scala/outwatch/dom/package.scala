@@ -101,7 +101,6 @@ package object dom {
 
 
   lazy val hidden = AttributeBuilder("hidden")
-  lazy val `type` = AttributeBuilder("type")
   lazy val value = AttributeBuilder("value")
   lazy val disabled = AttributeBuilder("disabled")
   lazy val style = AttributeBuilder("style")
@@ -140,6 +139,8 @@ package object dom {
   lazy val target = AttributeBuilder("target")
   lazy val usemap = AttributeBuilder("usemap")
   lazy val wrap = AttributeBuilder("wrap")
+  lazy val `type` = AttributeBuilder("type")
+  lazy val tpe = `type`
   lazy val inputType = `type`
   lazy val className = AttributeBuilder("class")
   lazy val `class` = className
