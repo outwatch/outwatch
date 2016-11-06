@@ -18,10 +18,10 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A simple counter application" should "work as intended" in {
     import outwatch.dom._
 
-    val handlePlus = Subject[MouseEvent]()
+    val handlePlus = createMouseHandler
     val plusOne$ = handlePlus.mapTo(1)
 
-    val handleMinus = Subject[MouseEvent]()
+    val handleMinus = createMouseHandler
     val minusOne$ = handleMinus.mapTo(-1)
 
     val count$ = plusOne$.merge(minusOne$).scan(0)(_ + _).startWith(0)
@@ -58,7 +58,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A simple name application" should "work as intended" in {
     import outwatch.dom._
 
-    val nameHandler = Subject[String]
+    val nameHandler = createStringHandler
 
     val greetStart = "Hello ,"
 
@@ -94,17 +94,17 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A todo application" should "work with components" in {
     import outwatch.dom._
 
-    def TodoComponent(title: String, deleteStream: Subject[String]) =
+    def TodoComponent(title: String, deleteStream: Sink[String]) =
       li(
         span(title),
         button(id:= title, click(title) --> deleteStream, "Delete")
       )
 
-    def TextFieldComponent(labelText: String, outputStream: Subject[String]) = {
+    def TextFieldComponent(labelText: String, outputStream: Sink[String]) = {
 
-      val textFieldStream = Subject[String]
-      val clickStream = Subject[MouseEvent]
-      val keyStream = Subject[KeyboardEvent]
+      val textFieldStream = createStringHandler
+      val clickStream = createMouseHandler
+      val keyStream = createKeyboardHandler
 
       val buttonDisabled = textFieldStream
         .map(_.length < 2)
@@ -125,8 +125,8 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
       )
     }
 
-    val inputHandler = Subject[String]
-    val deleteHandler = Subject[String]
+    val inputHandler = createStringHandler
+    val deleteHandler = createStringHandler
 
     val adds = inputHandler
       .map(n => (list: Vector[String]) => list :+ n)

@@ -3,3 +3,4 @@ target/
 project/target/
 project/project/
 index.html
+src/main/scala/browser

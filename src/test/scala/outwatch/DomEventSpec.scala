@@ -14,7 +14,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
 
   "EventStreams" should "emit and receive events correctly" in {
     import outwatch.dom._
-    val observable = Subject[MouseEvent]
+    val observable = createMouseHandler
     val buttonDisabled = observable.mapTo(true).startWith(false)
     val vtree = div(id :="click", click --> observable,
       button(id := "btn", disabled <-- buttonDisabled)
@@ -36,7 +36,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
 
   it should "be converted to a generic emitter correctly" in {
     import outwatch.dom._
-    val observable = Subject[String]
+    val observable = createStringHandler
     val message = "Hello!"
     val vtree = div(id :="click", click(message) --> observable,
       span(id := "child", child <-- observable)
@@ -63,8 +63,8 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
 
   it should "be converted to a generic stream emitter correctly" in {
     import outwatch.dom._
-    val stream = Subject[String]
-    val messages = Subject[String]
+    val stream = createStringHandler
+    val messages = createStringHandler
     val vtree = div(id :="click", click(messages) --> stream,
       span(id := "child", child <-- stream)
     )
@@ -77,7 +77,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     document.getElementById("child").innerHTML shouldBe ""
 
     val firstMessage = "First"
-    messages.next(firstMessage)
+    messages.asInstanceOf[Subject[String]].next(firstMessage)
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
@@ -91,7 +91,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     document.getElementById("child").innerHTML shouldBe firstMessage
 
     val secondMessage = "Second"
-    messages.next(secondMessage)
+    messages.asInstanceOf[Subject[String]].next(secondMessage)
 
     document.getElementById("click").dispatchEvent(event)
 

@@ -5,21 +5,22 @@ import outwatch.dom._
 import rxscalajs.{Observable, Subject}
 
 case class GenericEmitterBuilder[T](eventType: String, t: T) {
-  def -->(sink: Subject[T]) = GenericEmitter(eventType, sink, t)
+  def -->(sink: Sink[T]) = GenericEmitter(eventType, sink.asInstanceOf[Subject[T]], t)
 }
 
 case class GenericStreamEmitterBuilder[T](eventType: String, stream: Observable[T]) {
-  def --> (sink: Subject[T]) = {
+  def --> (sink: Sink[T]) = {
     val proxy = Subject[Event]()
     proxy
       .withLatestFrom(stream)
       .map(_._2)
-      .subscribe(t => sink.next(t))
+      .subscribe(t => sink.asInstanceOf[Subject[T]].next(t))
     EventEmitter(eventType, proxy)
   }
 }
 case class InputEventEmitterBuilder(eventType: String){
-  def --> (subject: Subject[InputEvent]) = InputEventEmitter(eventType, subject)
+  def --> (sink: Sink[InputEvent]) =
+    InputEventEmitter(eventType, sink.asInstanceOf[Subject[InputEvent]])
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
@@ -27,7 +28,8 @@ case class InputEventEmitterBuilder(eventType: String){
 }
 
 case class KeyEventEmitterBuilder(eventType: String){
-  def -->(sink: Subject[KeyboardEvent]) = KeyEventEmitter(eventType, sink)
+  def -->(sink: Sink[KeyboardEvent]) =
+    KeyEventEmitter(eventType, sink.asInstanceOf[Subject[KeyboardEvent]])
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
@@ -35,7 +37,8 @@ case class KeyEventEmitterBuilder(eventType: String){
 }
 
 case class MouseEventEmitterBuilder(eventType: String) {
-  def -->(sink: Subject[MouseEvent]) = MouseEventEmitter(eventType, sink)
+  def -->(sink: Sink[MouseEvent]) =
+    MouseEventEmitter(eventType, sink.asInstanceOf[Subject[MouseEvent]])
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
@@ -43,15 +46,18 @@ case class MouseEventEmitterBuilder(eventType: String) {
 }
 
 case class StringEventEmitterBuilder(eventType: String) {
-  def -->(sink: Subject[String]) = StringEventEmitter(eventType, sink)
+  def -->(sink: Sink[String]) =
+    StringEventEmitter(eventType, sink.asInstanceOf[Subject[String]])
 }
 
 case class BoolEventEmitterBuilder(eventType: String) {
-  def -->(sink: Subject[Boolean]) = BoolEventEmitter(eventType, sink)
+  def -->(sink: Sink[Boolean]) =
+    BoolEventEmitter(eventType, sink.asInstanceOf[Subject[Boolean]])
 }
 
 case class NumberEventEmitterBuilder(eventType: String) {
-  def -->(sink: Subject[Double]) = NumberEventEmitter(eventType, sink)
+  def -->(sink: Sink[Double]) =
+    NumberEventEmitter(eventType, sink.asInstanceOf[Subject[Double]])
 }
 
 case class ChildStreamReceiverBuilder() {

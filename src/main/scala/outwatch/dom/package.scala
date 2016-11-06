@@ -2,6 +2,7 @@ package outwatch
 
 import org.scalajs.dom.raw.KeyboardEvent
 import org.scalajs.dom.{MouseEvent, Event}
+import rxscalajs.facade.SubjectFacade
 import rxscalajs.{Observable, Subject}
 import outwatch.dom.helpers._
 
@@ -166,20 +167,26 @@ package object dom {
 
   lazy val children = ChildrenStreamReceiverBuilder()
 
-  def createInputHandler = Subject[InputEvent]
-  def createMouseHandler = Subject[MouseEvent]
-  def createKeyboardHandler = Subject[KeyboardEvent]
-  def createStringHandler = Subject[String]
-  def createBoolHandler = Subject[Boolean]
-  def createNumberHandler = Subject[Double]
+  def createInputHandler = createHandler[InputEvent]
+  def createMouseHandler = createHandler[MouseEvent]
+  def createKeyboardHandler = createHandler[KeyboardEvent]
+  def createStringHandler = createHandler[String]
+  def createBoolHandler = createHandler[Boolean]
+  def createNumberHandler = createHandler[Double]
 
 
-
-  implicit class StreamSink[T](val subject: Subject[T]) extends AnyVal {
+  sealed trait Sink[T] {
     def <--(observable: Observable[T]) = {
-      observable.subscribe(t => subject.next(t))
+      observable.subscribe(this.asInstanceOf[Subject[T]])
     }
   }
+
+  private def createHandler[T]: Observable[T] with Sink[T] = {
+    class SubjectSink extends Subject[T](new SubjectFacade) with Sink[T]
+    val sink = new SubjectSink
+    sink.asInstanceOf[Observable[T] with Sink[T]]
+  }
+
 
 
 
