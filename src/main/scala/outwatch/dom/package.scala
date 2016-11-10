@@ -60,8 +60,8 @@ package object dom {
   def h5(args: VDomModifier*) = DomUtils.hyperscriptHelper("h5")(args: _*)
   def h6(args: VDomModifier*) = DomUtils.hyperscriptHelper("h6")(args: _*)
   def i(args: VDomModifier*) = DomUtils.hyperscriptHelper("i")(args: _*)
-  def ifrane(args: VDomModifier*) = DomUtils.hyperscriptHelper("ifrane")(args: _*)
-  def image(args: VDomModifier*) = DomUtils.hyperscriptHelper("image")(args: _*)
+  def iframe(args: VDomModifier*) = DomUtils.hyperscriptHelper("iframe")(args: _*)
+  def img(args: VDomModifier*) = DomUtils.hyperscriptHelper("img")(args: _*)
   def ins(args: VDomModifier*) = DomUtils.hyperscriptHelper("ins")(args: _*)
   def keygen(args: VDomModifier*) = DomUtils.hyperscriptHelper("keygen")(args: _*)
   def legend(args: VDomModifier*) = DomUtils.hyperscriptHelper("legend")(args: _*)
@@ -161,7 +161,7 @@ package object dom {
   lazy val keyup = KeyEventEmitterBuilder("keyup")
   lazy val keypress = KeyEventEmitterBuilder("keypress")
   lazy val inputString = StringEventEmitterBuilder("input")
-  lazy val inputBool = BoolEventEmitterBuilder("input")
+  lazy val inputBool = BoolEventEmitterBuilder("change")
   lazy val inputNumber = NumberEventEmitterBuilder("input")
 
   lazy val child = ChildStreamReceiverBuilder()
@@ -182,7 +182,7 @@ package object dom {
     }
   }
 
-  private def createHandler[T]: Observable[T] with Sink[T] = {
+  def createHandler[T]: Observable[T] with Sink[T] = {
     class SubjectSink extends Subject[T](new SubjectFacade) with Sink[T]
     val sink = new SubjectSink
     sink.asInstanceOf[Observable[T] with Sink[T]]
