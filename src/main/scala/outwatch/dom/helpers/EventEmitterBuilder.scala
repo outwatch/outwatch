@@ -78,12 +78,14 @@ case class ChildrenStreamReceiverBuilder() {
 }
 
 case class AttributeBuilder(attributeName: String) {
-  def :=(value: String) = Attribute(attributeName,value)
+  def :=[T <: Any](value: T) = attributeFromAny(value)
 
-  def <--[T <: Any](valueStream: Observable[T]) =  {
-    AttributeStreamReceiver(attributeName, valueStream.map (value => value match {
-      case b: Boolean => Attribute(attributeName, if (b) b.toString else "")
-      case _ => Attribute(attributeName, value.toString)
-    }))
+  def <--[T <: Any](valueStream: Observable[T]) =
+    AttributeStreamReceiver(attributeName, valueStream.map(attributeFromAny _))
+
+
+  private def attributeFromAny(value: Any) = value match {
+    case b: Boolean => Attribute(attributeName, if (b) b.toString else "")
+    case _ => Attribute(attributeName, value.toString)
   }
 }
