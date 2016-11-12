@@ -90,7 +90,7 @@ case class AttributeBuilder[T](attributeName: String){
 }
 
 case class BoolAttributeBuilder(attributeName: String) {
-  def :=(value: Boolean) = Attribute(attributeName, if (value) value.toString else "")
+  def :=(value: Boolean) = Attribute(attributeName, toEmptyIfFalse(value))
 
   def <--(valueStream: Observable[Boolean]) = {
     AttributeStreamReceiver(attributeName, valueStream.map(b => {
@@ -99,4 +99,9 @@ case class BoolAttributeBuilder(attributeName: String) {
   }
 
   private def toEmptyIfFalse(b: Boolean) = if (b) b.toString else ""
+}
+
+object BoolAttributeBuilder {
+  implicit def toAttribute(builder: BoolAttributeBuilder): Attribute =
+    Attribute(builder.attributeName, "_")
 }

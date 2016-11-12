@@ -76,7 +76,7 @@ object DomUtils {
         })
         .startWith(proxy)
         .pairwise
-        .subscribe(tuple => patch(tuple._1, tuple._2), e => println(e))
+        .subscribe(tuple => patch(tuple._1, tuple._2), e => console.error(e))
 
       subscriptionPromise.success(Some(subscription))
       ()
