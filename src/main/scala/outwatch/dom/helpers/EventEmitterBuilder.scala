@@ -77,15 +77,26 @@ case class ChildrenStreamReceiverBuilder() {
   }
 }
 
-case class AttributeBuilder(attributeName: String) {
-  def :=[T <: Any](value: T) = attributeFromAny(value)
 
-  def <--[T <: Any](valueStream: Observable[T]) =
-    AttributeStreamReceiver(attributeName, valueStream.map(attributeFromAny _))
+case class AttributeBuilder[T](attributeName: String){
+  def :=(value: T) = Attribute(attributeName, value.toString)
 
-
-  private def attributeFromAny(value: Any) = value match {
-    case b: Boolean => Attribute(attributeName, if (b) b.toString else "")
-    case _ => Attribute(attributeName, value.toString)
+  def <--(valueStream: Observable[T]) = {
+    val attributeStream = valueStream.map(n => Attribute(attributeName, n.toString))
+    AttributeStreamReceiver(attributeName, attributeStream)
   }
+
+
+}
+
+case class BoolAttributeBuilder(attributeName: String) {
+  def :=(value: Boolean) = Attribute(attributeName, if (value) value.toString else "")
+
+  def <--(valueStream: Observable[Boolean]) = {
+    AttributeStreamReceiver(attributeName, valueStream.map(b => {
+      Attribute(attributeName, toEmptyIfFalse(b))
+    }))
+  }
+
+  private def toEmptyIfFalse(b: Boolean) = if (b) b.toString else ""
 }
