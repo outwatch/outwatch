@@ -176,4 +176,35 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     list.innerHTML.contains(third) shouldBe true
   }
 
+  it should "be able to handle two events of the same type" in {
+    import outwatch.dom._
+
+
+    val first = createStringHandler()
+
+    val second = createStringHandler()
+
+    val messages = ("Hello", "World")
+
+    val node = div(
+      button(id := "click", click(messages._1) --> first, click(messages._2) --> second),
+      span(id:="first",child <-- first),
+      span(id:="second",child <-- second)
+    )
+
+    val root = document.createElement("div")
+    document.body.appendChild(root)
+
+    DomUtils.render(root, node)
+
+    val event = document.createEvent("Events")
+    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+
+
+    document.getElementById("click").dispatchEvent(event)
+
+    document.getElementById("first").innerHTML shouldBe messages._1
+    document.getElementById("second").innerHTML shouldBe messages._2
+  }
+
 }

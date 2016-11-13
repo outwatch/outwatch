@@ -1,7 +1,7 @@
 package outwatch
 
 import org.scalajs.dom.raw.KeyboardEvent
-import org.scalajs.dom.{MouseEvent, Event}
+import org.scalajs.dom.MouseEvent
 import rxscalajs.facade.SubjectFacade
 import rxscalajs.{Observable, Subject}
 import outwatch.dom.helpers._

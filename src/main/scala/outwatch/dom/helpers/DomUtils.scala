@@ -52,7 +52,7 @@ object DomUtils {
   def createReceiverDataObject(changeables: Observable[(Seq[Attribute], Seq[VNode])],
                                attributeStream: Seq[AttributeStreamReceiver],
                                attrs: js.Dictionary[String],
-                               eventHandlers: js.Dictionary[js.Function1[_ <: Event, Unit]]) = {
+                               eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
     val subscriptionPromise = Promise[Option[AnonymousSubscription]]
     val insertHook = createInsertHook(changeables, subscriptionPromise)
     val deleteHook = createDestoryHook(subscriptionPromise)

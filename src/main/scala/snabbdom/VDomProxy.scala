@@ -18,22 +18,28 @@ object VDomProxy {
       .toJSDictionary
   }
 
-  def emittersToSnabbDom(eventEmitters: Seq[Emitter]): js.Dictionary[js.Function1[_ <: Event,Unit]] = {
+
+  def emittersToSnabbDom(eventEmitters: Seq[Emitter]): js.Dictionary[js.Function1[Event,Unit]] = {
     eventEmitters
-      .map(emitter => (emitter.eventType, emitterToFunction(emitter)))
-      .toMap[String, js.Function1[_ <: Event,Unit]]
+      .groupBy(_.eventType)
+      .mapValues(emittersToFunction)
       .toJSDictionary
   }
 
-  def emitterToFunction(emitter: Emitter): js.Function1[_ <: Event,Unit] = emitter match {
-    case ee: EventEmitter => (e: Event) => ee.sink.next(e)
-    case me: MouseEventEmitter => (e: MouseEvent) => me.sink.next(e)
-    case ke: KeyEventEmitter => (e: KeyboardEvent) => ke.sink.next(e)
-    case ie: InputEventEmitter => (e: InputEvent) => ie.sink.next(e)
+  private def emittersToFunction(emitters: Seq[Emitter]): js.Function1[Event, Unit] = {
+    (e: Event) => emitters.map(emitterToFunction).foreach(_.apply(e))
+  }
+
+  private def emitterToFunction(emitter: Emitter): Event => Unit = emitter match {
+    case me: MouseEventEmitter => (e: Event) => me.sink.next(e.asInstanceOf[MouseEvent])
+    case ke: KeyEventEmitter => (e: Event) => ke.sink.next(e.asInstanceOf[KeyboardEvent])
+    case ie: InputEventEmitter => (e: Event) => ie.sink.next(e.asInstanceOf[InputEvent])
     case se: StringEventEmitter => (e: Event) => se.sink.next(e.target.asInstanceOf[HTMLInputElement].value)
     case be: BoolEventEmitter => (e: Event) => be.sink.next(e.target.asInstanceOf[HTMLInputElement].checked)
     case ne: NumberEventEmitter => (e: Event) => ne.sink.next(e.target.asInstanceOf[HTMLInputElement].valueAsNumber)
     case ge: GenericEmitter[_] => (e: Event) => ge.sink.next(ge.t)
+    case ee: EventEmitter => (e: Event) => ee.sink.next(e)
   }
+
 
 }

@@ -14,22 +14,22 @@ object h extends js.Object {
 @js.native
 trait DataObject extends js.Object {
   val attrs: js.Dictionary[String] = js.native
-  val on: js.Dictionary[js.Function1[_ <: Event ,Unit]] = js.native
+  val on: js.Dictionary[js.Function1[Event ,Unit]] = js.native
   val hook: js.Dynamic = js.native
 }
 
 object DataObject {
-  def apply(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[_ <: Event,Unit]]): DataObject = {
+  def apply(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]]): DataObject = {
     js.Dynamic.literal(attrs= attrs, on= on).asInstanceOf[DataObject]
   }
 
-  def createWithHooks(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[_ <: Event,Unit]],
+  def createWithHooks(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit], destroy: js.Function1[VNodeProxy,Unit]): DataObject = {
     js.Dynamic.literal(attrs= attrs, on= on, hook=js.Dynamic.literal(insert= insert, destroy= destroy))
       .asInstanceOf[DataObject]
   }
 
-  def createWithValue(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[_ <: Event,Unit]],
+  def createWithValue(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit], destroy: js.Function1[VNodeProxy,Unit]): DataObject = {
     js.Dynamic.literal(attrs= attrs, on= on, hook=js.Dynamic.literal(insert= insert, destroy= destroy, update= updateHook))
       .asInstanceOf[DataObject]
