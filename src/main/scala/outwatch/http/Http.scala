@@ -15,10 +15,6 @@ object Http {
   case object Option extends HttpRequestType
   case object Head extends HttpRequestType
 
-  private def http[T](observable: Observable[T], url: String): Observable[js.Dynamic] = {
-    observable.switchMap(t => Observable.ajax(url)).share
-  }
-
   private def request(observable: Observable[HttpData], requestType: HttpRequestType): Observable[HttpResponse] = {
     observable.switchMap(data => Observable.ajax(data.url).map(mapToResponse _)).share
   }
