@@ -5,16 +5,16 @@ import outwatch.dom._
 import rxscalajs.{Observable, Subject}
 
 case class GenericEmitterBuilder[T](eventType: String, t: T) {
-  def -->(sink: Sink[T]) = GenericEmitter(eventType, sink.asInstanceOf[Subject[T]], t)
+  def -->[U >: T](sink: Sink[U]) = GenericEmitter(eventType, sink.asInstanceOf[Subject[U]], t)
 }
 
 case class GenericStreamEmitterBuilder[T](eventType: String, stream: Observable[T]) {
-  def --> (sink: Sink[T]) = {
+  def -->[U >: T](sink: Sink[U]) = {
     val proxy = Subject[Event]()
     proxy
       .withLatestFrom(stream)
       .map(_._2)
-      .subscribe(t => sink.asInstanceOf[Subject[T]].next(t))
+      .subscribe(t => sink.asInstanceOf[Subject[U]].next(t))
     EventEmitter(eventType, proxy)
   }
 }
