@@ -218,7 +218,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = div(
       button(id := "click", click(mapToTuple) --> stream),
-      span(id:="num",child <-- stream.map(_._1))
+      span(id:="num",child <-- stream.map(_._2))
     )
 
     val root = document.createElement("div")
