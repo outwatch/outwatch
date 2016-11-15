@@ -7,7 +7,7 @@ First you will need to install Java and SBT if you haven't already.
 Create a new SBT project and add the ScalaJS plugin to your `plugins.sbt`.
 Then add the following line to your `build.sbt`.
 
-    libraryDependencies += "org.outwatch" %%% "outwatch" % "0.3.2"
+    libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.3.2"
     
 Great, we've created our first OutWatch Project!
 Now we'll create a small Hello World app to get you started.

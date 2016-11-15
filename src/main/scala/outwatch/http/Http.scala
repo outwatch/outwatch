@@ -24,7 +24,10 @@ object Http {
   }
 
   private def mapToResponse(d: js.Dynamic) = {
-    HttpResponse(d.response.asInstanceOf[String], d.status.asInstanceOf[Int])
+    HttpResponse(
+      d.response.asInstanceOf[String],
+      d.status.asInstanceOf[Int],
+      d.responseType.asInstanceOf[String])
   }
 
 
@@ -42,7 +45,7 @@ object Http {
                       headers: Map[String, String] = Map.empty,
                       withCredentials: Boolean = false, responseType: String = "")
 
-  case class HttpResponse(body: String, status: Int)
+  case class HttpResponse(body: String, status: Int, responseType: String)
 
   /*
   val requests = createInputHandler()

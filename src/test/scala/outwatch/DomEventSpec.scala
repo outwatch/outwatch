@@ -207,4 +207,32 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     document.getElementById("second").innerHTML shouldBe messages._2
   }
 
+  it should "be able to be transformed by a function in place" in {
+    import outwatch.dom._
+
+    val stream = createHandler[(MouseEvent, Int)]
+
+    val number = 42
+
+    val mapToTuple = (e: MouseEvent) => (e, number)
+
+    val node = div(
+      button(id := "click", click(mapToTuple) --> stream),
+      span(id:="num",child <-- stream.map(_._1))
+    )
+
+    val root = document.createElement("div")
+    document.body.appendChild(root)
+
+    DomUtils.render(root, node)
+
+    val event = document.createEvent("Events")
+    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+
+
+    document.getElementById("click").dispatchEvent(event)
+
+    document.getElementById("num").innerHTML shouldBe number.toString
+  }
+
 }

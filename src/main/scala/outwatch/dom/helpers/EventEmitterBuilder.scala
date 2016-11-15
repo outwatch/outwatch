@@ -1,11 +1,20 @@
 package outwatch.dom.helpers
 
 import org.scalajs.dom._
+import outwatch.Sink
 import outwatch.dom._
 import rxscalajs.{Observable, Subject}
 
 case class GenericEmitterBuilder[T](eventType: String, t: T) {
   def -->[U >: T](sink: Sink[U]) = GenericEmitter(eventType, sink.asInstanceOf[Subject[U]], t)
+}
+
+case class GenericMappedEmitterBuilder[T,E <: Event](eventType: String, mapping: E => T){
+  def -->[U >: T](sink: Sink[U]) = {
+    val proxy = Subject[E]
+    sink <-- proxy.map(mapping)
+    EventEmitter(eventType, proxy)
+  }
 }
 
 case class GenericStreamEmitterBuilder[T](eventType: String, stream: Observable[T]) {
@@ -24,6 +33,8 @@ case class InputEventEmitterBuilder(eventType: String){
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
+  def apply[T](f: InputEvent => T) = GenericMappedEmitterBuilder(eventType, f)
+
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
@@ -32,6 +43,8 @@ case class KeyEventEmitterBuilder(eventType: String){
     KeyEventEmitter(eventType, sink.asInstanceOf[Subject[KeyboardEvent]])
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
+
+  def apply[T](f: KeyboardEvent => T) = GenericMappedEmitterBuilder(eventType, f)
 
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
@@ -42,22 +55,30 @@ case class MouseEventEmitterBuilder(eventType: String) {
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
+  def apply[T](f: MouseEvent => T) = GenericMappedEmitterBuilder(eventType, f)
+
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
 case class StringEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[String]) =
     StringEventEmitter(eventType, sink.asInstanceOf[Subject[String]])
+
+  def apply[T](f: String => T) = GenericMappedEmitterBuilder(eventType, f)
 }
 
 case class BoolEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[Boolean]) =
     BoolEventEmitter(eventType, sink.asInstanceOf[Subject[Boolean]])
+
+  def apply[T](f: Boolean => T) = GenericMappedEmitterBuilder(eventType, f)
 }
 
 case class NumberEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[Double]) =
     NumberEventEmitter(eventType, sink.asInstanceOf[Subject[Double]])
+
+  def apply[T](f: Double => T) = GenericMappedEmitterBuilder(eventType, f)
 }
 
 case class ChildStreamReceiverBuilder() {

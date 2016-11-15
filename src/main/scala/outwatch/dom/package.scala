@@ -178,16 +178,9 @@ package object dom {
   def createNumberHandler() = createHandler[Double]
 
 
-  sealed trait Sink[T] {
-    def <--(observable: Observable[T]) = {
-      observable.subscribe(this.asInstanceOf[Subject[T]])
-    }
-  }
 
   def createHandler[T]: Observable[T] with Sink[T] = {
-    class SubjectSink extends Subject[T](new SubjectFacade) with Sink[T]
-    val sink = new SubjectSink
-    sink.asInstanceOf[Observable[T] with Sink[T]]
+    Sink.createHandler[T]
   }
 
 

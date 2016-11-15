@@ -18,7 +18,7 @@ sealed trait Emitter extends VDomModifier {
 
 
 
-case class EventEmitter(eventType: String, sink: Subject[Event]) extends Emitter
+case class EventEmitter(eventType: String, sink: Subject[_ <: Event]) extends Emitter
 case class InputEventEmitter(eventType: String, sink: Subject[InputEvent]) extends Emitter
 case class MouseEventEmitter(eventType: String, sink: Subject[MouseEvent]) extends Emitter
 case class KeyEventEmitter(eventType: String, sink: Subject[KeyboardEvent]) extends Emitter

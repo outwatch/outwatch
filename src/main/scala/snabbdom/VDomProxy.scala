@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import outwatch.dom._
 import outwatch.dom.helpers._
-
+import rxscalajs.Subject
 import scala.scalajs.js
 
 
@@ -38,7 +38,7 @@ object VDomProxy {
     case be: BoolEventEmitter => (e: Event) => be.sink.next(e.target.asInstanceOf[HTMLInputElement].checked)
     case ne: NumberEventEmitter => (e: Event) => ne.sink.next(e.target.asInstanceOf[HTMLInputElement].valueAsNumber)
     case ge: GenericEmitter[_] => (e: Event) => ge.sink.next(ge.t)
-    case ee: EventEmitter => (e: Event) => ee.sink.next(e)
+    case ee: EventEmitter => (e: Event) => ee.sink.asInstanceOf[Subject[Event]].next(e)
   }
 
 
