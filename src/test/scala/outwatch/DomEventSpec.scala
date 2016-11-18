@@ -235,4 +235,30 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     document.getElementById("num").innerHTML shouldBe number.toString
   }
 
+  it should "be able to be transformed from strings" in {
+    import outwatch.dom._
+
+    val stream = createHandler[Int]
+
+    val number = 42
+
+    val node = div(
+      button(id := "input", inputString(_ => number) --> stream),
+      span(id:="num",child <-- stream)
+    )
+
+    val root = document.createElement("div")
+    document.body.appendChild(root)
+
+    DomUtils.render(root, node)
+
+    val inputEvt = document.createEvent("HTMLEvents")
+    inputEvt.initEvent("input", false, true)
+
+
+    document.getElementById("input").dispatchEvent(inputEvt)
+
+    document.getElementById("num").innerHTML shouldBe number.toString
+  }
+
 }
