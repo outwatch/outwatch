@@ -13,6 +13,6 @@ object LocalStorageReader {
 
 object LocalStorageWriter {
   def apply(key: String): Sink[String] = {
-    outwatch.Sink.createSink[String](data => localStorage.setItem(key, data))
+    Sink.create[String](data => localStorage.setItem(key, data))
   }
 }

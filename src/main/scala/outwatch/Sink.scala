@@ -10,7 +10,7 @@ sealed trait Sink[T] {
 }
 object Sink {
 
-  def createSink[T](onNext: T => Unit): Sink[T] = {
+  def create[T](onNext: T => Unit): Sink[T] = {
     class SubjectSink extends Subject[T](new SubjectFacade) with Sink[T]
     val sink = new SubjectSink
     sink.subscribe(onNext)
