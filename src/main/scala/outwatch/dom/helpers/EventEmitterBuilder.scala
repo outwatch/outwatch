@@ -103,6 +103,7 @@ case class ChildrenStreamReceiverBuilder() {
     ChildrenStreamReceiver(childrenStream)
   }
 
+  @deprecated
   def :=(children: Seq[VNode]) = {
     ChildrenStreamReceiver(Observable.of(children))
   }
