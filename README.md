@@ -9,31 +9,15 @@ Then add the following line to your `build.sbt`.
 
     libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.3.2"
     
-Great, we've created our first OutWatch Project!
-Now we'll create a small Hello World app to get you started.
-First we'll create a new Scala file `HelloOutWatch.scala` in our main directory.
-Inside we'll want to import the framework by specifying `import outwatch.dom._` at the top of our file.
-Now we're ready to create our main entry point:
-
-    object HelloOutWatch extends JSApp {
-      def main(): Unit = {
-      
-      }
-    }
+And you're done, you can now start build your own OutWatch app!
 
 
+## Three main goals of OutWatch
 
-Then create an `index.html` file at your project's root.
-Inside we'll want to 
+1. Updating DOM efficiently without sacrificing abstraction => Virtual DOM
+2. Handling subscriptions automatically
+3. Removing or restricting the need for Higher Order Observables
 
-
-
-## The Scan operator
-
-`scan` is the most essential operator for FRP.
-If you're from the Scala world, you're probably already familiar with `scan` from the collection API.
-Users of Redux or other state containers can also feel similarly at home.
-`scan` is a lot like `fold` or `reduce` but creates intermediary values every time.
 
 
 
