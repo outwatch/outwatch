@@ -128,8 +128,16 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     val inputHandler = createStringHandler
     val deleteHandler = createStringHandler
 
+    def addToList(todo: String) = {
+      (list: Vector[String]) => list :+ todo
+    }
+
+    def removeFromList(todo: String) = {
+      (list: Vector[String]) => list.filterNot(_ == todo)
+    }
+
     val adds = inputHandler
-      .map(n => (list: Vector[String]) => list :+ n)
+      .map(addToList _)
 
     val deletes = deleteHandler
       .map(n => (list: Vector[String]) => list.filter(_ != n))
