@@ -31,6 +31,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     emitters.length shouldBe 1
     child$.length shouldBe 0
+    children$.length shouldBe 0
     attributes.length shouldBe 1
     attribute$.length shouldBe 1
     children.length shouldBe 2
