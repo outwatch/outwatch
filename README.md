@@ -7,9 +7,10 @@ First you will need to install Java and SBT if you haven't already.
 Create a new SBT project and add the ScalaJS plugin to your `plugins.sbt`.
 Then add the following line to your `build.sbt`.
 
-    libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.3.2"
+    libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.4.0"
     
-And you're done, you can now start build your own OutWatch app!
+And you're done, you can now start building your own OutWatch app!
+Please check out the (documentation)[https://outwatch.github.io/] on how to proceed.
 
 
 ## Three main goals of OutWatch
@@ -19,15 +20,6 @@ And you're done, you can now start build your own OutWatch app!
 3. Removing or restricting the need for Higher Order Observables
 
 
-
-
-
-## TypeScript or Scala.js
-
-- Tooling inferior (alt+enter to import)
-- Better Support for FP (Currying, EOP, ADTs, Lazy Evaluation, Immutability)
-- Powerful Options for dealing with nulls
-- Better Type system (https://gist.github.com/t0yv0/4449351 https://gist.github.com/valtron/5688638)
 
 ## Bugs and Feedback
 
