@@ -15,12 +15,12 @@ object Http {
   case object Option extends HttpRequestType
   case object Head extends HttpRequestType
 
-  private def request(observable: Observable[HttpData], requestType: HttpRequestType): Observable[HttpResponse] = {
-    observable.switchMap(data => Observable.ajax(data.url).map(mapToResponse _)).share
+  private def request(observable: Observable[HttpRequest], requestType: HttpRequestType): Observable[HttpResponse] = {
+    observable.switchMap(data => Observable.ajax(data.url).map(mapToResponse)).share
   }
 
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) = {
-    request(urls.map(url => HttpData(url= url)), requestType: HttpRequestType)
+    request(urls.map(url => HttpRequest(url)), requestType: HttpRequestType)
   }
 
   private def mapToResponse(d: js.Dynamic) = {
@@ -31,33 +31,20 @@ object Http {
   }
 
 
-  def get(urlStream: Observable[String]) = requestWithUrl(urlStream, Get)
+  def get(urls: Observable[String]) = requestWithUrl(urls, Get)
 
-  def post(urlStream: Observable[HttpData]): Observable[js.Dynamic] =  {
-    urlStream.switchMap(http => Observable.ajax(http.url)).share
+  def post(requests: Observable[HttpRequest]): Observable[js.Dynamic] =  {
+    requests.switchMap(http => Observable.ajax(http.url)).share
   }
 
-  def delete(stream: Observable[HttpData]): Observable[HttpResponse] = {
-    request(stream, Delete).share
+  def delete(requests: Observable[HttpRequest]): Observable[HttpResponse] = {
+    request(requests, Delete).share
   }
 
-  case class HttpData(url: String, data: String = "", timeout: Int = 0,
-                      headers: Map[String, String] = Map.empty,
-                      withCredentials: Boolean = false, responseType: String = "")
+  case class HttpRequest(url: String, data: String = "", timeout: Int = 0,
+                         headers: Map[String, String] = Map.empty,
+                         withCredentials: Boolean = false, responseType: String = "")
 
   case class HttpResponse(body: String, status: Int, responseType: String)
-
-  /*
-  val requests = createInputHandler()
-    .debounceTime(300)
-
-  val responses = Http.get(requests)
-    .map(_.response.json)
-
-  val progressSpinnerHidden = responses.mapTo(true)
-    .merge(requests.mapTo(false))
-
-  div(class:= "progress-spinner", hidden <= progressSpinnerHidden)
-  */
 
 }

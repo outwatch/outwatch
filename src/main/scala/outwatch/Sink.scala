@@ -9,16 +9,15 @@ sealed trait Sink[T] {
   }
 }
 object Sink {
+  private class SubjectSink[T] extends Subject[T](new SubjectFacade) with Sink[T]
 
   def create[T](onNext: T => Unit): Sink[T] = {
-    class SubjectSink extends Subject[T](new SubjectFacade) with Sink[T]
     val sink = new SubjectSink
     sink.subscribe(onNext)
     sink.asInstanceOf[Sink[T]]
   }
 
   def createHandler[T]: Observable[T] with Sink[T] = {
-    class SubjectSink extends Subject[T](new SubjectFacade) with Sink[T]
     val sink = new SubjectSink
     sink.asInstanceOf[Observable[T] with Sink[T]]
   }
