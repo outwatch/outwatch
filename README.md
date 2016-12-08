@@ -10,7 +10,7 @@ Then add the following line to your `build.sbt`.
     libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.4.1"
     
 And you're done, you can now start building your own OutWatch app!
-Please check out the (documentation)[https://outwatch.github.io/] on how to proceed.
+Please check out the [documentation](https://outwatch.github.io/) on how to proceed.
 
 
 ## Three main goals of OutWatch
