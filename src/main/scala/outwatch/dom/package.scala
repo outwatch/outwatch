@@ -123,7 +123,7 @@ package object dom {
   lazy val srcset = AttributeBuilder[Any]("srcset")
   lazy val checked = BoolAttributeBuilder("checked")
   lazy val coords = AttributeBuilder[Any]("coords")
-  lazy val data = AttributeBuilder[Any]("data")
+  lazy val data = DynamicAttributeBuilder[Any](List("data")) // http://www.w3schools.com/tags/att_global_data.asp
   lazy val list = AttributeBuilder[Any]("list")
   lazy val multiple = AttributeBuilder[Any]("multiple")
   lazy val datetime = AttributeBuilder[Any]("datetime")
