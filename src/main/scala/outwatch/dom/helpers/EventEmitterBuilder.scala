@@ -1,5 +1,7 @@
 package outwatch.dom.helpers
 
+import scala.language.dynamics
+
 import org.scalajs.dom._
 import outwatch.Sink
 import outwatch.dom._
@@ -117,8 +119,19 @@ case class AttributeBuilder[T](attributeName: String){
     val attributeStream = valueStream.map(n => Attribute(attributeName, n.toString))
     AttributeStreamReceiver(attributeName, attributeStream)
   }
+}
 
+case class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
+  private lazy val name: String = parts.reverse.mkString("-")
 
+  def selectDynamic(s: String) = DynamicAttributeBuilder[T](s :: parts)
+
+  def :=(value: T) = Attribute(name, value.toString)
+
+  def <--(valueStream: Observable[T]) = {
+    val attributeStream = valueStream.map(:=)
+    AttributeStreamReceiver(name, attributeStream)
+  }
 }
 
 case class BoolAttributeBuilder(attributeName: String) {
