@@ -105,6 +105,7 @@ package object dom {
   lazy val disabled = BoolAttributeBuilder("disabled")
   lazy val style = AttributeBuilder[Any]("style")
   lazy val alt = AttributeBuilder[String]("alt")
+  lazy val href = AttributeBuilder[String]("href")
   lazy val autocomplete = AttributeBuilder[Any]("autocomplete")
   lazy val autofocus = AttributeBuilder[Any]("autofocus")
   lazy val charset = AttributeBuilder[Any]("charset")
