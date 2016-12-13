@@ -26,16 +26,17 @@ object DomUtils {
 
     val adjustedAttrs =  VDomProxy.attrsToSnabbDom(attributes)
 
-    val childReceivers: Observable[Seq[VNode]] = childStreamReceivers
-      .map(_.childStream)
-      .foldLeft(Observable.of(Seq[VNode]()))((acc, cur) => acc.combineLatestWith(cur)(_ :+ _))
+
+    val childReceivers: Observable[Seq[VNode]] = Observable.combineLatest(
+      childStreamReceivers.map(_.childStream)
+    )
 
     val childrenReceivers =
       childrenStreamReceivers.map(_.childrenStream)
 
-    val attributeReceivers: Observable[Seq[Attribute]] = attributeStreamReceivers
-      .map(_.attributeStream)
-      .foldLeft(Observable.of(Seq[Attribute]()))((acc, cur) => acc.combineLatestWith(cur)(_ :+ _))
+    val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
+      attributeStreamReceivers.map(_.attributeStream)
+    )
 
     val changables = attributeReceivers.combineLatest(childrenReceivers.getOrElse(childReceivers))
 
