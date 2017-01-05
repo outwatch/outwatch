@@ -18,6 +18,22 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     document.body.innerHTML = ""
   }
 
+  "Receivers" should "be seperated correctly" in {
+    val receivers = Seq(
+      AttributeStreamReceiver("hidden",Observable.of()),
+      AttributeStreamReceiver("disabled",Observable.of()),
+      ChildStreamReceiver(Observable.of()),
+      ChildrenStreamReceiver(Observable.of())
+    )
+
+    val (child$, children$, attribute$) = DomUtils.seperateReceivers(receivers)
+
+    child$.length shouldBe 1
+    children$.length shouldBe 1
+    attribute$.length shouldBe 2
+
+  }
+
   "VDomModifiers" should "be seperated correctly" in {
     val modifiers = Seq(
       Attribute("class", "red"),
@@ -27,18 +43,13 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val (emitters, child$, children$, attributes, attribute$, children) = DomUtils.seperateModifiers(modifiers: _*)
+    val (emitters, receivers, attributes, vNodes) = DomUtils.seperateModifiers(modifiers: _*)
 
     emitters.length shouldBe 1
-    child$.length shouldBe 0
-    children$.length shouldBe 0
+    receivers.length shouldBe 1
+    vNodes.length shouldBe 2
     attributes.length shouldBe 1
-    attribute$.length shouldBe 1
-    children.length shouldBe 2
-
-
   }
-
 
   it should "be seperated correctly with children" in {
     val modifiers = Seq(
@@ -51,7 +62,9 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       KeyEventEmitter("keyup", Subject())
     )
 
-    val (emitters, child$, children$, attributes,attribute$, children) = DomUtils.seperateModifiers(modifiers: _*)
+    val (emitters, receivers, attributes, children) = DomUtils.seperateModifiers(modifiers: _*)
+
+    val (child$, children$, attribute$) = DomUtils.seperateReceivers(receivers)
 
     emitters.length shouldBe 3
     child$.length shouldBe 0

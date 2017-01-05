@@ -50,7 +50,7 @@ object DomUtils {
     VTree(nodeType, children, dataObject, changables)
   }
 
-  def createReceiverDataObject(changeables: Observable[(Seq[Attribute], Seq[VNode])],
+  private def createReceiverDataObject(changeables: Observable[(Seq[Attribute], Seq[VNode])],
                                attributeStream: Seq[AttributeStreamReceiver],
                                attrs: js.Dictionary[String],
                                eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
@@ -67,23 +67,26 @@ object DomUtils {
 
 
 
-  def createInsertHook(changables: Observable[(Seq[Attribute], Seq[VNode])],
-                       subscriptionPromise: Promise[Option[AnonymousSubscription]]) =
-    (proxy: VNodeProxy) => {
-      val subscription = changables
-        .map(changable => {
-          val updatedObj = DataObject.updateAttributes(proxy.data,changable._1.map(a => (a.title, a.value)))
-          h(proxy.sel, updatedObj, (proxy.children ++ changable._2.map(_.asProxy)).toJSArray)
-        })
-        .startWith(proxy)
-        .pairwise
-        .subscribe(tuple => patch(tuple._1, tuple._2), e => console.error(e))
+  private def createInsertHook(changables: Observable[(Seq[Attribute], Seq[VNode])],
+                       subscriptionPromise: Promise[Option[AnonymousSubscription]]) = (proxy: VNodeProxy) => {
 
-      subscriptionPromise.success(Some(subscription))
-      ()
+    def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
+      case (attributes, nodes) =>
+        val updatedObj = DataObject.updateAttributes(proxy.data, attributes.map(a => (a.title, a.value)))
+        h(proxy.sel, updatedObj, (proxy.children ++ nodes.map(_.asProxy)).toJSArray)
+    }
+
+    val subscription = changables
+      .map(toProxy)
+      .startWith(proxy)
+      .pairwise
+      .subscribe(tuple => patch(tuple._1, tuple._2), e => console.error(e))
+
+    subscriptionPromise.success(Some(subscription))
+    ()
   }
 
-  def createDestoryHook(subscriptionPromise: Promise[Option[AnonymousSubscription]]) = (proxy: VNodeProxy) => {
+  private def createDestoryHook(subscriptionPromise: Promise[Option[AnonymousSubscription]]) = (proxy: VNodeProxy) => {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     subscriptionPromise.future.foreach(_.foreach(_.unsubscribe()))
@@ -91,21 +94,26 @@ object DomUtils {
 
 
   def seperateModifiers(args: VDomModifier*) = {
-      args.foldRight((Seq[Emitter](), Seq[ChildStreamReceiver](),  Seq[ChildrenStreamReceiver](),
-          Seq[Attribute](), Seq[AttributeStreamReceiver](), Seq[VNode]())) {
-        case (em: Emitter, (ems, crs, csr, ats, ars, vns)) => (em +: ems, crs, csr, ats, ars, vns)
-        case (cr: ChildStreamReceiver, (ems, crs, csr, ats, ars, vns)) => (ems, cr +: crs, csr, ats, ars, vns)
-        case (cs: ChildrenStreamReceiver, (ems, crs, csr, ats, ars, vns)) => (ems, crs, cs +: csr, ats, ars, vns)
-        case (at: Attribute, (ems, crs, csr, ats, ars, vns)) => (ems, crs, csr, at +: ats, ars, vns)
-        case (ar: AttributeStreamReceiver, (ems, crs, csr, ats, ars, vns)) => (ems, crs, csr, ats, ar +: ars, vns)
-        case (vn: VNode, (ems, crs, csr, ats, ars, vns)) => (ems, crs, csr, ats, ars, vn +: vns)
+      args.foldRight((Seq[Emitter](), Seq[Receiver](), Seq[Attribute](), Seq[VNode]())) {
+        case (em: Emitter, (ems, rcs, ats, vns)) => (em +: ems, rcs, ats, vns)
+        case (rc: Receiver, (ems, rcs, ats, vns)) => (ems, rc +: rcs, ats, vns)
+        case (at: Attribute, (ems, rcs, ats, vns)) => (ems, rcs, at +: ats,  vns)
+        case (vn: VNode, (ems, rcs, ats, vns)) => (ems, rcs, ats, vn +: vns)
       }
   }
 
+  def seperateReceivers(receivers: Seq[Receiver]) = {
+    receivers.foldRight((Seq[ChildStreamReceiver](), Seq[ChildrenStreamReceiver](), Seq[AttributeStreamReceiver]())) {
+      case (cr: ChildStreamReceiver, (crs, css, ars)) => (cr +: crs, css, ars)
+      case (cs: ChildrenStreamReceiver, (crs, css, ars)) => (crs, cs +: css, ars)
+      case (ar: AttributeStreamReceiver, (crs, css, ars)) => ( crs, css, ar +: ars)
+    }
+  }
 
   def hyperscriptHelper(nodeType: String)(args: VDomModifier*): VNode = {
-    val (emitters, childReceivers, childrenReceivers, attributes, attributeReceivers, children) =
-      seperateModifiers(args: _*)
+    val (emitters, receivers, attributes, children) = seperateModifiers(args: _*)
+
+    val (childReceivers, childrenReceivers, attributeReceivers) = seperateReceivers(receivers)
 
     constructVNode(nodeType,emitters,childReceivers, childrenReceivers.headOption, attributes,attributeReceivers,children)
   }

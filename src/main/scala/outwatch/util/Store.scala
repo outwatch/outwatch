@@ -16,5 +16,4 @@ case class Store[T, U](initialState: T, reducer: (T,U) => T) {
 object Store {
   implicit def toSink[U](store: Store[_,U]): Sink[U] = store.sink
   implicit def toSource[T](store: Store[T,_]): Observable[T] = store.source
-
 }

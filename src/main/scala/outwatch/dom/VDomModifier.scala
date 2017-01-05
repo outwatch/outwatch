@@ -28,9 +28,12 @@ case class BoolEventEmitter(eventType: String, sink: Subject[Boolean]) extends E
 case class NumberEventEmitter(eventType: String, sink: Subject[Double]) extends Emitter
 
 case class Attribute(title: String, value: String) extends VDomModifier
-case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier
-case class ChildStreamReceiver(childStream: Observable[VNode]) extends VDomModifier
-case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends VDomModifier
+
+sealed trait Receiver extends VDomModifier
+
+case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends Receiver
+case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
+case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
 sealed trait VNode extends VDomModifier {
   val asProxy: VNodeProxy

@@ -20,19 +20,25 @@ trait DataObject extends js.Object {
 
 object DataObject {
   def apply(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]]): DataObject = {
-    js.Dynamic.literal(attrs= attrs, on= on).asInstanceOf[DataObject]
+    js.Dynamic.literal(attrs = attrs, on = on).asInstanceOf[DataObject]
   }
 
   def createWithHooks(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit], destroy: js.Function1[VNodeProxy,Unit]): DataObject = {
-    js.Dynamic.literal(attrs= attrs, on= on, hook=js.Dynamic.literal(insert= insert, destroy= destroy))
-      .asInstanceOf[DataObject]
+    js.Dynamic.literal(
+      attrs = attrs,
+      on = on,
+      hook = js.Dynamic.literal(insert= insert, destroy= destroy)
+    ).asInstanceOf[DataObject]
   }
 
   def createWithValue(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit], destroy: js.Function1[VNodeProxy,Unit]): DataObject = {
-    js.Dynamic.literal(attrs= attrs, on= on, hook=js.Dynamic.literal(insert= insert, destroy= destroy, update= updateHook))
-      .asInstanceOf[DataObject]
+    js.Dynamic.literal(
+      attrs= attrs,
+      on= on,
+      hook=js.Dynamic.literal(insert= insert, destroy= destroy, update= updateHook)
+    ).asInstanceOf[DataObject]
   }
 
   lazy val updateHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
@@ -47,13 +53,13 @@ object DataObject {
     import scala.scalajs.js.JSConverters._
 
     val newProps = (obj.attrs ++ attrs).toJSDictionary
-    js.Dynamic.literal(attrs= newProps, on = obj.on, hook = obj.hook).asInstanceOf[DataObject]
+    js.Dynamic.literal(attrs = newProps, on = obj.on, hook = obj.hook).asInstanceOf[DataObject]
   }
 }
 
 object patch {
   lazy val p = snabbdom.init(js.Array(snabbdom_class,snabbdom_eventlisteners,snabbdom_attributes, snabbdom_props))
-  def apply(firstNode: Any | VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
+  def apply(firstNode: org.scalajs.dom.raw.Element | VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
 }
 
 @js.native
