@@ -87,3 +87,14 @@ case class NumberEventEmitterBuilder(eventType: String) {
     GenericMappedEmitterBuilder(NumberEventEmitter(eventType, _: Subject[Double]), f)
 }
 
+class InsertHookBuilder() {
+  def -->(sink: Sink[Unit]) = InsertHook(sink.asInstanceOf[Subject[Unit]])
+}
+
+class DestroyHookBuilder() {
+  def -->(sink: Sink[Unit]) = DestroyHook(sink.asInstanceOf[Subject[Unit]])
+}
+
+class UpdateHookBuilder() {
+  def -->(sink: Sink[Unit]) = UpdateHook(sink.asInstanceOf[Subject[Unit]])
+}

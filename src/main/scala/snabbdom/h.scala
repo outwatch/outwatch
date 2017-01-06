@@ -20,24 +20,40 @@ trait DataObject extends js.Object {
 
 object DataObject {
   def apply(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]]): DataObject = {
-    js.Dynamic.literal(attrs = attrs, on = on).asInstanceOf[DataObject]
+    js.Dynamic.literal(attrs = attrs, on = on, hook = js.Dynamic.literal()).asInstanceOf[DataObject]
   }
 
-  def createWithHooks(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]],
-                      insert: js.Function1[VNodeProxy,Unit], destroy: js.Function1[VNodeProxy,Unit]): DataObject = {
+  def createWithHooks(attrs: js.Dictionary[String],
+                      on: js.Dictionary[js.Function1[Event,Unit]],
+                      insert: js.Function1[VNodeProxy,Unit],
+                      destroy: js.Function1[VNodeProxy,Unit],
+                      update: js.Function0[Unit]): DataObject = {
+
+
+    val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => update()
+
     js.Dynamic.literal(
       attrs = attrs,
       on = on,
-      hook = js.Dynamic.literal(insert= insert, destroy= destroy)
+      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook)
     ).asInstanceOf[DataObject]
   }
 
-  def createWithValue(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]],
-                      insert: js.Function1[VNodeProxy,Unit], destroy: js.Function1[VNodeProxy,Unit]): DataObject = {
+  def createWithValue(attrs: js.Dictionary[String],
+                      on: js.Dictionary[js.Function1[Event,Unit]],
+                      insert: js.Function1[VNodeProxy,Unit],
+                      destroy: js.Function1[VNodeProxy,Unit],
+                      update: js.Function0[Unit]): DataObject = {
+
+    val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
+      update()
+      updateHook(old, node)
+    }
+
     js.Dynamic.literal(
-      attrs= attrs,
-      on= on,
-      hook=js.Dynamic.literal(insert= insert, destroy= destroy, update= updateHook)
+      attrs = attrs,
+      on = on,
+      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook)
     ).asInstanceOf[DataObject]
   }
 

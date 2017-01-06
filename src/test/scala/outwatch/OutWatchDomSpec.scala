@@ -34,7 +34,25 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
   }
 
-  "VDomModifiers" should "be seperated correctly" in {
+  "Properties" should "be separated correctly" in {
+    val unit = Subject[Unit]()
+    val properties = Seq(
+      Attribute("hidden", "true"),
+      InsertHook(unit),
+      UpdateHook(unit),
+      InsertHook(unit),
+      DestroyHook(unit)
+    )
+
+    val (inserts, deletes, updates, attributes) = DomUtils.separateProperties(properties)
+
+    inserts.length shouldBe 2
+    deletes.length shouldBe 1
+    updates.length shouldBe 1
+    attributes.length shouldBe 1
+  }
+
+  "VDomModifiers" should "be separated correctly" in {
     val modifiers = Seq(
       Attribute("class", "red"),
       EventEmitter("click", Subject()),
@@ -43,15 +61,15 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val (emitters, receivers, attributes, vNodes) = DomUtils.seperateModifiers(modifiers: _*)
+    val (emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers: _*)
 
     emitters.length shouldBe 1
     receivers.length shouldBe 1
     vNodes.length shouldBe 2
-    attributes.length shouldBe 1
+    properties.length shouldBe 1
   }
 
-  it should "be seperated correctly with children" in {
+  it should "be separated correctly with children" in {
     val modifiers = Seq(
       Attribute("class","red"),
       EventEmitter("click",Subject()),
@@ -62,13 +80,44 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       KeyEventEmitter("keyup", Subject())
     )
 
-    val (emitters, receivers, attributes, children) = DomUtils.seperateModifiers(modifiers: _*)
+    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers: _*)
 
-    val (child$, children$, attribute$) = DomUtils.seperateReceivers(receivers)
+    val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
     emitters.length shouldBe 3
     child$.length shouldBe 0
     children$.length shouldBe 1
+    properties.length shouldBe 1
+    attribute$.length shouldBe 2
+    children.length shouldBe 0
+
+  }
+
+  it should "be separated correctly with children and properties" in {
+    val modifiers = Seq(
+      Attribute("class","red"),
+      EventEmitter("click",Subject()),
+      InputEventEmitter("input", Subject()),
+      UpdateHook(Subject[Unit]()),
+      AttributeStreamReceiver("hidden",Observable.of()),
+      AttributeStreamReceiver("disabled",Observable.of()),
+      ChildrenStreamReceiver(Observable.of()),
+      KeyEventEmitter("keyup", Subject()),
+      InsertHook(Subject[Unit]())
+    )
+
+    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers: _*)
+
+    val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
+
+    val (inserts, deletes, updates, attributes) = DomUtils.separateProperties(properties)
+
+    emitters.length shouldBe 3
+    child$.length shouldBe 0
+    children$.length shouldBe 1
+    inserts.length shouldBe 1
+    deletes.length shouldBe 0
+    updates.length shouldBe 1
     attributes.length shouldBe 1
     attribute$.length shouldBe 2
     children.length shouldBe 0

@@ -167,6 +167,10 @@ package object dom {
   lazy val inputBool = BoolEventEmitterBuilder("change")
   lazy val inputNumber = NumberEventEmitterBuilder("input")
 
+  lazy val update = new UpdateHookBuilder()
+  lazy val insert = new InsertHookBuilder()
+  lazy val destroy = new DestroyHookBuilder()
+
   lazy val child = ChildStreamReceiverBuilder()
 
   lazy val children = ChildrenStreamReceiverBuilder()

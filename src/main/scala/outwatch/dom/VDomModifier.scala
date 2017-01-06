@@ -16,6 +16,13 @@ sealed trait Emitter extends VDomModifier {
   val eventType: String
 }
 
+sealed trait Property extends VDomModifier
+
+sealed trait Receiver extends VDomModifier
+
+sealed trait VNode extends VDomModifier {
+  val asProxy: VNodeProxy
+}
 
 
 case class EventEmitter(eventType: String, sink: Subject[_ <: Event]) extends Emitter
@@ -27,17 +34,17 @@ case class StringEventEmitter(eventType: String, sink: Subject[String]) extends 
 case class BoolEventEmitter(eventType: String, sink: Subject[Boolean]) extends Emitter
 case class NumberEventEmitter(eventType: String, sink: Subject[Double]) extends Emitter
 
-case class Attribute(title: String, value: String) extends VDomModifier
-
-sealed trait Receiver extends VDomModifier
+case class Attribute(title: String, value: String) extends Property
+case class InsertHook(sink: Subject[Unit]) extends Property
+case class DestroyHook(sink: Subject[Unit]) extends Property
+case class UpdateHook(sink: Subject[Unit]) extends Property
 
 case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends Receiver
 case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
 case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
-sealed trait VNode extends VDomModifier {
-  val asProxy: VNodeProxy
-}
+
+
 
 object VDomModifier {
   implicit class StringNode(string: String) extends VNode {
@@ -57,6 +64,7 @@ object VDomModifier {
 
   }
 }
+
 
 
 
