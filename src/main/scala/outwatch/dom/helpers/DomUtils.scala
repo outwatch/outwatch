@@ -73,7 +73,7 @@ object DomUtils {
 
 
   private def createInsertHook(changables: Observable[(Seq[Attribute], Seq[VNode])],
-                       subscriptionPromise: Promise[Option[Subscription]]) = (proxy: VNodeProxy) => {
+                               promise: Promise[Option[Subscription]]) = (proxy: VNodeProxy) => {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
@@ -85,9 +85,9 @@ object DomUtils {
       .map(toProxy)
       .startWith(proxy)
       .pairwise
-      .subscribe(tuple => patch(tuple._1, tuple._2), e => console.error(e))
+      .subscribe(tuple => patch(tuple._1, tuple._2), console.error(_))
 
-    subscriptionPromise.success(Some(subscription))
+    promise.success(Some(subscription))
     ()
   }
 
