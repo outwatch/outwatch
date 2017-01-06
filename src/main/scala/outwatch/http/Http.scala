@@ -15,36 +15,40 @@ object Http {
   case object Option extends HttpRequestType
   case object Head extends HttpRequestType
 
-  private def request(observable: Observable[HttpRequest], requestType: HttpRequestType): Observable[HttpResponse] = {
+  case class Request(url: String, data: String = "", timeout: Int = 0,
+                     headers: Map[String, String] = Map.empty,
+                     withCredentials: Boolean = false, responseType: String = "")
+
+  case class Response(body: String, status: Int, responseType: String)
+
+  private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] = {
     observable.switchMap(data => Observable.ajax(data.url).map(mapToResponse)).share
   }
 
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) = {
-    request(urls.map(url => HttpRequest(url)), requestType: HttpRequestType)
+    request(urls.map(url => Request(url)), requestType: HttpRequestType)
   }
 
+  def get(urls: Observable[String]) = requestWithUrl(urls, Get)
+
+  def getWithBody(requests: Observable[Request]) = request(requests, Get)
+
+  def post(requests: Observable[Request]) = request(requests, Post)
+
+  def delete(requests: Observable[Request]) = request(requests, Delete)
+
+  def put(requests: Observable[Request]) = request(requests, Put)
+
+  def option(requests: Observable[Request]) = request(requests, Option)
+
+  def head(requests: Observable[Request]) = request(requests, Head)
+
+
   private def mapToResponse(d: js.Dynamic) = {
-    HttpResponse(
+    Response(
       d.response.asInstanceOf[String],
       d.status.asInstanceOf[Int],
       d.responseType.asInstanceOf[String])
   }
-
-
-  def get(urls: Observable[String]) = requestWithUrl(urls, Get)
-
-  def post(requests: Observable[HttpRequest]): Observable[js.Dynamic] =  {
-    requests.switchMap(http => Observable.ajax(http.url)).share
-  }
-
-  def delete(requests: Observable[HttpRequest]): Observable[HttpResponse] = {
-    request(requests, Delete).share
-  }
-
-  case class HttpRequest(url: String, data: String = "", timeout: Int = 0,
-                         headers: Map[String, String] = Map.empty,
-                         withCredentials: Boolean = false, responseType: String = "")
-
-  case class HttpResponse(body: String, status: Int, responseType: String)
 
 }

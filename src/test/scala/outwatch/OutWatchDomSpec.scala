@@ -18,7 +18,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     document.body.innerHTML = ""
   }
 
-  "Receivers" should "be seperated correctly" in {
+  "Receivers" should "be separated correctly" in {
     val receivers = Seq(
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
@@ -26,7 +26,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       ChildrenStreamReceiver(Observable.of())
     )
 
-    val (child$, children$, attribute$) = DomUtils.seperateReceivers(receivers)
+    val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
     child$.length shouldBe 1
     children$.length shouldBe 1

@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import outwatch.dom.VDomModifier.VTree
 import outwatch.dom._
 import rxscalajs.Observable
-import rxscalajs.subscription.AnonymousSubscription
+import rxscalajs.subscription.Subscription
 import snabbdom._
 
 import scala.concurrent.Promise
@@ -54,7 +54,8 @@ object DomUtils {
                                attributeStream: Seq[AttributeStreamReceiver],
                                attrs: js.Dictionary[String],
                                eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
-    val subscriptionPromise = Promise[Option[AnonymousSubscription]]
+
+    val subscriptionPromise = Promise[Option[Subscription]]
     val insertHook = createInsertHook(changeables, subscriptionPromise)
     val deleteHook = createDestoryHook(subscriptionPromise)
 
@@ -65,10 +66,14 @@ object DomUtils {
     }
   }
 
+  private def createDataObject(attrs: js.Dictionary[String], handlers: js.Dictionary[js.Function1[Event, Unit]]) = {
+    DataObject(attrs, handlers)
+  }
+
 
 
   private def createInsertHook(changables: Observable[(Seq[Attribute], Seq[VNode])],
-                       subscriptionPromise: Promise[Option[AnonymousSubscription]]) = (proxy: VNodeProxy) => {
+                       subscriptionPromise: Promise[Option[Subscription]]) = (proxy: VNodeProxy) => {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
