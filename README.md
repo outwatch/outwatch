@@ -23,7 +23,7 @@ Please check out the [documentation](https://outwatch.github.io/) on how to proc
 
 ## Bugs and Feedback
 
-For bugs, questions and discussions please use the [Github Issues](https://github.com/issues).
+For bugs, questions and discussions please use the [Github Issues](https://github.com/OutWatch/outwatch/issues).
 
 ## LICENSE
 
