@@ -35,13 +35,12 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "Properties" should "be separated correctly" in {
-    val unit = Subject[Unit]()
     val properties = Seq(
       Attribute("hidden", "true"),
-      InsertHook(unit),
-      UpdateHook(unit),
-      InsertHook(unit),
-      DestroyHook(unit)
+      InsertHook(Subject()),
+      UpdateHook(Subject()),
+      InsertHook(Subject()),
+      DestroyHook(Subject())
     )
 
     val (inserts, deletes, updates, attributes) = DomUtils.separateProperties(properties)
@@ -98,12 +97,12 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Attribute("class","red"),
       EventEmitter("click",Subject()),
       InputEventEmitter("input", Subject()),
-      UpdateHook(Subject[Unit]()),
+      UpdateHook(Subject()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
       KeyEventEmitter("keyup", Subject()),
-      InsertHook(Subject[Unit]())
+      InsertHook(Subject())
     )
 
     val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers: _*)
