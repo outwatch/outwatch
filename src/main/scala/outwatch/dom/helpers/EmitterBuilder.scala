@@ -88,13 +88,13 @@ case class NumberEventEmitterBuilder(eventType: String) {
 }
 
 class InsertHookBuilder() {
-  def -->(sink: Sink[Unit]) = InsertHook(sink.asInstanceOf[Subject[Unit]])
+  def -->(sink: Sink[Element]) = InsertHook(sink.asInstanceOf[Subject[Element]])
 }
 
 class DestroyHookBuilder() {
-  def -->(sink: Sink[Unit]) = DestroyHook(sink.asInstanceOf[Subject[Unit]])
+  def -->(sink: Sink[Element]) = DestroyHook(sink.asInstanceOf[Subject[Element]])
 }
 
 class UpdateHookBuilder() {
-  def -->(sink: Sink[Unit]) = UpdateHook(sink.asInstanceOf[Subject[Unit]])
+  def -->(sink: Sink[(Element, Element)]) = UpdateHook(sink.asInstanceOf[Subject[(Element,Element)]])
 }

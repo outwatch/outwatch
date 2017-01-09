@@ -56,9 +56,9 @@ object DomUtils {
 
     val attrs = VDomProxy.attrsToSnabbDom(attributes)
     val subscriptionPromise = Promise[Option[Subscription]]
-    val insertHook = createInsertHook(changeables, subscriptionPromise, insert.foreach(_.sink.next(())))
-    val deleteHook = createDestoryHook(subscriptionPromise, delete.foreach(_.sink.next(())))
-    val updateHook = () => update.foreach(_.sink.next(()))
+    val insertHook = createInsertHook(changeables, subscriptionPromise)(e => insert.foreach(_.sink.next(e)))
+    val deleteHook = createDestoryHook(subscriptionPromise)(e => delete.foreach(_.sink.next(e)))
+    val updateHook = createUpdateHook(update)
 
     if (attributeStream.exists(_.attribute == "value")){
       DataObject.createWithValue(attrs, eventHandlers, insertHook, deleteHook, updateHook)
@@ -72,17 +72,22 @@ object DomUtils {
     val (insert, delete, update, attributes) = separateProperties(props)
     val attrs = VDomProxy.attrsToSnabbDom(attributes)
 
-    val insertHook = (p: VNodeProxy) => insert.foreach(_.sink.next(()))
-    val deleteHook = (p: VNodeProxy) => delete.foreach(_.sink.next(()))
-    val updateHook = () => update.foreach(_.sink.next(()))
+    val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
+    val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
+    val updateHook = createUpdateHook(update)
     DataObject.createWithHooks(attrs, handlers, insertHook, deleteHook, updateHook)
   }
 
 
+  private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
+    val tupled = old.elm.flatMap(o => cur.elm.map(o -> _))
+    tupled.foreach(pair => hooks.foreach(_.sink.next(pair)))
+  }
+
 
   private def createInsertHook(changables: Observable[(Seq[Attribute], Seq[VNode])],
-                               promise: Promise[Option[Subscription]],
-                               callback: => Unit) = (proxy: VNodeProxy) => {
+                               promise: Promise[Option[Subscription]])
+                              (callback: Element => Unit) = (proxy: VNodeProxy) => {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
@@ -96,16 +101,16 @@ object DomUtils {
       .pairwise
       .subscribe(tuple => patch(tuple._1, tuple._2), console.error(_))
 
-    callback
+    proxy.elm.foreach(callback)
 
     promise.success(Some(subscription))
     ()
   }
 
-  private def createDestoryHook(promise: Promise[Option[Subscription]], callback: => Unit) = (proxy: VNodeProxy) => {
+  private def createDestoryHook(promise: Promise[Option[Subscription]])(callback: Element => Unit) = (proxy: VNodeProxy) => {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    callback
+    proxy.elm.foreach(callback)
     promise.future.foreach(_.foreach(_.unsubscribe()))
   }
 

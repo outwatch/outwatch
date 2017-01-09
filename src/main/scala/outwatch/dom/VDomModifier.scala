@@ -35,9 +35,9 @@ case class BoolEventEmitter(eventType: String, sink: Subject[Boolean]) extends E
 case class NumberEventEmitter(eventType: String, sink: Subject[Double]) extends Emitter
 
 case class Attribute(title: String, value: String) extends Property
-case class InsertHook(sink: Subject[Unit]) extends Property
-case class DestroyHook(sink: Subject[Unit]) extends Property
-case class UpdateHook(sink: Subject[Unit]) extends Property
+case class InsertHook(sink: Subject[Element]) extends Property
+case class DestroyHook(sink: Subject[Element]) extends Property
+case class UpdateHook(sink: Subject[(Element, Element)]) extends Property
 
 case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends Receiver
 case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver

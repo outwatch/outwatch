@@ -27,15 +27,13 @@ object DataObject {
                       on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit],
                       destroy: js.Function1[VNodeProxy,Unit],
-                      update: js.Function0[Unit]): DataObject = {
+                      update: js.Function2[VNodeProxy, VNodeProxy, Unit]): DataObject = {
 
-
-    val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => update()
 
     js.Dynamic.literal(
       attrs = attrs,
       on = on,
-      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook)
+      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = update)
     ).asInstanceOf[DataObject]
   }
 
@@ -43,10 +41,10 @@ object DataObject {
                       on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit],
                       destroy: js.Function1[VNodeProxy,Unit],
-                      update: js.Function0[Unit]): DataObject = {
+                      update: js.Function2[VNodeProxy, VNodeProxy, Unit]): DataObject = {
 
     val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
-      update()
+      update(old, node)
       updateHook(old, node)
     }
 
@@ -58,7 +56,8 @@ object DataObject {
   }
 
   lazy val updateHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
-    node.elm.foreach(input => {
+    node.elm.foreach(elm => {
+      val input = elm.asInstanceOf[HTMLInputElement]
       if (input.value != input.getAttribute("value")) {
         input.value = input.getAttribute("value")
       }
@@ -80,7 +79,7 @@ object patch {
 
 @js.native
 trait VNodeProxy extends js.Object {
-  val elm: js.UndefOr[HTMLInputElement]
+  val elm: js.UndefOr[Element]
   val data: DataObject
   val children: js.Array[VNodeProxy]
   val sel: String
