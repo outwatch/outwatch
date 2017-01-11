@@ -142,6 +142,7 @@ package object dom {
   lazy val usemap = AttributeBuilder[Any]("usemap")
   lazy val wrap = AttributeBuilder[Any]("wrap")
   lazy val `type` = AttributeBuilder[Any]("type")
+  lazy val role = AttributeBuilder[String]("role")
   lazy val tpe = `type`
   lazy val inputType = `type`
   lazy val className = AttributeBuilder[String]("class")
