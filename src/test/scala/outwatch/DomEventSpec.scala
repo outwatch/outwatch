@@ -4,9 +4,16 @@ import org.scalatest.BeforeAndAfterEach
 import rxscalajs.Subject
 import org.scalajs.dom.raw.{HTMLInputElement, MouseEvent}
 import org.scalajs.dom._
+import org.scalatest.prop.PropertyChecks
 import outwatch.dom.helpers.DomUtils
 
-class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
+class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
+
+  override def beforeEach(): Unit = {
+    val root = document.createElement("div")
+    root.id = "app"
+    document.body.appendChild(root)
+  }
 
   override def afterEach(): Unit = {
     document.body.innerHTML = ""
@@ -14,16 +21,14 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
 
   "EventStreams" should "emit and receive events correctly" in {
     import outwatch.dom._
-    val observable = createMouseHandler
+    val observable = createMouseHandler()
     val buttonDisabled = observable.mapTo(true).startWith(false)
     val vtree = div(id :="click", click --> observable,
       button(id := "btn", disabled <-- buttonDisabled)
     )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
 
-    DomUtils.render(root, vtree)
+    OutWatch.render("#app", vtree)
 
     document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
@@ -36,29 +41,31 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
 
   it should "be converted to a generic emitter correctly" in {
     import outwatch.dom._
-    val observable = createStringHandler
-    val message = "Hello!"
-    val vtree = div(id :="click", click(message) --> observable,
-      span(id := "child", child <-- observable)
-    )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
 
-    DomUtils.render(root, vtree)
+        val observable = createStringHandler()
 
-    document.getElementById("child").innerHTML shouldBe ""
+        val message = "ad"
+        val vtree = div(id := "click", click(message) --> observable,
+          span(id := "child", child <-- observable)
+        )
 
-    val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
+        OutWatch.render("#app", vtree)
 
-    document.getElementById("child").innerHTML shouldBe message
+        document.getElementById("child").innerHTML shouldBe ""
 
-    //dispatch another event
-    document.getElementById("click").dispatchEvent(event)
+        val event = document.createEvent("Events")
+        event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+        document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("child").innerHTML shouldBe message
+        document.getElementById("child").innerHTML shouldBe message
+
+        //dispatch another event
+        document.getElementById("click").dispatchEvent(event)
+
+        document.getElementById("child").innerHTML shouldBe message
+
+
   }
 
   it should "be converted to a generic stream emitter correctly" in {
@@ -69,10 +76,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
       span(id := "child", child <-- stream)
     )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
-
-    DomUtils.render(root, vtree)
+    OutWatch.render("#app", vtree)
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -104,10 +108,9 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
     val values = Subject[String]
 
     val vtree = input(id:= "input", outwatch.dom.value <-- values)
-    val root = document.createElement("div")
-    document.body.appendChild(root)
 
-    DomUtils.render(root, vtree)
+    OutWatch.render("#app", vtree)
+
     val patched = document.getElementById("input").asInstanceOf[HTMLInputElement]
 
     patched.value shouldBe ""
@@ -138,10 +141,8 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
       ul(id:= "list", children <-- state)
     )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
+    OutWatch.render("#app", vtree)
 
-    DomUtils.render(root, vtree)
     val list = document.getElementById("list")
 
     list.childElementCount shouldBe 0
@@ -192,10 +193,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
       span(id:="second",child <-- second)
     )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
-
-    DomUtils.render(root, node)
+    OutWatch.render("#app", node)
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
@@ -221,10 +219,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
       span(id:="num",child <-- stream.map(_._2))
     )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
-
-    DomUtils.render(root, node)
+    OutWatch.render("#app", node)
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
@@ -247,10 +242,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach {
       span(id:="num",child <-- stream)
     )
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
-
-    DomUtils.render(root, node)
+    OutWatch.render("#app", node)
 
     val inputEvt = document.createEvent("HTMLEvents")
     inputEvt.initEvent("input", false, true)

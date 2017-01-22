@@ -5,11 +5,11 @@ import outwatch.Sink
 import outwatch.dom.{BoolEventEmitter, MouseEventEmitter, NumberEventEmitter, StringEventEmitter, _}
 import rxscalajs.{Observable, Subject}
 
-case class GenericEmitterBuilder[T](eventType: String, t: T) {
-  def -->[U >: T](sink: Sink[U]) = GenericEmitter(eventType, sink.asInstanceOf[Subject[U]], t)
+final case class GenericEmitterBuilder[T](eventType: String, t: T) {
+  def -->[U >: T](sink: Sink[U]) = GenericEmitter(eventType, sink.observer, t)
 }
 
-case class GenericMappedEmitterBuilder[T,E](constructor: Subject[E] => Emitter, mapping: E => T){
+final case class GenericMappedEmitterBuilder[T,E](constructor: Subject[E] => Emitter, mapping: E => T){
   def -->[U >: T](sink: Sink[U]) = {
     val proxy = Subject[E]
     sink <-- proxy.map(mapping)
@@ -17,19 +17,18 @@ case class GenericMappedEmitterBuilder[T,E](constructor: Subject[E] => Emitter, 
   }
 }
 
-case class GenericStreamEmitterBuilder[T](eventType: String, stream: Observable[T]) {
+final case class GenericStreamEmitterBuilder[T](eventType: String, stream: Observable[T]) {
   def -->[U >: T](sink: Sink[U]) = {
     val proxy = Subject[Event]()
-    proxy
+    sink <-- proxy
       .withLatestFrom(stream)
       .map(_._2)
-      .subscribe(t => sink.asInstanceOf[Subject[U]].next(t))
     EventEmitter(eventType, proxy)
   }
 }
-case class InputEventEmitterBuilder(eventType: String){
+final class InputEventEmitterBuilder(eventType: String){
   def --> (sink: Sink[InputEvent]) =
-    InputEventEmitter(eventType, sink.asInstanceOf[Subject[InputEvent]])
+    InputEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
@@ -39,9 +38,9 @@ case class InputEventEmitterBuilder(eventType: String){
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-case class KeyEventEmitterBuilder(eventType: String){
+final class KeyEventEmitterBuilder(eventType: String){
   def -->(sink: Sink[KeyboardEvent]) =
-    KeyEventEmitter(eventType, sink.asInstanceOf[Subject[KeyboardEvent]])
+    KeyEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
@@ -51,9 +50,9 @@ case class KeyEventEmitterBuilder(eventType: String){
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-case class MouseEventEmitterBuilder(eventType: String) {
+final class MouseEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[MouseEvent]) =
-    MouseEventEmitter(eventType, sink.asInstanceOf[Subject[MouseEvent]])
+    MouseEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
 
@@ -63,38 +62,38 @@ case class MouseEventEmitterBuilder(eventType: String) {
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-case class StringEventEmitterBuilder(eventType: String) {
+final class StringEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[String]) =
-    StringEventEmitter(eventType, sink.asInstanceOf[Subject[String]])
+    StringEventEmitter(eventType, sink.observer)
 
   def apply[T](f: String => T) =
     GenericMappedEmitterBuilder(StringEventEmitter(eventType, _: Subject[String]), f)
 }
 
-case class BoolEventEmitterBuilder(eventType: String) {
+final class BoolEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[Boolean]) =
-    BoolEventEmitter(eventType, sink.asInstanceOf[Subject[Boolean]])
+    BoolEventEmitter(eventType, sink.observer)
 
   def apply[T](f: Boolean => T) =
     GenericMappedEmitterBuilder(BoolEventEmitter(eventType, _: Subject[Boolean]), f)
 }
 
-case class NumberEventEmitterBuilder(eventType: String) {
+final class NumberEventEmitterBuilder(eventType: String) {
   def -->(sink: Sink[Double]) =
-    NumberEventEmitter(eventType, sink.asInstanceOf[Subject[Double]])
+    NumberEventEmitter(eventType, sink.observer)
 
   def apply[T](f: Double => T) =
     GenericMappedEmitterBuilder(NumberEventEmitter(eventType, _: Subject[Double]), f)
 }
 
-class InsertHookBuilder() {
-  def -->(sink: Sink[Element]) = InsertHook(sink.asInstanceOf[Subject[Element]])
+final class InsertHookBuilder() {
+  def -->(sink: Sink[Element]) = InsertHook(sink.observer)
 }
 
-class DestroyHookBuilder() {
-  def -->(sink: Sink[Element]) = DestroyHook(sink.asInstanceOf[Subject[Element]])
+final class DestroyHookBuilder() {
+  def -->(sink: Sink[Element]) = DestroyHook(sink.observer)
 }
 
-class UpdateHookBuilder() {
-  def -->(sink: Sink[(Element, Element)]) = UpdateHook(sink.asInstanceOf[Subject[(Element,Element)]])
+final class UpdateHookBuilder() {
+  def -->(sink: Sink[(Element, Element)]) = UpdateHook(sink.observer)
 }

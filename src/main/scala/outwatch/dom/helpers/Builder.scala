@@ -2,13 +2,11 @@ package outwatch.dom.helpers
 
 import scala.language.dynamics
 
-import org.scalajs.dom._
-import outwatch.Sink
 import outwatch.dom._
-import rxscalajs.{Observable, Subject}
+import rxscalajs.Observable
 
 
-case class ChildStreamReceiverBuilder() {
+final class ChildStreamReceiverBuilder() {
   def <--[T <: Any](valueStream: Observable[T]): ChildStreamReceiver = {
     ChildStreamReceiver(valueStream.map(anyToVNode))
   }
@@ -19,14 +17,14 @@ case class ChildStreamReceiverBuilder() {
   }
 }
 
-case class ChildrenStreamReceiverBuilder() {
+final class ChildrenStreamReceiverBuilder() {
   def <--(childrenStream: Observable[Seq[VNode]]) = {
     ChildrenStreamReceiver(childrenStream)
   }
 }
 
 
-case class AttributeBuilder[T](attributeName: String){
+final class AttributeBuilder[T](attributeName: String){
   def :=(value: T) = Attribute(attributeName, value.toString)
 
   def <--(valueStream: Observable[T]) = {
@@ -35,10 +33,10 @@ case class AttributeBuilder[T](attributeName: String){
   }
 }
 
-case class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
+final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
   private lazy val name: String = parts.reverse.mkString("-")
 
-  def selectDynamic(s: String) = DynamicAttributeBuilder[T](s :: parts)
+  def selectDynamic(s: String) = new DynamicAttributeBuilder[T](s :: parts)
 
   def :=(value: T) = Attribute(name, value.toString)
 
@@ -48,7 +46,7 @@ case class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
   }
 }
 
-case class BoolAttributeBuilder(attributeName: String) {
+final case class BoolAttributeBuilder(attributeName: String) {
   def :=(value: Boolean) = Attribute(attributeName, toEmptyIfFalse(value))
 
   def <--(valueStream: Observable[Boolean]) = {

@@ -5,7 +5,13 @@ import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
 import rxscalajs.Observable
 
-class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach  {
+class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
+
+  override def beforeEach(): Unit = {
+    val root = document.createElement("div")
+    root.id = "app"
+    document.body.appendChild(root)
+  }
 
   override def afterEach(): Unit = {
     document.body.innerHTML = ""
@@ -20,10 +26,6 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach  {
     val node = div(insert --> sink)
 
     switch shouldBe false
-
-    val root = document.createElement("div")
-    root.id = "app"
-    document.body.appendChild(root)
 
     OutWatch.render("#app", node)
 
@@ -41,10 +43,6 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach  {
 
     switch shouldBe false
 
-    val root = document.createElement("div")
-    root.id = "app"
-    document.body.appendChild(root)
-
     OutWatch.render("#app", node)
 
     switch shouldBe true
@@ -60,10 +58,6 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach  {
     val node = div(child <-- Observable.of(span(update --> sink, "Hello"), span(update --> sink, "Hey")))
 
     switch shouldBe false
-
-    val root = document.createElement("div")
-    root.id = "app"
-    document.body.appendChild(root)
 
     OutWatch.render("#app", node)
 

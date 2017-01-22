@@ -1,14 +1,11 @@
 package outwatch.dom
 
 import org.scalajs.dom._
-import rxscalajs.subscription.AnonymousSubscription
-import rxscalajs.{Observable, Subject}
-import snabbdom.{DataObject, VNodeProxy, h, patch}
+import rxscalajs.{Observable, Observer}
+import snabbdom.{DataObject, VNodeProxy, h}
 import outwatch.dom.helpers.InputEvent
 
-import scala.concurrent.Promise
 import scala.scalajs.js.JSConverters._
-import scala.scalajs.js.JSON
 
 sealed trait VDomModifier extends Any
 
@@ -25,33 +22,33 @@ sealed trait VNode extends VDomModifier {
 }
 
 
-case class EventEmitter(eventType: String, sink: Subject[_ <: Event]) extends Emitter
-case class InputEventEmitter(eventType: String, sink: Subject[InputEvent]) extends Emitter
-case class MouseEventEmitter(eventType: String, sink: Subject[MouseEvent]) extends Emitter
-case class KeyEventEmitter(eventType: String, sink: Subject[KeyboardEvent]) extends Emitter
-case class GenericEmitter[T](eventType: String, sink: Subject[T], t: T) extends Emitter
-case class StringEventEmitter(eventType: String, sink: Subject[String]) extends Emitter
-case class BoolEventEmitter(eventType: String, sink: Subject[Boolean]) extends Emitter
-case class NumberEventEmitter(eventType: String, sink: Subject[Double]) extends Emitter
+final case class EventEmitter(eventType: String, sink: Observer[_ <: Event]) extends Emitter
+final case class InputEventEmitter(eventType: String, sink: Observer[InputEvent]) extends Emitter
+final case class MouseEventEmitter(eventType: String, sink: Observer[MouseEvent]) extends Emitter
+final case class KeyEventEmitter(eventType: String, sink: Observer[KeyboardEvent]) extends Emitter
+final case class GenericEmitter[T](eventType: String, sink: Observer[T], t: T) extends Emitter
+final case class StringEventEmitter(eventType: String, sink: Observer[String]) extends Emitter
+final case class BoolEventEmitter(eventType: String, sink: Observer[Boolean]) extends Emitter
+final case class NumberEventEmitter(eventType: String, sink: Observer[Double]) extends Emitter
 
-case class Attribute(title: String, value: String) extends Property
-case class InsertHook(sink: Subject[Element]) extends Property
-case class DestroyHook(sink: Subject[Element]) extends Property
-case class UpdateHook(sink: Subject[(Element, Element)]) extends Property
+final case class Attribute(title: String, value: String) extends Property
+final case class InsertHook(sink: Observer[Element]) extends Property
+final case class DestroyHook(sink: Observer[Element]) extends Property
+final case class UpdateHook(sink: Observer[(Element, Element)]) extends Property
 
-case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends Receiver
-case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
-case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
+final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends Receiver
+final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
+final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
 
 
 
 object VDomModifier {
-  implicit class StringNode(string: String) extends VNode {
-    val asProxy = string.asInstanceOf[VNodeProxy]
+  final implicit class StringNode(string: String) extends VNode {
+    val asProxy = VNodeProxy.fromString(string)
   }
 
-  case class VTree(nodeType: String,
+  final case class VTree(nodeType: String,
                    children: Seq[VNode],
                    attributeObject: DataObject,
                    changables: Observable[(Seq[Attribute], Seq[VNode])]

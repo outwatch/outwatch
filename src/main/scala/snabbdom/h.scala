@@ -85,10 +85,13 @@ trait VNodeProxy extends js.Object {
   val sel: String
 }
 
+object VNodeProxy {
+  def fromString(string: String): VNodeProxy = string.asInstanceOf[VNodeProxy]
+}
 
 @js.native
 object snabbdom extends js.Object {
-  def init(args: js.Array[Any]): js.Function2[Any | VNodeProxy, VNodeProxy, Unit] = js.native
+  def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, Unit] = js.native
 }
 
 @js.native
