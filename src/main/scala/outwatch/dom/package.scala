@@ -133,7 +133,7 @@ package object dom {
   lazy val required = BoolAttributeBuilder("required")
   lazy val reversed = new AttributeBuilder[Any]("reversed")
   lazy val scope = new AttributeBuilder[Any]("scope")
-  lazy val selected = new AttributeBuilder[Any]("selected")
+  lazy val selected = BoolAttributeBuilder("selected")
   lazy val size = new AttributeBuilder[Any]("size")
   lazy val sizes = new AttributeBuilder[Any]("sizes")
   lazy val step = new AttributeBuilder[Double]("step")
