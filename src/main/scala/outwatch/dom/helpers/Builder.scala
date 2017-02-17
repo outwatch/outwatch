@@ -6,7 +6,7 @@ import outwatch.dom._
 import rxscalajs.Observable
 
 
-final class ChildStreamReceiverBuilder() {
+object ChildStreamReceiverBuilder {
   def <--[T <: Any](valueStream: Observable[T]): ChildStreamReceiver = {
     ChildStreamReceiver(valueStream.map(anyToVNode))
   }
@@ -17,7 +17,7 @@ final class ChildStreamReceiverBuilder() {
   }
 }
 
-final class ChildrenStreamReceiverBuilder() {
+object ChildrenStreamReceiverBuilder {
   def <--(childrenStream: Observable[Seq[VNode]]) = {
     ChildrenStreamReceiver(childrenStream)
   }

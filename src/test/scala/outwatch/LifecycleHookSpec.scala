@@ -37,7 +37,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     var switch = false
     val sink = createHandler[Element]
-    sink(_=> switch = true)
+    sink(_ => switch = true)
 
     val node = div(child <-- Observable.of(span(destroy --> sink), "Hasdasd"))
 

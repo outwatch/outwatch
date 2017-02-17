@@ -28,6 +28,6 @@ object Sink {
   }
 }
 
-class ObserverSink[T](val observer: Observer[T]) extends AnyVal with Sink[T]
+final class ObserverSink[T](val observer: Observer[T]) extends AnyVal with Sink[T]
 
 

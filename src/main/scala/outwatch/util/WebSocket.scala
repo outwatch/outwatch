@@ -10,7 +10,7 @@ object WebSocket {
   implicit def toSource(socket: WebSocket): Observable[MessageEvent] = socket.source
 }
 
-case class WebSocket private(url: String) {
+final case class WebSocket private(url: String) {
   val ws = new org.scalajs.dom.WebSocket(url)
 
   lazy val source = Observable.create[MessageEvent](observer => {

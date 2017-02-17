@@ -15,11 +15,11 @@ object Http {
   case object Option extends HttpRequestType
   case object Head extends HttpRequestType
 
-  case class Request(url: String, data: String = "", timeout: Int = 0,
+  final case class Request(url: String, data: String = "", timeout: Int = 0,
                      headers: Map[String, String] = Map.empty,
                      withCredentials: Boolean = false, responseType: String = "")
 
-  case class Response(body: String, status: Int, responseType: String)
+  final case class Response(body: String, status: Int, responseType: String)
 
   private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] = {
     observable.switchMap(data => Observable.ajax(data.url).map(mapToResponse)).share

@@ -19,7 +19,7 @@ libraryDependencies ++= Seq(
 )
 
 jsDependencies ++= Seq(
-  "org.webjars.npm" % "rxjs" % "5.0.3" / "bundles/Rx.min.js" commonJSName "Rx",
+  "org.webjars.npm" % "rxjs" % "5.1.0" / "bundles/Rx.min.js" commonJSName "Rx",
   "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom.js",
   "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/h.js",
   "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_class.js",

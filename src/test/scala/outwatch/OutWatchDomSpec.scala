@@ -11,6 +11,7 @@ import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 import org.scalajs.dom.document
+import outwatch.dom.VDomModifier.VTree
 
 class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
@@ -56,11 +57,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Attribute("class", "red"),
       EventEmitter("click", Subject()),
       VDomModifier.StringNode("Test"),
-      DomUtils.constructVNode("div", Seq(), Seq(), None, Seq(), Seq(), Seq()),
+      DomUtils.hyperscriptHelper("div")(),
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val (emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers: _*)
+    val (emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers)
 
     emitters.length shouldBe 1
     receivers.length shouldBe 1
@@ -79,7 +80,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       KeyEventEmitter("keyup", Subject())
     )
 
-    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers: _*)
+    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
     val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
@@ -105,7 +106,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       InsertHook(Subject())
     )
 
-    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers: _*)
+    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
     val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
@@ -133,12 +134,13 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
-    val children = List(DomUtils.constructVNode("span", Seq(), Seq(), None, Seq(), Seq(), Seq(message)))
+    val child = DomUtils.hyperscriptHelper("span")(message)
     val nodeType = "div"
-    val vtree = DomUtils.constructVNode(nodeType, Seq(),Seq(),None, attributes, Seq(), children).asInstanceOf[VDomModifier.VTree]
+    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child).asInstanceOf[VDomModifier.VTree]
 
     vtree.nodeType shouldBe nodeType
     vtree.children.length shouldBe 1
+    child.asInstanceOf[VTree].children.length shouldBe 1
 
     val proxy = fixture.proxy
 

@@ -3,10 +3,10 @@ package outwatch.dom.helpers
 import org.scalajs.dom._
 import outwatch.Sink
 import outwatch.dom.{BoolEventEmitter, MouseEventEmitter, NumberEventEmitter, StringEventEmitter, _}
-import rxscalajs.{Observable, Subject}
+import rxscalajs.{Observable, Observer, Subject}
 
 final case class GenericEmitterBuilder[T](eventType: String, t: T) {
-  def -->[U >: T](sink: Sink[U]) = GenericEmitter(eventType, sink.observer, t)
+  def -->[U >: T](sink: Sink[U]) = ConstantEmitter(eventType, sink.observer, t)
 }
 
 final case class GenericMappedEmitterBuilder[T,E](constructor: Subject[E] => Emitter, mapping: E => T){
@@ -26,8 +26,8 @@ final case class GenericStreamEmitterBuilder[T](eventType: String, stream: Obser
     EventEmitter(eventType, proxy)
   }
 }
-final class InputEventEmitterBuilder(eventType: String){
-  def --> (sink: Sink[InputEvent]) =
+final class InputEventEmitterBuilder(val eventType: String) extends AnyVal {
+  def -->(sink: Sink[InputEvent]) =
     InputEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) = GenericEmitterBuilder(eventType, t)

@@ -158,23 +158,27 @@ package object dom {
   lazy val mouseenter = new MouseEventEmitterBuilder("mouseenter")
   lazy val mousemove = new MouseEventEmitterBuilder("mousemove")
   lazy val mouseleave = new MouseEventEmitterBuilder("mouseleave")
+  lazy val contextMenu = new MouseEventEmitterBuilder("contextmenu")
   lazy val input = new InputEventEmitterBuilder("input")
   lazy val change = new InputEventEmitterBuilder("change")
   lazy val blur = new InputEventEmitterBuilder("blur")
   lazy val keydown = new KeyEventEmitterBuilder("keydown")
   lazy val keyup = new KeyEventEmitterBuilder("keyup")
   lazy val keypress = new KeyEventEmitterBuilder("keypress")
+
   lazy val inputString = new StringEventEmitterBuilder("input")
-  lazy val inputBool = new BoolEventEmitterBuilder("change")
   lazy val inputNumber = new NumberEventEmitterBuilder("input")
+  @deprecated("Deprecated, use 'inputChecked' instead")
+  lazy val inputBool = new BoolEventEmitterBuilder("change")
+  lazy val inputChecked = new BoolEventEmitterBuilder("change")
 
   lazy val update = new UpdateHookBuilder()
   lazy val insert = new InsertHookBuilder()
   lazy val destroy = new DestroyHookBuilder()
 
-  lazy val child = new ChildStreamReceiverBuilder()
+  lazy val child = ChildStreamReceiverBuilder
 
-  lazy val children = new ChildrenStreamReceiverBuilder()
+  lazy val children = ChildrenStreamReceiverBuilder
 
   def createInputHandler() = createHandler[InputEvent]
   def createMouseHandler() = createHandler[MouseEvent]
