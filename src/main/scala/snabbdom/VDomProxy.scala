@@ -34,6 +34,8 @@ object VDomProxy {
     case me: MouseEventEmitter => (e: Event) => me.sink.next(e.asInstanceOf[MouseEvent])
     case ke: KeyEventEmitter => (e: Event) => ke.sink.next(e.asInstanceOf[KeyboardEvent])
     case ie: InputEventEmitter => (e: Event) => ie.sink.next(e.asInstanceOf[InputEvent])
+    case ce: ClipboardEventEmitter => (e: Event) => ce.sink.next(e.asInstanceOf[ClipboardEvent])
+    case de: DragEventEmitter => (e: Event) => de.sink.next(e.asInstanceOf[DragEvent])
     case se: StringEventEmitter => (e: Event) => se.sink.next(e.target.asInstanceOf[HTMLInputElement].value)
     case be: BoolEventEmitter => (e: Event) => be.sink.next(e.target.asInstanceOf[HTMLInputElement].checked)
     case ne: NumberEventEmitter => (e: Event) => ne.sink.next(e.target.asInstanceOf[HTMLInputElement].valueAsNumber)

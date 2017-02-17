@@ -26,6 +26,8 @@ final case class EventEmitter(eventType: String, sink: Observer[_ <: Event]) ext
 final case class InputEventEmitter(eventType: String, sink: Observer[InputEvent]) extends Emitter
 final case class MouseEventEmitter(eventType: String, sink: Observer[MouseEvent]) extends Emitter
 final case class KeyEventEmitter(eventType: String, sink: Observer[KeyboardEvent]) extends Emitter
+final case class ClipboardEventEmitter(eventType: String, sink: Observer[ClipboardEvent]) extends Emitter
+final case class DragEventEmitter(eventType: String, sink: Observer[DragEvent]) extends Emitter
 final case class ConstantEmitter[T](eventType: String, sink: Observer[T], constant: T) extends Emitter
 final case class StringEventEmitter(eventType: String, sink: Observer[String]) extends Emitter
 final case class BoolEventEmitter(eventType: String, sink: Observer[Boolean]) extends Emitter

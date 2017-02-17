@@ -26,6 +26,18 @@ final case class GenericStreamEmitterBuilder[T](eventType: String, stream: Obser
     EventEmitter(eventType, proxy)
   }
 }
+final class EventEmitterBuilder(val eventType: String) extends AnyVal {
+  def -->(sink: Sink[Event]) =
+    EventEmitter(eventType, sink.observer)
+
+  def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
+
+  def apply[T](f: Event => T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Subject[Event]), f)
+
+  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+}
+
 final class InputEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[InputEvent]) =
     InputEventEmitter(eventType, sink.observer)
@@ -58,6 +70,30 @@ final class MouseEventEmitterBuilder(eventType: String) {
 
   def apply[T](f: MouseEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Subject[MouseEvent]), f)
+
+  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+}
+
+final class ClipboardEventEmitterBuilder(eventType: String) {
+  def -->(sink: Sink[ClipboardEvent]) =
+    ClipboardEventEmitter(eventType, sink.observer)
+
+  def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
+
+  def apply[T](f: ClipboardEvent => T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Subject[ClipboardEvent]), f)
+
+  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+}
+
+final class DragEventEmitterBuilder(eventType: String) {
+  def -->(sink: Sink[DragEvent]) =
+    DragEventEmitter(eventType, sink.observer)
+
+  def apply[T](t: T) = GenericEmitterBuilder(eventType, t)
+
+  def apply[T](f: DragEvent => T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Subject[DragEvent]), f)
 
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }

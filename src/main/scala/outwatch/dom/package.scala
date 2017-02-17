@@ -1,6 +1,6 @@
 package outwatch
 
-import org.scalajs.dom.raw.KeyboardEvent
+import org.scalajs.dom.raw.{ClipboardEventInit, KeyboardEvent}
 import org.scalajs.dom.MouseEvent
 import rxscalajs.facade.SubjectFacade
 import rxscalajs.{Observable, Subject}
@@ -202,13 +202,30 @@ package object dom {
   lazy val mousemove = new MouseEventEmitterBuilder("mousemove")
   lazy val mouseleave = new MouseEventEmitterBuilder("mouseleave")
   lazy val contextMenu = new MouseEventEmitterBuilder("contextmenu")
+  lazy val wheel = new MouseEventEmitterBuilder("wheel")
+  lazy val select = new MouseEventEmitterBuilder("select")
+  lazy val pointerLockChange = new MouseEventEmitterBuilder("pointerlockchange")
+  lazy val pointerLockError = new MouseEventEmitterBuilder("pointerlockerror")
+  lazy val drag = new DragEventEmitterBuilder("drag")
+  lazy val dragStart = new DragEventEmitterBuilder("dragstart")
+  lazy val dragEnd = new DragEventEmitterBuilder("dragend")
+  lazy val dragEnter = new DragEventEmitterBuilder("dragenter")
+  lazy val dragOver = new DragEventEmitterBuilder("dragover")
+  lazy val dragLeave = new DragEventEmitterBuilder("dragleave")
+  lazy val drop = new DragEventEmitterBuilder("drop")
+  lazy val online = new EventEmitterBuilder("online")
+  lazy val offline = new EventEmitterBuilder("offline")
+  lazy val reset = new EventEmitterBuilder("reset")
+  lazy val submit = new EventEmitterBuilder("submit")
   lazy val input = new InputEventEmitterBuilder("input")
   lazy val change = new InputEventEmitterBuilder("change")
   lazy val blur = new InputEventEmitterBuilder("blur")
   lazy val keydown = new KeyEventEmitterBuilder("keydown")
   lazy val keyup = new KeyEventEmitterBuilder("keyup")
   lazy val keypress = new KeyEventEmitterBuilder("keypress")
-
+  lazy val cut = new ClipboardEventEmitterBuilder("cut")
+  lazy val copy = new ClipboardEventEmitterBuilder("copy")
+  lazy val paste = new ClipboardEventEmitterBuilder("paste")
   lazy val inputString = new StringEventEmitterBuilder("input")
   lazy val inputNumber = new NumberEventEmitterBuilder("input")
   @deprecated("Deprecated, use 'inputChecked' instead")
