@@ -1,9 +1,8 @@
 package outwatch
 
-import org.scalajs.dom.raw.{ClipboardEventInit, KeyboardEvent}
+import org.scalajs.dom.raw.KeyboardEvent
 import org.scalajs.dom.MouseEvent
-import rxscalajs.facade.SubjectFacade
-import rxscalajs.{Observable, Subject}
+import rxscalajs.Observable
 import outwatch.dom.helpers._
 
 /**
@@ -171,9 +170,9 @@ package object dom {
   lazy val required = BoolAttributeBuilder("required")
   lazy val reversed = new AttributeBuilder[Any]("reversed")
   lazy val scope = new AttributeBuilder[Any]("scope")
-  lazy val selected = new AttributeBuilder[Any]("selected")
   lazy val shape = new AttributeBuilder[Any]("shape")
   lazy val size = new AttributeBuilder[Int]("size")
+  lazy val selected = BoolAttributeBuilder("selected")
   lazy val sizes = new AttributeBuilder[Any]("sizes")
   lazy val step = new AttributeBuilder[Double]("step")
   lazy val spellCheck = new AttributeBuilder[Any]("spellcheck")
