@@ -50,7 +50,7 @@ final class InputEventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-final class KeyEventEmitterBuilder(eventType: String){
+final class KeyEventEmitterBuilder(val eventType: String) extends AnyVal{
   def -->(sink: Sink[KeyboardEvent]) =
     KeyEventEmitter(eventType, sink.observer)
 
@@ -62,7 +62,7 @@ final class KeyEventEmitterBuilder(eventType: String){
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-final class MouseEventEmitterBuilder(eventType: String) {
+final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[MouseEvent]) =
     MouseEventEmitter(eventType, sink.observer)
 
@@ -74,7 +74,7 @@ final class MouseEventEmitterBuilder(eventType: String) {
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-final class ClipboardEventEmitterBuilder(eventType: String) {
+final class ClipboardEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[ClipboardEvent]) =
     ClipboardEventEmitter(eventType, sink.observer)
 
@@ -86,7 +86,7 @@ final class ClipboardEventEmitterBuilder(eventType: String) {
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-final class DragEventEmitterBuilder(eventType: String) {
+final class DragEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[DragEvent]) =
     DragEventEmitter(eventType, sink.observer)
 
@@ -98,7 +98,7 @@ final class DragEventEmitterBuilder(eventType: String) {
   def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
 }
 
-final class StringEventEmitterBuilder(eventType: String) {
+final class StringEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[String]) =
     StringEventEmitter(eventType, sink.observer)
 
@@ -106,7 +106,7 @@ final class StringEventEmitterBuilder(eventType: String) {
     GenericMappedEmitterBuilder(StringEventEmitter(eventType, _: Subject[String]), f)
 }
 
-final class BoolEventEmitterBuilder(eventType: String) {
+final class BoolEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[Boolean]) =
     BoolEventEmitter(eventType, sink.observer)
 
@@ -114,7 +114,7 @@ final class BoolEventEmitterBuilder(eventType: String) {
     GenericMappedEmitterBuilder(BoolEventEmitter(eventType, _: Subject[Boolean]), f)
 }
 
-final class NumberEventEmitterBuilder(eventType: String) {
+final class NumberEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[Double]) =
     NumberEventEmitter(eventType, sink.observer)
 
@@ -122,14 +122,14 @@ final class NumberEventEmitterBuilder(eventType: String) {
     GenericMappedEmitterBuilder(NumberEventEmitter(eventType, _: Subject[Double]), f)
 }
 
-final class InsertHookBuilder() {
+object InsertHookBuilder {
   def -->(sink: Sink[Element]) = InsertHook(sink.observer)
 }
 
-final class DestroyHookBuilder() {
+object DestroyHookBuilder {
   def -->(sink: Sink[Element]) = DestroyHook(sink.observer)
 }
 
-final class UpdateHookBuilder() {
+object UpdateHookBuilder {
   def -->(sink: Sink[(Element, Element)]) = UpdateHook(sink.observer)
 }

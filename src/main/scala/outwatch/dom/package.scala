@@ -1,6 +1,6 @@
 package outwatch
 
-import org.scalajs.dom.raw.KeyboardEvent
+import org.scalajs.dom.raw.{ClipboardEvent, DragEvent, KeyboardEvent}
 import org.scalajs.dom.MouseEvent
 import rxscalajs.Observable
 import outwatch.dom.helpers._
@@ -231,9 +231,9 @@ package object dom {
   lazy val inputBool = new BoolEventEmitterBuilder("change")
   lazy val inputChecked = new BoolEventEmitterBuilder("change")
 
-  lazy val update = new UpdateHookBuilder()
-  lazy val insert = new InsertHookBuilder()
-  lazy val destroy = new DestroyHookBuilder()
+  lazy val update = UpdateHookBuilder
+  lazy val insert = InsertHookBuilder
+  lazy val destroy = DestroyHookBuilder
 
   lazy val child = ChildStreamReceiverBuilder
 
@@ -242,6 +242,8 @@ package object dom {
   def createInputHandler() = createHandler[InputEvent]
   def createMouseHandler() = createHandler[MouseEvent]
   def createKeyboardHandler() = createHandler[KeyboardEvent]
+  def createDragHandler() = createHandler[DragEvent]
+  def createClipboardHandler() = createHandler[ClipboardEvent]
   def createStringHandler() = createHandler[String]
   def createBoolHandler() = createHandler[Boolean]
   def createNumberHandler() = createHandler[Double]

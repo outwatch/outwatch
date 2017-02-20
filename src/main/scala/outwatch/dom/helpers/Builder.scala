@@ -24,7 +24,7 @@ object ChildrenStreamReceiverBuilder {
 }
 
 
-final class AttributeBuilder[T](attributeName: String){
+final class AttributeBuilder[T](val attributeName: String) extends AnyVal {
   def :=(value: T) = Attribute(attributeName, value.toString)
 
   def <--(valueStream: Observable[T]) = {
@@ -46,7 +46,7 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
   }
 }
 
-final case class BoolAttributeBuilder(attributeName: String) {
+final case class BoolAttributeBuilder(val attributeName: String) extends AnyVal {
   def :=(value: Boolean) = Attribute(attributeName, toEmptyIfFalse(value))
 
   def <--(valueStream: Observable[Boolean]) = {
