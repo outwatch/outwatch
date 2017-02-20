@@ -17,6 +17,7 @@ final case class WebSocket private(url: String) {
     ws.onmessage = (e: MessageEvent) => observer.next(e)
     ws.onerror = (e: ErrorEvent) => observer.error(e)
     ws.onclose = (e: CloseEvent) => observer.complete()
+    () => ws.close()
   })
 
   lazy val sink = Sink.create[String](s => ws.send(s))
