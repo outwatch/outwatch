@@ -39,7 +39,6 @@ object VDomProxy {
     case se: StringEventEmitter => (e: Event) => se.sink.next(e.target.asInstanceOf[HTMLInputElement].value)
     case be: BoolEventEmitter => (e: Event) => be.sink.next(e.target.asInstanceOf[HTMLInputElement].checked)
     case ne: NumberEventEmitter => (e: Event) => ne.sink.next(e.target.asInstanceOf[HTMLInputElement].valueAsNumber)
-    case ge: ConstantEmitter[_] => (e: Event) => ge.sink.next(ge.constant)
     case ee: EventEmitter => (e: Event) => ee.sink.asInstanceOf[Observer[Event]].next(e)
   }
 
