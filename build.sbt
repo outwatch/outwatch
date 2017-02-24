@@ -4,7 +4,7 @@ name := "OutWatch"
 
 normalizedName := "outwatch"
 
-version := "0.8.0"
+version := "0.9.0"
 
 organization := "io.github.outwatch"
 
@@ -12,14 +12,27 @@ scalaVersion := "2.12.1"
 
 crossScalaVersions := Seq("2.11.8", "2.12.1")
 
+
+wartremoverWarnings in (Compile, compile) ++=  Warts.allBut(
+  Wart.Any,
+  Wart.AsInstanceOf,
+  Wart.NonUnitStatements,
+  Wart.Overloading,
+  Wart.ImplicitConversion,
+  Wart.Nothing,
+  Wart.ToString,
+  Wart.DefaultArguments,
+  Wart.NoNeedForMonad
+)
+
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.13.2",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.13.3",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
 )
 
 jsDependencies ++= Seq(
-  "org.webjars.npm" % "rxjs" % "5.1.0" / "bundles/Rx.min.js" commonJSName "Rx",
+  "org.webjars.npm" % "rxjs" % "5.2.0" / "bundles/Rx.min.js" commonJSName "Rx",
   "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom.js",
   "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/h.js",
   "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_class.js",
