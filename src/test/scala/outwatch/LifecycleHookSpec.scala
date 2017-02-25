@@ -20,7 +20,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = createHandler[Element]
+    val sink = createHandler[Element]()
     sink(_ => switch = true)
 
     val node = div(insert --> sink)
@@ -36,7 +36,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Destruction hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = createHandler[Element]
+    val sink = createHandler[Element]()
     sink(_ => switch = true)
 
     val node = div(child <-- Observable.of(span(destroy --> sink), "Hasdasd"))
@@ -52,7 +52,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Update hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = createHandler[(Element, Element)]
+    val sink = createHandler[(Element, Element)]()
     sink(_ => switch = true)
 
     val node = div(child <-- Observable.of(span(update --> sink, "Hello"), span(update --> sink, "Hey")))

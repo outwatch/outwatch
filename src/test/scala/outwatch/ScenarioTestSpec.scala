@@ -18,10 +18,10 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A simple counter application" should "work as intended" in {
     import outwatch.dom._
 
-    val handlePlus = createMouseHandler
+    val handlePlus = createMouseHandler()
     val plusOne$ = handlePlus.mapTo(1)
 
-    val handleMinus = createMouseHandler
+    val handleMinus = createMouseHandler()
     val minusOne$ = handleMinus.mapTo(-1)
 
     val count$ = plusOne$.merge(minusOne$).scan(0)(_ + _).startWith(0)
@@ -58,7 +58,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A simple name application" should "work as intended" in {
     import outwatch.dom._
 
-    val nameHandler = createStringHandler
+    val nameHandler = createStringHandler()
 
     val greetStart = "Hello ,"
 
@@ -102,9 +102,9 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
     def TextFieldComponent(labelText: String, outputStream: Sink[String]) = {
 
-      val textFieldStream = createStringHandler
-      val clickStream = createMouseHandler
-      val keyStream = createKeyboardHandler
+      val textFieldStream = createStringHandler()
+      val clickStream = createMouseHandler()
+      val keyStream = createKeyboardHandler()
 
       val buttonDisabled = textFieldStream
         .map(_.length < 2)

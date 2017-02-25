@@ -5,7 +5,7 @@ import outwatch.dom.createHandler
 import rxscalajs.Observable
 
 final case class Store[T, U](initialState: T, reducer: (T,U) => T) {
-  val sink = createHandler[U]
+  val sink = createHandler[U]()
   val source = sink
     .scan(initialState)(reducer)
     .startWith(initialState)

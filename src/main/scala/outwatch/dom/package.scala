@@ -239,19 +239,19 @@ package object dom {
 
   lazy val children = ChildrenStreamReceiverBuilder
 
-  def createInputHandler() = createHandler[InputEvent]
-  def createMouseHandler() = createHandler[MouseEvent]
-  def createKeyboardHandler() = createHandler[KeyboardEvent]
-  def createDragHandler() = createHandler[DragEvent]
-  def createClipboardHandler() = createHandler[ClipboardEvent]
-  def createStringHandler() = createHandler[String]
-  def createBoolHandler() = createHandler[Boolean]
-  def createNumberHandler() = createHandler[Double]
+  def createInputHandler() = createHandler[InputEvent]()
+  def createMouseHandler() = createHandler[MouseEvent]()
+  def createKeyboardHandler() = createHandler[KeyboardEvent]()
+  def createDragHandler() = createHandler[DragEvent]()
+  def createClipboardHandler() = createHandler[ClipboardEvent]()
+  def createStringHandler(defaultValues: String*) = createHandler[String](defaultValues: _*)
+  def createBoolHandler(defaultValues: Boolean*) = createHandler[Boolean](defaultValues: _*)
+  def createNumberHandler(defaultValues: Double*) = createHandler[Double](defaultValues: _*)
 
 
 
-  def createHandler[T]: Observable[T] with Sink[T] = {
-    Sink.createHandler[T]
+  def createHandler[T](defaultValues: T*): Observable[T] with Sink[T] = {
+    Sink.createHandler[T](defaultValues: _*)
   }
 
 

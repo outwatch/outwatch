@@ -70,8 +70,8 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
   it should "be converted to a generic stream emitter correctly" in {
     import outwatch.dom._
-    val stream = createStringHandler
-    val messages = createStringHandler
+    val stream = createStringHandler()
+    val messages = createStringHandler()
     val vtree = div(id :="click", click(messages) --> stream,
       span(id := "child", child <-- stream)
     )
@@ -208,7 +208,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed by a function in place" in {
     import outwatch.dom._
 
-    val stream = createHandler[(MouseEvent, Int)]
+    val stream = createHandler[(MouseEvent, Int)]()
 
     val number = 42
 
@@ -233,7 +233,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed from strings" in {
     import outwatch.dom._
 
-    val stream = createHandler[Int]
+    val stream = createHandler[Int]()
 
     val number = 42
 

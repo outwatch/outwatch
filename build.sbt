@@ -13,18 +13,6 @@ scalaVersion := "2.12.1"
 crossScalaVersions := Seq("2.11.8", "2.12.1")
 
 
-wartremoverWarnings in (Compile, compile) ++=  Warts.allBut(
-  Wart.Any,
-  Wart.AsInstanceOf,
-  Wart.NonUnitStatements,
-  Wart.Overloading,
-  Wart.ImplicitConversion,
-  Wart.Nothing,
-  Wart.ToString,
-  Wart.DefaultArguments,
-  Wart.NoNeedForMonad
-)
-
 libraryDependencies ++= Seq(
   "com.github.lukajcb" %%% "rxscala-js" % "0.13.3",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",

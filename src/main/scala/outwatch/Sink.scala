@@ -5,6 +5,10 @@ import rxscalajs.subscription.AnonymousSubscription
 import rxscalajs.{Observable, Observer, Subject}
 
 sealed trait Sink[T] extends Any {
+  @deprecated(
+    """Using this method is inherently impure and can cause memory leaks, if subscription
+      | isn't handled correctly. Use Sink.redirect() instead.
+    """.stripMargin, "0.9.0")
   def <--(observable: Observable[T]): AnonymousSubscription = {
     observable.subscribe(observer)
   }
@@ -24,15 +28,24 @@ object Sink {
   private final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
     override private[outwatch] def observer = this
   }
+  private final case class ObservableSink[T]
+  (oldSink: Sink[T], stream: Observable[T]) extends Observable[T](stream.inner) with Sink[T] {
+    override private[outwatch] def observer = oldSink.observer
+  }
 
   def create[T](onNext: T => Unit): Sink[T] = {
     val subject = Subject[T]
     subject.subscribe(onNext)
-    new ObserverSink(subject)
+    ObserverSink(subject)
   }
 
-  def createHandler[T]: Observable[T] with Sink[T] = {
-    new SubjectSink[T]
+  def createHandler[T](seeds: T*): Observable[T] with Sink[T] = {
+    val handler = new SubjectSink[T]
+    if (seeds.nonEmpty) {
+      ObservableSink[T](handler, handler.startWithMany(seeds: _*))
+    }
+    else
+      handler
   }
 
   def redirect[T,R](sink: Sink[R])(project: Observable[T] => Observable[R]): Sink[T] = {
@@ -40,7 +53,10 @@ object Sink {
 
     sink match {
       case subject@SubjectSink() => project(forward)
-        .takeUntil(subject.ignoreElements.defaultIfEmpty())
+        .takeUntil(subject.ignoreElements.defaultIfEmpty(()))
+        .subscribe(sink.observer)
+      case observable@ObservableSink(_,_) => project(forward)
+        .takeUntil(observable.ignoreElements.defaultIfEmpty(()))
         .subscribe(sink.observer)
       case ObserverSink(_) => project(forward)
         .subscribe(sink.observer)
@@ -55,7 +71,10 @@ object Sink {
 
     sink match {
       case subject@SubjectSink() => project(t,u)
-        .takeUntil(subject.ignoreElements.defaultIfEmpty())
+        .takeUntil(subject.ignoreElements.defaultIfEmpty(()))
+        .subscribe(sink.observer)
+      case observable@ObservableSink(_, _) => project(t,u)
+        .takeUntil(observable.ignoreElements.defaultIfEmpty(()))
         .subscribe(sink.observer)
       case ObserverSink(_) => project(t,u)
         .subscribe(sink.observer)
@@ -72,7 +91,10 @@ object Sink {
 
     sink match {
       case subject@SubjectSink() => project(t,u,v)
-        .takeUntil(subject.ignoreElements.defaultIfEmpty())
+        .takeUntil(subject.ignoreElements.defaultIfEmpty(()))
+        .subscribe(sink.observer)
+      case observable@ObservableSink(_, _) => project(t,u,v)
+        .takeUntil(observable.ignoreElements.defaultIfEmpty(()))
         .subscribe(sink.observer)
       case ObserverSink(_) => project(t,u,v)
         .subscribe(sink.observer)
