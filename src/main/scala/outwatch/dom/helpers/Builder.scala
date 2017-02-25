@@ -1,9 +1,9 @@
 package outwatch.dom.helpers
 
 import scala.language.dynamics
-
 import outwatch.dom._
 import rxscalajs.Observable
+import scala.language.implicitConversions
 
 
 object ChildStreamReceiverBuilder {

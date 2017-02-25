@@ -227,7 +227,7 @@ package object dom {
   lazy val paste = new ClipboardEventEmitterBuilder("paste")
   lazy val inputString = new StringEventEmitterBuilder("input")
   lazy val inputNumber = new NumberEventEmitterBuilder("input")
-  @deprecated("Deprecated, use 'inputChecked' instead")
+  @deprecated("Deprecated, use 'inputChecked' instead", "0.8.0")
   lazy val inputBool = new BoolEventEmitterBuilder("change")
   lazy val inputChecked = new BoolEventEmitterBuilder("change")
 

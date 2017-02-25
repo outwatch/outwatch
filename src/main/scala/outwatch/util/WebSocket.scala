@@ -3,7 +3,7 @@ package outwatch.util
 import org.scalajs.dom.raw.{CloseEvent, ErrorEvent, MessageEvent}
 import outwatch.Sink
 import rxscalajs.Observable
-
+import scala.language.implicitConversions
 
 object WebSocket {
   implicit def toSink(socket: WebSocket): Sink[String] = socket.sink

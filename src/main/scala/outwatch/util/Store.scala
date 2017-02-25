@@ -3,6 +3,7 @@ package outwatch.util
 import outwatch.Sink
 import outwatch.dom.createHandler
 import rxscalajs.Observable
+import scala.language.implicitConversions
 
 final case class Store[T, U](initialState: T, reducer: (T,U) => T) {
   val sink = createHandler[U]()
