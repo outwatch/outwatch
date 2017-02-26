@@ -108,7 +108,7 @@ object Sink {
   /**
     * Creates two new sinks. These sinks will transform the values it receives and then forward them along to the passed sink.
     * The transformation is described by a function from two Observables to another Observable, i.e. an operator on Observable.
-    * (e.g. `merge)
+    * (e.g. `merge`)
     * This function applies the operator to the newly created sinks and forwards the value to the original sink.
     * @param sink the Sink to forward values to
     * @param project the operator to use
