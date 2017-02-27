@@ -11,7 +11,7 @@ final case class GenericMappedEmitterBuilder[T,E](constructor: Observer[E] => Em
   }
 }
 
-final case class GenericStreamEmitterBuilder[T](eventType: String, stream: Observable[T]) {
+final case class WithLatestFromEmitterBuilder[T](eventType: String, stream: Observable[T]) {
   def -->[U >: T](sink: Sink[U]) = {
     val proxy: Sink[Event] = sink.redirect(_.withLatestFromWith(stream)((_,u) => u))
     EventEmitter(eventType, proxy.observer)
@@ -27,7 +27,7 @@ final class EventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](f: Event => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[Event]), f)
 
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
 final class InputEventEmitterBuilder(val eventType: String) extends AnyVal {
@@ -40,7 +40,7 @@ final class InputEventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](f: InputEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), f)
 
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
 final class KeyEventEmitterBuilder(val eventType: String) extends AnyVal{
@@ -52,7 +52,7 @@ final class KeyEventEmitterBuilder(val eventType: String) extends AnyVal{
   def apply[T](f: KeyboardEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[KeyboardEvent]), f)
 
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
 final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
@@ -65,7 +65,7 @@ final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](f: MouseEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[MouseEvent]), f)
 
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
 final class ClipboardEventEmitterBuilder(val eventType: String) extends AnyVal {
@@ -78,7 +78,7 @@ final class ClipboardEventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](f: ClipboardEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[ClipboardEvent]), f)
 
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
 final class DragEventEmitterBuilder(val eventType: String) extends AnyVal {
@@ -91,7 +91,7 @@ final class DragEventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](f: DragEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[DragEvent]), f)
 
-  def apply[T](ts: Observable[T]) = GenericStreamEmitterBuilder(eventType, ts)
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
 final class StringEventEmitterBuilder(val eventType: String) extends AnyVal {
