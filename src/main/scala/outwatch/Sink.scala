@@ -5,10 +5,13 @@ import rxscalajs.subscription.AnonymousSubscription
 import rxscalajs.{Observable, Observer, Subject}
 
 sealed trait Sink[-T] extends Any {
-  @deprecated(
-    """Using this method is inherently impure and can cause memory leaks, if subscription
-      | isn't handled correctly. Use Sink.redirect() instead.
-    """.stripMargin, "0.9.0")
+
+  /**
+    * Use this function with caution!
+    * This function pipes all of the Observable's emissions into this Sink
+    * Using this method is inherently impure and can cause memory leaks, if subscription
+    * isn't handled correctly. For more guaranteed safety, use Sink.redirect() instead.
+    */
   def <--(observable: Observable[T]): AnonymousSubscription = {
     observable.subscribe(observer)
   }
