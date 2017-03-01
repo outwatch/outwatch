@@ -5,6 +5,7 @@ import rxscalajs.Observable
 
 import scala.scalajs.js
 import org.scalajs.dom
+import rxscalajs.dom.{Request, Response}
 
 object Http {
   sealed trait HttpRequestType
@@ -12,17 +13,11 @@ object Http {
   case object Post extends HttpRequestType
   case object Delete extends HttpRequestType
   case object Put extends HttpRequestType
-  case object Option extends HttpRequestType
+  case object Options extends HttpRequestType
   case object Head extends HttpRequestType
 
-  final case class Request(url: String, data: String = "", timeout: Int = 0,
-                     headers: Map[String, String] = Map.empty,
-                     withCredentials: Boolean = false, responseType: String = "")
-
-  final case class Response(body: String, status: Int, responseType: String)
-
   private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] = {
-    observable.switchMap(data => Observable.ajax(data.url).map(mapToResponse)).share
+    observable.switchMap(data => Observable.ajax(data.copy(method = requestType.toString))).share
   }
 
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) = {
@@ -39,16 +34,9 @@ object Http {
 
   def put(requests: Observable[Request]) = request(requests, Put)
 
-  def option(requests: Observable[Request]) = request(requests, Option)
+  def options(requests: Observable[Request]) = request(requests, Options)
 
   def head(requests: Observable[Request]) = request(requests, Head)
 
-
-  private def mapToResponse(d: js.Dynamic) = {
-    Response(
-      d.response.asInstanceOf[String],
-      d.status.asInstanceOf[Int],
-      d.responseType.asInstanceOf[String])
-  }
 
 }
