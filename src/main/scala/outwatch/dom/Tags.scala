@@ -171,7 +171,7 @@ trait Tags {
     *
     *  MDN
     */
-  def data       (args: VDomModifier*): VNode = tag("data")(args)
+  def dataElement(args: VDomModifier*): VNode = tag("data")(args)
 
   /**
     * A set of predefined options for other controls.
