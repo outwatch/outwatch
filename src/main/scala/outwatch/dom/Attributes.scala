@@ -73,7 +73,7 @@ trait GlobalAttributes {
   lazy val dir              = new AttributeBuilder[Any]("dir")
   lazy val draggable        = new AttributeBuilder[Any]("draggable")
   lazy val dropzone         = new AttributeBuilder[Any]("dropzone")
-  lazy val hidden           = BoolAttributeBuilder("hidden")
+  lazy val hidden           = new BoolAttributeBuilder("hidden")
   lazy val id               = new AttributeBuilder[String]("id")
   lazy val itemId           = new AttributeBuilder[Any]("itemid")
   lazy val itemProp         = new AttributeBuilder[Any]("itemprop")
@@ -98,7 +98,7 @@ trait GlobalAttributes {
    * MDN
    */
   object Aria {
-    private def aria(name: String): BoolAttributeBuilder = BoolAttributeBuilder(s"aria-$name")
+    private def aria(name: String): BoolAttributeBuilder = new BoolAttributeBuilder(s"aria-$name")
 
     /**
       * Identifies the currently active descendant of a composite widget.
@@ -327,7 +327,7 @@ trait InputAttributes {
   lazy val action         = new AttributeBuilder[Any]("action")
   lazy val autocomplete   = new AttributeBuilder[Any]("autocomplete")
   lazy val autofocus      = new BoolAttributeBuilder("autofocus")
-  lazy val checked        = BoolAttributeBuilder("checked")
+  lazy val checked        = new BoolAttributeBuilder("checked")
   lazy val cols           = new AttributeBuilder[Double]("cols")
   lazy val enctype        = new AttributeBuilder[Any]("enctype")
   lazy val `for`          = new AttributeBuilder[Any]("for")
@@ -349,10 +349,10 @@ trait InputAttributes {
   lazy val novalidate     = new BoolAttributeBuilder("novalidate")
   lazy val pattern        = new AttributeBuilder[Any]("pattern")
   lazy val placeholder    = new AttributeBuilder[String]("placeholder")
-  lazy val readonly       = BoolAttributeBuilder("readonly")
-  lazy val required       = BoolAttributeBuilder("required")
+  lazy val readonly       = new BoolAttributeBuilder("readonly")
+  lazy val required       = new BoolAttributeBuilder("required")
   lazy val rows           = new AttributeBuilder[Double]("rows")
-  lazy val selected       = BoolAttributeBuilder("selected")
+  lazy val selected       = new BoolAttributeBuilder("selected")
   lazy val size           = new AttributeBuilder[Int]("size")
   lazy val step           = new AttributeBuilder[Double]("step")
   lazy val target         = new AttributeBuilder[Any]("target")
@@ -400,7 +400,7 @@ trait MiscellaneousAttributes {
   lazy val content      = new AttributeBuilder[String]("content")
   lazy val coords       = new AttributeBuilder[Any]("coords")
   lazy val datetime     = new AttributeBuilder[Any]("datetime")
-  lazy val disabled     = BoolAttributeBuilder("disabled")
+  lazy val disabled     = new BoolAttributeBuilder("disabled")
   lazy val download     = new AttributeBuilder[Any]("download")
   lazy val height       = new AttributeBuilder[Double]("height")
   lazy val high         = new AttributeBuilder[Any]("high")
