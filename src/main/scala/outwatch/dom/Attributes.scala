@@ -14,7 +14,9 @@ trait Attributes
   with InputAttributes
   with KeyboardEventAttributes
   with MediaAttributes
+  with MediaEventAttributes
   with MiscellaneousAttributes
+  with MiscellaneousEventAttributes
   with MouseEventAttributes
   with OutWatchChildAttributes
   with OutWatchLifeCycleAttributes
@@ -376,7 +378,7 @@ trait KeyboardEventAttributes {
 /**
   * Attributes applicable to media elements like `<audio>`, `<video>` etc.
   */
-trait MediaAttributes {
+trait MediaAttributes extends SharedEventAttributes {
   lazy val autoplay     = new BoolAttributeBuilder("autoplay")
   lazy val buffered     = new BoolAttributeBuilder("buffered")
   lazy val crossorigin  = new AttributeBuilder[String]("crossorigin")
@@ -552,9 +554,26 @@ trait MiscellaneousAttributes {
   lazy val xmlns        = new AttributeBuilder[Any]("xmlns")
 
   @deprecated("The HTML keygen element, that this attribute belongs to has been deprecated in the HTML spec", "0.9.0")
-  lazy val challenge         = new AttributeBuilder[Any]("challenge")
+  lazy val challenge = new AttributeBuilder[Any]("challenge")
   @deprecated("The HTML keygen element, that this attribute belongs to has been deprecated in the HTML spec", "0.9.0")
-  lazy val keyType           = new AttributeBuilder[Any]("keytype")
+  lazy val keyType   = new AttributeBuilder[Any]("keytype")
+}
+
+/**
+  * Miscellaneous Events
+  */
+trait MiscellaneousEventAttributes extends SharedEventAttributes {
+  private def event(name: String): EventEmitterBuilder = new EventEmitterBuilder(name)
+
+  /**
+    * Fires when a `<menu>` element is shown as a context menu.
+    */
+  lazy val show = event("show")
+
+  /**
+    * Fires when the user opens or closes the `<details>` element.
+    */
+  lazy val toggle = event("toggle")
 }
 
 /**
@@ -624,6 +643,13 @@ trait OutWatchLifeCycleAttributes {
   lazy val destroy  = DestroyHookBuilder
 }
 
+trait SharedEventAttributes {
+  /**
+   * Script to be run when an error occurs when the file is being loaded
+   */
+  lazy val error = new EventEmitterBuilder("error")
+}
+
 /**
   * Attributes applicable to the table element and its children
   */
@@ -638,7 +664,7 @@ trait TableAttributes {
 /**
  * Window Events
  */
-trait WindowEventAttrs {
+trait WindowEventAttrs extends SharedEventAttributes {
   lazy val offline = new EventEmitterBuilder("offline")
   lazy val online  = new EventEmitterBuilder("online")
 }
