@@ -98,8 +98,218 @@ trait GlobalAttributes {
    * MDN
    */
   object Aria {
-    // TODO: Add all aria-* types
-    //private def attr(name: String): BoolAttributeBuilder = BoolAttributeBuilder(s"aria-$name")
+    private def aria(name: String): BoolAttributeBuilder = BoolAttributeBuilder(s"aria-$name")
+
+    /**
+      * Identifies the currently active descendant of a composite widget.
+      */
+    lazy val activedescendant = aria("activedescendant")
+    /**
+      * Indicates whether assistive technologies will present all, or only parts
+      * of, the changed region based on the change notifications defined by the
+      * aria-relevant attribute. See related aria-relevant.
+     */
+    lazy val atomic = aria("atomic")
+
+    /**
+      * Indicates whether user input completion suggestions are provided.
+      */
+    lazy val autocomplete = aria("autocomplete")
+    /**
+      * Indicates whether an element, and its subtree, are currently being updated.
+      */
+    lazy val busy = aria("busy")
+
+    /**
+      * Indicates the current "checked" state of checkboxes, radio buttons, and
+      * other widgets. See related aria-pressed and aria-selected.
+      */
+    lazy val checked = aria("checked")
+
+    /**
+      * Identifies the element (or elements) whose contents or presence are
+      * controlled by the current element. See related aria-owns.
+      */
+    lazy val controls = aria("controls")
+
+    /**
+      * Identifies the element (or elements) that describes the object. See
+      * related aria-labelledby.
+      */
+    lazy val describedby = aria("describedby")
+
+    /**
+      * Indicates that the element is perceivable but disabled, so it is not
+      * editable or otherwise operable. See related aria-hidden and aria-readonly.
+      */
+    lazy val disabled = aria("disabled")
+
+    /**
+      * Indicates what functions can be performed when the dragged object is
+      * released on the drop target. This allows assistive technologies to
+      * convey the possible drag options available to users, including whether a
+      * pop-up menu of choices is provided by the application. Typically, drop
+      * effect functions can only be provided once an object has been grabbed
+      * for a drag operation as the drop effect functions available are dependent
+      * on the object being dragged.
+      */
+    lazy val dropeffect = aria("dropeffect")
+
+    /**
+      * Indicates whether the element, or another grouping element it controls,
+      * is currently expanded or collapsed.
+      */
+    lazy val expanded = aria("expanded")
+
+    /**
+      * Identifies the next element (or elements) in an alternate reading order
+      * of content which, at the user's discretion, allows assistive technology
+      * to override the general default of reading in document source order.
+      */
+    lazy val flowto = aria("flowto")
+
+    /**
+      * Indicates an element's "grabbed" state in a drag-and-drop operation.
+      */
+    lazy val grabbed = aria("grabbed")
+
+    /**
+      * Indicates that the element has a popup context menu or sub-level menu.
+      */
+    lazy val haspopup = aria("haspopup")
+
+    /**
+      * Indicates that the element and all of its descendants are not visible or
+      * perceivable to any user as implemented by the author. See related aria-disabled.
+      */
+    lazy val hidden = aria("hidden")
+
+    /**
+      * Indicates the entered value does not conform to the format expected by
+      * the application.
+      */
+    lazy val invalid = aria("invalid")
+
+    /**
+      * Defines a string value that labels the current element. See related
+      * aria-labelledby.
+      */
+    lazy val label = aria("label")
+
+    /**
+      * Identifies the element (or elements) that labels the current element.
+      * See related aria-label and aria-describedby.
+      */
+    lazy val labelledby = aria("labelledby")
+
+    /**
+      * Defines the hierarchical level of an element within a structure.
+      */
+    lazy val level = aria("level")
+
+    /**
+      * Indicates that an element will be updated, and describes the types of
+      * updates the user agents, assistive technologies, and user can expect
+      * from the live region.
+      */
+    lazy val live = aria("live")
+
+    /**
+      * Indicates whether a text box accepts multiple lines of input or only a
+      * single line.
+      */
+    lazy val multiline = aria("multiline")
+
+    /**
+      * Indicates that the user may select more than one item from the current
+      * selectable descendants.
+      */
+    lazy val multiselectable = aria("multiselectable")
+
+    /**
+      * Indicates whether the element and orientation is horizontal or vertical.
+      */
+    lazy val orientation = aria("orientation")
+
+    /**
+      * Identifies an element (or elements) in order to define a visual,
+      * functional, or contextual parent/child relationship between DOM elements
+      * where the DOM hierarchy cannot be used to represent the relationship.
+      * See related aria-controls.
+      */
+    lazy val owns = aria("owns")
+
+    /**
+      * Defines an element's number or position in the current set of listitems
+      * or treeitems. Not required if all elements in the set are present in the
+      * DOM. See related aria-setsize.
+      */
+    lazy val posinset = aria("posinset")
+
+    /**
+      * Indicates the current "pressed" state of toggle buttons. See related
+      * aria-checked and aria-selected.
+      */
+    lazy val pressed = aria("pressed")
+
+    /**
+      * Indicates that the element is not editable, but is otherwise operable.
+      * See related aria-disabled.
+      */
+    lazy val readonly = aria("readonly")
+
+    /**
+      * Indicates what user agent change notifications (additions, removals, etc.)
+      * assistive technologies will receive within a live region. See related
+      * aria-atomic.
+      */
+    lazy val relevant = aria("relevant")
+
+    /**
+      * Indicates that user input is required on the element before a form may
+      * be submitted.
+      */
+    lazy val required = aria("required")
+
+    /**
+      * Indicates the current "selected" state of various widgets. See related
+      * aria-checked and aria-pressed.
+      */
+    lazy val selected = aria("selected")
+
+    /**
+      * Defines the number of items in the current set of listitems or
+      * treeitems. Not required if all elements in the set are present in the
+      * DOM. See related aria-posinset.
+      */
+    lazy val setsize = aria("setsize")
+
+    /**
+      * Indicates if items in a table or grid are sorted in ascending or
+      * descending order.
+      */
+    lazy val sort = aria("sort")
+
+    /**
+      * Defines the maximum allowed value for a range widget.
+      */
+    lazy val valuemax = aria("valuemax")
+
+    /**
+      * Defines the minimum allowed value for a range widget.
+      */
+    lazy val valuemin = aria("valuemin")
+
+    /**
+      * Defines the current value for a range widget. See related aria-valuetext.
+      */
+    lazy val valuenow = aria("valuenow")
+
+    /**
+      * Defines the human readable text alternative of aria-valuenow for a range
+      * widget.
+      */
+    lazy val valuetext = aria("valuetext")
   }
 }
 /**
