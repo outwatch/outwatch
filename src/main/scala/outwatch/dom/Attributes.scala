@@ -1,3 +1,5 @@
+// scalastyle:off file.size.limit
+
 package outwatch.dom
 
 import outwatch.dom.helpers._
@@ -341,6 +343,11 @@ trait InputAttributes {
   lazy val formmethod     = new AttributeBuilder[Any]("formmethod")
   lazy val formnovalidate = new AttributeBuilder[Any]("formnovalidate")
   lazy val formtarget     = new AttributeBuilder[Any]("formtarget")
+
+  /**
+    * The type of control to display. The default type is text, if this attribute is not specified.
+    */
+  lazy val inputType      = new AttributeBuilder[Any]("type")
   lazy val list           = new AttributeBuilder[Any]("list")
   lazy val max            = new AttributeBuilder[Double]("max")
   lazy val maxLength      = new AttributeBuilder[Int]("maxlength")
@@ -362,8 +369,209 @@ trait InputAttributes {
   lazy val value          = new AttributeBuilder[Any]("value")
   lazy val wrap           = new AttributeBuilder[Any]("wrap")
 
+  /**
+    * The type of control to display. The default type is text, if this
+    * attribute is not specified.
+    *
+    * MDN
+    */
   object InputType {
-    // TODO: Add all allowed input types
+
+    /**
+      * A push button with no default behavior.
+      *
+      * MDN
+      */
+    lazy val button         = inputType := "button"
+
+    /**
+      * A check box. You must use the value attribute to define the value
+      * submitted by this item. Use the checked attribute to indicate whether
+      * this item is selected. You can also use the indeterminate attribute
+      * (which can only be set programmatically) to indicate that the checkbox
+      * is in an indeterminate state (on most platforms, this draws a horizontal
+      * line across the checkbox).
+      *
+      * MDN
+      */
+    lazy val checkbox       = inputType := "checkbox"
+
+    /**
+      * A control for specifying a color. A color picker's UI has no
+      * required features other than accepting simple colors as text.
+      *
+      * MDN HTML5
+      */
+    lazy val color          = inputType := "color"
+
+    /**
+      * A control for entering a date (year, month, and day, with no time).
+      *
+      * MDN HTML5
+      */
+    lazy val date           = inputType := "date"
+
+    /**
+      * A control for entering a date and time (hour, minute, second, and
+      * fraction of a second) based on UTC time zone. This feature has been
+      * removed from WHATWG HTML.
+      *
+      * MDN HTML5
+      */
+    lazy val datetime       = inputType := "datetime"
+
+    /**
+      * A control for entering a date and time, with no time zone.
+      *
+      * MDN HTML5
+      */
+    lazy val datetimeLocal  = inputType := "datetime-local"
+
+    /**
+      * A field for editing an e-mail address. The input value is validated to
+      * contain either the empty string or a single valid e-mail address before
+      * submitting. The :valid and :invalid CSS pseudo-classes are applied as
+      * appropriate.
+      *
+      * MDN HTML5
+      */
+    lazy val email          = inputType := "email"
+
+    /**
+      * A control that lets the user select a file. Use the accept attribute to
+      * define the types of files that the control can select.
+      *
+      * MDN
+      */
+    lazy val file           = inputType := "file"
+
+    /**
+      * A control that is not displayed but whose value is submitted to the server.
+      */
+    lazy val hidden         = inputType := "hidden"
+
+    /**
+      * A graphical submit button. You must use the src attribute to define the
+      * source of the image and the alt attribute to define alternative text.
+      * You can use the height and width attributes to define the size of the
+      * image in pixels.
+      *
+      * MDN
+      */
+    lazy val image          = inputType := "image"
+
+    /**
+      * A control for entering a month and year, with no time zone.
+      *
+      * MDN HTML5
+      */
+    lazy val month          = inputType := "month"
+
+    /**
+      * A control for entering a floating point number.
+      *
+      * MDN HTML5
+      */
+    lazy val number         = inputType := "number"
+
+    /**
+      * A single-line text field whose value is obscured. Use the maxlength
+      * attribute to specify the maximum length of the value that can be entered.
+      *
+      * MDN
+      */
+    lazy val password       = inputType := "password"
+
+    /**
+      * A radio button. You must use the value attribute to define the value
+      * submitted by this item. Use the checked attribute to indicate whether
+      * this item is selected by default. Radio buttons that have the same value
+      * for the name attribute are in the same "radio button group". Only one
+      * radio button in a group can be selected at a time.
+      *
+      * MDN
+      */
+    lazy val radio          = inputType := "radio"
+
+    /**
+      * A control for entering a number whose exact value is not important.
+      * This type control uses the following default values if the corresponding
+      * attributes are not specified:
+      *   min: 0
+      *   max: 100
+      *   value: min + (max - min) / 2, or min if max is less than min
+      *   step: 1
+      *
+      * MDN HTML5
+      */
+    lazy val range          = inputType := "range"
+
+    /**
+      * A button that resets the contents of the form to default values.
+      *
+      * MDN
+      */
+    lazy val reset          = inputType := "reset"
+
+    /**
+      * A single-line text field for entering search strings. Line-breaks are
+      * automatically removed from the input value.
+      *
+      * MDN HTML5
+      */
+    lazy val search         = inputType := "search"
+
+    /**
+      * A button that submits the form.
+      *
+      * MDN
+      */
+    lazy val submit         = inputType := "submit"
+
+    /**
+      * A control for entering a telephone number. Line-breaks are automatically
+      * removed from the input value, but no other syntax is enforced. You can
+      * use attributes such as pattern and maxlength to restrict values entered
+      * in the control. The :valid and :invalid CSS pseudo-classes are applied
+      * as appropriate.
+      *
+      * MDN HTML5
+      */
+    lazy val tel            = inputType := "tel"
+
+    /**
+      * A single-line text field. Line-breaks are automatically removed from the
+      * input value.
+      *
+      * MDN
+      */
+    lazy val text           = inputType := "text"
+
+    /**
+      * A control for entering a time value with no time zone.
+      *
+      * MDN HTML5
+      */
+    lazy val time           = inputType := "time"
+
+    /**
+      * A field for editing a URL. The input value is validated to contain
+      * either the empty string or a valid absolute URL before submitting.
+      * You can use attributes such as pattern and maxlength to restrict values
+      * entered in the control. The :valid and :invalid CSS pseudo-classes are
+      * applied as appropriate.
+      *
+      * MDN HTML5
+      */
+    lazy val url            = inputType := "url"
+
+    /**
+      * A control for entering a date consisting of a week-year number and a
+      * week number with no time zone.
+      *
+      * MDN HTML5
+      */
+    lazy val week           = inputType := "week"
   }
 }
 /**
@@ -407,17 +615,19 @@ trait MediaEventAttributes {
   lazy val abort = event("abort")
 
   /**
-    * Script to be run when a file is ready to start playing (when it has buffered enough to begin)
+    * Script to be run when a file is ready to start playing (when it has
+    * buffered enough to begin)
     */
   lazy val canplay = event("canplay")
 
   /**
-    * Script to be run when a file can be played all the way to the end without pausing for buffering
+    * Script to be run when a file can be played all the way to the end without
+    * pausing for buffering
     */
   lazy val canplaythrough = event("canplaythrough")
 
   /**
-    * Script to be run when the cue changes in a <track> element
+    * Script to be run when the cue changes in a `<track>` element
     */
   lazy val cuechange = event("cuechange")
 
@@ -427,12 +637,14 @@ trait MediaEventAttributes {
   lazy val durationchange = event("durationchange")
 
   /**
-    * Script to be run when something bad happens and the file is suddenly unavailable (like unexpectedly disconnects)
+    * Script to be run when something bad happens and the file is suddenly
+    * unavailable (like unexpectedly disconnects)
     */
   lazy val emptied = event("emptied")
 
   /**
-    * Script to be run when the media has reach the end (a useful event for messages like "thanks for listening")
+    * Script to be run when the media has reach the end (a useful event for
+    * messages like "thanks for listening")
     */
   lazy val ended = event("ended")
 
@@ -447,7 +659,8 @@ trait MediaEventAttributes {
   lazy val loadedmetadata = event("loadedmetadata")
 
   /**
-    * Script to be run just as the file begins to load before anything is actually loaded
+    * Script to be run just as the file begins to load before anything is
+    * actually loaded
     */
   lazy val loadstart = event("loadstart")
 
@@ -472,42 +685,50 @@ trait MediaEventAttributes {
   lazy val progress = event("progress")
 
   /**
-    * Script to be run each time the playback rate changes (like when a user switches to a slow motion or fast forward mode)
+    * Script to be run each time the playback rate changes (like when a user
+    * switches to a slow motion or fast forward mode)
     */
   lazy val ratechange = event("ratechange")
 
   /**
-    * Script to be run when the seeking attribute is set to false indicating that seeking has ended
+    * Script to be run when the seeking attribute is set to false indicating
+    * that seeking has ended
     */
   lazy val seeked = event("seeked")
 
   /**
-    * Script to be run when the seeking attribute is set to true indicating that seeking is active
+    * Script to be run when the seeking attribute is set to true indicating that
+    * seeking is active
     */
   lazy val seeking = event("seeking")
 
   /**
-    * Script to be run when the browser is unable to fetch the media data for whatever reason
+    * Script to be run when the browser is unable to fetch the media data for
+    * whatever reason
     */
   lazy val stalled = event("stalled")
 
   /**
-    * Script to be run when fetching the media data is stopped before it is completely loaded for whatever reason
+    * Script to be run when fetching the media data is stopped before it is
+    * completely loaded for whatever reason
     */
   lazy val suspend = event("suspend")
 
   /**
-    * Script to be run when the playing position has changed (like when the user fast forwards to a different point in the media)
+    * Script to be run when the playing position has changed (like when the user
+    * fast forwards to a different point in the media)
     */
   lazy val timeupdate = event("timeupdate")
 
   /**
-    * Script to be run each time the volume is changed which (includes setting the volume to "mute")
+    * Script to be run each time the volume is changed which (includes setting
+    * the volume to "mute")
     */
   lazy val volumechange = event("volumechange")
 
   /**
-    * Script to be run when the media has paused but is expected to resume (like when the media pauses to buffer more data)
+    * Script to be run when the media has paused but is expected to resume
+    * (like when the media pauses to buffer more data)
     */
   lazy val waiting = event("waiting")
 }
@@ -548,7 +769,6 @@ trait MiscellaneousAttributes {
   lazy val start        = new AttributeBuilder[Int]("start")
   lazy val `type`       = new AttributeBuilder[Any]("type")
   lazy val tpe          = `type`
-  lazy val inputType    = `type`
   lazy val unselectable = new AttributeBuilder[Double]("unselectable")
   lazy val usemap       = new AttributeBuilder[Any]("usemap")
   lazy val width        = new AttributeBuilder[Double]("width")
@@ -679,3 +899,5 @@ trait WindowEventAttrs extends SharedEventAttributes {
   lazy val offline = new EventEmitterBuilder("offline")
   lazy val online  = new EventEmitterBuilder("online")
 }
+
+// scalastyle:on
