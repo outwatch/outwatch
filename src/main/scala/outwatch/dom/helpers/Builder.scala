@@ -46,7 +46,7 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
   }
 }
 
-final case class BoolAttributeBuilder(val attributeName: String) extends AnyVal {
+final class BoolAttributeBuilder(val attributeName: String) extends AnyVal {
   def :=(value: Boolean) = Attribute(attributeName, toEmptyIfFalse(value))
 
   def <--(valueStream: Observable[Boolean]) = {
