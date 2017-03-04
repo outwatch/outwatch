@@ -391,6 +391,125 @@ trait MediaAttributes {
 }
 
 /**
+ * Media Events - triggered by media like videos, images and audio. These apply to
+ * all HTML elements, but they are most common in media elements, like <audio>,
+ * <embed>, <img>, <object>, and <video>.
+ */
+trait MediaEventAttributes {
+  private def event(name: String): EventEmitterBuilder = new EventEmitterBuilder(name)
+
+  /**
+    * Script to be run on abort
+    */
+  lazy val abort = event("abort")
+
+  /**
+    * Script to be run when a file is ready to start playing (when it has buffered enough to begin)
+    */
+  lazy val canplay = event("canplay")
+
+  /**
+    * Script to be run when a file can be played all the way to the end without pausing for buffering
+    */
+  lazy val canplaythrough = event("canplaythrough")
+
+  /**
+    * Script to be run when the cue changes in a <track> element
+    */
+  lazy val cuechange = event("cuechange")
+
+  /**
+    * Script to be run when the length of the media changes
+    */
+  lazy val durationchange = event("durationchange")
+
+  /**
+    * Script to be run when something bad happens and the file is suddenly unavailable (like unexpectedly disconnects)
+    */
+  lazy val emptied = event("emptied")
+
+  /**
+    * Script to be run when the media has reach the end (a useful event for messages like "thanks for listening")
+    */
+  lazy val ended = event("ended")
+
+  /**
+    * Script to be run when media data is loaded
+    */
+  lazy val loadeddata = event("loadeddata")
+
+  /**
+    * Script to be run when meta data (like dimensions and duration) are loaded
+    */
+  lazy val loadedmetadata = event("loadedmetadata")
+
+  /**
+    * Script to be run just as the file begins to load before anything is actually loaded
+    */
+  lazy val loadstart = event("loadstart")
+
+  /**
+    * Script to be run when the media is paused either by the user or programmatically
+    */
+  lazy val pause = event("pause")
+
+  /**
+    * Script to be run when the media is ready to start playing
+    */
+  lazy val play = event("play")
+
+  /**
+    * Script to be run when the media actually has started playing
+    */
+  lazy val playing = event("playing")
+
+  /**
+    * Script to be run when the browser is in the process of getting the media data
+    */
+  lazy val progress = event("progress")
+
+  /**
+    * Script to be run each time the playback rate changes (like when a user switches to a slow motion or fast forward mode)
+    */
+  lazy val ratechange = event("ratechange")
+
+  /**
+    * Script to be run when the seeking attribute is set to false indicating that seeking has ended
+    */
+  lazy val seeked = event("seeked")
+
+  /**
+    * Script to be run when the seeking attribute is set to true indicating that seeking is active
+    */
+  lazy val seeking = event("seeking")
+
+  /**
+    * Script to be run when the browser is unable to fetch the media data for whatever reason
+    */
+  lazy val stalled = event("stalled")
+
+  /**
+    * Script to be run when fetching the media data is stopped before it is completely loaded for whatever reason
+    */
+  lazy val suspend = event("suspend")
+
+  /**
+    * Script to be run when the playing position has changed (like when the user fast forwards to a different point in the media)
+    */
+  lazy val timeupdate = event("timeupdate")
+
+  /**
+    * Script to be run each time the volume is changed which (includes setting the volume to "mute")
+    */
+  lazy val volumechange = event("volumechange")
+
+  /**
+    * Script to be run when the media has paused but is expected to resume (like when the media pauses to buffer more data)
+    */
+  lazy val waiting = event("waiting")
+}
+
+/**
  * Miscellaneous attributes that are applicable to one or more elements.
  */
 trait MiscellaneousAttributes {
@@ -444,7 +563,7 @@ trait MiscellaneousAttributes {
 trait MouseEventAttributes {
   lazy val click              = new MouseEventEmitterBuilder("click")
   lazy val contextMenu        = new MouseEventEmitterBuilder("contextmenu")
-  lazy val ondblclick         = new MouseEventEmitterBuilder("ondblclick")
+  lazy val dblclick           = new MouseEventEmitterBuilder("dblclick")
   lazy val drag               = new DragEventEmitterBuilder("drag")
   lazy val dragEnd            = new DragEventEmitterBuilder("dragend")
   lazy val dragEnter          = new DragEventEmitterBuilder("dragenter")
