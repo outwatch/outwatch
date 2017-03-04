@@ -1,12 +1,12 @@
+// scalastyle:off number.of.methods
+
 package outwatch.dom
 
 import outwatch.dom.helpers.DomUtils
 
-
 /**
   * Trait that contains all tags, so they can be mixed in to other objects if needed.
   */
-// scalastyle:off number.of.methods
 trait Tags {
   private def tag: (String) => (Seq[VDomModifier]) => VNode = DomUtils.hyperscriptHelper
 
@@ -404,6 +404,14 @@ trait Tags {
     *
     *  MDN
     */
+  @deprecated(
+    """
+      |This feature has been removed from the Web standards. Though some
+      |browsers may still support it, it is in the process of being dropped.
+      |Avoid using it and update existing code if possible; see the
+      |compatibility table at the bottom of this page to guide your decision.
+      |Be aware that this feature may cease to work at any time.
+    """.stripMargin, "0.9.0")
   def keygen     (args: VDomModifier*): VNode = tag("keygen")(args)
 
   /**
@@ -825,3 +833,4 @@ trait Tags {
     */
   def wbr        (args: VDomModifier*): VNode = tag("wbr")(args)
 }
+// scalastyle:on
