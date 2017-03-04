@@ -68,6 +68,19 @@ final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
   def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
 
+final class TouchEventEmitterBuilder(val eventType: String) extends AnyVal {
+  def -->(sink: Sink[TouchEvent]) =
+    TouchEventEmitter(eventType, sink.observer)
+
+  def apply[T](t: T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+
+  def apply[T](f: TouchEvent => T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[TouchEvent]), f)
+
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
+}
+
 final class ClipboardEventEmitterBuilder(val eventType: String) extends AnyVal {
   def -->(sink: Sink[ClipboardEvent]) =
     ClipboardEventEmitter(eventType, sink.observer)
