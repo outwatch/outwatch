@@ -21,6 +21,7 @@ trait Attributes
   with OutWatchChildAttributes
   with OutWatchLifeCycleAttributes
   with TableAttributes
+  with TouchEventAttributes
   with WindowEventAttrs
 
 /**
@@ -659,6 +660,16 @@ trait TableAttributes {
   lazy val rowspan  = new AttributeBuilder[Any]("rowspan")
   lazy val scope    = new AttributeBuilder[Any]("scope")
   lazy val summary  = new AttributeBuilder[Any]("summary")
+}
+
+/**
+  * Touch Events
+  */
+trait TouchEventAttributes {
+  lazy val touchcancel = new TouchEventEmitterBuilder("touchcancel")
+  lazy val touchend    = new TouchEventEmitterBuilder("touchend")
+  lazy val touchmove   = new TouchEventEmitterBuilder("touchmove")
+  lazy val touchstart  = new TouchEventEmitterBuilder("touchstart")
 }
 
 /**
