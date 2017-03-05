@@ -1,5 +1,16 @@
 // scalastyle:off number.of.methods
 
+/**
+  * Documentation marked "MDN" is thanks to Mozilla Contributors
+  * at https://developer.mozilla.org/en-US/docs/Web/API and available
+  * under the Creative Commons Attribution-ShareAlike v2.5 or later.
+  * http://creativecommons.org/licenses/by-sa/2.5/
+  *
+  * Other tag documentation is thanks to Li Haoyi's scalatags and is under
+  * the MIT License.
+  * http://opensource.org/licenses/MIT
+  */
+
 package outwatch.dom
 
 import outwatch.dom.helpers.DomUtils
@@ -661,6 +672,14 @@ trait Tags {
     *  MDN
     */
   def select     (args: VDomModifier*): VNode = tag("select")(args)
+
+  /**
+    * Represents a placeholder inside a web component that you can fill with
+    * your own markup, with the effect of composing different DOM trees together.
+    *
+    *  MDN
+    */
+  def slot       (args: VDomModifier*): VNode = tag("slot")(args)
 
   /**
     * Represents a side comment; text like a disclaimer or copyright, which is not
