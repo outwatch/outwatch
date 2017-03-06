@@ -25,6 +25,7 @@ sealed trait VNode extends VDomModifier {
 final case class EventEmitter(eventType: String, sink: Observer[_ <: Event]) extends Emitter
 final case class InputEventEmitter(eventType: String, sink: Observer[InputEvent]) extends Emitter
 final case class MouseEventEmitter(eventType: String, sink: Observer[MouseEvent]) extends Emitter
+final case class WheelEventEmitter(eventType: String, sink: Observer[WheelEvent]) extends Emitter
 final case class TouchEventEmitter(eventType: String, sink: Observer[TouchEvent]) extends Emitter
 final case class KeyEventEmitter(eventType: String, sink: Observer[KeyboardEvent]) extends Emitter
 final case class ClipboardEventEmitter(eventType: String, sink: Observer[ClipboardEvent]) extends Emitter

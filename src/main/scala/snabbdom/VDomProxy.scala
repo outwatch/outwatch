@@ -32,6 +32,8 @@ object VDomProxy {
 
   private def emitterToFunction(emitter: Emitter): Event => Unit = emitter match {
     case me: MouseEventEmitter => (e: Event) => me.sink.next(e.asInstanceOf[MouseEvent])
+    case we: WheelEventEmitter => (e: Event) => we.sink.next(e.asInstanceOf[WheelEvent])
+    case te: TouchEventEmitter => (e: Event) => te.sink.next(e.asInstanceOf[TouchEvent])
     case ke: KeyEventEmitter => (e: Event) => ke.sink.next(e.asInstanceOf[KeyboardEvent])
     case ie: InputEventEmitter => (e: Event) => ie.sink.next(e.asInstanceOf[InputEvent])
     case ce: ClipboardEventEmitter => (e: Event) => ce.sink.next(e.asInstanceOf[ClipboardEvent])
