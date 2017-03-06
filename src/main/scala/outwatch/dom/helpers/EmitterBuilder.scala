@@ -48,7 +48,7 @@ final class KeyEventEmitterBuilder(val eventType: String) extends AnyVal{
     KeyEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[KeyboardEvent]), (_: Event) => t)
   def apply[T](f: KeyboardEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[KeyboardEvent]), f)
 
@@ -60,7 +60,7 @@ final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
     MouseEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[MouseEvent]), (_: Event) => t)
 
   def apply[T](f: MouseEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[MouseEvent]), f)
@@ -73,7 +73,7 @@ final class WheelEventEmitterBuilder(val eventType: String) extends AnyVal {
     WheelEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[WheelEvent]), (_: Event) => t)
 
   def apply[T](f: WheelEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[WheelEvent]), f)
@@ -86,7 +86,7 @@ final class TouchEventEmitterBuilder(val eventType: String) extends AnyVal {
     TouchEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[TouchEvent]), (_: Event) => t)
 
   def apply[T](f: TouchEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[TouchEvent]), f)
@@ -99,7 +99,7 @@ final class ClipboardEventEmitterBuilder(val eventType: String) extends AnyVal {
     ClipboardEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[ClipboardEvent]), (_: Event) => t)
 
   def apply[T](f: ClipboardEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[ClipboardEvent]), f)
@@ -112,7 +112,7 @@ final class DragEventEmitterBuilder(val eventType: String) extends AnyVal {
     DragEventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[DragEvent]), (_: Event) => t)
 
   def apply[T](f: DragEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[DragEvent]), f)
