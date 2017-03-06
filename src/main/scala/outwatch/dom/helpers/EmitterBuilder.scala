@@ -3,7 +3,7 @@ package outwatch.dom.helpers
 import org.scalajs.dom._
 import outwatch.Sink
 import outwatch.dom.{BoolEventEmitter, MouseEventEmitter, NumberEventEmitter, StringEventEmitter, _}
-import rxscalajs.{Observable, Observer, Subject}
+import rxscalajs.{Observable, Observer}
 
 final case class GenericMappedEmitterBuilder[T,E](constructor: Observer[E] => Emitter, mapping: E => T){
   def -->[U >: T](sink: Sink[U]) = {
@@ -64,6 +64,19 @@ final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
 
   def apply[T](f: MouseEvent => T) =
     GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[MouseEvent]), f)
+
+  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
+}
+
+final class WheelEventEmitterBuilder(val eventType: String) extends AnyVal {
+  def -->(sink: Sink[WheelEvent]) =
+    WheelEventEmitter(eventType, sink.observer)
+
+  def apply[T](t: T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
+
+  def apply[T](f: WheelEvent => T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[WheelEvent]), f)
 
   def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 }
