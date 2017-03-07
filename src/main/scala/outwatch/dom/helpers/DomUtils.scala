@@ -168,9 +168,9 @@ object DomUtils {
   }
 
   def render(element: Element, vNode: VNode): Unit = {
-    val elem = document.createElement("div")
-    //element.appendChild(elem)
-    patch(element,vNode.asProxy)
+    val elem = document.createElement("app")
+    element.appendChild(elem)
+    patch(elem,vNode.asProxy)
   }
 
 
