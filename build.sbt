@@ -20,14 +20,15 @@ libraryDependencies ++= Seq(
 )
 
 jsDependencies ++= Seq(
-  "org.webjars.npm" % "rxjs" % "5.2.0" / "bundles/Rx.min.js" commonJSName "Rx",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom.js",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/h.js",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_class.js",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_eventlisteners.js",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_props.js",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_style.js",
-  "org.webjars.npm" % "snabbdom" % "0.5.4" / "dist/snabbdom_attributes.js"
+  "org.webjars.npm" % "rxjs" % "5.2.0" / "bundles/Rx.min.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/h.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-class.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-patch.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-eventlisteners.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-props.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-style.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-attributes.js"
 )
 
 jsEnv := PhantomJSEnv().value

@@ -4,11 +4,24 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 
 import scala.scalajs.js
+import scala.scalajs.js.annotation.JSName
 import scala.scalajs.js.|
 
 @js.native
-object h extends js.Object {
+@JSName("h")
+object hProvider extends js.Object {
+  val default: hFunction = js.native
+}
+
+@js.native
+trait hFunction extends js.Any {
   def apply(nodeType: String, dataObject: DataObject, children: String | js.Array[_ <: Any]): VNodeProxy = js.native
+}
+
+object h {
+  def apply(nodeType: String, dataObject: DataObject, children: String | js.Array[_ <: Any]): VNodeProxy = {
+    hProvider.default.apply(nodeType,dataObject,children)
+  }
 }
 
 @js.native
@@ -73,7 +86,12 @@ object DataObject {
 }
 
 object patch {
-  lazy val p = snabbdom.init(js.Array(snabbdom_class,snabbdom_eventlisteners,snabbdom_attributes, snabbdom_props))
+  lazy val p = snabbdom.init(js.Array(
+    snabbdom_class.default,
+    snabbdom_eventlisteners.default,
+    snabbdom_attributes.default,
+    snabbdom_props.default
+  ))
   def apply(firstNode: org.scalajs.dom.raw.Element | VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
 }
 
@@ -95,16 +113,26 @@ object snabbdom extends js.Object {
 }
 
 @js.native
-object snabbdom_class extends js.Object
+object snabbdom_class extends js.Object {
+  val default: js.Any = js.native
+}
 
 @js.native
-object snabbdom_eventlisteners extends js.Object
+object snabbdom_eventlisteners extends js.Object{
+  val default: js.Any = js.native
+}
 
 @js.native
-object snabbdom_attributes extends js.Object
+object snabbdom_attributes extends js.Object{
+  val default: js.Any = js.native
+}
 
 @js.native
-object snabbdom_props extends js.Object
+object snabbdom_props extends js.Object{
+  val default: js.Any = js.native
+}
 
 @js.native
-object snabbdom_style extends js.Object
+object snabbdom_style extends js.Object {
+  val default: js.Any = js.native
+}
