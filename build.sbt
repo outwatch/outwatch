@@ -4,7 +4,7 @@ name := "OutWatch"
 
 normalizedName := "outwatch"
 
-version := "0.9.0"
+version := "0.9.1"
 
 organization := "io.github.outwatch"
 
@@ -14,7 +14,7 @@ crossScalaVersions := Seq("2.11.8", "2.12.1")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.13.4",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.13.5",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
 )
