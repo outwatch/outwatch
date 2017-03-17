@@ -4,7 +4,7 @@ name := "OutWatch"
 
 normalizedName := "outwatch"
 
-version := "0.9.1"
+version := "0.9.2"
 
 organization := "io.github.outwatch"
 
@@ -14,25 +14,24 @@ crossScalaVersions := Seq("2.11.8", "2.12.1")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.13.5",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.13.6",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
 )
 
 jsDependencies ++= Seq(
   "org.webjars.npm" % "rxjs" % "5.2.0" / "bundles/Rx.min.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/h.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-class.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-patch.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-eventlisteners.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-props.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-style.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.6" / "dist/snabbdom-attributes.js"
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/h.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-class.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-patch.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-eventlisteners.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-props.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-style.js",
+  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-attributes.js"
 )
 
 jsEnv := PhantomJSEnv().value
-
 
 publishMavenStyle := true
 

@@ -1,10 +1,6 @@
 package outwatch.http
 
-import org.scalajs.dom.raw.XMLHttpRequest
 import rxscalajs.Observable
-
-import scala.scalajs.js
-import org.scalajs.dom
 import rxscalajs.dom.{Request, Response}
 
 object Http {
