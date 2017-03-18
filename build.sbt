@@ -24,7 +24,6 @@ jsDependencies ++= Seq(
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/h.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-class.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-patch.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-eventlisteners.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-props.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-style.js",
