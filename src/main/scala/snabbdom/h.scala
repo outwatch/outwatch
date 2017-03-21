@@ -4,11 +4,11 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSName
+import scala.scalajs.js.annotation.JSGlobal
 import scala.scalajs.js.|
 
 @js.native
-@JSName("h")
+@JSGlobal("h")
 object hProvider extends js.Object {
   val default: hFunction = js.native
 }
@@ -107,32 +107,34 @@ object VNodeProxy {
   def fromString(string: String): VNodeProxy = string.asInstanceOf[VNodeProxy]
 }
 
-@js.native
+
+@js.native @JSGlobal
 object snabbdom extends js.Object {
   def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, Unit] = js.native
+
 }
 
-@js.native
+@js.native @JSGlobal
 object snabbdom_class extends js.Object {
   val default: js.Any = js.native
 }
 
-@js.native
+@js.native @JSGlobal
 object snabbdom_eventlisteners extends js.Object{
   val default: js.Any = js.native
 }
 
-@js.native
+@js.native @JSGlobal
 object snabbdom_attributes extends js.Object{
   val default: js.Any = js.native
 }
 
-@js.native
+@js.native @JSGlobal
 object snabbdom_props extends js.Object{
   val default: js.Any = js.native
 }
 
-@js.native
+@js.native @JSGlobal
 object snabbdom_style extends js.Object {
   val default: js.Any = js.native
 }
