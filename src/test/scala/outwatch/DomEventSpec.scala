@@ -1,11 +1,10 @@
 package outwatch
 
-import org.scalatest.BeforeAndAfterEach
-import rxscalajs.Subject
-import org.scalajs.dom.raw.{HTMLInputElement, MouseEvent}
 import org.scalajs.dom._
+import org.scalajs.dom.raw.{HTMLInputElement, MouseEvent}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.PropertyChecks
-import outwatch.dom.helpers.DomUtils
+import rxscalajs.Subject
 
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
@@ -251,6 +250,30 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("input").dispatchEvent(inputEvt)
 
     document.getElementById("num").innerHTML shouldBe number.toString
+  }
+
+  it should "be able to toggle attributes with a boolean observer" in {
+    import outwatch.dom._
+    import outwatch.util.SyntaxSugar._
+
+    val stream = createBoolHandler()
+
+    val someClass = "some-class"
+
+    val node = div(
+      button(id := "input", tpe := "checkbox", click(true) --> stream),
+      span(id:="toggled", stream ?= (className := someClass))
+    )
+
+    OutWatch.render("#app", node)
+
+    val inputEvt = document.createEvent("HTMLEvents")
+    inputEvt.initEvent("click", true, false)
+
+
+    document.getElementById("input").dispatchEvent(inputEvt)
+
+    document.getElementById("toggled").classList.contains(someClass) shouldBe true
   }
 
 }
