@@ -3,18 +3,20 @@ package outwatch.util
 import outwatch.Sink
 import outwatch.dom.createHandler
 import rxscalajs.Observable
+import rxscalajs.subscription.Subscription
+
 import scala.language.implicitConversions
 
-final case class Store[T, U](initialState: T, reducer: (T,U) => T) {
-  val sink = createHandler[U]()
-  val source = sink
+final case class Store[State, Action](initialState: State, reducer: (State, Action) => State) {
+  val sink: Observable[Action] with Sink[Action] = createHandler[Action]()
+  val source: Observable[State] = sink
     .scan(initialState)(reducer)
     .startWith(initialState)
 
-  def subscribe(f: T => Unit) = source.subscribe(f)
+  def subscribe(f: State => Unit): Subscription = source.subscribe(f)
 }
 
 object Store {
-  implicit def toSink[U](store: Store[_,U]): Sink[U] = store.sink
-  implicit def toSource[T](store: Store[T,_]): Observable[T] = store.source
+  implicit def toSink[Action](store: Store[_, Action]): Sink[Action] = store.sink
+  implicit def toSource[State](store: Store[State, _]): Observable[State] = store.source
 }
