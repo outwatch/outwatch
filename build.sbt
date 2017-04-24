@@ -14,13 +14,13 @@ crossScalaVersions := Seq("2.11.8", "2.12.1")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.13.6",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.13.7",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
 )
 
 jsDependencies ++= Seq(
-  "org.webjars.npm" % "rxjs" % "5.2.0" / "bundles/Rx.min.js",
+  "org.webjars.npm" % "rxjs" % "5.3.0" / "bundles/Rx.min.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/h.js",
   "org.webjars.npm" % "snabbdom" % "0.6.7" / "dist/snabbdom-class.js",
