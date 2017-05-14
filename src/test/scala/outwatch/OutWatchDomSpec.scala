@@ -44,7 +44,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       DestroyHook(Subject())
     )
 
-    val (inserts, deletes, updates, attributes) = DomUtils.separateProperties(properties)
+    val (inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
 
     inserts.length shouldBe 2
     deletes.length shouldBe 1
@@ -110,7 +110,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
-    val (inserts, deletes, updates, attributes) = DomUtils.separateProperties(properties)
+    val (inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
 
     emitters.length shouldBe 3
     child$.length shouldBe 0

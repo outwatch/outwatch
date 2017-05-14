@@ -50,13 +50,14 @@ object DomUtils {
 
   private def createSimpleDataObject(props: Seq[Property], handlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val (insert, delete, update, attributes) = separateProperties(props)
+    val (insert, delete, update, attributes, keys) = separateProperties(props)
     val attrs = VDomProxy.attrsToSnabbDom(attributes)
 
     val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
     val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
     val updateHook = createUpdateHook(update)
-    DataObject.createWithHooks(attrs, handlers, insertHook, deleteHook, updateHook)
+    val key = keys.headOption.map(_.value).orUndefined
+    DataObject.createWithHooks(attrs, handlers, insertHook, deleteHook, updateHook, key)
   }
 
 
@@ -64,18 +65,19 @@ object DomUtils {
                                        valueStreamExists: Boolean, props: Seq[Property],
                                eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val (insert, destroy, update, attributes) = separateProperties(props)
+    val (insert, destroy, update, attributes, keys) = separateProperties(props)
 
     val attrs = VDomProxy.attrsToSnabbDom(attributes)
     val subscriptionPromise = Promise[Subscription]
     val insertHook = createInsertHook(changeables, subscriptionPromise, insert)
     val deleteHook = createDestroyHook(subscriptionPromise, destroy)
     val updateHook = createUpdateHook(update)
+    val key = keys.headOption.map(_.value).orUndefined
 
     if (valueStreamExists){
-      DataObject.createWithValue(attrs, eventHandlers, insertHook, deleteHook, updateHook)
+      DataObject.createWithValue(attrs, eventHandlers, insertHook, deleteHook, updateHook, key)
     } else {
-      DataObject.createWithHooks(attrs, eventHandlers, insertHook, deleteHook, updateHook)
+      DataObject.createWithHooks(attrs, eventHandlers, insertHook, deleteHook, updateHook, key)
     }
   }
 
@@ -140,11 +142,12 @@ object DomUtils {
   }
 
   def separateProperties(properties: Seq[Property]) = {
-    properties.foldRight((Seq[InsertHook](), Seq[DestroyHook](), Seq[UpdateHook](), Seq[Attribute]())) {
-      case (ih: InsertHook, (ihs, dhs, uhs, ats)) => (ih +: ihs, dhs, uhs, ats)
-      case (dh: DestroyHook, (ihs, dhs, uhs, ats)) => (ihs, dh +: dhs, uhs, ats)
-      case (uh: UpdateHook, (ihs, dhs, uhs, ats)) => (ihs, dhs, uh +: uhs, ats)
-      case (at: Attribute, (ihs, dhs, uhs, ats))  => (ihs, dhs, uhs, at +: ats)
+    properties.foldRight((Seq[InsertHook](), Seq[DestroyHook](), Seq[UpdateHook](), Seq[Attribute](), Seq[Key]())) {
+      case (ih: InsertHook, (ihs, dhs, uhs, ats, keys)) => (ih +: ihs, dhs, uhs, ats, keys)
+      case (dh: DestroyHook, (ihs, dhs, uhs, ats, keys)) => (ihs, dh +: dhs, uhs, ats, keys)
+      case (uh: UpdateHook, (ihs, dhs, uhs, ats, keys)) => (ihs, dhs, uh +: uhs, ats, keys)
+      case (at: Attribute, (ihs, dhs, uhs, ats, keys))  => (ihs, dhs, uhs, at +: ats, keys)
+      case (key: Key, (ihs, dhs, uhs, ats, keys)) => (ihs, dhs, uhs, ats, key +: keys)
     }
   }
 

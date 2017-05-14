@@ -29,6 +29,7 @@ trait Attributes
   with MiscellaneousEventAttributes
   with MouseEventAttributes
   with OutWatchChildAttributes
+  with SnabbdomKeyAttributes
   with OutWatchLifeCycleAttributes
   with TableAttributes
   with TouchEventAttributes
@@ -1853,6 +1854,11 @@ trait OutWatchLifeCycleAttributes {
 
   /** Lifecycle hook for component destruction. */
   lazy val destroy  = DestroyHookBuilder
+}
+
+/** Snabbdom Key Attribute */
+trait SnabbdomKeyAttributes {
+  lazy val key = KeyBuilder
 }
 
 trait SharedEventAttributes {

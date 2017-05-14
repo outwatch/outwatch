@@ -40,13 +40,15 @@ object DataObject {
                       on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit],
                       destroy: js.Function1[VNodeProxy,Unit],
-                      update: js.Function2[VNodeProxy, VNodeProxy, Unit]): DataObject = {
+                      update: js.Function2[VNodeProxy, VNodeProxy, Unit],
+                      key: js.UndefOr[String]): DataObject = {
 
 
     js.Dynamic.literal(
       attrs = attrs,
       on = on,
-      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = update)
+      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = update),
+      key = key
     ).asInstanceOf[DataObject]
   }
 
@@ -54,7 +56,8 @@ object DataObject {
                       on: js.Dictionary[js.Function1[Event,Unit]],
                       insert: js.Function1[VNodeProxy,Unit],
                       destroy: js.Function1[VNodeProxy,Unit],
-                      update: js.Function2[VNodeProxy, VNodeProxy, Unit]): DataObject = {
+                      update: js.Function2[VNodeProxy, VNodeProxy, Unit],
+                      key: js.UndefOr[String]): DataObject = {
 
     val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
       update(old, node)
@@ -64,7 +67,8 @@ object DataObject {
     js.Dynamic.literal(
       attrs = attrs,
       on = on,
-      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook)
+      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook),
+      key = key
     ).asInstanceOf[DataObject]
   }
 

@@ -38,6 +38,7 @@ final case class Attribute(title: String, value: String) extends Property
 final case class InsertHook(sink: Observer[Element]) extends Property
 final case class DestroyHook(sink: Observer[Element]) extends Property
 final case class UpdateHook(sink: Observer[(Element, Element)]) extends Property
+final case class Key(value: String) extends Property
 
 final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends Receiver
 final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver

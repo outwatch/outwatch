@@ -62,3 +62,7 @@ object BoolAttributeBuilder {
   implicit def toAttribute(builder: BoolAttributeBuilder): Attribute =
     Attribute(builder.attributeName, "_")
 }
+
+object KeyBuilder {
+  def :=(key: String) = Key(key)
+}
