@@ -3,12 +3,12 @@
 
 ## Getting started
 
-First you will need to install Java and SBT if you haven't already. 
+First you will need to install Java and SBT if you haven't already.
 Create a new SBT project and add the ScalaJS plugin to your `plugins.sbt`.
 Then add the following line to your `build.sbt`.
 
-    libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.9.3"
-    
+    libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.9.4"
+
 And you're done, you can now start building your own OutWatch app!
 Please check out the [documentation](https://outwatch.github.io/) on how to proceed.
 
