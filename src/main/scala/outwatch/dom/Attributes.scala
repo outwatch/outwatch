@@ -11,6 +11,7 @@
   */
 package outwatch.dom
 
+import org.scalajs.dom._
 import outwatch.dom.helpers._
 
 /** Trait containing the contents of the `Attributes` module, so they can be
@@ -29,6 +30,7 @@ trait Attributes
   with MiscellaneousEventAttributes
   with MouseEventAttributes
   with OutWatchChildAttributes
+  with SnabbdomKeyAttributes
   with OutWatchLifeCycleAttributes
   with TableAttributes
   with TouchEventAttributes
@@ -37,13 +39,13 @@ trait Attributes
 /** Clipboard Events */
 trait ClipBoardEventAttributes {
   /** Fires when the user copies the content of an element. */
-  lazy val copy   = new ClipboardEventEmitterBuilder("copy")
+  lazy val copy   = new EventEmitterBuilder[ClipboardEvent]("copy")
 
   /** Fires when the user cuts the content of an element. */
-  lazy val cut    = new ClipboardEventEmitterBuilder("cut")
+  lazy val cut    = new EventEmitterBuilder[ClipboardEvent]("cut")
 
   /** Fires when the user pastes some content in an element. */
-  lazy val paste  = new ClipboardEventEmitterBuilder("paste")
+  lazy val paste  = new EventEmitterBuilder[ClipboardEvent]("paste")
 }
 
 /** Form Events that are triggered by actions inside an HTML form. However,
@@ -55,23 +57,23 @@ trait FormEventAttributes {
     *
     * MDN
     */
-  lazy val blur         = new InputEventEmitterBuilder("blur")
+  lazy val blur         = new EventEmitterBuilder[InputEvent]("blur")
 
   /** The change event is fired for input, select, and textarea elements
     * when a change to the element's value is committed by the user.
     *
     * MDN
     */
-  lazy val change       = new InputEventEmitterBuilder("change")
+  lazy val change       = new EventEmitterBuilder[InputEvent]("change")
 
   /** The focus event is raised when the user sets focus on the given element.
     *
     * MDN
     */
-  lazy val focus        = new InputEventEmitterBuilder("focus")
+  lazy val focus        = new EventEmitterBuilder[InputEvent]("focus")
 
   /** The input event is fired when an element gets user input. */
-  lazy val input        = new InputEventEmitterBuilder("input")
+  lazy val input        = new EventEmitterBuilder[InputEvent]("input")
 
 
   @deprecated("Deprecated, use 'inputChecked' instead", "0.8.0")
@@ -1043,7 +1045,7 @@ trait KeyboardEventAttributes {
     *
     * MDN
     */
-  lazy val keydown  = new KeyEventEmitterBuilder("keydown")
+  lazy val keydown  = new EventEmitterBuilder[KeyboardEvent]("keydown")
 
   /** The keypress event should be raised when the user presses a key on the
     * keyboard. However, not all browsers fire keypress events for certain keys.
@@ -1054,13 +1056,13 @@ trait KeyboardEventAttributes {
     *
     * MDN
     */
-  lazy val keypress = new KeyEventEmitterBuilder("keypress")
+  lazy val keypress = new EventEmitterBuilder[KeyboardEvent]("keypress")
 
   /** The keyup event is raised when the user releases a key that's been pressed.
     *
     * MDN
     */
-  lazy val keyup    = new KeyEventEmitterBuilder("keyup")
+  lazy val keyup    = new EventEmitterBuilder[KeyboardEvent]("keyup")
 }
 
 /** Attributes applicable to media elements like `&lt;audio&gt;`,
@@ -1224,7 +1226,7 @@ trait MediaAttributes extends SharedEventAttributes {
  * `&lt;embed&gt;`, `&lt;img&gt;`, `&lt;object&gt;`, and `&lt;video&gt;`.
  */
 trait MediaEventAttributes {
-  private def event(name: String): EventEmitterBuilder = new EventEmitterBuilder(name)
+  private def event(name: String) = new EventEmitterBuilder[Event](name)
 
   /** Script to be run on abort. */
   lazy val abort = event("abort")
@@ -1678,7 +1680,7 @@ trait MiscellaneousAttributes {
 
 /** Miscellaneous Events. */
 trait MiscellaneousEventAttributes extends SharedEventAttributes {
-  private def event(name: String): EventEmitterBuilder = new EventEmitterBuilder(name)
+  private def event(name: String) = new EventEmitterBuilder[Event](name)
 
   /** Fires when a `&lt;menu&gt;` element is shown as a context menu. */
   lazy val show = event("show")
@@ -1694,11 +1696,11 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val click              = new MouseEventEmitterBuilder("click")
+  lazy val click              = new EventEmitterBuilder[MouseEvent]("click")
 
   /** Script to be run when a context menu is triggered
     */
-  lazy val contextmenu        = new MouseEventEmitterBuilder("contextmenu")
+  lazy val contextmenu        = new EventEmitterBuilder[MouseEvent]("contextmenu")
   @deprecated("Deprecated, use 'contextmenu' instead", "0.9.0")
   lazy val contextMenu        = contextmenu
 
@@ -1707,73 +1709,73 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val dblclick           = new MouseEventEmitterBuilder("dblclick")
+  lazy val dblclick           = new EventEmitterBuilder[MouseEvent]("dblclick")
 
   /** Script to be run when an element is dragged. */
-  lazy val drag               = new DragEventEmitterBuilder("drag")
+  lazy val drag               = new EventEmitterBuilder[DragEvent]("drag")
 
   /** Script to be run at the end of a drag operation. */
-  lazy val dragend            = new DragEventEmitterBuilder("dragend")
+  lazy val dragend            = new EventEmitterBuilder[DragEvent]("dragend")
   @deprecated("Deprecated, use 'dragend' instead", "0.9.0")
   lazy val dragEnd            = dragend
 
   /** Script to be run when an element has been dragged to a valid drop target. */
-  lazy val dragenter          = new DragEventEmitterBuilder("dragenter")
+  lazy val dragenter          = new EventEmitterBuilder[DragEvent]("dragenter")
   @deprecated("Deprecated, use 'dragenter' instead", "0.9.0")
   lazy val dragEnter          = dragenter
 
   /** Script to be run when an element leaves a valid drop target. */
-  lazy val dragleave          = new DragEventEmitterBuilder("dragleave")
+  lazy val dragleave          = new EventEmitterBuilder[DragEvent]("dragleave")
   @deprecated("Deprecated, use 'dragleave' instead", "0.9.0")
   lazy val dragLeave          = dragleave
 
   /** Script to be run when an element is being dragged over a valid drop target. */
-  lazy val dragover           = new DragEventEmitterBuilder("dragover")
+  lazy val dragover           = new EventEmitterBuilder[DragEvent]("dragover")
   @deprecated("Deprecated, use 'dragover' instead", "0.9.0")
   lazy val dragOver           = dragover
 
 
   /** Script to be run at the start of a drag operation. */
-  lazy val dragstart          = new DragEventEmitterBuilder("dragstart")
+  lazy val dragstart          = new EventEmitterBuilder[DragEvent]("dragstart")
   @deprecated("Deprecated, use 'dragstart' instead", "0.9.0")
   lazy val dragStart          = dragstart
 
 
   /** Script to be run when dragged element is being dropped. */
-  lazy val drop               = new DragEventEmitterBuilder("drop")
+  lazy val drop               = new EventEmitterBuilder[DragEvent]("drop")
 
   /** The mousedown event is raised when the user presses the mouse button.
     *
     * MDN
     */
-  lazy val mousedown          = new MouseEventEmitterBuilder("mousedown")
+  lazy val mousedown          = new EventEmitterBuilder[MouseEvent]("mousedown")
 
   /** The mouseenter event is fired when a pointing device (usually a mouse) is
     * moved over the element that has the listener attached.
     *
     * MDN
     */
-  lazy val mouseenter         = new MouseEventEmitterBuilder("mouseenter")
+  lazy val mouseenter         = new EventEmitterBuilder[MouseEvent]("mouseenter")
 
   /** The mouseleave event is fired when a pointing device (usually a mouse) is
     * moved off the element that has the listener attached.
     *
     * MDN
     */
-  lazy val mouseleave         = new MouseEventEmitterBuilder("mouseleave")
+  lazy val mouseleave         = new EventEmitterBuilder[MouseEvent]("mouseleave")
 
   /** The mousemove event is raised when the user moves the mouse.
     *
     * MDN
     */
-  lazy val mousemove          = new MouseEventEmitterBuilder("mousemove")
+  lazy val mousemove          = new EventEmitterBuilder[MouseEvent]("mousemove")
 
   /** The mouseover event is raised when the user moves the mouse over a
     * particular element.
     *
     * MDN
     */
-  lazy val mouseover          = new MouseEventEmitterBuilder("mouseover")
+  lazy val mouseover          = new EventEmitterBuilder[MouseEvent]("mouseover")
 
 
   /** The mouseout event is fired when a pointing device (usually a mouse) is
@@ -1783,20 +1785,20 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val mouseout           = new MouseEventEmitterBuilder("mouseout")
+  lazy val mouseout           = new EventEmitterBuilder[MouseEvent]("mouseout")
 
   /** The mouseup event is raised when the user releases the mouse button.
     *
     * MDN
     */
-  lazy val mouseup            = new MouseEventEmitterBuilder("mouseup")
+  lazy val mouseup            = new EventEmitterBuilder[MouseEvent]("mouseup")
 
 
   /** The pointerlockchange event is fired when the pointer is locked/unlocked.
     *
     * MDN
     */
-  lazy val pointerlockchange  = new MouseEventEmitterBuilder("pointerlockchange")
+  lazy val pointerlockchange  = new EventEmitterBuilder[MouseEvent]("pointerlockchange")
   @deprecated("Deprecated, use 'pointerlockchange' instead", "0.9.0")
   lazy val pointerLockChange  = pointerlockchange
 
@@ -1806,7 +1808,7 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val pointerlockerror   = new MouseEventEmitterBuilder("pointerlockerror")
+  lazy val pointerlockerror   = new EventEmitterBuilder[MouseEvent]("pointerlockerror")
   @deprecated("Deprecated, use 'pointerlockerror' instead", "0.9.0")
   lazy val pointerLockError   = pointerlockerror
 
@@ -1815,7 +1817,7 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val scroll             = new MouseEventEmitterBuilder("scroll")
+  lazy val scroll             = new EventEmitterBuilder[MouseEvent]("scroll")
 
   /**
     * The select event only fires when text inside a text input or textarea is
@@ -1823,7 +1825,7 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val select             = new MouseEventEmitterBuilder("select")
+  lazy val select             = new EventEmitterBuilder[MouseEvent]("select")
 
   /** The wheel event is fired when a wheel button of a pointing device (usually
     * a mouse) is rotated. This event replaces the non-standard deprecated
@@ -1831,7 +1833,7 @@ trait MouseEventAttributes {
     *
     * MDN
     */
-  lazy val wheel              = new WheelEventEmitterBuilder("wheel")
+  lazy val wheel              = new EventEmitterBuilder[WheelEvent]("wheel")
 }
 
 /** OutWatch specific attributes used to asign child nodes to a VNode. */
@@ -1853,6 +1855,11 @@ trait OutWatchLifeCycleAttributes {
 
   /** Lifecycle hook for component destruction. */
   lazy val destroy  = DestroyHookBuilder
+}
+
+/** Snabbdom Key Attribute */
+trait SnabbdomKeyAttributes {
+  lazy val key = KeyBuilder
 }
 
 trait SharedEventAttributes {
@@ -1929,28 +1936,28 @@ trait TouchEventAttributes {
     *
     * MDN
     */
-  lazy val touchcancel = new TouchEventEmitterBuilder("touchcancel")
+  lazy val touchcancel = new EventEmitterBuilder[TouchEvent]("touchcancel")
 
   /** The touchend event is fired when a touch point is removed from the touch
     * surface.
     *
     * MDN
     */
-  lazy val touchend    = new TouchEventEmitterBuilder("touchend")
+  lazy val touchend    = new EventEmitterBuilder[TouchEvent]("touchend")
 
   /** The touchmove event is fired when a touch point is moved along the touch
     * surface.
     *
     * MDN
     */
-  lazy val touchmove   = new TouchEventEmitterBuilder("touchmove")
+  lazy val touchmove   = new EventEmitterBuilder[TouchEvent]("touchmove")
 
   /** The touchstart event is fired when a touch point is placed on the touch
     * surface.
     *
     * MDN
     */
-  lazy val touchstart  = new TouchEventEmitterBuilder("touchstart")
+  lazy val touchstart  = new EventEmitterBuilder[TouchEvent]("touchstart")
 }
 
 /** Window events. */
