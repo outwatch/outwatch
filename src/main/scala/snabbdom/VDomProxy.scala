@@ -31,17 +31,10 @@ object VDomProxy {
   }
 
   private def emitterToFunction(emitter: Emitter): Event => Unit = emitter match {
-    case me: MouseEventEmitter => (e: Event) => me.sink.next(e.asInstanceOf[MouseEvent])
-    case we: WheelEventEmitter => (e: Event) => we.sink.next(e.asInstanceOf[WheelEvent])
-    case te: TouchEventEmitter => (e: Event) => te.sink.next(e.asInstanceOf[TouchEvent])
-    case ke: KeyEventEmitter => (e: Event) => ke.sink.next(e.asInstanceOf[KeyboardEvent])
-    case ie: InputEventEmitter => (e: Event) => ie.sink.next(e.asInstanceOf[InputEvent])
-    case ce: ClipboardEventEmitter => (e: Event) => ce.sink.next(e.asInstanceOf[ClipboardEvent])
-    case de: DragEventEmitter => (e: Event) => de.sink.next(e.asInstanceOf[DragEvent])
     case se: StringEventEmitter => (e: Event) => se.sink.next(e.target.asInstanceOf[HTMLInputElement].value)
     case be: BoolEventEmitter => (e: Event) => be.sink.next(e.target.asInstanceOf[HTMLInputElement].checked)
     case ne: NumberEventEmitter => (e: Event) => ne.sink.next(e.target.asInstanceOf[HTMLInputElement].valueAsNumber)
-    case ee: EventEmitter => (e: Event) => ee.sink.asInstanceOf[Observer[Event]].next(e)
+    case ee: EventEmitter[_] => (e: Event) => ee.sink.asInstanceOf[Observer[Event]].next(e)
   }
 
 

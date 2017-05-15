@@ -10,7 +10,7 @@ import outwatch.dom.helpers._
 import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
-import org.scalajs.dom.document
+import org.scalajs.dom.{Event, KeyboardEvent, document}
 import outwatch.dom.VDomModifier.VTree
 
 class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
@@ -72,12 +72,12 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be separated correctly with children" in {
     val modifiers = Seq(
       Attribute("class","red"),
-      EventEmitter("click",Subject()),
-      InputEventEmitter("input", Subject()),
+      EventEmitter[Event]("click",Subject()),
+      EventEmitter[InputEvent]("input", Subject()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
-      KeyEventEmitter("keyup", Subject())
+      EventEmitter[KeyboardEvent]("keyup", Subject())
     )
 
     val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
@@ -96,13 +96,13 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be separated correctly with children and properties" in {
     val modifiers = Seq(
       Attribute("class","red"),
-      EventEmitter("click",Subject()),
-      InputEventEmitter("input", Subject()),
+      EventEmitter[Event]("click",Subject()),
+      EventEmitter[InputEvent]("input", Subject()),
       UpdateHook(Subject()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
-      KeyEventEmitter("keyup", Subject()),
+      EventEmitter[KeyboardEvent]("keyup", Subject()),
       InsertHook(Subject())
     )
 

@@ -3,7 +3,6 @@ package outwatch.dom
 import org.scalajs.dom._
 import rxscalajs.{Observable, Observer}
 import snabbdom.{DataObject, VNodeProxy, h}
-import outwatch.dom.helpers.InputEvent
 
 import scala.scalajs.js.JSConverters._
 
@@ -21,15 +20,7 @@ sealed trait VNode extends VDomModifier {
   val asProxy: VNodeProxy
 }
 
-
-final case class EventEmitter(eventType: String, sink: Observer[_ <: Event]) extends Emitter
-final case class InputEventEmitter(eventType: String, sink: Observer[InputEvent]) extends Emitter
-final case class MouseEventEmitter(eventType: String, sink: Observer[MouseEvent]) extends Emitter
-final case class WheelEventEmitter(eventType: String, sink: Observer[WheelEvent]) extends Emitter
-final case class TouchEventEmitter(eventType: String, sink: Observer[TouchEvent]) extends Emitter
-final case class KeyEventEmitter(eventType: String, sink: Observer[KeyboardEvent]) extends Emitter
-final case class ClipboardEventEmitter(eventType: String, sink: Observer[ClipboardEvent]) extends Emitter
-final case class DragEventEmitter(eventType: String, sink: Observer[DragEvent]) extends Emitter
+final case class EventEmitter[E <: Event](eventType: String, sink: Observer[E]) extends Emitter
 final case class StringEventEmitter(eventType: String, sink: Observer[String]) extends Emitter
 final case class BoolEventEmitter(eventType: String, sink: Observer[Boolean]) extends Emitter
 final case class NumberEventEmitter(eventType: String, sink: Observer[Double]) extends Emitter
