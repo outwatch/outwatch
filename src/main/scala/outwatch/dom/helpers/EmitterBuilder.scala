@@ -2,7 +2,7 @@ package outwatch.dom.helpers
 
 import org.scalajs.dom._
 import outwatch.Sink
-import outwatch.dom.{BoolEventEmitter, MouseEventEmitter, NumberEventEmitter, StringEventEmitter, _}
+import outwatch.dom.{BoolEventEmitter, NumberEventEmitter, StringEventEmitter, _}
 import rxscalajs.{Observable, Observer}
 
 final case class GenericMappedEmitterBuilder[T,E](constructor: Observer[E] => Emitter, mapping: E => T){
@@ -21,9 +21,9 @@ final case class FilteredGenericMappedEmitterBuilder[T,E](
   }
 }
 
-final case class WithLatestFromEmitterBuilder[T](eventType: String, stream: Observable[T]) {
-  def -->[U >: T](sink: Sink[U]): EventEmitter = {
-    val proxy: Sink[Event] = sink.redirect(_.withLatestFromWith(stream)((_,u) => u))
+final case class WithLatestFromEmitterBuilder[T, E <: Event](eventType: String, stream: Observable[T]) {
+  def -->[U >: T](sink: Sink[U]): EventEmitter[E] = {
+    val proxy: Sink[E] = sink.redirect[E](_.withLatestFromWith(stream)((_,u) => u))
     EventEmitter(eventType, proxy.observer)
   }
 }
@@ -33,7 +33,7 @@ final case class FilteredWithLatestFromEmitterBuilder[T, E <: Event](
   stream: Observable[T],
   predicate: E => Boolean
 ) {
-  def -->[U >: T](sink: Sink[U]): EventEmitter = {
+  def -->[U >: T](sink: Sink[U]): EventEmitter[E] = {
     val proxy: Sink[E] = sink.redirect(_.filter(predicate).withLatestFromWith(stream)((_, u) => u))
     EventEmitter(eventType, proxy.observer)
   }
@@ -52,123 +52,19 @@ final case class FilteredEmitterBuilder[E](eventType: String, predicate: E => Bo
   def apply[T](ts: Observable[T]) = FilteredWithLatestFromEmitterBuilder(eventType, ts, predicate)
 }
 
-final class EventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[Event]) =
+final class EventEmitterBuilder[E <: Event](val eventType: String) extends AnyVal {
+  def -->(sink: Sink[E]) =
     EventEmitter(eventType, sink.observer)
 
   def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[Event]), (_: Event) => t)
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[E]), (_: E) => t)
 
-  def apply[T](f: Event => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[Event]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: Event => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class InputEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[InputEvent]) =
-    InputEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), (_: Event) => t)
-
-  def apply[T](f: InputEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[InputEvent]), f)
+  def apply[T](f: E => T) =
+    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[E]), f)
 
   def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
 
-  def filter(predicate: InputEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class KeyEventEmitterBuilder(val eventType: String) extends AnyVal{
-  def -->(sink: Sink[KeyboardEvent]) =
-    KeyEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[KeyboardEvent]), (_: Event) => t)
-  def apply[T](f: KeyboardEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[KeyboardEvent]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: KeyboardEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class MouseEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[MouseEvent]) =
-    MouseEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[MouseEvent]), (_: Event) => t)
-
-  def apply[T](f: MouseEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[MouseEvent]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: MouseEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class WheelEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[WheelEvent]) =
-    WheelEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[WheelEvent]), (_: Event) => t)
-
-  def apply[T](f: WheelEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[WheelEvent]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: WheelEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class TouchEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[TouchEvent]) =
-    TouchEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[TouchEvent]), (_: Event) => t)
-
-  def apply[T](f: TouchEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[TouchEvent]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: TouchEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class ClipboardEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[ClipboardEvent]) =
-    ClipboardEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[ClipboardEvent]), (_: Event) => t)
-
-  def apply[T](f: ClipboardEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[ClipboardEvent]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: ClipboardEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class DragEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[DragEvent]) =
-    DragEventEmitter(eventType, sink.observer)
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[DragEvent]), (_: Event) => t)
-
-  def apply[T](f: DragEvent => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[DragEvent]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: DragEvent => Boolean) = FilteredEmitterBuilder(eventType, predicate)
+  def filter(predicate: E => Boolean) = FilteredEmitterBuilder(eventType, predicate)
 }
 
 final class StringEventEmitterBuilder(val eventType: String) extends AnyVal {
