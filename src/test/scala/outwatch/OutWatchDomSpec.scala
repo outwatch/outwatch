@@ -4,6 +4,7 @@ import org.scalajs.dom.raw.HTMLInputElement
 import org.scalatest.BeforeAndAfterEach
 import rxscalajs.{Observable, Subject}
 import snabbdom.{DataObject, h}
+import outwatch.dom.all._
 import outwatch.dom._
 import outwatch.dom.helpers._
 
@@ -222,11 +223,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   it should "change the value of a textfield" in {
-
+    import outwatch.dom.<^.^
 
     val messages = Subject[String]
     val vtree = div(
-      input(outwatch.dom.value <-- messages, id := "input")
+      input(^.value <-- messages, id := "input")
     )
 
     val node = document.createElement("div")

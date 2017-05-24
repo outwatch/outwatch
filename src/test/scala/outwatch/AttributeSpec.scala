@@ -1,6 +1,6 @@
 package outwatch
 
-import outwatch.dom._
+import outwatch.dom.all._
 
 class AttributeSpec extends UnitSpec {
 

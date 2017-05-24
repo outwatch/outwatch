@@ -3,6 +3,7 @@ package outwatch
 import org.scalajs.dom._
 import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
+import outwatch.dom.all._
 import rxscalajs.Observable
 
 class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
