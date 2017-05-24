@@ -29,7 +29,7 @@ class SnabbdomSpec extends UnitSpec {
   }
 
   it should "correctly patch nodes with keys" in {
-    import outwatch.dom.<^.{< => tag, _}
+    import outwatch.dom.{< => tag, _}
 
     val clicks = createHandler[Int](1)
     val nodes = clicks.map { i =>

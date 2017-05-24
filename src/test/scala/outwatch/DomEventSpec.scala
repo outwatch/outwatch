@@ -102,7 +102,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to set the value of a text field" in {
-    import outwatch.dom.<^.{< => tag, ^}
+    import outwatch.dom.{< => tag, ^}
 
     val values = Subject[String]
 
@@ -244,7 +244,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node)
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    inputEvt initEvent("input", false, true)
 
 
     document.getElementById("input").dispatchEvent(inputEvt)
