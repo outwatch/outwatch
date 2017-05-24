@@ -8,6 +8,4 @@ package object dom extends Handlers
     object < extends Tags
     object ^ extends Attributes
   }
-
-  object Handlers extends Handlers
 }
