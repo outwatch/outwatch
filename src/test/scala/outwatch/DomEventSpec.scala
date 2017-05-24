@@ -102,11 +102,10 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to set the value of a text field" in {
-    import outwatch.dom.{< => tag, ^}
 
     val values = Subject[String]
 
-    val vtree = tag.input(^.id:= "input", ^.value <-- values)
+    val vtree = T.input(A.id:= "input", A.value <-- values)
 
     OutWatch.render("#app", vtree)
 

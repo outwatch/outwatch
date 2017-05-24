@@ -4,8 +4,7 @@ package object dom extends Handlers
 {
   object all extends Tags with Attributes
 
-  object < extends Tags
+  object T extends Tags
 
-  object ^ extends Attributes
-
+  object A extends Attributes
 }

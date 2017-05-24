@@ -223,11 +223,10 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   it should "change the value of a textfield" in {
-    import outwatch.dom.^
 
     val messages = Subject[String]
     val vtree = div(
-      input(^.value <-- messages, id := "input")
+      input(A.value <-- messages, id := "input")
     )
 
     val node = document.createElement("div")
