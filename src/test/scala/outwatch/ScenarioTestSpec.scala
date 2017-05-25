@@ -3,8 +3,8 @@ package outwatch
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import org.scalatest.BeforeAndAfterEach
-import rxscalajs.{Observable, Subject}
 import outwatch.dom.helpers.DomUtils
+import outwatch.dom._
 
 class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   override def afterEach(): Unit = {
@@ -16,7 +16,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "A simple counter application" should "work as intended" in {
-    import outwatch.dom._
+    import outwatch.dom.all._
 
     val handlePlus = createMouseHandler()
     val plusOne$ = handlePlus.mapTo(1)
@@ -56,7 +56,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "A simple name application" should "work as intended" in {
-    import outwatch.dom._
+    import outwatch.dom.all._
 
     val nameHandler = createStringHandler()
 
@@ -75,7 +75,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
 
     val evt = document.createEvent("HTMLEvents")
-    evt.initEvent("input", false, true)
+    evt.initEvent("input", canBubbleArg = false, cancelableArg = true)
     val name = "Luka"
 
     document.getElementById("input").asInstanceOf[HTMLInputElement].value = name
@@ -92,7 +92,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "A todo application" should "work with components" in {
-    import outwatch.dom._
+    import outwatch.dom.all._
 
     def TodoComponent(title: String, deleteStream: Sink[String]) =
       li(
@@ -158,10 +158,10 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     DomUtils.render(root, vtree)
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    inputEvt.initEvent("input", canBubbleArg = false, cancelableArg = true)
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    clickEvt.initEvent("click", canBubbleArg = true, cancelableArg = true)
 
     val inputElement = document.getElementById("input").asInstanceOf[HTMLInputElement]
     val submitButton = document.getElementById("submit")
