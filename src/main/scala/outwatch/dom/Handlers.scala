@@ -23,3 +23,5 @@ trait Handlers {
     Sink.createHandler[T](defaultValues: _*)
   }
 }
+
+object Handlers extends Handlers

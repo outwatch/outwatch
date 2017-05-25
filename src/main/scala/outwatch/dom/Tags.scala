@@ -743,4 +743,6 @@ trait Tags {
     */
   def wbr        (args: VDomModifier*): VNode = tag("wbr")(args)
 }
+
+object Tags extends Tags
 // scalastyle:on

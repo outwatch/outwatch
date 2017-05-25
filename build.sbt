@@ -14,7 +14,7 @@ crossScalaVersions := Seq("2.11.8", "2.12.1")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.13.6",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.13.7",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
 )
