@@ -7,3 +7,7 @@ object OutWatch {
   def render(querySelector: String, vNode: VNode): Unit =
     DomUtils.render(document.querySelector(querySelector), vNode)
 }
+
+object Attributes extends Attributes
+object Tags extends Tags
+object Handlers extends Handlers
