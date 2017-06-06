@@ -1,4 +1,4 @@
-enablePlugins(ScalaJSPlugin)
+enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
 
 name := "OutWatch"
 
@@ -10,27 +10,22 @@ organization := "io.github.outwatch"
 
 scalaVersion := "2.12.2"
 
-crossScalaVersions := Seq("2.11.8", "2.12.1")
+crossScalaVersions := Seq("2.11.11", "2.12.2")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.13.7",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.14.0",
   "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
 )
 
-jsDependencies ++= Seq(
-  "org.webjars.npm" % "rxjs" % "5.4.0" / "bundles/Rx.min.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/snabbdom.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/h.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/snabbdom-class.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/snabbdom-eventlisteners.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/snabbdom-props.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/snabbdom-style.js",
-  "org.webjars.npm" % "snabbdom" % "0.6.9" / "dist/snabbdom-attributes.js"
+npmDependencies in Compile ++= Seq(
+  "rxjs" -> "5.4.0",
+  "snabbdom" -> "0.6.9"
 )
 
-jsEnv := PhantomJSEnv().value
+requiresDOM in Test := true
+useYarn := true
 
 publishMavenStyle := true
 

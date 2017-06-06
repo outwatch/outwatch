@@ -4,11 +4,11 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSGlobal
+import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.|
 
 @js.native
-@JSGlobal("h")
+@JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
 object hProvider extends js.Object {
   val default: hFunction = js.native
 }
@@ -90,11 +90,11 @@ object DataObject {
 }
 
 object patch {
-  lazy val p = snabbdom.init(js.Array(
-    snabbdom_class.default,
-    snabbdom_eventlisteners.default,
-    snabbdom_attributes.default,
-    snabbdom_props.default
+  lazy val p = Snabbdom.init(js.Array(
+    SnabbdomClass.default,
+    SnabbdomEventListeners.default,
+    SnabbdomAttributes.default,
+    SnabbdomProps.default
   ))
   def apply(firstNode: org.scalajs.dom.raw.Element | VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
 }
@@ -112,33 +112,39 @@ object VNodeProxy {
 }
 
 
-@js.native @JSGlobal
-object snabbdom extends js.Object {
+@js.native
+@JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
+object Snabbdom extends js.Object {
   def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, Unit] = js.native
 
 }
 
-@js.native @JSGlobal
-object snabbdom_class extends js.Object {
+@js.native
+@JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
+object SnabbdomClass extends js.Object {
   val default: js.Any = js.native
 }
 
-@js.native @JSGlobal
-object snabbdom_eventlisteners extends js.Object{
+@js.native
+@JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
+object SnabbdomEventListeners extends js.Object{
   val default: js.Any = js.native
 }
 
-@js.native @JSGlobal
-object snabbdom_attributes extends js.Object{
+@js.native
+@JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
+object SnabbdomAttributes extends js.Object{
   val default: js.Any = js.native
 }
 
-@js.native @JSGlobal
-object snabbdom_props extends js.Object{
+@js.native
+@JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
+object SnabbdomProps extends js.Object{
   val default: js.Any = js.native
 }
 
-@js.native @JSGlobal
-object snabbdom_style extends js.Object {
+@js.native
+@JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
+object SnabbdomStyle extends js.Object {
   val default: js.Any = js.native
 }
