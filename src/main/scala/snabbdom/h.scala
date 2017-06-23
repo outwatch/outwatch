@@ -26,21 +26,31 @@ object h {
 
 
 @ScalaJSDefined
+trait Hooks extends js.Object {
+  val insert: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
+  val destroy: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
+  val update: js.UndefOr[js.Function2[VNodeProxy, VNodeProxy, Unit]] = js.undefined
+}
+
+@ScalaJSDefined
 trait DataObject extends js.Object {
   val attrs: js.Dictionary[String]
   val on: js.Dictionary[js.Function1[Event ,Unit]]
-  val hook: js.Dynamic
-  val key: js.UndefOr[String]
+  val hook: Hooks
+  val key: js.UndefOr[String | Int]
 }
 
 object DataObject {
+
+
+
   def apply(_attrs: js.Dictionary[String],
             _on: js.Dictionary[js.Function1[Event, Unit]]
            ): DataObject = {
     new DataObject {
       val attrs = _attrs
       val on = _on
-      val hook = js.Dynamic.literal()
+      val hook = new Hooks {}
       val key = js.undefined
     }
   }
@@ -48,15 +58,20 @@ object DataObject {
 
   def createWithHooks(_attrs: js.Dictionary[String],
                       _on: js.Dictionary[js.Function1[Event, Unit]],
-                      insert: js.Function1[VNodeProxy, Unit],
-                      destroy: js.Function1[VNodeProxy, Unit],
-                      update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-                      _key: js.UndefOr[String]
+                      _insert: VNodeProxy => Unit,
+                      _destroy: js.Function1[VNodeProxy, Unit],
+                      _update: js.Function2[VNodeProxy, VNodeProxy, Unit],
+                      _key: js.UndefOr[String | Int]
                      ): DataObject = {
+
     new DataObject {
       val attrs = _attrs
       val on = _on
-      val hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = update)
+      val hook = new Hooks {
+        override val insert = js.defined[js.Function1[VNodeProxy, Unit]](_insert)
+        override val destroy = js.defined(_destroy)
+        override val update = js.defined(_update)
+      }
       val key = _key
     }
   }
@@ -64,21 +79,25 @@ object DataObject {
 
   def createWithValue(_attrs: js.Dictionary[String],
                       _on: js.Dictionary[js.Function1[Event, Unit]],
-                      insert: js.Function1[VNodeProxy, Unit],
-                      destroy: js.Function1[VNodeProxy, Unit],
-                      update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-                      _key: js.UndefOr[String]
+                      _insert: js.Function1[VNodeProxy, Unit],
+                      _destroy: js.Function1[VNodeProxy, Unit],
+                      _update: js.Function2[VNodeProxy, VNodeProxy, Unit],
+                      _key: js.UndefOr[String | Int]
                      ): DataObject = {
 
     val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
-      update(old, node)
+      _update(old, node)
       updateHook(old, node)
     }
 
     new DataObject {
       val attrs = _attrs
       val on = _on
-      val hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook)
+      val hook = new Hooks {
+        override val insert = js.defined(_insert)
+        override val destroy = js.defined(_destroy)
+        override val update = js.defined(uHook)
+      }
       val key = _key
     }
   }
