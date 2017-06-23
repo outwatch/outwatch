@@ -58,9 +58,14 @@ trait DataObject extends js.Object {
 object DataObject {
 
   def apply(attrs: js.Dictionary[String],
+            on: js.Dictionary[js.Function1[Event, Unit]]
+           ): DataObject = apply(attrs, on, Hooks(), js.undefined)
+
+
+  def apply(attrs: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]],
-            hook: Hooks = Hooks(),
-            key: js.UndefOr[String | Int] = js.undefined
+            hook: Hooks,
+            key: js.UndefOr[String | Int]
            ): DataObject = {
 
     val _attrs = attrs
@@ -98,13 +103,7 @@ object DataObject {
       import scala.scalajs.js.JSConverters._
 
       val newAttrs = (obj.attrs ++ attrs).toJSDictionary
-
-      DataObject(
-        attrs = newAttrs,
-        on = obj.on,
-        hook = obj.hook,
-        key = obj.key
-      )
+      DataObject(attrs = newAttrs, on = obj.on, hook = obj.hook, key = obj.key)
     }
   }
 }
