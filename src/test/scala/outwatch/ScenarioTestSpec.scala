@@ -3,8 +3,9 @@ package outwatch
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import org.scalatest.BeforeAndAfterEach
-import rxscalajs.{Observable, Subject}
 import outwatch.dom.helpers.DomUtils
+
+import scala.language.reflectiveCalls
 
 class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   override def afterEach(): Unit = {
