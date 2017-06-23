@@ -14,35 +14,38 @@ import scala.scalajs.js.JSConverters._
 
 object DomUtils {
 
+  private case class Changeables(attributeStreamReceivers: Seq[AttributeStreamReceiver],
+                                 childrenStreamReceivers: Seq[ChildrenStreamReceiver],
+                                 childStreamReceivers: Seq[ChildStreamReceiver]) {
+    lazy val observable: Observable[(Seq[Attribute], Seq[VNode])] = {
+      val childReceivers: Observable[Seq[VNode]] = Observable.combineLatest(
+        childStreamReceivers.map(_.childStream)
+      )
 
-  private def toChangables(attributeStreamReceivers: Seq[AttributeStreamReceiver],
-                           childrenStreamReceivers: Option[ChildrenStreamReceiver],
-                           childStreamReceivers: Seq[ChildStreamReceiver]): Observable[(Seq[Attribute], Seq[VNode])] = {
+      val childrenReceivers = childrenStreamReceivers.headOption.map(_.childrenStream)
 
-    val childReceivers: Observable[Seq[VNode]] = Observable.combineLatest(
-      childStreamReceivers.map(_.childStream)
-    )
+      val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
+        attributeStreamReceivers.map(_.attributeStream)
+      )
 
-    val childrenReceivers =
-      childrenStreamReceivers.map(_.childrenStream)
+      val allChildReceivers = childrenReceivers.getOrElse(childReceivers)
 
-    val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
-      attributeStreamReceivers.map(_.attributeStream)
-    )
+      attributeReceivers.combineLatest(allChildReceivers)
+    }
 
-    val allChildReceivers = childrenReceivers.getOrElse(childReceivers)
+    lazy val nonEmpty = {
+      attributeStreamReceivers.nonEmpty || childrenStreamReceivers.nonEmpty || childStreamReceivers.nonEmpty
+    }
 
-    attributeReceivers.combineLatest(allChildReceivers)
+    lazy val valueStreamExists = attributeStreamReceivers.exists(_.attribute == "value")
   }
 
-  private def createDataObject(receiversNonEmpty: Boolean,
-                               changables: Observable[(Seq[Attribute], Seq[VNode])],
+  private def createDataObject(changeables: Changeables,
                                properties: Seq[Property],
-                               eventHandlers: js.Dictionary[js.Function1[Event, Unit]],
-                               valueStreamExists: Boolean): DataObject = {
+                               eventHandlers: js.Dictionary[js.Function1[Event, Unit]]): DataObject = {
 
-    if (receiversNonEmpty){
-      createReceiverDataObject(changables, valueStreamExists, properties, eventHandlers)
+    if (changeables.nonEmpty){
+      createReceiverDataObject(changeables, properties, eventHandlers)
     } else {
       createSimpleDataObject(properties, eventHandlers)
     }
@@ -61,9 +64,9 @@ object DomUtils {
   }
 
 
-  private def createReceiverDataObject(changeables: Observable[(Seq[Attribute], Seq[VNode])],
-                                       valueStreamExists: Boolean, props: Seq[Property],
-                               eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
+  private def createReceiverDataObject(changeables: Changeables,
+                                       props: Seq[Property],
+                                       eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
     val (insert, destroy, update, attributes, keys) = separateProperties(props)
 
@@ -72,9 +75,9 @@ object DomUtils {
     val insertHook = createInsertHook(changeables, subscriptionPromise, insert)
     val deleteHook = createDestroyHook(subscriptionPromise, destroy)
     val updateHook = createUpdateHook(update)
-    val key = keys.headOption.map(_.value).orUndefined
+    val key = keys.headOption.map(_.value).orElse(Some(changeables.hashCode.toString)).orUndefined
 
-    if (valueStreamExists){
+    if (changeables.valueStreamExists){
       DataObject.createWithValue(attrs, eventHandlers, insertHook, deleteHook, updateHook, key)
     } else {
       DataObject.createWithHooks(attrs, eventHandlers, insertHook, deleteHook, updateHook, key)
@@ -82,12 +85,11 @@ object DomUtils {
   }
 
   private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
-    val tupled = old.elm.flatMap(o => cur.elm.map(o -> _))
-    tupled.foreach(pair => hooks.foreach(_.sink.next(pair)))
+    old.elm.foreach(o => cur.elm.foreach(c => hooks.foreach(_.sink.next((o,c)))))
   }
 
 
-  private def createInsertHook(changables: Observable[(Seq[Attribute], Seq[VNode])],
+  private def createInsertHook(changables: Changeables,
                                promise: Promise[Subscription],
                                hooks: Seq[InsertHook]) = (proxy: VNodeProxy) => {
 
@@ -96,10 +98,10 @@ object DomUtils {
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
         val updatedObj = DataObject.updateAttributes(proxy.data, attributes.map(a => (a.title, a.value)))
-        h(proxy.sel, updatedObj, (proxy.children ++ nodes.map(_.asProxy)).toJSArray)
+        h(proxy.sel, updatedObj, proxy.children ++ nodes.map(_.asProxy).toJSArray)
     }
 
-    val subscription = changables
+    val subscription = changables.observable
       .map(toProxy)
       .startWith(proxy)
       .pairwise
@@ -119,7 +121,7 @@ object DomUtils {
   }
 
 
-  def separateModifiers(args: Seq[VDomModifier]) = {
+  def separateModifiers(args: Seq[VDomModifier]): (Seq[Emitter], Seq[Receiver], Seq[Property], Seq[VNode]) = {
     args.foldRight((Seq[Emitter](), Seq[Receiver](), Seq[Property](), Seq[VNode]()))(separatorFn)
   }
 
@@ -133,7 +135,7 @@ object DomUtils {
   }
 
 
-  def separateReceivers(receivers: Seq[Receiver]) = {
+  def separateReceivers(receivers: Seq[Receiver]): (Seq[ChildStreamReceiver], Seq[ChildrenStreamReceiver], Seq[AttributeStreamReceiver]) = {
     receivers.foldRight((Seq[ChildStreamReceiver](), Seq[ChildrenStreamReceiver](), Seq[AttributeStreamReceiver]())) {
       case (cr: ChildStreamReceiver, (crs, css, ars)) => (cr +: crs, css, ars)
       case (cs: ChildrenStreamReceiver, (crs, css, ars)) => (crs, cs +: css, ars)
@@ -141,7 +143,7 @@ object DomUtils {
     }
   }
 
-  def separateProperties(properties: Seq[Property]) = {
+  def separateProperties(properties: Seq[Property]): (Seq[InsertHook], Seq[DestroyHook], Seq[UpdateHook], Seq[Attribute], Seq[Key]) = {
     properties.foldRight((Seq[InsertHook](), Seq[DestroyHook](), Seq[UpdateHook](), Seq[Attribute](), Seq[Key]())) {
       case (ih: InsertHook, (ihs, dhs, uhs, ats, keys)) => (ih +: ihs, dhs, uhs, ats, keys)
       case (dh: DestroyHook, (ihs, dhs, uhs, ats, keys)) => (ihs, dh +: dhs, uhs, ats, keys)
@@ -156,18 +158,13 @@ object DomUtils {
 
     val (childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
 
-    val changables = toChangables(attributeReceivers, childrenReceivers.headOption, childReceivers)
-
-    val receiversNonEmpty =
-      childReceivers.nonEmpty || attributeReceivers.nonEmpty || childrenReceivers.nonEmpty
-
-    lazy val valueStreamExists = attributeReceivers.exists(_.attribute == "value")
+    val changeables = Changeables(attributeReceivers, childrenReceivers, childReceivers)
 
     val eventHandlers = VDomProxy.emittersToSnabbDom(emitters)
 
-    val dataObject = createDataObject(receiversNonEmpty, changables, properties, eventHandlers, valueStreamExists)
+    val dataObject = createDataObject(changeables, properties, eventHandlers)
 
-    VTree(nodeType, children, dataObject, changables)
+    VTree(nodeType, children, dataObject)
   }
 
   def render(element: Element, vNode: VNode): Unit = {

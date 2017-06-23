@@ -45,8 +45,7 @@ object VDomModifier {
 
   final case class VTree(nodeType: String,
                    children: Seq[VNode],
-                   attributeObject: DataObject,
-                   changables: Observable[(Seq[Attribute], Seq[VNode])]
+                   attributeObject: DataObject
                   ) extends VNode {
 
 
