@@ -77,7 +77,7 @@ object DataObject {
       val attrs: Dictionary[String] = _attrs
       val on: Dictionary[js.Function1[Event, Unit]] = _on
       val hook: Hooks = _hook
-      val key: UndefOr[|[String, Int]] = _key
+      val key: UndefOr[String | Int] = _key
     }
   }
 
