@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
 import scala.scalajs.js.|
 
 @js.native
@@ -24,52 +24,63 @@ object h {
   }
 }
 
-@js.native
+
+@ScalaJSDefined
 trait DataObject extends js.Object {
-  val attrs: js.Dictionary[String] = js.native
-  val on: js.Dictionary[js.Function1[Event ,Unit]] = js.native
-  val hook: js.Dynamic = js.native
+  val attrs: js.Dictionary[String]
+  val on: js.Dictionary[js.Function1[Event ,Unit]]
+  val hook: js.Dynamic
+  val key: js.UndefOr[String]
 }
 
 object DataObject {
-  def apply(attrs: js.Dictionary[String], on: js.Dictionary[js.Function1[Event,Unit]]): DataObject = {
-    js.Dynamic.literal(attrs = attrs, on = on, hook = js.Dynamic.literal()).asInstanceOf[DataObject]
+  def apply(_attrs: js.Dictionary[String],
+            _on: js.Dictionary[js.Function1[Event, Unit]]
+           ): DataObject = {
+    new DataObject {
+      val attrs = _attrs
+      val on = _on
+      val hook = js.Dynamic.literal()
+      val key = js.undefined
+    }
   }
 
-  def createWithHooks(attrs: js.Dictionary[String],
-                      on: js.Dictionary[js.Function1[Event,Unit]],
-                      insert: js.Function1[VNodeProxy,Unit],
-                      destroy: js.Function1[VNodeProxy,Unit],
+
+  def createWithHooks(_attrs: js.Dictionary[String],
+                      _on: js.Dictionary[js.Function1[Event, Unit]],
+                      insert: js.Function1[VNodeProxy, Unit],
+                      destroy: js.Function1[VNodeProxy, Unit],
                       update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-                      key: js.UndefOr[String]): DataObject = {
-
-
-    js.Dynamic.literal(
-      attrs = attrs,
-      on = on,
-      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = update),
-      key = key
-    ).asInstanceOf[DataObject]
+                      _key: js.UndefOr[String]
+                     ): DataObject = {
+    new DataObject {
+      val attrs = _attrs
+      val on = _on
+      val hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = update)
+      val key = _key
+    }
   }
 
-  def createWithValue(attrs: js.Dictionary[String],
-                      on: js.Dictionary[js.Function1[Event,Unit]],
-                      insert: js.Function1[VNodeProxy,Unit],
-                      destroy: js.Function1[VNodeProxy,Unit],
+
+  def createWithValue(_attrs: js.Dictionary[String],
+                      _on: js.Dictionary[js.Function1[Event, Unit]],
+                      insert: js.Function1[VNodeProxy, Unit],
+                      destroy: js.Function1[VNodeProxy, Unit],
                       update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-                      key: js.UndefOr[String]): DataObject = {
+                      _key: js.UndefOr[String]
+                     ): DataObject = {
 
     val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
       update(old, node)
       updateHook(old, node)
     }
 
-    js.Dynamic.literal(
-      attrs = attrs,
-      on = on,
-      hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook),
-      key = key
-    ).asInstanceOf[DataObject]
+    new DataObject {
+      val attrs = _attrs
+      val on = _on
+      val hook = js.Dynamic.literal(insert = insert, destroy = destroy, update = uHook)
+      val key = _key
+    }
   }
 
   lazy val updateHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
@@ -84,8 +95,14 @@ object DataObject {
   def updateAttributes(obj: DataObject, attrs: Seq[(String, String)]): DataObject = {
     import scala.scalajs.js.JSConverters._
 
-    val newProps = (obj.attrs ++ attrs).toJSDictionary
-    js.Dynamic.literal(attrs = newProps, on = obj.on, hook = obj.hook).asInstanceOf[DataObject]
+    val newAttrs = (obj.attrs ++ attrs).toJSDictionary
+
+    new DataObject {
+      val attrs = newAttrs
+      val on = obj.on
+      val hook = obj.hook
+      val key = obj.key
+    }
   }
 }
 
@@ -96,7 +113,9 @@ object patch {
     SnabbdomAttributes.default,
     SnabbdomProps.default
   ))
-  def apply(firstNode: org.scalajs.dom.raw.Element | VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
+  def apply(firstNode: VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
+
+  def apply(firstNode: org.scalajs.dom.raw.Element, vNode: VNodeProxy) = p(firstNode,vNode)
 }
 
 @js.native
