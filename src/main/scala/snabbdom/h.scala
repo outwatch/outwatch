@@ -1,11 +1,10 @@
 package snabbdom
 
 import org.scalajs.dom._
-import org.scalajs.dom.raw.HTMLInputElement
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
-import scala.scalajs.js.|
+import scala.scalajs.js.{Dictionary, UndefOr, |}
 
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
@@ -27,114 +26,101 @@ object h {
 
 @ScalaJSDefined
 trait Hooks extends js.Object {
-  val insert: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
-  val destroy: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
-  val update: js.UndefOr[js.Function2[VNodeProxy, VNodeProxy, Unit]] = js.undefined
+  val insert: js.UndefOr[js.Function1[VNodeProxy, Unit]]
+  val destroy: js.UndefOr[js.Function1[VNodeProxy, Unit]]
+  val update: js.UndefOr[js.Function2[VNodeProxy, VNodeProxy, Unit]]
+}
+
+object Hooks {
+  def apply(insert: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined,
+            destroy: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined,
+            update: js.UndefOr[js.Function2[VNodeProxy, VNodeProxy, Unit]] = js.undefined
+           ): Hooks = {
+    val _insert = insert
+    val _destroy = destroy
+    val _update = update
+    new Hooks {
+      val insert = _insert
+      val destroy = _destroy
+      val update = _update
+    }
+  }
 }
 
 @ScalaJSDefined
 trait DataObject extends js.Object {
   val attrs: js.Dictionary[String]
-  val on: js.Dictionary[js.Function1[Event ,Unit]]
+  val on: js.Dictionary[js.Function1[Event, Unit]]
   val hook: Hooks
   val key: js.UndefOr[String | Int]
 }
 
 object DataObject {
 
-
-
-  def apply(_attrs: js.Dictionary[String],
-            _on: js.Dictionary[js.Function1[Event, Unit]]
+  def apply(attrs: js.Dictionary[String],
+            on: js.Dictionary[js.Function1[Event, Unit]],
+            hook: Hooks = Hooks(),
+            key: js.UndefOr[String | Int] = js.undefined
            ): DataObject = {
+
+    val _attrs = attrs
+    val _on = on
+    val _hook = hook
+    val _key = key
+
     new DataObject {
-      val attrs = _attrs
-      val on = _on
-      val hook = new Hooks {}
-      val key = js.undefined
+      val attrs: Dictionary[String] = _attrs
+      val on: Dictionary[js.Function1[Event, Unit]] = _on
+      val hook: Hooks = _hook
+      val key: UndefOr[|[String, Int]] = _key
     }
   }
 
+  def create(attrs: js.Dictionary[String],
+             on: js.Dictionary[js.Function1[Event, Unit]],
+             insert: js.Function1[VNodeProxy, Unit],
+             destroy: js.Function1[VNodeProxy, Unit],
+             update: js.Function2[VNodeProxy, VNodeProxy, Unit],
+             key: js.UndefOr[String | Int]
+            ): DataObject = {
 
-  def createWithHooks(_attrs: js.Dictionary[String],
-                      _on: js.Dictionary[js.Function1[Event, Unit]],
-                      _insert: VNodeProxy => Unit,
-                      _destroy: js.Function1[VNodeProxy, Unit],
-                      _update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-                      _key: js.UndefOr[String | Int]
-                     ): DataObject = {
-
-    new DataObject {
-      val attrs = _attrs
-      val on = _on
-      val hook = new Hooks {
-        override val insert = js.defined[js.Function1[VNodeProxy, Unit]](_insert)
-        override val destroy = js.defined(_destroy)
-        override val update = js.defined(_update)
-      }
-      val key = _key
-    }
+    DataObject(
+      attrs = attrs,
+      on = on,
+      hook = Hooks(insert = insert, destroy = destroy, update = update),
+      key = key
+    )
   }
 
+  implicit class DataObjectExt(obj: DataObject) {
 
-  def createWithValue(_attrs: js.Dictionary[String],
-                      _on: js.Dictionary[js.Function1[Event, Unit]],
-                      _insert: js.Function1[VNodeProxy, Unit],
-                      _destroy: js.Function1[VNodeProxy, Unit],
-                      _update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-                      _key: js.UndefOr[String | Int]
-                     ): DataObject = {
+    def withUpdatedAttributes(attrs: Seq[(String, String)]): DataObject = {
+      import scala.scalajs.js.JSConverters._
 
-    val uHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
-      _update(old, node)
-      updateHook(old, node)
-    }
+      val newAttrs = (obj.attrs ++ attrs).toJSDictionary
 
-    new DataObject {
-      val attrs = _attrs
-      val on = _on
-      val hook = new Hooks {
-        override val insert = js.defined(_insert)
-        override val destroy = js.defined(_destroy)
-        override val update = js.defined(uHook)
-      }
-      val key = _key
-    }
-  }
-
-  lazy val updateHook: js.Function2[VNodeProxy, VNodeProxy, Unit] = (old: VNodeProxy, node: VNodeProxy) => {
-    node.elm.foreach(elm => {
-      val input = elm.asInstanceOf[HTMLInputElement]
-      if (input.value != input.getAttribute("value")) {
-        input.value = input.getAttribute("value")
-      }
-    })
-  }
-
-  def updateAttributes(obj: DataObject, attrs: Seq[(String, String)]): DataObject = {
-    import scala.scalajs.js.JSConverters._
-
-    val newAttrs = (obj.attrs ++ attrs).toJSDictionary
-
-    new DataObject {
-      val attrs = newAttrs
-      val on = obj.on
-      val hook = obj.hook
-      val key = obj.key
+      DataObject(
+        attrs = newAttrs,
+        on = obj.on,
+        hook = obj.hook,
+        key = obj.key
+      )
     }
   }
 }
 
 object patch {
-  lazy val p = Snabbdom.init(js.Array(
+
+  private lazy val p = Snabbdom.init(js.Array(
     SnabbdomClass.default,
     SnabbdomEventListeners.default,
     SnabbdomAttributes.default,
     SnabbdomProps.default
   ))
-  def apply(firstNode: VNodeProxy, vNode: VNodeProxy) = p(firstNode,vNode)
 
-  def apply(firstNode: org.scalajs.dom.raw.Element, vNode: VNodeProxy) = p(firstNode,vNode)
+  def apply(firstNode: VNodeProxy, vNode: VNodeProxy): Unit = p(firstNode,vNode)
+
+  def apply(firstNode: org.scalajs.dom.raw.Element, vNode: VNodeProxy): Unit = p(firstNode,vNode)
 }
 
 @js.native

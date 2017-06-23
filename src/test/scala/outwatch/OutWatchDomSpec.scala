@@ -1,17 +1,18 @@
 package outwatch
 
 import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalatest.BeforeAndAfterEach
-import rxscalajs.{Observable, Subject}
-import snabbdom.{DataObject, h}
+import outwatch.dom.VDomModifier.VTree
 import outwatch.dom._
 import outwatch.dom.helpers._
+import rxscalajs.{Observable, Subject}
+import snabbdom.{DataObject, h}
 
 import scala.collection.immutable.Seq
+import scala.language.reflectiveCalls
 import scala.scalajs.js
 import scala.scalajs.js.JSON
-import org.scalajs.dom.{Event, KeyboardEvent, document}
-import outwatch.dom.VDomModifier.VTree
 
 class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 

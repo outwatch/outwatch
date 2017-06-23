@@ -1,13 +1,14 @@
 package outwatch.dom.helpers
 
 import org.scalajs.dom._
+import org.scalajs.dom.raw.HTMLInputElement
 import outwatch.dom.VDomModifier.VTree
 import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
 import snabbdom._
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -33,11 +34,11 @@ object DomUtils {
       attributeReceivers.combineLatest(allChildReceivers)
     }
 
-    lazy val nonEmpty = {
+    lazy val nonEmpty: Boolean = {
       attributeStreamReceivers.nonEmpty || childrenStreamReceivers.nonEmpty || childStreamReceivers.nonEmpty
     }
 
-    lazy val valueStreamExists = attributeStreamReceivers.exists(_.attribute == "value")
+    lazy val valueStreamExists: Boolean = attributeStreamReceivers.exists(_.attribute == "value")
   }
 
   private def createDataObject(changeables: Changeables,
@@ -60,9 +61,23 @@ object DomUtils {
     val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
     val updateHook = createUpdateHook(update)
     val key = keys.headOption.map(_.value).orUndefined
-    DataObject.createWithHooks(attrs, handlers, insertHook, deleteHook, updateHook, key)
+
+    DataObject.create(attrs, handlers, insertHook, deleteHook, updateHook, key)
   }
 
+  private def seq[A, B](f1: (A, B) => Unit,f2: (A, B) => Unit): (A, B) => Unit = (a: A, b: B) => {
+    f1(a, b)
+    f2(a, b)
+  }
+
+  private val valueSyncHook: (VNodeProxy, VNodeProxy) => Unit = (_, node) => {
+    node.elm.foreach { elm =>
+      val input = elm.asInstanceOf[HTMLInputElement]
+      if (input.value != input.getAttribute("value")) {
+        input.value = input.getAttribute("value")
+      }
+    }
+  }
 
   private def createReceiverDataObject(changeables: Changeables,
                                        props: Seq[Property],
@@ -73,15 +88,17 @@ object DomUtils {
     val attrs = VDomProxy.attrsToSnabbDom(attributes)
     val subscriptionPromise = Promise[Subscription]
     val insertHook = createInsertHook(changeables, subscriptionPromise, insert)
-    val deleteHook = createDestroyHook(subscriptionPromise, destroy)
+    val deleteHook = createDestroyHook(subscriptionPromise.future, destroy)
     val updateHook = createUpdateHook(update)
     val key = keys.headOption.map(_.value).orElse(Some(changeables.hashCode.toString)).orUndefined
 
-    if (changeables.valueStreamExists){
-      DataObject.createWithValue(attrs, eventHandlers, insertHook, deleteHook, updateHook, key)
+    val updateHookHelper = if (changeables.valueStreamExists) {
+      seq(updateHook, valueSyncHook)
     } else {
-      DataObject.createWithHooks(attrs, eventHandlers, insertHook, deleteHook, updateHook, key)
+      updateHook
     }
+
+    DataObject.create(attrs, eventHandlers, insertHook, deleteHook, updateHookHelper, key)
   }
 
   private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
@@ -90,14 +107,12 @@ object DomUtils {
 
 
   private def createInsertHook(changables: Changeables,
-                               promise: Promise[Subscription],
+                               subscriptionPromise: Promise[Subscription],
                                hooks: Seq[InsertHook]) = (proxy: VNodeProxy) => {
-
-    val callback = (e: Element) => hooks.foreach(_.sink.next(e))
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
-        val updatedObj = DataObject.updateAttributes(proxy.data, attributes.map(a => (a.title, a.value)))
+        val updatedObj = proxy.data.withUpdatedAttributes(attributes.map(a => (a.title, a.value)))
         h(proxy.sel, updatedObj, proxy.children ++ nodes.map(_.asProxy).toJSArray)
     }
 
@@ -107,27 +122,26 @@ object DomUtils {
       .pairwise
       .subscribe(tuple => patch(tuple._1, tuple._2), console.error(_))
 
-    promise.success(subscription)
+    subscriptionPromise.success(subscription)
 
-    proxy.elm.foreach(callback)
+    proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
   }
 
-  private def createDestroyHook(promise: Promise[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
+  private def createDestroyHook(subscription: Future[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val callback = (e: Element) => hooks.foreach(_.sink.next(e))
-    proxy.elm.foreach(callback)
-    promise.future.foreach(_.unsubscribe())
+    proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
+    subscription.foreach(_.unsubscribe())
   }
 
 
-  def separateModifiers(args: Seq[VDomModifier]): (Seq[Emitter], Seq[Receiver], Seq[Property], Seq[VNode]) = {
+  private[outwatch] def separateModifiers(args: Seq[VDomModifier]): (Seq[Emitter], Seq[Receiver], Seq[Property], Seq[VNode]) = {
     args.foldRight((Seq[Emitter](), Seq[Receiver](), Seq[Property](), Seq[VNode]()))(separatorFn)
   }
 
   type Result = (Seq[Emitter], Seq[Receiver], Seq[Property], Seq[VNode])
 
-  def separatorFn(mod: VDomModifier, res: Result): Result = (mod, res) match {
+  private[outwatch] def separatorFn(mod: VDomModifier, res: Result): Result = (mod, res) match {
     case (em: Emitter, (ems, rcs, prs, vns)) => (em +: ems, rcs, prs, vns)
     case (rc: Receiver, (ems, rcs, prs, vns)) => (ems, rc +: rcs, prs, vns)
     case (pr: Property, (ems, rcs, prs, vns)) => (ems, rcs, pr +: prs,  vns)
@@ -135,7 +149,7 @@ object DomUtils {
   }
 
 
-  def separateReceivers(receivers: Seq[Receiver]): (Seq[ChildStreamReceiver], Seq[ChildrenStreamReceiver], Seq[AttributeStreamReceiver]) = {
+  private[outwatch] def separateReceivers(receivers: Seq[Receiver]): (Seq[ChildStreamReceiver], Seq[ChildrenStreamReceiver], Seq[AttributeStreamReceiver]) = {
     receivers.foldRight((Seq[ChildStreamReceiver](), Seq[ChildrenStreamReceiver](), Seq[AttributeStreamReceiver]())) {
       case (cr: ChildStreamReceiver, (crs, css, ars)) => (cr +: crs, css, ars)
       case (cs: ChildrenStreamReceiver, (crs, css, ars)) => (crs, cs +: css, ars)
@@ -143,7 +157,7 @@ object DomUtils {
     }
   }
 
-  def separateProperties(properties: Seq[Property]): (Seq[InsertHook], Seq[DestroyHook], Seq[UpdateHook], Seq[Attribute], Seq[Key]) = {
+  private[outwatch] def separateProperties(properties: Seq[Property]): (Seq[InsertHook], Seq[DestroyHook], Seq[UpdateHook], Seq[Attribute], Seq[Key]) = {
     properties.foldRight((Seq[InsertHook](), Seq[DestroyHook](), Seq[UpdateHook](), Seq[Attribute](), Seq[Key]())) {
       case (ih: InsertHook, (ihs, dhs, uhs, ats, keys)) => (ih +: ihs, dhs, uhs, ats, keys)
       case (dh: DestroyHook, (ihs, dhs, uhs, ats, keys)) => (ihs, dh +: dhs, uhs, ats, keys)
@@ -153,7 +167,7 @@ object DomUtils {
     }
   }
 
-  def hyperscriptHelper(nodeType: String)(args: VDomModifier*): VNode = {
+  private[outwatch] def hyperscriptHelper(nodeType: String)(args: VDomModifier*): VNode = {
     val (emitters, receivers, properties, children) = separateModifiers(args)
 
     val (childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
