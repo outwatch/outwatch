@@ -183,6 +183,44 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
   }
 
+  it should "be replaced if they contain changeables" in {
+
+    def page(num: Int): VNode = {
+      val pageNum = createHandler[Int](num)
+
+      div( id := "page",
+        num match {
+          case 1 =>
+            div(child <-- pageNum)
+          case 2 =>
+            div(child <-- pageNum)
+        }
+      )
+    }
+
+    val pageHandler =  Subject[Int]
+
+    val vtree = div(
+      div(child <-- pageHandler.map(page))
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    DomUtils.render(node, vtree)
+
+    pageHandler.next(1)
+
+    val domNode = document.getElementById("page")
+
+    domNode.textContent shouldBe "1"
+
+    pageHandler.next(2)
+
+    domNode.textContent shouldBe "2"
+
+  }
+
   "The HTML DSL" should "construct VTrees properly" in {
     import outwatch.dom._
 
