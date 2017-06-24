@@ -4,7 +4,7 @@ name := "OutWatch"
 
 normalizedName := "outwatch"
 
-version := "0.10.0"
+version := "0.10.1"
 
 organization := "io.github.outwatch"
 
@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
 )
 
 npmDependencies in Compile ++= Seq(
-  "rxjs" -> "5.4.0",
+  "rxjs" -> "5.4.1",
   "snabbdom" -> "0.6.9"
 )
 
