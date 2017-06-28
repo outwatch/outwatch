@@ -19,7 +19,7 @@ trait Handlers {
   def createBoolHandler(defaultValues: Boolean*) = createHandler[Boolean](defaultValues: _*)
   def createNumberHandler(defaultValues: Double*) = createHandler[Double](defaultValues: _*)
 
-  def createHandler[T](defaultValues: T*): Observable[T] with Sink[T] = {
+  def createHandler[T](defaultValues: T*): Handler[T] = {
     Sink.createHandler[T](defaultValues: _*)
   }
 }

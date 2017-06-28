@@ -1,15 +1,16 @@
 package outwatch.util
 
 import outwatch.Sink
-import outwatch.dom.createHandler
+import outwatch.dom.{Handler, createHandler}
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
 
 import scala.language.implicitConversions
 
 final case class Store[State, Action](initialState: State, reducer: (State, Action) => State) {
-  val sink: Observable[Action] with Sink[Action] = createHandler[Action]()
-  val source: Observable[State] = sink
+  private val handler: Handler[Action] = createHandler[Action]()
+  val sink: Sink[Action] = handler
+  val source: Observable[State] = handler
     .scan(initialState)(reducer)
     .startWith(initialState)
 

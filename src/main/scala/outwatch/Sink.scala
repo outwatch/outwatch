@@ -1,8 +1,11 @@
 package outwatch
 
+import outwatch.dom.Handler
 import rxscalajs.facade.SubjectFacade
 import rxscalajs.subscription.AnonymousSubscription
 import rxscalajs.{Observable, Observer, Subject}
+
+import scala.scalajs.js
 
 sealed trait Sink[-T] extends Any {
 
@@ -55,13 +58,23 @@ object Sink {
     * Creates a new Sink from Scratch.
     * This function takes another function as its parameter that will be executed every time the Sink receives an emitted value.
     * @param onNext the function to be executed on every emission
+    * @param onError the function to be executed on error
+    * @param onComplete the function to be executed on completion
     * @tparam T the type parameter of the consumed elements.
     * @return a Sink that consumes elements of type T.
     */
-  def create[T](onNext: T => Unit): Sink[T] = {
-    val subject = Subject[T]
-    subject.subscribe(onNext)
-    ObserverSink(subject)
+  def create[T](onNext: T => Unit,
+    onError: js.Any => Unit = _ => (),
+    onComplete: () => Unit = () => ()
+  ): Sink[T] = {
+    val sink = ObserverSink(
+      new Observer[T] {
+        override def next(t: T): Unit = onNext(t)
+        override def error(err: js.Any): Unit = onError(err)
+        override def complete(): Unit = onComplete()
+      }
+    )
+    sink
   }
 
   /**
@@ -74,13 +87,26 @@ object Sink {
     * @tparam T the type parameter of the elements
     * @return the newly created Handler.
     */
-  def createHandler[T](seeds: T*): Observable[T] with Sink[T] = {
+  def createHandler[T](seeds: T*): Handler[T] = {
     val handler = new SubjectSink[T]
     if (seeds.nonEmpty) {
       ObservableSink[T](handler, handler.startWithMany(seeds: _*))
     }
-    else
+    else {
       handler
+    }
+  }
+
+
+  private def completionObservable[T](sink: Sink[T]): Option[Observable[Unit]] = {
+    sink match {
+      case subject@SubjectSink() =>
+        Some(subject.ignoreElements.defaultIfEmpty(()))
+      case observable@ObservableSink(_, _) =>
+        Some(observable.ignoreElements.defaultIfEmpty(()))
+      case ObserverSink(_) =>
+        None
+    }
   }
 
   /**
@@ -96,14 +122,9 @@ object Sink {
   def redirect[T,R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
     val forward = Sink.createHandler[R]()
 
-    val projected = sink match {
-      case subject@SubjectSink() => project(forward)
-        .takeUntil(subject.ignoreElements.defaultIfEmpty(()))
-      case observable@ObservableSink(_,_) => project(forward)
-        .takeUntil(observable.ignoreElements.defaultIfEmpty(()))
-      case ObserverSink(_) => project(forward)
-    }
-    projected.subscribe(sink.observer)
+    completionObservable(sink)
+      .fold(project(forward))(completed => project(forward).takeUntil(completed))
+      .subscribe(sink.observer)
 
     forward
   }
@@ -124,14 +145,9 @@ object Sink {
     val r = Sink.createHandler[R]()
     val u = Sink.createHandler[U]()
 
-    val projected = sink match {
-      case subject@SubjectSink() => project(r,u)
-        .takeUntil(subject.ignoreElements.defaultIfEmpty(()))
-      case observable@ObservableSink(_, _) => project(r,u)
-        .takeUntil(observable.ignoreElements.defaultIfEmpty(()))
-      case ObserverSink(_) => project(r,u)
-    }
-    projected.subscribe(sink.observer)
+    completionObservable(sink)
+      .fold(project(r, u))(completed => project(r, u).takeUntil(completed))
+      .subscribe(sink.observer)
 
     (r, u)
   }
@@ -156,14 +172,9 @@ object Sink {
     val u = Sink.createHandler[U]()
     val v = Sink.createHandler[V]()
 
-    val projected = sink match {
-      case subject@SubjectSink() => project(r,u,v)
-        .takeUntil(subject.ignoreElements.defaultIfEmpty(()))
-      case observable@ObservableSink(_, _) => project(r,u,v)
-        .takeUntil(observable.ignoreElements.defaultIfEmpty(()))
-      case ObserverSink(_) => project(r,u,v)
-    }
-    projected.subscribe(sink.observer)
+    completionObservable(sink)
+      .fold(project(r, u, v))(completed => project(r, u, v).takeUntil(completed))
+      .subscribe(sink.observer)
 
     (r, u, v)
   }
