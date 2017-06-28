@@ -20,7 +20,7 @@ final case class WebSocket private(url: String) {
     () => ws.close()
   })
 
-  lazy val sink = Sink.create[String](s => ws.send(s))
+  lazy val sink = Sink.create[String](s => ws.send(s), _ => (), () => ws.close())
 
 }
 
