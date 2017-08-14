@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
 )
 
 npmDependencies in Compile ++= Seq(
-  "rxjs" -> "5.4.1",
+  "rxjs" -> "5.4.3",
   "snabbdom" -> "0.6.9"
 )
 
