@@ -1,6 +1,7 @@
 package snabbdom
 
 import org.scalajs.dom._
+import outwatch.dom.Attribute
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
@@ -50,6 +51,7 @@ object Hooks {
 @ScalaJSDefined
 trait DataObject extends js.Object {
   val attrs: js.Dictionary[String]
+  val props: js.Dictionary[String]
   val on: js.Dictionary[js.Function1[Event, Unit]]
   val hook: Hooks
   val key: js.UndefOr[String | Int]
@@ -59,22 +61,25 @@ object DataObject {
 
   def apply(attrs: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]]
-           ): DataObject = apply(attrs, on, Hooks(), js.undefined)
+           ): DataObject = apply(attrs, js.Dictionary.empty, on, Hooks(), js.undefined)
 
 
   def apply(attrs: js.Dictionary[String],
+            props: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]],
             hook: Hooks,
             key: js.UndefOr[String | Int]
            ): DataObject = {
 
     val _attrs = attrs
+    val _props = props
     val _on = on
     val _hook = hook
     val _key = key
 
     new DataObject {
       val attrs: Dictionary[String] = _attrs
+      val props: Dictionary[String] = _props
       val on: Dictionary[js.Function1[Event, Unit]] = _on
       val hook: Hooks = _hook
       val key: UndefOr[String | Int] = _key
@@ -82,6 +87,7 @@ object DataObject {
   }
 
   def create(attrs: js.Dictionary[String],
+             props: js.Dictionary[String],
              on: js.Dictionary[js.Function1[Event, Unit]],
              insert: js.Function1[VNodeProxy, Unit],
              destroy: js.Function1[VNodeProxy, Unit],
@@ -91,6 +97,7 @@ object DataObject {
 
     DataObject(
       attrs = attrs,
+      props = props,
       on = on,
       hook = Hooks(insert = insert, destroy = destroy, update = update),
       key = key
@@ -99,11 +106,14 @@ object DataObject {
 
   implicit class DataObjectExt(obj: DataObject) {
 
-    def withUpdatedAttributes(attrs: Seq[(String, String)]): DataObject = {
+    def withUpdatedAttributes(attributes: Seq[Attribute]): DataObject = {
       import scala.scalajs.js.JSConverters._
 
+      val (attrs, props) = VDomProxy.attrsToSnabbDom(attributes)
+
       val newAttrs = (obj.attrs ++ attrs).toJSDictionary
-      DataObject(attrs = newAttrs, on = obj.on, hook = obj.hook, key = obj.key)
+      val newProps = (obj.props ++ props).toJSDictionary
+      DataObject(attrs = newAttrs, props = newProps, on = obj.on, hook = obj.hook, key = obj.key)
     }
   }
 }

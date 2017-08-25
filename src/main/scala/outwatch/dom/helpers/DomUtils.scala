@@ -52,17 +52,17 @@ object DomUtils {
     }
   }
 
-  private def createSimpleDataObject(props: Seq[Property], handlers: js.Dictionary[js.Function1[Event, Unit]]) = {
+  private def createSimpleDataObject(properties: Seq[Property], handlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val (insert, delete, update, attributes, keys) = separateProperties(props)
-    val attrs = VDomProxy.attrsToSnabbDom(attributes)
+    val (insert, delete, update, attributes, keys) = separateProperties(properties)
+    val (attrs, props) = VDomProxy.attrsToSnabbDom(attributes)
 
     val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
     val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
     val updateHook = createUpdateHook(update)
     val key = keys.headOption.map(_.value).orUndefined
 
-    DataObject.create(attrs, handlers, insertHook, deleteHook, updateHook, key)
+    DataObject.create(attrs, props, handlers, insertHook, deleteHook, updateHook, key)
   }
 
   private def seq[A, B](f1: (A, B) => Unit,f2: (A, B) => Unit): (A, B) => Unit = (a: A, b: B) => {
@@ -80,12 +80,12 @@ object DomUtils {
   }
 
   private def createReceiverDataObject(changeables: Changeables,
-                                       props: Seq[Property],
+                                       properties: Seq[Property],
                                        eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val (insert, destroy, update, attributes, keys) = separateProperties(props)
+    val (insert, destroy, update, attributes, keys) = separateProperties(properties)
 
-    val attrs = VDomProxy.attrsToSnabbDom(attributes)
+    val (attrs, props) = VDomProxy.attrsToSnabbDom(attributes)
     val subscriptionPromise = Promise[Subscription]
     val insertHook = createInsertHook(changeables, subscriptionPromise, insert)
     val deleteHook = createDestroyHook(subscriptionPromise.future, destroy)
@@ -98,7 +98,7 @@ object DomUtils {
       updateHook
     }
 
-    DataObject.create(attrs, eventHandlers, insertHook, deleteHook, updateHookHelper, key)
+    DataObject.create(attrs, props, eventHandlers, insertHook, deleteHook, updateHookHelper, key)
   }
 
   private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
@@ -112,7 +112,7 @@ object DomUtils {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
-        val updatedObj = proxy.data.withUpdatedAttributes(attributes.map(a => (a.title, a.value)))
+        val updatedObj = proxy.data.withUpdatedAttributes(attributes)
         h(proxy.sel, updatedObj, proxy.children ++ nodes.map(_.asProxy).toJSArray)
     }
 

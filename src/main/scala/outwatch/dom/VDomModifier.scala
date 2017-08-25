@@ -25,7 +25,17 @@ final case class StringEventEmitter(eventType: String, sink: Observer[String]) e
 final case class BoolEventEmitter(eventType: String, sink: Observer[Boolean]) extends Emitter
 final case class NumberEventEmitter(eventType: String, sink: Observer[Double]) extends Emitter
 
-final case class Attribute(title: String, value: String) extends Property
+sealed trait Attribute extends Property{
+  val title: String
+  val value: String
+}
+
+object Attribute {
+  def apply(title: String, value: String) = Attr(title, value)
+}
+
+final case class Attr(title: String, value: String) extends Attribute
+final case class Prop(title: String, value: String) extends Attribute
 final case class InsertHook(sink: Observer[Element]) extends Property
 final case class DestroyHook(sink: Observer[Element]) extends Property
 final case class UpdateHook(sink: Observer[(Element, Element)]) extends Property

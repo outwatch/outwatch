@@ -33,6 +33,15 @@ final class AttributeBuilder[T](val attributeName: String) extends AnyVal {
   }
 }
 
+final class PropertyBuilder[T](val attributeName: String) extends AnyVal {
+  def :=(value: T) = Prop(attributeName, value.toString)
+
+  def <--(valueStream: Observable[T]) = {
+    val attributeStream = valueStream.map(n => Prop(attributeName, n.toString))
+    AttributeStreamReceiver(attributeName, attributeStream)
+  }
+}
+
 final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
   private lazy val name: String = parts.reverse.mkString("-")
 

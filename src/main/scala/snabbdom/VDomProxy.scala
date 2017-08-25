@@ -3,17 +3,26 @@ package snabbdom
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import outwatch.dom._
+import outwatch.dom.{Attr, Prop}
 import rxscalajs.Observer
 
 import scala.scalajs.js
+import scala.scalajs.js.Dictionary
 
 
 object VDomProxy {
 
   import js.JSConverters._
 
-  def attrsToSnabbDom(attributes: Seq[Attribute]): js.Dictionary[String] = {
-    js.Dictionary(attributes.map(attr => attr.title -> attr.value): _*)
+  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[String], js.Dictionary[String]) = {
+    val (attrs, props) = attributes.partition {
+      case (a: Attr) => true
+      case (p: Prop) => false
+    }
+    val attrDict = js.Dictionary(attrs.map(attr => attr.title -> attr.value): _*)
+    val propDict = js.Dictionary(props.map(prop => prop.title -> prop.value): _*)
+
+    (attrDict, propDict)
   }
 
 

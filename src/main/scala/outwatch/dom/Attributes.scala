@@ -1860,6 +1860,8 @@ trait OutWatchLifeCycleAttributes {
 /** Snabbdom Key Attribute */
 trait SnabbdomKeyAttributes {
   lazy val key = KeyBuilder
+
+  def prop(name: String) = new PropertyBuilder[Any](name)
 }
 
 trait SharedEventAttributes {
