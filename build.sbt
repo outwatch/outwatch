@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
 
 npmDependencies in Compile ++= Seq(
   "rxjs" -> "5.4.3",
-  "snabbdom" -> "0.6.9"
+  "snabbdom" -> "0.7.0"
 )
 
 requiresDOM in Test := true
