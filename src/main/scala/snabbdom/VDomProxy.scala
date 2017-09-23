@@ -14,15 +14,18 @@ object VDomProxy {
 
   import js.JSConverters._
 
-  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[String], js.Dictionary[String]) = {
-    val (attrs, props) = attributes.partition {
-      case (a: Attr) => true
-      case (p: Prop) => false
-    }
-    val attrDict = js.Dictionary(attrs.map(attr => attr.title -> attr.value): _*)
-    val propDict = js.Dictionary(props.map(prop => prop.title -> prop.value): _*)
+  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[String], js.Dictionary[String], js.Dictionary[String]) = {
+    val attrsDict = js.Dictionary[String]()
+    val propsDict = js.Dictionary[String]()
+    val styleDict = js.Dictionary[String]()
 
-    (attrDict, propDict)
+    attributes.foreach {
+      case a:Attr => attrsDict(a.title) = a.value
+      case a:Prop => propsDict(a.title) = a.value
+      case a:Style => styleDict(a.title) = a.value
+    }
+
+    (attrsDict, propsDict, styleDict)
   }
 
 

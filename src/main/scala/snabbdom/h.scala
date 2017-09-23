@@ -5,7 +5,7 @@ import outwatch.dom.Attribute
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
-import scala.scalajs.js.{Dictionary, UndefOr, |}
+import scala.scalajs.js.{UndefOr, |}
 
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
@@ -52,6 +52,7 @@ object Hooks {
 trait DataObject extends js.Object {
   val attrs: js.Dictionary[String]
   val props: js.Dictionary[String]
+  val style: js.Dictionary[String]
   val on: js.Dictionary[js.Function1[Event, Unit]]
   val hook: Hooks
   val key: js.UndefOr[String | Int]
@@ -61,11 +62,12 @@ object DataObject {
 
   def apply(attrs: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]]
-           ): DataObject = apply(attrs, js.Dictionary.empty, on, Hooks(), js.undefined)
+           ): DataObject = apply(attrs, js.Dictionary.empty, js.Dictionary.empty, on, Hooks(), js.undefined)
 
 
   def apply(attrs: js.Dictionary[String],
             props: js.Dictionary[String],
+            style: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]],
             hook: Hooks,
             key: js.UndefOr[String | Int]
@@ -73,14 +75,16 @@ object DataObject {
 
     val _attrs = attrs
     val _props = props
+    val _style = style
     val _on = on
     val _hook = hook
     val _key = key
 
     new DataObject {
-      val attrs: Dictionary[String] = _attrs
-      val props: Dictionary[String] = _props
-      val on: Dictionary[js.Function1[Event, Unit]] = _on
+      val attrs: js.Dictionary[String] = _attrs
+      val props: js.Dictionary[String] = _props
+      val style: js.Dictionary[String] = _style
+      val on: js.Dictionary[js.Function1[Event, Unit]] = _on
       val hook: Hooks = _hook
       val key: UndefOr[String | Int] = _key
     }
@@ -88,6 +92,7 @@ object DataObject {
 
   def create(attrs: js.Dictionary[String],
              props: js.Dictionary[String],
+             style: js.Dictionary[String],
              on: js.Dictionary[js.Function1[Event, Unit]],
              insert: js.Function1[VNodeProxy, Unit],
              destroy: js.Function1[VNodeProxy, Unit],
@@ -98,6 +103,7 @@ object DataObject {
     DataObject(
       attrs = attrs,
       props = props,
+      style = style,
       on = on,
       hook = Hooks(insert = insert, destroy = destroy, update = update),
       key = key
@@ -109,11 +115,12 @@ object DataObject {
     def withUpdatedAttributes(attributes: Seq[Attribute]): DataObject = {
       import scala.scalajs.js.JSConverters._
 
-      val (attrs, props) = VDomProxy.attrsToSnabbDom(attributes)
+      val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
 
       val newAttrs = (obj.attrs ++ attrs).toJSDictionary
       val newProps = (obj.props ++ props).toJSDictionary
-      DataObject(attrs = newAttrs, props = newProps, on = obj.on, hook = obj.hook, key = obj.key)
+      val newStyle = (obj.style ++ style).toJSDictionary
+      DataObject(attrs = newAttrs, props = newProps, style = newStyle, on = obj.on, hook = obj.hook, key = obj.key)
     }
   }
 }
@@ -124,7 +131,8 @@ object patch {
     SnabbdomClass.default,
     SnabbdomEventListeners.default,
     SnabbdomAttributes.default,
-    SnabbdomProps.default
+    SnabbdomProps.default,
+    SnabbdomStyle.default
   ))
 
   def apply(firstNode: VNodeProxy, vNode: VNodeProxy): Unit = p(firstNode,vNode)

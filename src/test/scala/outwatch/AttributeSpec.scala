@@ -27,4 +27,11 @@ class AttributeSpec extends UnitSpec {
     node.data.attrs.iterator.contains("data-foo" -> "bar") shouldBe true
     node.data.attrs.size shouldBe 1
   }
+
+  "data attribute" should "correctly render style" in {
+    val node = input(Style("color", "red")).asProxy
+
+    node.data.style.iterator.contains("color" -> "red") shouldBe true
+    node.data.style.size shouldBe 1
+  }
 }

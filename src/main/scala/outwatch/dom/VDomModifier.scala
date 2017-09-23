@@ -36,6 +36,7 @@ object Attribute {
 
 final case class Attr(title: String, value: String) extends Attribute
 final case class Prop(title: String, value: String) extends Attribute
+final case class Style(title: String, value: String) extends Attribute
 final case class InsertHook(sink: Observer[Element]) extends Property
 final case class DestroyHook(sink: Observer[Element]) extends Property
 final case class UpdateHook(sink: Observer[(Element, Element)]) extends Property
