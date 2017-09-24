@@ -5,6 +5,10 @@ import outwatch.dom._
 import rxscalajs.Observable
 import scala.language.implicitConversions
 
+trait ValueBuilder[T] extends Any {
+  def :=(value: T): VDomModifier
+  def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
+}
 
 object ChildStreamReceiverBuilder {
   def <--[T <: Any](valueStream: Observable[T]): ChildStreamReceiver = {
@@ -24,7 +28,7 @@ object ChildrenStreamReceiverBuilder {
 }
 
 
-final class AttributeBuilder[T](val attributeName: String) extends AnyVal {
+final class AttributeBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T] {
   def :=(value: T) = Attribute(attributeName, value.toString)
 
   def <--(valueStream: Observable[T]) = {
@@ -33,7 +37,7 @@ final class AttributeBuilder[T](val attributeName: String) extends AnyVal {
   }
 }
 
-final class PropertyBuilder[T](val attributeName: String) extends AnyVal {
+final class PropertyBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T] {
   def :=(value: T) = Prop(attributeName, value.toString)
 
   def <--(valueStream: Observable[T]) = {
@@ -42,7 +46,7 @@ final class PropertyBuilder[T](val attributeName: String) extends AnyVal {
   }
 }
 
-final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
+final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with ValueBuilder[T] {
   private lazy val name: String = parts.reverse.mkString("-")
 
   def selectDynamic(s: String) = new DynamicAttributeBuilder[T](s :: parts)
@@ -55,7 +59,7 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic {
   }
 }
 
-final class BoolAttributeBuilder(val attributeName: String) extends AnyVal {
+final class BoolAttributeBuilder(val attributeName: String) extends AnyVal with ValueBuilder[Boolean] {
   def :=(value: Boolean) = Attribute(attributeName, toEmptyIfFalse(value))
 
   def <--(valueStream: Observable[Boolean]) = {
