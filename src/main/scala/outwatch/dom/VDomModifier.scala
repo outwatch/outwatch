@@ -3,7 +3,7 @@ package outwatch.dom
 import org.scalajs.dom._
 import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
-import snabbdom.{DataObject, VNodeProxy, h}
+import snabbdom.{VNodeProxy, h}
 
 import scala.scalajs.js
 import collection.breakOut
@@ -19,7 +19,7 @@ sealed trait Property extends VDomModifier
 sealed trait Receiver extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
-  val asProxy: VNodeProxy
+  def asProxy: VNodeProxy
 }
 
 final case class EventEmitter[E <: Event](eventType: String, sink: Observer[E]) extends Emitter
@@ -52,24 +52,20 @@ final case object EmptyVDomModifier extends VDomModifier
 
 object VDomModifier {
   final implicit class StringNode(string: String) extends VNode {
-    val asProxy = VNodeProxy.fromString(string)
+    def asProxy = VNodeProxy.fromString(string)
   }
 
   implicit def OptionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
-  final case class VTree(nodeType: String,
-                   children: Seq[VNode],
-                   attributeObject: DataObject
-                  ) extends VNode {
+  final case class VTree(nodeType: String, modifiers: Vector[VDomModifier]) extends VNode {
+    import helpers.DomUtils
 
+    def asProxy = {
+      val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
+      val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
+      h(nodeType, attributeObject, childProxies)
+    }
 
-    lazy val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
-
-    val asProxy = h(nodeType, attributeObject, childProxies)
-
+    def apply(args: VDomModifier*):VNode = VTree(nodeType, modifiers ++ args)
   }
 }
-
-
-
-
