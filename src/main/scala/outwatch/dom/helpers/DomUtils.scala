@@ -146,6 +146,7 @@ object DomUtils {
     case (rc: Receiver, (ems, rcs, prs, vns)) => (ems, rc +: rcs, prs, vns)
     case (pr: Property, (ems, rcs, prs, vns)) => (ems, rcs, pr +: prs,  vns)
     case (vn: VNode, (ems, rcs, prs, vns)) => (ems, rcs, prs, vn +: vns)
+    case (EmptyVDomModifier, (ems, rcs, prs, vns)) => (ems, rcs, prs, vns)
   }
 
 

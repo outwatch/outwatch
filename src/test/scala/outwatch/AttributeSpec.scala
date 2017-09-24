@@ -18,4 +18,13 @@ class AttributeSpec extends UnitSpec {
     node.data.attrs.size shouldBe 1
   }
 
+  "optional attributes" should "correctly render" in {
+    val node = input(
+      data.foo :=? Option("bar"),
+      data.bar :=? Option.empty[String]
+    ).asProxy
+
+    node.data.attrs.iterator.contains("data-foo" -> "bar") shouldBe true
+    node.data.attrs.size shouldBe 1
+  }
 }

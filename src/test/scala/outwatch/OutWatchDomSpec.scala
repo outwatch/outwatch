@@ -56,6 +56,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   "VDomModifiers" should "be separated correctly" in {
     val modifiers = Seq(
       Attribute("class", "red"),
+      EmptyVDomModifier,
       EventEmitter("click", Subject()),
       VDomModifier.StringNode("Test"),
       DomUtils.hyperscriptHelper("div")(),
@@ -73,6 +74,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be separated correctly with children" in {
     val modifiers = Seq(
       Attribute("class","red"),
+      EmptyVDomModifier,
       EventEmitter[Event]("click",Subject()),
       EventEmitter[InputEvent]("input", Subject()),
       AttributeStreamReceiver("hidden",Observable.of()),
@@ -97,6 +99,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be separated correctly with children and properties" in {
     val modifiers = Seq(
       Attribute("class","red"),
+      EmptyVDomModifier,
       EventEmitter[Event]("click",Subject()),
       EventEmitter[InputEvent]("input", Subject()),
       UpdateHook(Subject()),
@@ -226,6 +229,18 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val vtree = div(cls := "red", id := "msg",
       span("Hello")
+    )
+
+    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
+
+  }
+
+  it should "construct VTrees with optional children properly" in {
+    import outwatch.dom._
+
+    val vtree = div(cls := "red", id := "msg",
+      Option(span("Hello")),
+      Option.empty[VDomModifier]
     )
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)

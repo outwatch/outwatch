@@ -45,13 +45,15 @@ final case class AttributeStreamReceiver(attribute: String, attributeStream: Obs
 final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
 final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
-
+final case object EmptyVDomModifier extends VDomModifier
 
 
 object VDomModifier {
   final implicit class StringNode(string: String) extends VNode {
     val asProxy = VNodeProxy.fromString(string)
   }
+
+  implicit def OptionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
   final case class VTree(nodeType: String,
                    children: Seq[VNode],
