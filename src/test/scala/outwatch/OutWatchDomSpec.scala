@@ -28,7 +28,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       ChildrenStreamReceiver(Observable.of())
     )
 
-    val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
+    val DomUtils.SeparatedReceivers(child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
     child$.length shouldBe 1
     children$.length shouldBe 1
@@ -45,7 +45,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       DestroyHook(Subject())
     )
 
-    val (inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
+    val DomUtils.SeparatedProperties(inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
 
     inserts.length shouldBe 2
     deletes.length shouldBe 1
@@ -63,7 +63,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val (emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers)
 
     emitters.length shouldBe 1
     receivers.length shouldBe 1
@@ -83,9 +83,9 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       EventEmitter[KeyboardEvent]("keyup", Subject())
     )
 
-    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
-    val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
+    val DomUtils.SeparatedReceivers(child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
     emitters.length shouldBe 3
     child$.length shouldBe 0
@@ -110,11 +110,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       InsertHook(Subject())
     )
 
-    val (emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
-    val (child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
+    val DomUtils.SeparatedReceivers(child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
-    val (inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
+    val DomUtils.SeparatedProperties(inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
 
     emitters.length shouldBe 3
     child$.length shouldBe 0
