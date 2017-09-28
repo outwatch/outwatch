@@ -55,7 +55,7 @@ object DomUtils {
 
   private def createSimpleDataObject(properties: Seq[Property], handlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val (insert, delete, update, attributes, keys) = separateProperties(properties)
+    val SeparatedProperties(insert, delete, update, attributes, keys) = separateProperties(properties)
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
 
     val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
@@ -84,7 +84,7 @@ object DomUtils {
                                        properties: Seq[Property],
                                        eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val (insert, destroy, update, attributes, keys) = separateProperties(properties)
+    val SeparatedProperties(insert, destroy, update, attributes, keys) = separateProperties(properties)
 
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
     val subscriptionPromise = Promise[Subscription]
@@ -136,43 +136,59 @@ object DomUtils {
   }
 
 
-  private[outwatch] def separateModifiers(args: Seq[VDomModifier]): (Seq[Emitter], Seq[Receiver], Seq[Property], Seq[VNode]) = {
-    args.foldRight((Seq[Emitter](), Seq[Receiver](), Seq[Property](), Seq[VNode]()))(separatorFn)
+  private[outwatch] final case class SeparatedModifiers(
+    emitters: Seq[Emitter] = Seq.empty[Emitter],
+    receivers: Seq[Receiver] = Seq.empty[Receiver],
+    properties: Seq[Property] = Seq.empty[Property],
+    vNodes: Seq[VNode] = Seq.empty[VNode]
+  )
+  private[outwatch] def separateModifiers(args: Seq[VDomModifier]): SeparatedModifiers = {
+    args.foldRight(SeparatedModifiers())(separatorFn)
   }
 
-  type Result = (Seq[Emitter], Seq[Receiver], Seq[Property], Seq[VNode])
-
-  private[outwatch] def separatorFn(mod: VDomModifier, res: Result): Result = (mod, res) match {
-    case (em: Emitter, (ems, rcs, prs, vns)) => (em +: ems, rcs, prs, vns)
-    case (rc: Receiver, (ems, rcs, prs, vns)) => (ems, rc +: rcs, prs, vns)
-    case (pr: Property, (ems, rcs, prs, vns)) => (ems, rcs, pr +: prs,  vns)
-    case (vn: VNode, (ems, rcs, prs, vns)) => (ems, rcs, prs, vn +: vns)
-    case (EmptyVDomModifier, (ems, rcs, prs, vns)) => (ems, rcs, prs, vns)
+  private[outwatch] def separatorFn(mod: VDomModifier, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
+    case (em: Emitter, sf) => sf.copy(emitters = em +: sf.emitters)
+    case (rc: Receiver, sf) => sf.copy(receivers = rc +: sf.receivers)
+    case (pr: Property, sf) => sf.copy(properties = pr +: sf.properties)
+    case (vn: VNode, sf) => sf.copy(vNodes = vn +: sf.vNodes)
+    case (EmptyVDomModifier, sf) => sf
   }
 
 
-  private[outwatch] def separateReceivers(receivers: Seq[Receiver]): (Seq[ChildStreamReceiver], Seq[ChildrenStreamReceiver], Seq[AttributeStreamReceiver]) = {
-    receivers.foldRight((Seq[ChildStreamReceiver](), Seq[ChildrenStreamReceiver](), Seq[AttributeStreamReceiver]())) {
-      case (cr: ChildStreamReceiver, (crs, css, ars)) => (cr +: crs, css, ars)
-      case (cs: ChildrenStreamReceiver, (crs, css, ars)) => (crs, cs +: css, ars)
-      case (ar: AttributeStreamReceiver, (crs, css, ars)) => ( crs, css, ar +: ars)
+  private[outwatch] final case class SeparatedReceivers(
+    childStream: Seq[ChildStreamReceiver] = Seq.empty[ChildStreamReceiver],
+    childrenStream: Seq[ChildrenStreamReceiver] = Seq.empty[ChildrenStreamReceiver],
+    attributeStream: Seq[AttributeStreamReceiver] = Seq.empty[AttributeStreamReceiver]
+  )
+  private[outwatch] def separateReceivers(receivers: Seq[Receiver]): SeparatedReceivers = {
+    receivers.foldRight(SeparatedReceivers()) {
+      case (cr: ChildStreamReceiver, sr) => sr.copy(childStream = cr +: sr.childStream)
+      case (cs: ChildrenStreamReceiver, sr) => sr.copy(childrenStream = cs +: sr.childrenStream)
+      case (ar: AttributeStreamReceiver, sr) => sr.copy(attributeStream = ar +: sr.attributeStream)
     }
   }
 
-  private[outwatch] def separateProperties(properties: Seq[Property]): (Seq[InsertHook], Seq[DestroyHook], Seq[UpdateHook], Seq[Attribute], Seq[Key]) = {
-    properties.foldRight((Seq[InsertHook](), Seq[DestroyHook](), Seq[UpdateHook](), Seq[Attribute](), Seq[Key]())) {
-      case (ih: InsertHook, (ihs, dhs, uhs, ats, keys)) => (ih +: ihs, dhs, uhs, ats, keys)
-      case (dh: DestroyHook, (ihs, dhs, uhs, ats, keys)) => (ihs, dh +: dhs, uhs, ats, keys)
-      case (uh: UpdateHook, (ihs, dhs, uhs, ats, keys)) => (ihs, dhs, uh +: uhs, ats, keys)
-      case (at: Attribute, (ihs, dhs, uhs, ats, keys))  => (ihs, dhs, uhs, at +: ats, keys)
-      case (key: Key, (ihs, dhs, uhs, ats, keys)) => (ihs, dhs, uhs, ats, key +: keys)
+  private[outwatch] final case class SeparatedProperties(
+    insertHooks: Seq[InsertHook] = Seq.empty[InsertHook],
+    destroyHooks: Seq[DestroyHook] = Seq.empty[DestroyHook],
+    updateHooks: Seq[UpdateHook] = Seq.empty[UpdateHook],
+    attributeHooks: Seq[Attribute] = Seq.empty[Attribute],
+    keys: Seq[Key] = Seq.empty[Key]
+  )
+  private[outwatch] def separateProperties(properties: Seq[Property]): SeparatedProperties = {
+    properties.foldRight(SeparatedProperties()) {
+      case (ih: InsertHook, sp) => sp.copy(insertHooks = ih +: sp.insertHooks)
+      case (dh: DestroyHook, sp) => sp.copy(destroyHooks = dh +: sp.destroyHooks)
+      case (uh: UpdateHook, sp) => sp.copy(updateHooks = uh +: sp.updateHooks)
+      case (at: Attribute, sp)  => sp.copy(attributeHooks = at +: sp.attributeHooks)
+      case (key: Key, sp) => sp.copy(keys = key +: sp.keys)
     }
   }
 
   private[outwatch] def hyperscriptHelper(nodeType: String)(args: VDomModifier*): VNode = {
-    val (emitters, receivers, properties, children) = separateModifiers(args)
+    val SeparatedModifiers(emitters, receivers, properties, children) = separateModifiers(args)
 
-    val (childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
+    val SeparatedReceivers(childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
 
     val changeables = Changeables(attributeReceivers, childrenReceivers, childReceivers)
 
