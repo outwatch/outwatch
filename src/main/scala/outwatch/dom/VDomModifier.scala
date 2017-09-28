@@ -4,7 +4,8 @@ import org.scalajs.dom._
 import rxscalajs.{Observable, Observer}
 import snabbdom.{DataObject, VNodeProxy, h}
 
-import scala.scalajs.js.JSConverters._
+import scala.scalajs.js
+import collection.breakOut
 
 sealed trait VDomModifier extends Any
 
@@ -62,9 +63,9 @@ object VDomModifier {
                   ) extends VNode {
 
 
-    lazy val childProxies: Seq[VNodeProxy] = children.map(_.asProxy)
+    lazy val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
 
-    val asProxy = h(nodeType, attributeObject, childProxies.toJSArray)
+    val asProxy = h(nodeType, attributeObject, childProxies)
 
   }
 }

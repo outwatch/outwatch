@@ -7,6 +7,7 @@ import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
 import snabbdom._
+import collection.breakOut
 
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
@@ -113,7 +114,7 @@ object DomUtils {
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
         val updatedObj = proxy.data.withUpdatedAttributes(attributes)
-        h(proxy.sel, updatedObj, proxy.children ++ nodes.map(_.asProxy).toJSArray)
+        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.asProxy)(breakOut):js.Array[VNodeProxy]))
     }
 
     val subscription = changables.observable
