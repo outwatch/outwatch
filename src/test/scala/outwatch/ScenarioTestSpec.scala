@@ -141,7 +141,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
       .map(addToList)
 
     val deletes = deleteHandler
-      .map(n => (list: Vector[String]) => list.filter(_ != n))
+      .map(removeFromList)
 
     val state = adds.merge(deletes)
       .scan(Vector[String]())((state, modify) => modify(state))

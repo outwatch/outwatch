@@ -51,6 +51,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     deletes.length shouldBe 1
     updates.length shouldBe 1
     attributes.length shouldBe 1
+    keys.length shouldBe 0
   }
 
   "VDomModifiers" should "be separated correctly" in {
@@ -125,6 +126,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     attributes.length shouldBe 1
     attribute$.length shouldBe 2
     children.length shouldBe 0
+    keys.length shouldBe 0
 
   }
 

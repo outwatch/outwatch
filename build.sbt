@@ -24,6 +24,35 @@ npmDependencies in Compile ++= Seq(
   "snabbdom" -> "0.7.0"
 )
 
+scalacOptions ++=
+  "-encoding" :: "UTF-8" ::
+  "-unchecked" ::
+  "-deprecation" ::
+  "-explaintypes" ::
+  "-feature" ::
+  "-language:_" ::
+  "-Xcheckinit" ::
+  "-Xfuture" ::
+  "-Xlint" ::
+  "-Ypartial-unification" ::
+  "-Yno-adapted-args" ::
+  "-Ywarn-infer-any" ::
+  "-Ywarn-nullary-override" ::
+  "-Ywarn-nullary-unit" ::
+  Nil
+
+scalacOptions ++= {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 12)) =>
+      "-Ywarn-extra-implicit" ::
+      "-Ywarn-unused:-params,_" ::
+      Nil
+    case _             =>
+      "-Ywarn-unused" ::
+      Nil
+  }
+}
+
 requiresDOM in Test := true
 useYarn := true
 
