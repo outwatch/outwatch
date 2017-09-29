@@ -7,8 +7,6 @@ import outwatch.dom.{Attr, Prop}
 import rxscalajs.Observer
 
 import scala.scalajs.js
-import scala.scalajs.js.Dictionary
-
 
 object VDomProxy {
 
