@@ -3,6 +3,7 @@ package outwatch
 import snabbdom.{DataObject, h, patch}
 
 import scalajs.js
+import scalajs.js.|
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLInputElement
 
@@ -60,4 +61,17 @@ class SnabbdomSpec extends UnitSpec {
     inputElement().value shouldBe ""
   }
 
+  it should "correctly handle boolean attributes" in {
+    val message = "Hello World"
+    val attributes = js.Dictionary[String | Boolean]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
+    val vNode = h("span#msg", DataObject(attributes, js.Dictionary()), message)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    patch(node, vNode)
+
+    val expected = s"""<span id="msg" bool1="" string1="true" string0="false">$message</span>"""
+    document.getElementById("msg").outerHTML shouldBe expected
+  }
 }

@@ -28,13 +28,13 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
 
     OutWatch.render("#app", vtree)
-    document.getElementById("btn").getAttribute("disabled") shouldBe ""
+    document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("btn").getAttribute("disabled") shouldBe "true"
+    document.getElementById("btn").getAttribute("disabled") shouldBe ""
   }
 
   it should "be converted to a generic emitter correctly" in {

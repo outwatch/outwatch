@@ -32,8 +32,7 @@ final class AttributeBuilder[T](val attributeName: String) extends AnyVal with V
   def :=(value: T) = Attribute(attributeName, value.toString)
 
   def <--(valueStream: Observable[T]) = {
-    val attributeStream = valueStream.map(n => Attribute(attributeName, n.toString))
-    AttributeStreamReceiver(attributeName, attributeStream)
+    AttributeStreamReceiver(attributeName, valueStream.map(:=))
   }
 }
 
@@ -41,8 +40,7 @@ final class PropertyBuilder[T](val attributeName: String) extends AnyVal with Va
   def :=(value: T) = Prop(attributeName, value.toString)
 
   def <--(valueStream: Observable[T]) = {
-    val attributeStream = valueStream.map(n => Prop(attributeName, n.toString))
-    AttributeStreamReceiver(attributeName, attributeStream)
+    AttributeStreamReceiver(attributeName, valueStream.map(:=))
   }
 }
 
@@ -54,26 +52,20 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with
   def :=(value: T) = Attribute(name, value.toString)
 
   def <--(valueStream: Observable[T]) = {
-    val attributeStream = valueStream.map(:=)
-    AttributeStreamReceiver(name, attributeStream)
+    AttributeStreamReceiver(name, valueStream.map(:=))
   }
 }
 
 final class BoolAttributeBuilder(val attributeName: String) extends AnyVal with ValueBuilder[Boolean] {
-  def :=(value: Boolean) = Attribute(attributeName, toEmptyIfFalse(value))
+  def :=(value: Boolean) = Attribute(attributeName, value)
 
   def <--(valueStream: Observable[Boolean]) = {
-    AttributeStreamReceiver(attributeName, valueStream.map(b => {
-      Attribute(attributeName, toEmptyIfFalse(b))
-    }))
+    AttributeStreamReceiver(attributeName, valueStream.map(:=))
   }
-
-  private def toEmptyIfFalse(b: Boolean) = if (b) b.toString else ""
 }
 
 object BoolAttributeBuilder {
-  implicit def toAttribute(builder: BoolAttributeBuilder): Attribute =
-    Attribute(builder.attributeName, "_")
+  implicit def toAttribute(builder: BoolAttributeBuilder): Attribute = builder := true
 }
 
 object KeyBuilder {
