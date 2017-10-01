@@ -2,6 +2,7 @@ package snabbdom
 
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
+import scala.scalajs.js.|
 import outwatch.dom._
 import outwatch.dom.{Attr, Prop}
 import rxscalajs.Observer
@@ -12,8 +13,8 @@ object VDomProxy {
 
   import js.JSConverters._
 
-  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[String], js.Dictionary[String], js.Dictionary[String]) = {
-    val attrsDict = js.Dictionary[String]()
+  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[String | Boolean], js.Dictionary[String], js.Dictionary[String]) = {
+    val attrsDict = js.Dictionary[String | Boolean]()
     val propsDict = js.Dictionary[String]()
     val styleDict = js.Dictionary[String]()
 

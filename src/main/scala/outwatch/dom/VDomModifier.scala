@@ -1,6 +1,7 @@
 package outwatch.dom
 
 import org.scalajs.dom._
+import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
 import snabbdom.{DataObject, VNodeProxy, h}
 
@@ -28,14 +29,13 @@ final case class NumberEventEmitter(eventType: String, sink: Observer[Double]) e
 
 sealed trait Attribute extends Property{
   val title: String
-  val value: String
 }
 
 object Attribute {
-  def apply(title: String, value: String) = Attr(title, value)
+  def apply(title: String, value: String | Boolean) = Attr(title, value)
 }
 
-final case class Attr(title: String, value: String) extends Attribute
+final case class Attr(title: String, value: String | Boolean) extends Attribute
 final case class Prop(title: String, value: String) extends Attribute
 final case class Style(title: String, value: String) extends Attribute
 final case class InsertHook(sink: Observer[Element]) extends Property

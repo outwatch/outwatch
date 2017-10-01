@@ -12,7 +12,7 @@ import snabbdom.{DataObject, h}
 import scala.collection.immutable.Seq
 import scala.language.reflectiveCalls
 import scala.scalajs.js
-import scala.scalajs.js.JSON
+import scala.scalajs.js.{JSON, |}
 
 class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
@@ -246,6 +246,26 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     )
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
+
+  }
+
+  it should "construct VTrees with boolean attributes" in {
+    import outwatch.dom._
+
+    def boolBuilder(name: String) = new BoolAttributeBuilder(name)
+    def anyBuilder(name: String) = new AttributeBuilder[Boolean](name)
+    val vtree = div(
+      boolBuilder("a"),
+      boolBuilder("b") := true,
+      boolBuilder("c") := false,
+      anyBuilder("d") := true,
+      anyBuilder("e") := false
+    )
+
+    val attrs = js.Dictionary[String | Boolean]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "false")
+    val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
+
+    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(expected)
 
   }
 
