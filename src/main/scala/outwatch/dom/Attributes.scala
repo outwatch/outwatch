@@ -110,7 +110,7 @@ trait FormEventAttributes {
     *
     * MDN
     */
-  lazy val submit       = new EventEmitterBuilder("submit")
+  lazy val submit       = new EventEmitterBuilder[Event]("submit")
 }
 
 /** Global attributes are attributes common to all HTML elements; they can be
