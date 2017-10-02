@@ -44,6 +44,14 @@ final class PropertyBuilder[T](val attributeName: String) extends AnyVal with Va
   }
 }
 
+final class StyleBuilder(val attributeName: String) extends AnyVal with ValueBuilder[String] {
+  def :=(value: String) = Style(attributeName, value)
+
+  def <--(valueStream: Observable[String]) = {
+    AttributeStreamReceiver(attributeName, valueStream.map(:=))
+  }
+}
+
 final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with ValueBuilder[T] {
   private lazy val name: String = parts.reverse.mkString("-")
 
