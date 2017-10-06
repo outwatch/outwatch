@@ -4,36 +4,38 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import org.scalatest.BeforeAndAfterEach
 import outwatch.dom.helpers.DomUtils
-
-import scala.language.reflectiveCalls
+import outwatch.dom._
 
 class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   override def afterEach(): Unit = {
     document.body.innerHTML = ""
   }
 
-  val fixture = new {
-    val event = document.createEvent("Events")
+  override def beforeEach(): Unit = {
+    val root = document.createElement("div")
+    root.id = "app"
+    document.body.appendChild(root)
+    ()
   }
 
   "A simple counter application" should "work as intended" in {
-    import outwatch.dom._
+
 
 
     val node = for {
       handlePlus <- createMouseHandler()
-      plusOne$ = handlePlus.mapTo(1)
+      plusOne = handlePlus.mapTo(1)
 
       handleMinus <- createMouseHandler()
-      minusOne$ = handleMinus.mapTo(-1)
+      minusOne = handleMinus.mapTo(-1)
 
-      count$ = plusOne$.merge(minusOne$).scan(0)(_ + _).startWith(0)
+      count = plusOne.merge(minusOne).scan(0)(_ + _).startWith(0)
 
       root <- div(
         div(
           button(id := "plus", "+", click --> handlePlus),
           button(id := "minus", "-", click --> handleMinus),
-          span(id:="counter",child <-- count$)
+          span(id:="counter",child <-- count)
         )
       )
     } yield root
@@ -43,10 +45,8 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
     DomUtils.render(root, node).unsafeRunSync()
 
-    val event = fixture.event
+    val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
-
-    println(document.getElementById("counter"))
 
     document.getElementById("counter").innerHTML shouldBe 0.toString
 
@@ -62,8 +62,6 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "A simple name application" should "work as intended" in {
-    import outwatch.dom._
-
     val greetStart = "Hello ,"
 
     val node = for {
@@ -100,7 +98,6 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "A todo application" should "work with components" in {
-    import outwatch.dom._
 
     def TodoComponent(title: String, deleteStream: Sink[String]) =
       li(
@@ -121,10 +118,10 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
       enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm$ = enterPressed.merge(clickStream)
+      confirm = enterPressed.merge(clickStream)
         .withLatestFromWith(textFieldStream)((_, input) => input)
 
-      _ <- Pure(outputStream <-- confirm$)
+      _ <- Pure(outputStream <-- confirm)
 
       root <- div(
         label(labelText),
