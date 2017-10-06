@@ -1,8 +1,9 @@
 package outwatch
 
+import cats.effect.IO
 import outwatch.dom.Handler
 import rxscalajs.facade.SubjectFacade
-import rxscalajs.subscription.AnonymousSubscription
+import rxscalajs.subscription.Subscription
 import rxscalajs.{Observable, Observer, Subject}
 
 import scala.scalajs.js
@@ -15,7 +16,7 @@ sealed trait Sink[-T] extends Any {
     * Using this method is inherently impure and can cause memory leaks, if subscription
     * isn't handled correctly. For more guaranteed safety, use Sink.redirect() instead.
     */
-  def <--(observable: Observable[T]): AnonymousSubscription = {
+  def <--(observable: Observable[T]): IO[Subscription] = IO {
     observable.subscribe(observer)
   }
 
@@ -63,15 +64,15 @@ object Sink {
     * @tparam T the type parameter of the consumed elements.
     * @return a Sink that consumes elements of type T.
     */
-  def create[T](onNext: T => Unit,
-    onError: js.Any => Unit = _ => (),
-    onComplete: () => Unit = () => ()
+  def create[T](onNext: T => IO[Unit],
+    onError: js.Any => IO[Unit] = _ => IO.pure(()),
+    onComplete: () => IO[Unit] = () => IO.pure(())
   ): Sink[T] = {
     val sink = ObserverSink(
       new Observer[T] {
-        override def next(t: T): Unit = onNext(t)
-        override def error(err: js.Any): Unit = onError(err)
-        override def complete(): Unit = onComplete()
+        override def next(t: T): Unit = onNext(t).unsafeRunSync()
+        override def error(err: js.Any): Unit = onError(err).unsafeRunSync()
+        override def complete(): Unit = onComplete().unsafeRunSync()
       }
     )
     sink
@@ -89,11 +90,12 @@ object Sink {
     */
   def createHandler[T](seeds: T*): Handler[T] = {
     val handler = new SubjectSink[T]
+
     if (seeds.nonEmpty) {
-      ObservableSink[T](handler, handler.startWithMany(seeds: _*))
+      Handler(IO(ObservableSink[T](handler, handler.startWithMany(seeds: _*))))
     }
     else {
-      handler
+      Handler(IO(handler))
     }
   }
 
@@ -120,7 +122,7 @@ object Sink {
     * @return the resulting sink, that will forward the values
     */
   def redirect[T,R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
-    val forward = Sink.createHandler[R]()
+    val forward = Sink.createHandler[R]().value.unsafeRunSync()
 
     completionObservable(sink)
       .fold(project(forward))(completed => project(forward).takeUntil(completed))
@@ -142,8 +144,8 @@ object Sink {
     * @return the two resulting sinks, that will forward the values
     */
   def redirect2[T,U,R](sink: Sink[T])(project: (Observable[R], Observable[U]) => Observable[T]): (Sink[R], Sink[U]) = {
-    val r = Sink.createHandler[R]()
-    val u = Sink.createHandler[U]()
+    val r = Sink.createHandler[R]().value.unsafeRunSync()
+    val u = Sink.createHandler[U]().value.unsafeRunSync()
 
     completionObservable(sink)
       .fold(project(r, u))(completed => project(r, u).takeUntil(completed))
@@ -168,9 +170,9 @@ object Sink {
   def redirect3[T,U,V,R](sink: Sink[T])
                        (project: (Observable[R], Observable[U], Observable[V]) => Observable[T])
                        :(Sink[R], Sink[U], Sink[V]) = {
-    val r = Sink.createHandler[R]()
-    val u = Sink.createHandler[U]()
-    val v = Sink.createHandler[V]()
+    val r = Sink.createHandler[R]().value.unsafeRunSync()
+    val u = Sink.createHandler[U]().value.unsafeRunSync()
+    val v = Sink.createHandler[V]().value.unsafeRunSync()
 
     completionObservable(sink)
       .fold(project(r, u, v))(completed => project(r, u, v).takeUntil(completed))

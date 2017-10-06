@@ -1,6 +1,10 @@
 package outwatch.dom
 
+import cats.Monad
+import cats.effect.IO
 import org.scalajs.dom._
+import outwatch.Sink
+
 import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
 import snabbdom.{DataObject, VNodeProxy, h}
@@ -18,16 +22,24 @@ sealed trait Property extends VDomModifier
 
 sealed trait Receiver extends VDomModifier
 
-sealed trait VNode extends VDomModifier {
-  val asProxy: VNodeProxy
+sealed trait VNodeIO[A] extends VDomModifier {
+  private[outwatch]val value: IO[A]
+  def flatMap[B](f: A => VNodeIO[B]): VNodeIO[B] =
+    Pure(value.flatMap(f andThen (_.value)))
+  def map[B](f: A => B): VNodeIO[B] =
+    Pure(value.map(f))
 }
+
+final case class VDomIO private(private[outwatch] val value: IO[VDom]) extends VNodeIO[VDom]
+final case class Handler[A] private(private[outwatch] val value: IO[Observable[A] with Sink[A]]) extends VNodeIO[Observable[A] with Sink[A]]
+final case class Pure[A](value: IO[A]) extends VNodeIO[A]
 
 final case class EventEmitter[E <: Event](eventType: String, sink: Observer[E]) extends Emitter
 final case class StringEventEmitter(eventType: String, sink: Observer[String]) extends Emitter
 final case class BoolEventEmitter(eventType: String, sink: Observer[Boolean]) extends Emitter
 final case class NumberEventEmitter(eventType: String, sink: Observer[Double]) extends Emitter
 
-sealed trait Attribute extends Property{
+sealed trait Attribute extends Property {
   val title: String
 }
 
@@ -47,29 +59,45 @@ final case class AttributeStreamReceiver(attribute: String, attributeStream: Obs
 final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
 final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
-final case object EmptyVDomModifier extends VDomModifier
+case object EmptyVDomModifier extends VDomModifier
 
+sealed trait VDom {
+  val asProxy: VNodeProxy
+}
 
 object VDomModifier {
-  final implicit class StringNode(string: String) extends VNode {
-    val asProxy = VNodeProxy.fromString(string)
+  class StringNode(string: String) extends VDom {
+    val asProxy: VNodeProxy = VNodeProxy.fromString(string)
   }
 
-  implicit def OptionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
+  implicit def stringToVNode(s: String): VNode = VDomIO(IO(new StringNode(s)))
+
+  implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
   final case class VTree(nodeType: String,
                    children: Seq[VNode],
                    attributeObject: DataObject
-                  ) extends VNode {
+                  ) extends VDom {
 
 
-    lazy val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
+    lazy val childProxies: js.Array[VNodeProxy] = children.map(_.value.unsafeRunSync().asProxy)(breakOut)
 
     val asProxy = h(nodeType, attributeObject, childProxies)
 
   }
 }
 
+object VNodeIO {
+  implicit def vNodeMonad: Monad[VNodeIO] = new Monad[VNodeIO] {
+    def flatMap[A, B](fa: VNodeIO[A])(f: (A) => VNodeIO[B]): VNodeIO[B] =
+      fa.flatMap(f)
+
+    def tailRecM[A, B](a: A)(f: (A) => VNodeIO[Either[A, B]]) =
+      Pure(Monad[IO].tailRecM(a)(f andThen (_.value)))
+
+    def pure[A](x: A) = Pure(IO.pure(x))
+  }
+}
 
 
 

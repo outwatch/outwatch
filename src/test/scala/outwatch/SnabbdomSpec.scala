@@ -30,7 +30,7 @@ class SnabbdomSpec extends UnitSpec {
   it should "correctly patch nodes with keys" in {
     import outwatch.dom._
 
-    val clicks = createHandler[Int](1)
+    val clicks = createHandler[Int](1).value.unsafeRunSync()
     val nodes = clicks.map { i =>
       div(
         dom.key := s"key-$i",
@@ -43,7 +43,7 @@ class SnabbdomSpec extends UnitSpec {
     node.id = "app"
     document.body.appendChild(node)
 
-    OutWatch.render("#app", div(child <-- nodes))
+    OutWatch.render("#app", div(child <-- nodes)).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     inputEvt.initEvent("input", false, true)
