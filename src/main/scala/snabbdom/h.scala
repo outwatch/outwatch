@@ -20,7 +20,7 @@ trait hFunction extends js.Any {
 
 object h {
   def apply(nodeType: String, dataObject: DataObject, children: String | js.Array[_ <: Any]): VNodeProxy = {
-    hProvider.default.apply(nodeType,dataObject,children)
+    hProvider.default.apply(nodeType, dataObject, children)
   }
 }
 

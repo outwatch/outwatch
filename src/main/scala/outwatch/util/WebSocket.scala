@@ -1,8 +1,10 @@
 package outwatch.util
 
+import cats.effect.IO
 import org.scalajs.dom.raw.{CloseEvent, ErrorEvent, MessageEvent}
 import outwatch.Sink
 import rxscalajs.Observable
+
 import scala.language.implicitConversions
 
 object WebSocket {
@@ -20,7 +22,7 @@ final case class WebSocket private(url: String) {
     () => ws.close()
   })
 
-  lazy val sink = Sink.create[String](s => ws.send(s), _ => (), () => ws.close())
+  lazy val sink = Sink.create[String](s => IO(ws.send(s)), _ => IO.pure(()), () => IO(ws.close()))
 
 }
 

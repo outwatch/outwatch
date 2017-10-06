@@ -5,14 +5,14 @@ import outwatch.dom._
 class AttributeSpec extends UnitSpec {
 
   "data attribute" should "correctly render only data" in {
-    val node = input(data := "bar").asProxy
+    val node = input(data := "bar").value.unsafeRunSync().asProxy
 
     node.data.attrs.iterator.contains("data" -> "bar") shouldBe true
     node.data.attrs.size shouldBe 1
   }
 
   it should "correctly render expanded data with dynamic content" in {
-    val node = input(data.foo := "bar").asProxy
+    val node = input(data.foo := "bar").value.unsafeRunSync().asProxy
 
     node.data.attrs.iterator.contains("data-foo" -> "bar") shouldBe true
     node.data.attrs.size shouldBe 1
@@ -22,14 +22,14 @@ class AttributeSpec extends UnitSpec {
     val node = input(
       data.foo :=? Option("bar"),
       data.bar :=? Option.empty[String]
-    ).asProxy
+    ).value.unsafeRunSync().asProxy
 
     node.data.attrs.iterator.contains("data-foo" -> "bar") shouldBe true
     node.data.attrs.size shouldBe 1
   }
 
   "data attribute" should "correctly render style" in {
-    val node = input(Style("color", "red")).asProxy
+    val node = input(Style("color", "red")).value.unsafeRunSync().asProxy
 
     node.data.style.iterator.contains("color" -> "red") shouldBe true
     node.data.style.size shouldBe 1

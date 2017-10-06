@@ -1,5 +1,6 @@
 package outwatch.dom.helpers
 
+import cats.effect.IO
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import outwatch.dom.VDomModifier.VTree
@@ -114,7 +115,7 @@ object DomUtils {
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
         val updatedObj = proxy.data.withUpdatedAttributes(attributes)
-        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.asProxy)(breakOut):js.Array[VNodeProxy]))
+        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.value.unsafeRunSync().asProxy)(breakOut):js.Array[VNodeProxy]))
     }
 
     val subscription = changables.observable
@@ -137,51 +138,51 @@ object DomUtils {
 
 
   private[outwatch] final case class SeparatedModifiers(
-    emitters: Seq[Emitter] = Seq.empty[Emitter],
-    receivers: Seq[Receiver] = Seq.empty[Receiver],
-    properties: Seq[Property] = Seq.empty[Property],
-    vNodes: Seq[VNode] = Seq.empty[VNode]
+    emitters: List[Emitter] = List.empty[Emitter],
+    receivers: List[Receiver] = List.empty[Receiver],
+    properties: List[Property] = List.empty[Property],
+    vNodes: List[VNode] = List.empty[VNode]
   )
   private[outwatch] def separateModifiers(args: Seq[VDomModifier]): SeparatedModifiers = {
     args.foldRight(SeparatedModifiers())(separatorFn)
   }
 
   private[outwatch] def separatorFn(mod: VDomModifier, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
-    case (em: Emitter, sf) => sf.copy(emitters = em +: sf.emitters)
-    case (rc: Receiver, sf) => sf.copy(receivers = rc +: sf.receivers)
-    case (pr: Property, sf) => sf.copy(properties = pr +: sf.properties)
-    case (vn: VNode, sf) => sf.copy(vNodes = vn +: sf.vNodes)
+    case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
+    case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
+    case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
+    case (vn: VNodeIO[_], sf) => sf.copy(vNodes = vn.asInstanceOf[VNode] :: sf.vNodes)
     case (EmptyVDomModifier, sf) => sf
   }
 
 
   private[outwatch] final case class SeparatedReceivers(
-    childStream: Seq[ChildStreamReceiver] = Seq.empty[ChildStreamReceiver],
-    childrenStream: Seq[ChildrenStreamReceiver] = Seq.empty[ChildrenStreamReceiver],
-    attributeStream: Seq[AttributeStreamReceiver] = Seq.empty[AttributeStreamReceiver]
+    childStream: List[ChildStreamReceiver] = List.empty[ChildStreamReceiver],
+    childrenStream: List[ChildrenStreamReceiver] = List.empty[ChildrenStreamReceiver],
+    attributeStream: List[AttributeStreamReceiver] = List.empty[AttributeStreamReceiver]
   )
   private[outwatch] def separateReceivers(receivers: Seq[Receiver]): SeparatedReceivers = {
     receivers.foldRight(SeparatedReceivers()) {
-      case (cr: ChildStreamReceiver, sr) => sr.copy(childStream = cr +: sr.childStream)
-      case (cs: ChildrenStreamReceiver, sr) => sr.copy(childrenStream = cs +: sr.childrenStream)
-      case (ar: AttributeStreamReceiver, sr) => sr.copy(attributeStream = ar +: sr.attributeStream)
+      case (cr: ChildStreamReceiver, sr) => sr.copy(childStream = cr :: sr.childStream)
+      case (cs: ChildrenStreamReceiver, sr) => sr.copy(childrenStream = cs :: sr.childrenStream)
+      case (ar: AttributeStreamReceiver, sr) => sr.copy(attributeStream = ar :: sr.attributeStream)
     }
   }
 
   private[outwatch] final case class SeparatedProperties(
-    insertHooks: Seq[InsertHook] = Seq.empty[InsertHook],
-    destroyHooks: Seq[DestroyHook] = Seq.empty[DestroyHook],
-    updateHooks: Seq[UpdateHook] = Seq.empty[UpdateHook],
-    attributeHooks: Seq[Attribute] = Seq.empty[Attribute],
-    keys: Seq[Key] = Seq.empty[Key]
+    insertHooks: List[InsertHook] = List.empty[InsertHook],
+    destroyHooks: List[DestroyHook] = List.empty[DestroyHook],
+    updateHooks: List[UpdateHook] = List.empty[UpdateHook],
+    attributeHooks: List[Attribute] = List.empty[Attribute],
+    keys: List[Key] = List.empty[Key]
   )
   private[outwatch] def separateProperties(properties: Seq[Property]): SeparatedProperties = {
     properties.foldRight(SeparatedProperties()) {
-      case (ih: InsertHook, sp) => sp.copy(insertHooks = ih +: sp.insertHooks)
-      case (dh: DestroyHook, sp) => sp.copy(destroyHooks = dh +: sp.destroyHooks)
-      case (uh: UpdateHook, sp) => sp.copy(updateHooks = uh +: sp.updateHooks)
-      case (at: Attribute, sp)  => sp.copy(attributeHooks = at +: sp.attributeHooks)
-      case (key: Key, sp) => sp.copy(keys = key +: sp.keys)
+      case (ih: InsertHook, sp) => sp.copy(insertHooks = ih :: sp.insertHooks)
+      case (dh: DestroyHook, sp) => sp.copy(destroyHooks = dh :: sp.destroyHooks)
+      case (uh: UpdateHook, sp) => sp.copy(updateHooks = uh :: sp.updateHooks)
+      case (at: Attribute, sp)  => sp.copy(attributeHooks = at :: sp.attributeHooks)
+      case (key: Key, sp) => sp.copy(keys = key :: sp.keys)
     }
   }
 
@@ -196,14 +197,15 @@ object DomUtils {
 
     val dataObject = createDataObject(changeables, properties, eventHandlers)
 
-    VTree(nodeType, children, dataObject)
+    VDomIO(IO(VTree(nodeType, children, dataObject)))
   }
 
-  def render(element: Element, vNode: VNode): Unit = {
-    val elem = document.createElement("app")
-    element.appendChild(elem)
-    patch(elem,vNode.asProxy)
-  }
+  def render(element: Element, vNode: VNode): IO[Unit] = for {
+    node <- vNode.value
+    elem <- IO(document.createElement("app"))
+    _ <- IO(element.appendChild(elem))
+    _ <- IO(patch(elem, node.asProxy))
+  } yield ()
 
 
 }

@@ -1,5 +1,6 @@
 package outwatch.util
 
+import cats.effect.IO
 import outwatch.Sink
 import rxscalajs.Observable
 import org.scalajs.dom.window.localStorage
@@ -13,6 +14,6 @@ object LocalStorageReader {
 
 object LocalStorageWriter {
   def apply(key: String): Sink[String] = {
-    Sink.create[String](data => localStorage.setItem(key, data))
+    Sink.create[String](data => IO(localStorage.setItem(key, data)))
   }
 }

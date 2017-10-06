@@ -1,9 +1,10 @@
 package outwatch
 
+import cats.effect.IO
 import org.scalajs.dom.raw.HTMLInputElement
 import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.VDomModifier.VTree
+import outwatch.dom.VDomModifier.StringNode
 import outwatch.dom._
 import outwatch.dom.helpers._
 import rxscalajs.{Observable, Subject}
@@ -59,7 +60,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Attribute("class", "red"),
       EmptyVDomModifier,
       EventEmitter("click", Subject()),
-      VDomModifier.StringNode("Test"),
+      VDomIO(IO(new StringNode("Test"))),
       DomUtils.hyperscriptHelper("div")(),
       AttributeStreamReceiver("hidden",Observable.of())
     )
@@ -142,11 +143,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val message = "Hello"
     val child = DomUtils.hyperscriptHelper("span")(message)
     val nodeType = "div"
-    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child).asInstanceOf[VDomModifier.VTree]
-
-    vtree.nodeType shouldBe nodeType
-    vtree.children.length shouldBe 1
-    child.asInstanceOf[VTree].children.length shouldBe 1
+    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child).value.unsafeRunSync()
 
     val proxy = fixture.proxy
 
@@ -159,7 +156,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val message = "Hello"
     val child = DomUtils.hyperscriptHelper("span")(message)
     val nodeType = "div"
-    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child)
+    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child).value.unsafeRunSync()
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
   }
@@ -178,7 +175,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     val patchedNode = document.getElementById(id)
 
@@ -191,7 +188,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be replaced if they contain changeables" in {
 
     def page(num: Int): VNode = {
-      val pageNum = createHandler[Int](num)
+      val pageNum = createHandler[Int](num).value.unsafeRunSync()
 
       div( id := "page",
         num match {
@@ -212,7 +209,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     pageHandler.next(1)
 
@@ -231,7 +228,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val vtree = div(cls := "red", id := "msg",
       span("Hello")
-    )
+    ).value.unsafeRunSync()
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
 
@@ -243,7 +240,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val vtree = div(cls := "red", id := "msg",
       Option(span("Hello")),
       Option.empty[VDomModifier]
-    )
+    ).value.unsafeRunSync()
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
 
@@ -260,7 +257,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       boolBuilder("c") := false,
       anyBuilder("d") := true,
       anyBuilder("e") := false
-    )
+    ).value.unsafeRunSync()
 
     val attrs = js.Dictionary[String | Boolean]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "false")
     val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
@@ -285,7 +282,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     val patchedNode = document.getElementById("test")
 
@@ -308,7 +305,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     val field = document.getElementById("input").asInstanceOf[HTMLInputElement]
 

@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.effect.IO
 import org.scalajs.dom._
 import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
@@ -11,6 +12,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     root.id = "app"
     document.body.appendChild(root)
+    ()
   }
 
   override def afterEach(): Unit = {
@@ -20,13 +22,13 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create((_: Element) => switch = true)
+    val sink = Sink.create((_: Element) => IO { switch = true })
 
     val node = div(insert --> sink)
 
     switch shouldBe false
 
-    OutWatch.render("#app", node)
+    OutWatch.render("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -35,13 +37,13 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Destruction hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create((_: Element) => switch = true)
+    val sink = Sink.create((_: Element) => IO { switch = true })
 
     val node = div(child <-- Observable.of(span(destroy --> sink), "Hasdasd"))
 
     switch shouldBe false
 
-    OutWatch.render("#app", node)
+    OutWatch.render("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -50,13 +52,13 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Update hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create((_: (Element, Element)) => switch = true)
+    val sink = Sink.create((_: (Element, Element)) => IO { switch = true })
 
     val node = div(child <-- Observable.of(span(update --> sink, "Hello"), span(update --> sink, "Hey")))
 
     switch shouldBe false
 
-    OutWatch.render("#app", node)
+    OutWatch.render("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
