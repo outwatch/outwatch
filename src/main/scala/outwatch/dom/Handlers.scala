@@ -4,6 +4,7 @@ import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.raw.{ClipboardEvent, DragEvent, KeyboardEvent}
 import outwatch.Sink
 import outwatch.dom.helpers.InputEvent
+import cats.effect.IO
 
 /**
   * Trait containing event handlers, so they can be mixed in to other objects if needed.
@@ -18,7 +19,7 @@ trait Handlers {
   def createBoolHandler(defaultValues: Boolean*) = createHandler[Boolean](defaultValues: _*)
   def createNumberHandler(defaultValues: Double*) = createHandler[Double](defaultValues: _*)
 
-  def createHandler[T](defaultValues: T*): Handler[T] = {
+  def createHandler[T](defaultValues: T*): IO[Handler[T]] = {
     Sink.createHandler[T](defaultValues: _*)
   }
 }

@@ -14,9 +14,11 @@ crossScalaVersions := Seq("2.11.11", "2.12.3")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.14.0",
-  "org.scalatest" %%% "scalatest" % "3.0.1" % "test",
-  "org.scalacheck" %%% "scalacheck" % "1.13.4" % "test"
+  "com.github.lukajcb" %%% "rxscala-js" % "0.15.0",
+  "org.typelevel" %%% "cats-core" % "0.9.0",
+  "org.typelevel" %%% "cats-effect" % "0.3",
+  "org.scalatest" %%% "scalatest" % "3.0.1" % Test,
+  "org.scalacheck" %%% "scalacheck" % "1.13.4" % Test
 )
 
 npmDependencies in Compile ++= Seq(
@@ -37,8 +39,10 @@ scalacOptions ++=
   "-Ypartial-unification" ::
   "-Yno-adapted-args" ::
   "-Ywarn-infer-any" ::
+  "-Ywarn-value-discard" ::
   "-Ywarn-nullary-override" ::
   "-Ywarn-nullary-unit" ::
+  "-P:scalajs:sjsDefinedByDefault" ::
   Nil
 
 scalacOptions ++= {
@@ -85,5 +89,7 @@ pomExtra :=
     </developer>
   </developers>
 
+
+scalaJSUseMainModuleInitializer := true
 
 pomIncludeRepository := { _ => false }
