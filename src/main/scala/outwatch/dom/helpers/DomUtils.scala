@@ -92,9 +92,9 @@ object DomUtils {
     val SeparatedProperties(insert, destroy, update, attributes, keys) = separateProperties(properties)
 
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
-    val subscriptionPromise = Promise[Subscription]
-    val insertHook = createInsertHook(changeables, subscriptionPromise, insert)
-    val deleteHook = createDestroyHook(subscriptionPromise.future, destroy)
+    val subscriptionRef = STRef.empty[Subscription]
+    val insertHook = createInsertHook(changeables, subscriptionRef, insert)
+    val deleteHook = createDestroyHook(subscriptionRef, destroy)
     val updateHook = createUpdateHook(update)
     val key = keys.lastOption.map(_.value).getOrElse(changeables.hashCode.toString)
 
@@ -113,7 +113,7 @@ object DomUtils {
 
 
   private def createInsertHook(changables: Changeables,
-                               subscriptionPromise: Promise[Subscription],
+                               subscriptionRef: STRef[Subscription],
                                hooks: Seq[InsertHook]) = (proxy: VNodeProxy) => {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
@@ -128,16 +128,15 @@ object DomUtils {
       .pairwise
       .subscribe(tuple => patch(tuple._1, tuple._2), console.error(_))
 
-    subscriptionPromise.success(subscription)
+    subscriptionRef.put(subscription).unsafeRunSync()
 
     proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
   }
 
-  private def createDestroyHook(subscription: Future[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
-    import scala.concurrent.ExecutionContext.Implicits.global
-
+  private def createDestroyHook(subscription: STRef[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
     proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
-    subscription.foreach(_.unsubscribe())
+    subscription.update { s => s.unsubscribe(); s }.unsafeRunSync()
+    ()
   }
 
 
