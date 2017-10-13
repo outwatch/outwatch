@@ -13,6 +13,6 @@ class STRef[A](private var unsafeGet: A) {
 }
 
 object STRef {
-  def apply[A](a: A) = new STRef(a)
-  def empty[A] = new STRef[A](null.asInstanceOf[A]) // scalastyle:ignore
+  def apply[A](a: A): STRef[A] = new STRef(a)
+  def empty[A]: STRef[A] = new STRef[A](null.asInstanceOf[A]) // scalastyle:ignore
 }

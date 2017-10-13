@@ -9,14 +9,29 @@ import rxscalajs.subscription.Subscription
 
 import scala.language.implicitConversions
 
-final case class Store[State, Action](initialState: State, reducer: (State, Action) => State) {
-  private val handler: Observable[Action] with Sink[Action] = createHandler[Action]().value.unsafeRunSync()
+
+final case class Store[State, Action](initialState: State,
+                                           reducer: (State, Action) => (State, Option[IO[Action]]),
+                                           handler: Observable[Action] with Sink[Action]) {
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
-    .scan(initialState)(reducer)
+    .scan(initialState)(fold)
     .startWith(initialState)
+    .share
 
-  def subscribe(f: State => IO[Unit]): Subscription = source.subscribe(s =>f(s).unsafeRunSync())
+  private def fold(state: State, action: Action): State = {
+    val (newState, next) = reducer(state, action)
+
+    next.foreach(_.unsafeRunAsync {
+      case Left(e) => sink.observer.error(e.toString)
+      case Right(r) => sink.observer.next(r)
+    })
+
+    newState
+  }
+
+  def subscribe(f: State => IO[Unit]): IO[Subscription] =
+    IO(source.subscribe(f andThen(_.unsafeRunSync())))
 }
 
 object Store {
@@ -25,8 +40,9 @@ object Store {
 
   private val storeRef = STRef.empty
 
-  def renderWithStore[S, A](initialState: S, reducer: (S, A) => S, selector: String, root: VNode): IO[Unit] = for {
-    store <- IO(Store(initialState, reducer))
+  def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode): IO[Unit] = for {
+    handler <- createHandler[A]().value
+    store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
     _ <- OutWatch.render(selector, root)
   } yield ()
