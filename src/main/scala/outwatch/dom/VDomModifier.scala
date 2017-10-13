@@ -4,6 +4,7 @@ import cats.Monad
 import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.Sink
+import rxscalajs.dom.Response
 
 import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
@@ -32,6 +33,7 @@ sealed trait VNodeIO[A] extends VDomModifier {
 
 final case class VDomIO private(private[outwatch] val value: IO[VDom]) extends VNodeIO[VDom]
 final case class Handler[A] private(private[outwatch] val value: IO[Observable[A] with Sink[A]]) extends VNodeIO[Observable[A] with Sink[A]]
+final case class VDomHttp private(private[outwatch] val value: IO[Observable[Response]]) extends VNodeIO[Observable[Response]]
 final case class Pure[A](value: IO[A]) extends VNodeIO[A]
 
 final case class EventEmitter[E <: Event](eventType: String, sink: Observer[E]) extends Emitter
