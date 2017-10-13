@@ -9,6 +9,6 @@ object OutWatch {
   def render(querySelector: String, vNode: VNode): IO[Unit] =
     DomUtils.render(document.querySelector(querySelector), vNode)
 
-  def renderWithStore[S, A](initialState: S, reducer: (S, A) => S, querySelector: String, root: VNode): IO[Unit] =
+  def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), querySelector: String, root: VNode): IO[Unit] =
     Store.renderWithStore(initialState, reducer, querySelector, root)
 }
