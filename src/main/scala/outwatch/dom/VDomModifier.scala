@@ -18,7 +18,7 @@ sealed trait Property extends VDomModifier
 
 sealed trait Receiver extends VDomModifier
 
-sealed trait VNode extends VDomModifier {
+sealed trait VNode extends Any with VDomModifier {
   def asProxy: VNodeProxy
 }
 
@@ -51,7 +51,7 @@ final case object EmptyVDomModifier extends VDomModifier
 
 
 object VDomModifier {
-  final implicit class StringNode(string: String) extends VNode {
+  final implicit class StringNode(val string: String) extends AnyVal with VNode {
     def asProxy = VNodeProxy.fromString(string)
   }
 
