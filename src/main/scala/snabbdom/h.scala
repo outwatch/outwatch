@@ -50,7 +50,7 @@ object Hooks {
 
 @ScalaJSDefined
 trait DataObject extends js.Object {
-  val attrs: js.Dictionary[String | Boolean]
+  val attrs: js.Dictionary[Attribute.Value]
   val props: js.Dictionary[String]
   val style: js.Dictionary[String]
   val on: js.Dictionary[js.Function1[Event, Unit]]
@@ -60,12 +60,12 @@ trait DataObject extends js.Object {
 
 object DataObject {
 
-  def apply(attrs: js.Dictionary[String | Boolean],
+  def apply(attrs: js.Dictionary[Attribute.Value],
             on: js.Dictionary[js.Function1[Event, Unit]]
            ): DataObject = apply(attrs, js.Dictionary.empty, js.Dictionary.empty, on, Hooks(), js.undefined)
 
 
-  def apply(attrs: js.Dictionary[String | Boolean],
+  def apply(attrs: js.Dictionary[Attribute.Value],
             props: js.Dictionary[String],
             style: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]],
@@ -81,7 +81,7 @@ object DataObject {
     val _key = key
 
     new DataObject {
-      val attrs: js.Dictionary[String | Boolean] = _attrs
+      val attrs: js.Dictionary[Attribute.Value] = _attrs
       val props: js.Dictionary[String] = _props
       val style: js.Dictionary[String] = _style
       val on: js.Dictionary[js.Function1[Event, Unit]] = _on
@@ -90,7 +90,7 @@ object DataObject {
     }
   }
 
-  def create(attrs: js.Dictionary[String | Boolean],
+  def create(attrs: js.Dictionary[Attribute.Value],
              props: js.Dictionary[String],
              style: js.Dictionary[String],
              on: js.Dictionary[js.Function1[Event, Unit]],

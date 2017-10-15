@@ -2,7 +2,6 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import org.scalajs.dom._
-import org.scalajs.dom.html
 import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
@@ -41,8 +40,6 @@ object DomUtils {
     lazy val nonEmpty: Boolean = {
       attributeStreamReceivers.nonEmpty || childrenStreamReceivers.nonEmpty || childStreamReceivers.nonEmpty
     }
-
-    lazy val valueStreamExists: Boolean = attributeStreamReceivers.exists(_.attribute == "value")
   }
 
   private def createDataObject(changeables: Changeables,
@@ -69,20 +66,6 @@ object DomUtils {
     DataObject.create(attrs, props, style, handlers, insertHook, deleteHook, updateHook, key)
   }
 
-  private def seq[A, B](f1: (A, B) => Unit,f2: (A, B) => Unit): (A, B) => Unit = (a: A, b: B) => {
-    f1(a, b)
-    f2(a, b)
-  }
-
-  private val valueSyncHook: (VNodeProxy, VNodeProxy) => Unit = (_, node) => {
-    node.elm.foreach { elm =>
-      val input = elm.asInstanceOf[html.Input]
-      if (input.value != input.getAttribute("value")) {
-        input.value = input.getAttribute("value")
-      }
-    }
-  }
-
   private def createReceiverDataObject(changeables: Changeables,
                                        properties: Seq[Property],
                                        eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
@@ -96,13 +79,7 @@ object DomUtils {
     val updateHook = createUpdateHook(update)
     val key = keys.lastOption.map(_.value).getOrElse(changeables.hashCode.toString)
 
-    val updateHookHelper = if (changeables.valueStreamExists) {
-      seq(updateHook, valueSyncHook)
-    } else {
-      updateHook
-    }
-
-    DataObject.create(attrs, props, style, eventHandlers, insertHook, deleteHook, updateHookHelper, key)
+    DataObject.create(attrs, props, style, eventHandlers, insertHook, deleteHook, updateHook, key)
   }
 
   private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {

@@ -1,12 +1,12 @@
 package outwatch.dom
 
 import cats.effect.IO
+import com.raquo.domtypes.generic.defs.reflectedAttrs.ReflectedAttrs
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
-import outwatch.dom.helpers.InputEvent
+
+import scala.language.higherKinds
 
 trait Handlers {
-  @deprecated("Use Handler.inputEvents instead", "0.11.0")
-  def createInputHandler() = Handler.create[InputEvent]
   @deprecated("Use Handler.mouseEvents instead", "0.11.0")
   def createMouseHandler() = Handler.create[MouseEvent]
   @deprecated("Use Handler.keyboardEvents instead", "0.11.0")
@@ -28,3 +28,24 @@ trait Handlers {
 }
 
 object Handlers extends Handlers
+
+
+trait Attributes extends
+  DomAttrs with
+  DomReflectedAttrs with
+  DomProps with
+  DomEvents with
+  OutwatchAttributes
+
+@deprecated("Attributes is deprecated, use one of DomAttrs, DomReflectedAttrs,  DomProps, DomEvents or OutwatchAttributes", "0.11.0")
+object Attributes extends Attributes
+
+
+trait DomAttrsCompat[RA[_, _]] { self: ReflectedAttrs[RA] =>
+  lazy val `class`: RA[String, String] = className
+
+  lazy val `for`: RA[String, String] = forId
+}
+
+trait Tags extends DomTags with DomTagsExtra
+object Tags extends Tags

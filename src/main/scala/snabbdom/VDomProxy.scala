@@ -4,14 +4,13 @@ import org.scalajs.dom._
 import outwatch.dom.{Attr, Prop, _}
 
 import scala.scalajs.js
-import scala.scalajs.js.|
 
 object VDomProxy {
 
   import js.JSConverters._
 
-  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[String | Boolean], js.Dictionary[String], js.Dictionary[String]) = {
-    val attrsDict = js.Dictionary[String | Boolean]()
+  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[Attribute.Value], js.Dictionary[String], js.Dictionary[String]) = {
+    val attrsDict = js.Dictionary[Attribute.Value]()
     val propsDict = js.Dictionary[String]()
     val styleDict = js.Dictionary[String]()
 

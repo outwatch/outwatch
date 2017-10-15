@@ -30,9 +30,9 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
       div <- div(
         div(
-          button(id := "plus", "+", click --> handlePlus),
-          button(id := "minus", "-", click --> handleMinus),
-          span(id := "counter", child <-- count)
+          button(id := "plus", "+", onClick --> handlePlus),
+          button(id := "minus", "-", onClick --> handleMinus),
+          span(id:="counter",child <-- count)
         )
       )
     } yield div
@@ -63,7 +63,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     val node = Handler.create[String].flatMap { nameHandler =>
       div(
         label("Name:"),
-        input(id := "input", inputType := "text", inputString --> nameHandler),
+        input(id := "input", tpe := "text", onInputString --> nameHandler),
         hr(),
         h1(id := "greeting", greetStart, child <-- nameHandler)
       )
@@ -97,8 +97,8 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     def component() = {
       Handler.create[String].flatMap { handler =>
         div(
-          button(click("clicked") --> handler),
-          div(`class` := "label", child <-- handler)
+          button(onClick("clicked") --> handler),
+          div(cls := "label", child <-- handler)
         )
       }
     }
@@ -129,7 +129,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     def TodoComponent(title: String, deleteStream: Sink[String]) =
       li(
         span(title),
-        button(id:= title, click(title) --> deleteStream, "Delete")
+        button(id:= title, onClick(title) --> deleteStream, "Delete")
       )
 
     def TextFieldComponent(labelText: String, outputStream: Sink[String]) = for {
@@ -152,8 +152,8 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
       div <- div(
         label(labelText),
-        input(id:= "input", inputType := "text", inputString --> textFieldStream, keyup --> keyStream),
-        button(id := "submit", click --> clickStream, disabled <-- buttonDisabled, "Submit")
+        input(id:= "input", tpe := "text", onInputString --> textFieldStream, onKeyUp --> keyStream),
+        button(id := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
     } yield div
 

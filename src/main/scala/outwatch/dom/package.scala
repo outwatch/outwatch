@@ -5,7 +5,7 @@ import cats.effect.IO
 import scala.language.implicitConversions
 
 
-package object dom extends Attributes with Tags with HandlerFactories {
+package object dom extends DomTypes with OutwatchAttributes with HandlerFactories {
 
   type VNode = IO[VNode_]
   type VDomModifier = IO[VDomModifier_]
@@ -33,6 +33,4 @@ package object dom extends Attributes with Tags with HandlerFactories {
       vnode.flatMap(vnode_ => vnode_(args:_*))
     }
   }
-
-  def stl(property:String) = new helpers.StyleBuilder(property)
 }

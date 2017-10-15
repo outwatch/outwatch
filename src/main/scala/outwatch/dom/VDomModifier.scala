@@ -23,11 +23,11 @@ sealed trait Attribute extends Property {
 }
 
 object Attribute {
-  def apply(title: String, value: String | Boolean) = Attr(title, value)
+  type Value = String | Boolean
+  def apply(title: String, value: Value) = Attr(title, value)
 }
 
-
-final case class Attr(title: String, value: String | Boolean) extends Attribute
+final case class Attr(title: String, value: Attribute.Value) extends Attribute
 final case class Prop(title: String, value: String) extends Attribute
 final case class Style(title: String, value: String) extends Attribute
 final case class Key(value: String) extends Property
