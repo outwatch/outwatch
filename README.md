@@ -25,6 +25,12 @@ Please check out the [documentation](https://outwatch.github.io/) on how to proc
 
 For bugs, questions and discussions please use the [Github Issues](https://github.com/OutWatch/outwatch/issues).
 
+## Community
+
+We adopted the
+[Typelevel Code of Conduct](http://typelevel.org/conduct.html). People are expected to follow it when
+discussing OutWatch on the Github page, Gitter channel, or other venues.
+
 ## LICENSE
 
 Licensed under the Apache License, Version 2.0 (the "License");
