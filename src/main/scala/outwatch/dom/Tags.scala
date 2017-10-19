@@ -12,12 +12,14 @@
 
 package outwatch.dom
 
+import cats.effect.IO
+import outwatch.dom.VDomModifier.VTree
 import outwatch.dom.helpers.DomUtils
 
 /** Trait that contains all tags, so they can be mixed in to other objects if needed.
   */
 trait Tags {
-  private def tag: (String) => (Seq[VDomModifier]) => VNode = DomUtils.hyperscriptHelper
+  private def tag(nodeType: String)(args: Seq[VDomModifier]): VNode = VDomIO(IO(VTree(nodeType, args)))
 
   /** Represents a hyperlink, linking to another resource.
     *

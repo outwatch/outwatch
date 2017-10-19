@@ -5,7 +5,7 @@ import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.Sink
 import rxscalajs.dom.Response
-
+import outwatch.dom.helpers.DomUtils
 import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
 import snabbdom.{DataObject, VNodeProxy, h}
@@ -23,15 +23,20 @@ sealed trait Property extends VDomModifier
 
 sealed trait Receiver extends VDomModifier
 
-sealed trait VNodeIO[A] extends VDomModifier {
+sealed trait VNodeIO[A] extends VDomModifier { self =>
   private[outwatch]val value: IO[A]
   def flatMap[B](f: A => VNodeIO[B]): VNodeIO[B] =
     Pure(value.flatMap(f andThen (_.value)))
   def map[B](f: A => B): VNodeIO[B] =
     Pure(value.map(f))
+
+  //TODO only valid for VDomIO, others should never happen
+  def apply(args: VDomModifier*): VNode = div(args: _*)
 }
 
-final case class VDomIO private(private[outwatch] val value: IO[VDom]) extends VNodeIO[VDom]
+final case class VDomIO private(private[outwatch] val value: IO[VDom]) extends VNodeIO[VDom] {
+  override def apply(args: VDomModifier*): VNode = VDomIO(value.map(vdom => vdom.update(args: _*)))
+}
 final case class Handler[A] private(private[outwatch] val value: IO[Observable[A] with Sink[A]]) extends VNodeIO[Observable[A] with Sink[A]]
 final case class VDomHttp private(private[outwatch] val value: IO[Observable[Response]]) extends VNodeIO[Observable[Response]]
 final case class Pure[A](value: IO[A]) extends VNodeIO[A]
@@ -64,12 +69,14 @@ final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) 
 case object EmptyVDomModifier extends VDomModifier
 
 sealed trait VDom {
-  val asProxy: VNodeProxy
+  def asProxy: VNodeProxy
+  def update(args: VDomModifier*): VDom
 }
 
 object VDomModifier {
   class StringNode(string: String) extends VDom {
     val asProxy: VNodeProxy = VNodeProxy.fromString(string)
+    def update(args: VDomModifier*) = this
   }
 
   implicit def stringToVNode(s: String): VNode = VDomIO(IO(new StringNode(s)))
@@ -77,14 +84,15 @@ object VDomModifier {
   implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
   final case class VTree(nodeType: String,
-                   children: Seq[VNode],
-                   attributeObject: DataObject
-                  ) extends VDom {
+                         modifiers: Seq[VDomModifier]) extends VDom {
 
+    def asProxy = {
+      val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
+      val childProxies: js.Array[VNodeProxy] = children.map(_.value.unsafeRunSync().asProxy)(breakOut)
+      h(nodeType, attributeObject, childProxies)
+    }
 
-    lazy val childProxies: js.Array[VNodeProxy] = children.map(_.value.unsafeRunSync().asProxy)(breakOut)
-
-    val asProxy = h(nodeType, attributeObject, childProxies)
+    def update(args: VDomModifier*): VDom = VTree(nodeType, modifiers ++ args)
 
   }
 }
