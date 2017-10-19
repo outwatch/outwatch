@@ -110,7 +110,7 @@ object DataObject {
     )
   }
 
-  implicit class DataObjectExt(obj: DataObject) {
+  implicit class DataObjectExt(val obj: DataObject) extends AnyVal {
 
     def withUpdatedAttributes(attributes: Seq[Attribute]): DataObject = {
       import scala.scalajs.js.JSConverters._

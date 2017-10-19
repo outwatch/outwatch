@@ -2,7 +2,6 @@ package outwatch.dom.helpers
 
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
-import outwatch.dom.VDomModifier.VTree
 import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
@@ -24,10 +23,15 @@ object DomUtils {
         childStreamReceivers.map(_.childStream)
       )
 
-      val childrenReceivers = childrenStreamReceivers.headOption.map(_.childrenStream)
+      val childrenReceivers = childrenStreamReceivers.lastOption.map(_.childrenStream)
+
 
       val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
-        attributeStreamReceivers.map(_.attributeStream)
+        // only use last encountered observable per attribute
+        attributeStreamReceivers
+          .groupBy(_.attribute)
+          .values
+          .map(_.last.attributeStream)(breakOut)
       )
 
       val allChildReceivers = childrenReceivers.getOrElse(childReceivers)
@@ -61,7 +65,7 @@ object DomUtils {
     val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
     val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
     val updateHook = createUpdateHook(update)
-    val key = keys.headOption.map(_.value).orUndefined
+    val key = keys.lastOption.map(_.value).orUndefined
 
     DataObject.create(attrs, props, style, handlers, insertHook, deleteHook, updateHook, key)
   }
@@ -91,7 +95,7 @@ object DomUtils {
     val insertHook = createInsertHook(changeables, subscriptionPromise, insert)
     val deleteHook = createDestroyHook(subscriptionPromise.future, destroy)
     val updateHook = createUpdateHook(update)
-    val key = keys.headOption.map(_.value).orElse(Some(changeables.hashCode.toString)).orUndefined
+    val key = keys.lastOption.map(_.value).getOrElse(changeables.hashCode.toString)
 
     val updateHookHelper = if (changeables.valueStreamExists) {
       seq(updateHook, valueSyncHook)
@@ -185,7 +189,7 @@ object DomUtils {
     }
   }
 
-  private[outwatch] def hyperscriptHelper(nodeType: String)(args: VDomModifier*): VNode = {
+  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier]): (Seq[VNode], DataObject) = {
     val SeparatedModifiers(emitters, receivers, properties, children) = separateModifiers(args)
 
     val SeparatedReceivers(childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
@@ -196,7 +200,7 @@ object DomUtils {
 
     val dataObject = createDataObject(changeables, properties, eventHandlers)
 
-    VTree(nodeType, children, dataObject)
+    (children, dataObject)
   }
 
   def render(element: Element, vNode: VNode): Unit = {
@@ -204,6 +208,4 @@ object DomUtils {
     element.appendChild(elem)
     patch(elem,vNode.asProxy)
   }
-
-
 }
