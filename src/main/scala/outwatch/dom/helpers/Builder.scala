@@ -15,9 +15,9 @@ object ChildStreamReceiverBuilder {
     ChildStreamReceiver(valueStream.map(anyToVNode))
   }
 
-  private val anyToVNode = (any: Any) => any match {
+  private val anyToVNode: Any => VNode = {
     case vn: VNode => vn
-    case _ => VDomModifier.StringNode(any.toString)
+    case any => any.toString
   }
 }
 

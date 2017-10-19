@@ -20,7 +20,7 @@ trait hFunction extends js.Any {
 
 object h {
   def apply(nodeType: String, dataObject: DataObject, children: String | js.Array[_ <: Any]): VNodeProxy = {
-    hProvider.default.apply(nodeType,dataObject,children)
+    hProvider.default.apply(nodeType, dataObject, children)
   }
 }
 
@@ -110,7 +110,7 @@ object DataObject {
     )
   }
 
-  implicit class DataObjectExt(obj: DataObject) {
+  implicit class DataObjectExt(val obj: DataObject) extends AnyVal {
 
     def withUpdatedAttributes(attributes: Seq[Attribute]): DataObject = {
       import scala.scalajs.js.JSConverters._

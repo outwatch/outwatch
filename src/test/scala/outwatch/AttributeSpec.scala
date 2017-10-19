@@ -5,33 +5,80 @@ import outwatch.dom._
 class AttributeSpec extends UnitSpec {
 
   "data attribute" should "correctly render only data" in {
-    val node = input(data := "bar").asProxy
+    val node = input(data := "bar").asProxy.unsafeRunSync()
 
-    node.data.attrs.iterator.contains("data" -> "bar") shouldBe true
-    node.data.attrs.size shouldBe 1
+    node.data.attrs.toList should contain theSameElementsAs List(
+      "data" -> "bar"
+    )
   }
 
   it should "correctly render expanded data with dynamic content" in {
-    val node = input(data.foo := "bar").asProxy
+    val node = input(data.foo := "bar").asProxy.unsafeRunSync()
 
-    node.data.attrs.iterator.contains("data-foo" -> "bar") shouldBe true
-    node.data.attrs.size shouldBe 1
+    node.data.attrs.toList should contain theSameElementsAs List(
+      "data-foo" -> "bar"
+    )
   }
 
   "optional attributes" should "correctly render" in {
     val node = input(
       data.foo :=? Option("bar"),
       data.bar :=? Option.empty[String]
-    ).asProxy
+    ).asProxy.unsafeRunSync()
 
-    node.data.attrs.iterator.contains("data-foo" -> "bar") shouldBe true
-    node.data.attrs.size shouldBe 1
+    node.data.attrs.toList should contain theSameElementsAs List(
+      "data-foo" -> "bar"
+    )
   }
 
-  "data attribute" should "correctly render style" in {
-    val node = input(Style("color", "red")).asProxy
+  "apply on vtree" should "correctly merge attributes" in {
+    val node = input(
+      data := "bar",
+      data.gurke := "franz"
+    )(
+      data := "buh",
+      data.tomate := "gisela"
+    ).asProxy.unsafeRunSync()
 
-    node.data.style.iterator.contains("color" -> "red") shouldBe true
-    node.data.style.size shouldBe 1
+    node.data.attrs.toList should contain theSameElementsAs List(
+      "data" -> "buh",
+      "data-gurke" -> "franz",
+      "data-tomate" -> "gisela"
+    )
+  }
+
+  it should "correctly merge styles" in {
+    val node = input(
+      Style("color", "red"),
+      Style("font-size", "5px")
+    )(
+      Style("color", "blue"),
+      Style("border", "1px solid black")
+    ).asProxy.unsafeRunSync()
+
+    node.data.style.toList should contain theSameElementsAs List(
+      ("color", "blue"),
+      ("font-size", "5px"),
+      ("border", "1px solid black")
+    )
+  }
+
+  it should "correctly merge keys" in {
+    val node = input( dom.key := "bumm")( dom.key := "klapp").asProxy.unsafeRunSync()
+    node.data.key.toList should contain theSameElementsAs List("klapp")
+
+    val node2 = input()( dom.key := "klapp").asProxy.unsafeRunSync()
+    node2.data.key.toList should contain theSameElementsAs List("klapp")
+
+    val node3 = input( dom.key := "bumm")().asProxy.unsafeRunSync()
+    node3.data.key.toList should contain theSameElementsAs List("bumm")
+  }
+
+  "style attribute" should "render correctly" in {
+    val node = input(Style("color", "red")).asProxy.unsafeRunSync()
+
+    node.data.style.toList should contain theSameElementsAs List(
+      "color" -> "red"
+    )
   }
 }

@@ -1,12 +1,15 @@
 package outwatch.dom
 
+import cats.effect.IO
 import org.scalajs.dom._
+
 import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
-import snabbdom.{DataObject, VNodeProxy, h}
+import snabbdom.{VNodeProxy, h}
 
-import scala.scalajs.js
-import collection.breakOut
+import cats.instances.list._
+import cats.syntax.traverse._
+import scala.scalajs.js.JSConverters._
 
 sealed trait VDomModifier extends Any
 
@@ -19,7 +22,7 @@ sealed trait Property extends VDomModifier
 sealed trait Receiver extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
-  val asProxy: VNodeProxy
+  def asProxy: IO[VNodeProxy]
 }
 
 final case class EventEmitter[E <: Event](eventType: String, sink: Observer[E]) extends Emitter
@@ -27,7 +30,7 @@ final case class StringEventEmitter(eventType: String, sink: Observer[String]) e
 final case class BoolEventEmitter(eventType: String, sink: Observer[Boolean]) extends Emitter
 final case class NumberEventEmitter(eventType: String, sink: Observer[Double]) extends Emitter
 
-sealed trait Attribute extends Property{
+sealed trait Attribute extends Property {
   val title: String
 }
 
@@ -47,29 +50,26 @@ final case class AttributeStreamReceiver(attribute: String, attributeStream: Obs
 final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
 final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
-final case object EmptyVDomModifier extends VDomModifier
-
+case object EmptyVDomModifier extends VDomModifier
 
 object VDomModifier {
-  final implicit class StringNode(string: String) extends VNode {
-    val asProxy = VNodeProxy.fromString(string)
+  implicit class StringNode(string: String) extends VNode {
+    val asProxy: IO[VNodeProxy] = IO.pure(VNodeProxy.fromString(string))
   }
 
-  implicit def OptionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
+  implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
-  final case class VTree(nodeType: String,
-                   children: Seq[VNode],
-                   attributeObject: DataObject
-                  ) extends VNode {
+  final case class VTree(nodeType: String, modifiers: Vector[VDomModifier]) extends VNode {
+    import helpers.DomUtils
 
+    val asProxy = {
+      val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
+      for {
+        childProxies <- children.map(_.asProxy).sequence
+      }
+      yield h(nodeType, attributeObject, childProxies.toJSArray) // TODO: iterate only once over children
+    }
 
-    lazy val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
-
-    val asProxy = h(nodeType, attributeObject, childProxies)
-
+    def apply(args: VDomModifier*):VNode = VTree(nodeType, modifiers ++ args)
   }
 }
-
-
-
-

@@ -1,9 +1,10 @@
 package outwatch
 
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
+import cats.effect.IO
 import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.VDomModifier.VTree
+import outwatch.dom.VDomModifier.StringNode
 import outwatch.dom._
 import outwatch.dom.helpers._
 import rxscalajs.{Observable, Subject}
@@ -59,8 +60,8 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Attribute("class", "red"),
       EmptyVDomModifier,
       EventEmitter("click", Subject()),
-      VDomModifier.StringNode("Test"),
-      DomUtils.hyperscriptHelper("div")(),
+      new VDomModifier.StringNode("Test"),
+      VTree("div", Vector.empty),
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
@@ -136,49 +137,32 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     ))
   }
 
-  "VTrees" should "be constructed correctly" in {
+  "VTree" should "be extracted correctly" in {
 
-    val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
+    val attributes = Vector(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
-    val child = DomUtils.hyperscriptHelper("span")(message)
-    val nodeType = "div"
-    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child).asInstanceOf[VDomModifier.VTree]
+    val child = VTree("span", Vector(message))
+    val vTree = VTree("div", attributes :+ child)
 
-    vtree.nodeType shouldBe nodeType
-    vtree.children.length shouldBe 1
-    child.asInstanceOf[VTree].children.length shouldBe 1
+    child.asProxy.children.length shouldBe 1
+    vTree.asProxy.children.length shouldBe 1
 
-    val proxy = fixture.proxy
-
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(proxy)
-
+    JSON.stringify(vTree.asProxy) shouldBe JSON.stringify(fixture.proxy)
   }
-
-  it should "be correctly created with the HyperscriptHelper" in {
-    val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
-    val message = "Hello"
-    val child = DomUtils.hyperscriptHelper("span")(message)
-    val nodeType = "div"
-    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child)
-
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
-  }
-
 
   it should "be correctly patched into the DOM" in {
     val id = "msg"
     val cls = "red"
-    val attributes = List(Attribute("class", cls), Attribute("id", id))
+    val attributes = Vector(Attribute("class", cls), Attribute("id", id))
     val message = "Hello"
-    val child = DomUtils.hyperscriptHelper("span")(message)
+    val child = VTree("span", Vector(message))
     val nodeType = "div"
-    val vtree = DomUtils.hyperscriptHelper(nodeType)(attributes.head, attributes(1), child)
-
+    val vtree = VTree(nodeType, attributes :+ child)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     val patchedNode = document.getElementById(id)
 
@@ -191,7 +175,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be replaced if they contain changeables" in {
 
     def page(num: Int): VNode = {
-      val pageNum = createHandler[Int](num)
+      val pageNum = createHandler[Int](num).value.unsafeRunSync()
 
       div( id := "page",
         num match {
@@ -212,7 +196,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     pageHandler.next(1)
 
@@ -223,7 +207,6 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     pageHandler.next(2)
 
     domNode.textContent shouldBe "2"
-
   }
 
   "The HTML DSL" should "construct VTrees properly" in {
@@ -231,7 +214,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val vtree = div(cls := "red", id := "msg",
       span("Hello")
-    )
+    ).value.unsafeRunSync()
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
 
@@ -243,7 +226,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val vtree = div(cls := "red", id := "msg",
       Option(span("Hello")),
       Option.empty[VDomModifier]
-    )
+    ).value.unsafeRunSync()
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
 
@@ -260,7 +243,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       boolBuilder("c") := false,
       anyBuilder("d") := true,
       anyBuilder("e") := false
-    )
+    ).value.unsafeRunSync()
 
     val attrs = js.Dictionary[String | Boolean]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "false")
     val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
@@ -285,7 +268,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     val patchedNode = document.getElementById("test")
 
@@ -294,12 +277,9 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     patchedNode.children(0).innerHTML shouldBe message
 
     document.getElementById("list").childElementCount shouldBe 3
-
   }
 
   it should "change the value of a textfield" in {
-
-
     val messages = Subject[String]
     val vtree = div(
       input(outwatch.dom.value <-- messages, id := "input")
@@ -308,7 +288,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree)
+    DomUtils.render(node, vtree).unsafeRunSync()
 
     val field = document.getElementById("input").asInstanceOf[HTMLInputElement]
 
@@ -323,7 +303,128 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     messages.next(message2)
 
     field.value shouldBe message2
+  }
 
+  it should "update merged nodes children correctly" in {
+    val messages = Subject[Seq[VNode]]
+    val otherMessages = Subject[Seq[VNode]]
+    val vNode = div(children <-- messages)(children <-- otherMessages)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode)
+
+    otherMessages.next(Seq(div("otherMessage")))
+    node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
+
+    messages.next(Seq(div("message")))
+    node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
+
+    otherMessages.next(Seq(div("genus")))
+    node.children(0).innerHTML shouldBe "<div>genus</div>"
+  }
+
+  it should "update merged nodes separate children correctly" in {
+    val messages = Subject[String]
+    val otherMessages = Subject[String]
+    val vNode = div(child <-- messages)(child <-- otherMessages)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode)
+
+    otherMessages.next("otherMessage")
+    node.children(0).innerHTML shouldBe ""
+
+    messages.next("message")
+    node.children(0).innerHTML shouldBe "messageotherMessage"
+
+    otherMessages.next("genus")
+    node.children(0).innerHTML shouldBe "messagegenus"
+  }
+
+  it should "update reused vnodes correctly" in {
+    val messages = Subject[String]
+    val vNode = div(data.ralf := true, child <-- messages)
+    val container = div(vNode, vNode)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, container)
+
+    messages.next("message")
+    node.children(0).children(0).innerHTML shouldBe "message"
+    node.children(0).children(1).innerHTML shouldBe "message"
+
+    messages.next("bumo")
+    node.children(0).children(0).innerHTML shouldBe "bumo"
+    node.children(0).children(1).innerHTML shouldBe "bumo"
+  }
+
+  it should "update merged nodes correctly (render reuse)" in {
+    val messages = Subject[String]
+    val otherMessages = Subject[String]
+    val vNodeTemplate = div(child <-- messages)
+    val vNode = vNodeTemplate(child <-- otherMessages)
+
+    val node1 = document.createElement("div")
+    document.body.appendChild(node1)
+    DomUtils.render(node1, vNodeTemplate)
+
+    val node2 = document.createElement("div")
+    document.body.appendChild(node2)
+    DomUtils.render(node2, vNode)
+
+    messages.next("gurkon")
+    otherMessages.next("otherMessage")
+    node1.children(0).innerHTML shouldBe "gurkon"
+    node2.children(0).innerHTML shouldBe "gurkonotherMessage"
+
+    messages.next("message")
+    node1.children(0).innerHTML shouldBe "message"
+    node2.children(0).innerHTML shouldBe "messageotherMessage"
+
+    otherMessages.next("genus")
+    node1.children(0).innerHTML shouldBe "message"
+    node2.children(0).innerHTML shouldBe "messagegenus"
+  }
+
+  it should "update merged node attributes correctly" in {
+    val messages = Subject[String]
+    val otherMessages = Subject[String]
+    val vNode = div(data <-- messages)(data <-- otherMessages)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode)
+
+    otherMessages.next("otherMessage")
+    node.children(0).getAttribute("data") shouldBe "otherMessage"
+
+    messages.next("message") // should be ignored
+    node.children(0).getAttribute("data") shouldBe "otherMessage"
+
+    otherMessages.next("genus")
+    node.children(0).getAttribute("data") shouldBe "genus"
+  }
+
+  it should "update merged node styles correctly" in {
+    val messages = Subject[String]
+    val otherMessages = Subject[String]
+    val vNode = div(new StyleBuilder("color") <-- messages)(new StyleBuilder("color") <-- otherMessages)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode)
+
+    otherMessages.next("red")
+    node.children(0).asInstanceOf[HTMLElement].style.color shouldBe "red"
+
+    messages.next("blue") // should be ignored
+    node.children(0).asInstanceOf[HTMLElement].style.color shouldBe "red"
+
+    otherMessages.next("green")
+    node.children(0).asInstanceOf[HTMLElement].style.color shouldBe "green"
   }
 
 }
