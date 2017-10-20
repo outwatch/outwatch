@@ -3,14 +3,12 @@ package outwatch.dom.helpers
 import cats.effect.IO
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
-import outwatch.dom.VDomModifier.VTree
 import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
 import snabbdom._
 import collection.breakOut
 
-import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -27,6 +25,7 @@ object DomUtils {
 
       val childrenReceivers = childrenStreamReceivers.lastOption.map(_.childrenStream)
 
+      // only use last encountered observable per attribute
       val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
         attributeStreamReceivers
           .groupBy(_.attribute)
