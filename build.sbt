@@ -17,8 +17,8 @@ libraryDependencies ++= Seq(
   "com.github.lukajcb" %%% "rxscala-js" % "0.15.0",
   "org.typelevel" %%% "cats-core" % "0.9.0",
   "org.typelevel" %%% "cats-effect" % "0.3",
-  "org.scalatest" %%% "scalatest" % "3.0.1" % Test,
-  "org.scalacheck" %%% "scalacheck" % "1.13.4" % Test
+  "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
+  "org.scalacheck" %%% "scalacheck" % "1.13.5" % Test
 )
 
 npmDependencies in Compile ++= Seq(
