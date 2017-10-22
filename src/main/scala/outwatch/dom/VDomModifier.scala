@@ -83,11 +83,19 @@ object VDomModifier {
 
   implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
+  // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
+  // Fast concatenation and lastOption operations are important
+  // Needs to be benchmarked in the Browser
   final case class VTree(nodeType: String,
                          modifiers: Seq[VDomModifier]) extends VDom {
 
     def asProxy = {
       val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
+      //TODO: use .sequence instead of unsafeRunSync?
+      // import cats.instances.list._
+      // import cats.syntax.traverse._
+      // for { childProxies <- children.map(_.value).sequence }
+      // yield h(..., childProxies.map(_.apsProxy)(breakOut))
       val childProxies: js.Array[VNodeProxy] = children.map(_.value.unsafeRunSync().asProxy)(breakOut)
       h(nodeType, attributeObject, childProxies)
     }
