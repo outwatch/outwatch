@@ -139,10 +139,10 @@ object DomUtils {
 
 
   private[outwatch] final case class SeparatedModifiers(
-    emitters: List[Emitter] = List.empty[Emitter],
-    receivers: List[Receiver] = List.empty[Receiver],
-    properties: List[Property] = List.empty[Property],
-    vNodes: List[VNode] = List.empty[VNode]
+    emitters: List[Emitter] = Nil,
+    receivers: List[Receiver] = Nil,
+    properties: List[Property] = Nil,
+    vNodes: List[VNode] = Nil
   )
   private[outwatch] def separateModifiers(args: Seq[VDomModifier]): SeparatedModifiers = {
     args.foldRight(SeparatedModifiers())(separatorFn)
@@ -158,9 +158,9 @@ object DomUtils {
 
 
   private[outwatch] final case class SeparatedReceivers(
-    childStream: List[ChildStreamReceiver] = List.empty[ChildStreamReceiver],
-    childrenStream: List[ChildrenStreamReceiver] = List.empty[ChildrenStreamReceiver],
-    attributeStream: List[AttributeStreamReceiver] = List.empty[AttributeStreamReceiver]
+    childStream: List[ChildStreamReceiver] = Nil,
+    childrenStream: List[ChildrenStreamReceiver] = Nil,
+    attributeStream: List[AttributeStreamReceiver] = Nil
   )
   private[outwatch] def separateReceivers(receivers: Seq[Receiver]): SeparatedReceivers = {
     receivers.foldRight(SeparatedReceivers()) {
@@ -171,11 +171,11 @@ object DomUtils {
   }
 
   private[outwatch] final case class SeparatedProperties(
-    insertHooks: List[InsertHook] = List.empty[InsertHook],
-    destroyHooks: List[DestroyHook] = List.empty[DestroyHook],
-    updateHooks: List[UpdateHook] = List.empty[UpdateHook],
-    attributeHooks: List[Attribute] = List.empty[Attribute],
-    keys: List[Key] = List.empty[Key]
+    insertHooks: List[InsertHook] = Nil,
+    destroyHooks: List[DestroyHook] = Nil,
+    updateHooks: List[UpdateHook] = Nil,
+    attributeHooks: List[Attribute] = Nil,
+    keys: List[Key] = Nil
   )
   private[outwatch] def separateProperties(properties: Seq[Property]): SeparatedProperties = {
     properties.foldRight(SeparatedProperties()) {
