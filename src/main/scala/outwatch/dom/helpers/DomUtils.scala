@@ -117,7 +117,7 @@ object DomUtils {
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
         val updatedObj = proxy.data.withUpdatedAttributes(attributes)
-        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.value.unsafeRunSync().asProxy)(breakOut):js.Array[VNodeProxy]))
+        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.asProxy)(breakOut):js.Array[VNodeProxy]))
     }
 
     val subscription = changables.observable
@@ -152,7 +152,7 @@ object DomUtils {
     case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
-    case (vn: VNodeIO[_], sf) => sf.copy(vNodes = vn.asInstanceOf[VNode] :: sf.vNodes)
+    case (vn: VNode, sf) => sf.copy(vNodes = vn :: sf.vNodes)
     case (EmptyVDomModifier, sf) => sf
   }
 
@@ -201,12 +201,9 @@ object DomUtils {
     (children, dataObject)
   }
 
-  def render(element: Element, vNode: VNode): IO[Unit] = for {
-    node <- vNode.value
-    elem <- IO(document.createElement("app"))
-    _ <- IO(element.appendChild(elem))
-    _ <- IO(patch(elem, node.asProxy))
-  } yield ()
-
-
+  def render(element: Element, vNode: VNode): IO[Unit] = IO {
+    val elem = document.createElement("app")
+    element.appendChild(elem)
+    patch(elem, vNode.asProxy)
+  }
 }

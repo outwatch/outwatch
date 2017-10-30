@@ -88,14 +88,14 @@ object Sink {
     * @tparam T the type parameter of the elements
     * @return the newly created Handler.
     */
-  def createHandler[T](seeds: T*): Handler[T] = {
+  def createHandler[T](seeds: T*): IO[Handler[T]] = {
     val handler = new SubjectSink[T]
 
     if (seeds.nonEmpty) {
-      Handler(IO(ObservableSink[T](handler, handler.startWithMany(seeds: _*))))
+      IO(ObservableSink[T](handler, handler.startWithMany(seeds: _*)))
     }
     else {
-      Handler(IO(handler))
+      IO(handler)
     }
   }
 
@@ -122,7 +122,7 @@ object Sink {
     * @return the resulting sink, that will forward the values
     */
   def redirect[T,R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
-    val forward = Sink.createHandler[R]().value.unsafeRunSync()
+    val forward = Sink.createHandler[R]().unsafeRunSync()
 
     completionObservable(sink)
       .fold(project(forward))(completed => project(forward).takeUntil(completed))
@@ -144,8 +144,8 @@ object Sink {
     * @return the two resulting sinks, that will forward the values
     */
   def redirect2[T,U,R](sink: Sink[T])(project: (Observable[R], Observable[U]) => Observable[T]): (Sink[R], Sink[U]) = {
-    val r = Sink.createHandler[R]().value.unsafeRunSync()
-    val u = Sink.createHandler[U]().value.unsafeRunSync()
+    val r = Sink.createHandler[R]().unsafeRunSync()
+    val u = Sink.createHandler[U]().unsafeRunSync()
 
     completionObservable(sink)
       .fold(project(r, u))(completed => project(r, u).takeUntil(completed))
@@ -170,9 +170,9 @@ object Sink {
   def redirect3[T,U,V,R](sink: Sink[T])
                        (project: (Observable[R], Observable[U], Observable[V]) => Observable[T])
                        :(Sink[R], Sink[U], Sink[V]) = {
-    val r = Sink.createHandler[R]().value.unsafeRunSync()
-    val u = Sink.createHandler[U]().value.unsafeRunSync()
-    val v = Sink.createHandler[V]().value.unsafeRunSync()
+    val r = Sink.createHandler[R]().unsafeRunSync()
+    val u = Sink.createHandler[U]().unsafeRunSync()
+    val v = Sink.createHandler[V]().unsafeRunSync()
 
     completionObservable(sink)
       .fold(project(r, u, v))(completed => project(r, u, v).takeUntil(completed))

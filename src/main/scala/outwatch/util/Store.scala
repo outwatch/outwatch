@@ -41,15 +41,14 @@ object Store {
   private val storeRef = STRef.empty
 
   def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode): IO[Unit] = for {
-    handler <- createHandler[A]().value
+    handler <- createHandler[A]()
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
     _ <- OutWatch.render(selector, root)
   } yield ()
 
-  def getStore[S, A]: VNodeIO[Store[S, A]] = Pure(
+  def getStore[S, A]: IO[Store[S, A]] = 
     storeRef.asInstanceOf[STRef[Store[S, A]]].getOrThrow(NoStoreException)
-  )
 
   private object NoStoreException extends
     Exception("Application was rendered without specifying a Store, please use Outwatch.renderWithStore instead")
