@@ -19,7 +19,7 @@ import outwatch.dom.helpers.DomUtils
 /** Trait that contains all tags, so they can be mixed in to other objects if needed.
   */
 trait Tags {
-  private def tag(nodeType: String)(args: Seq[VDomModifier]): VNode = VDomIO(IO(VTree(nodeType, args)))
+  private def tag(nodeType: String)(args: Seq[VDomModifier]): VNode = VTree(nodeType, args)
 
   /** Represents a hyperlink, linking to another resource.
     *

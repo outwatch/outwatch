@@ -36,9 +36,9 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   it should "be called correctly on merged nodes" in {
     var switch = false
-    val sink = Sink.create((_: Element) => IO(switch = true))
+    val sink = Sink.create((_: Element) => IO{switch = true})
     var switch2 = false
-    val sink2 = Sink.create((_: Element) => IO(switch2 = true))
+    val sink2 = Sink.create((_: Element) => IO{switch2 = true})
 
     val node = div(insert --> sink)(insert --> sink2)
 
@@ -55,9 +55,9 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
   "Destruction hooks" should "be called correctly on merged nodes" in {
 
     var switch = false
-    val sink = Sink.create((_: Element) => IO(switch = true))
+    val sink = Sink.create((_: Element) => IO{switch = true})
     var switch2 = false
-    val sink2 = Sink.create((_: Element) => IO(switch2 = true))
+    val sink2 = Sink.create((_: Element) => IO{switch2 = true})
 
     val node = div(child <-- Observable.of(span(destroy --> sink)(destroy --> sink2), "Hasdasd"))
 
@@ -88,9 +88,9 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   "Update hooks" should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = Sink.create((_: (Element, Element)) => IO(switch1 = true))
+    val sink1 = Sink.create((_: (Element, Element)) => IO{switch1 = true})
     var switch2 = false
-    val sink2 = Sink.create((_: (Element, Element)) => IO(switch2 = true))
+    val sink2 = Sink.create((_: (Element, Element)) => IO{switch2 = true})
 
     val message = Subject[String]()
     val node = div(child <-- message, update --> sink1)(update --> sink2)

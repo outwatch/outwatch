@@ -4,6 +4,7 @@ import scala.language.dynamics
 import outwatch.dom._
 import rxscalajs.Observable
 import scala.language.implicitConversions
+import outwatch.dom.VDomModifier.StringNode
 
 trait ValueBuilder[T] extends Any {
   def :=(value: T): VDomModifier
@@ -16,7 +17,7 @@ object ChildStreamReceiverBuilder {
   }
 
   private val anyToVNode: Any => VNode = {
-    case vn: VNodeIO[_] => vn.asInstanceOf[VNode]
+    case vn: VNode => vn.asInstanceOf[VNode]
     case any => any.toString
   }
 }

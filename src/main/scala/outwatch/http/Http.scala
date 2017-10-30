@@ -1,7 +1,6 @@
 package outwatch.http
 
 import cats.effect.IO
-import outwatch.dom.VDomHttp
 import rxscalajs.Observable
 import rxscalajs.dom.{Request, Response}
 
@@ -26,25 +25,25 @@ object Http {
         .subscribe(response => cb(Right(response)), err => cb(Left(new Exception(err.toString))))
     }
 
-  private def request(observable: Observable[Request], requestType: HttpRequestType): VDomHttp =
-    VDomHttp(IO(observable.switchMap(data => Observable.ajax(data.copy(method = requestType.toString))).share))
+  private def request(observable: Observable[Request], requestType: HttpRequestType) =
+    observable.switchMap(data => Observable.ajax(data.copy(method = requestType.toString))).share
 
-  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType): VDomHttp =
+  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)
 
-  def getWithUrl(urls: Observable[String]): VDomHttp = requestWithUrl(urls, Get)
+  def getWithUrl(urls: Observable[String]) = requestWithUrl(urls, Get)
 
-  def get(requests: Observable[Request]): VDomHttp = request(requests, Get)
+  def get(requests: Observable[Request]) = request(requests, Get)
 
-  def post(requests: Observable[Request]): VDomHttp = request(requests, Post)
+  def post(requests: Observable[Request]) = request(requests, Post)
 
-  def delete(requests: Observable[Request]): VDomHttp = request(requests, Delete)
+  def delete(requests: Observable[Request]) = request(requests, Delete)
 
-  def put(requests: Observable[Request]): VDomHttp = request(requests, Put)
+  def put(requests: Observable[Request]) = request(requests, Put)
 
-  def options(requests: Observable[Request]): VDomHttp = request(requests, Options)
+  def options(requests: Observable[Request]) = request(requests, Options)
 
-  def head(requests: Observable[Request]): VDomHttp = request(requests, Head)
+  def head(requests: Observable[Request]) = request(requests, Head)
 
 
 }

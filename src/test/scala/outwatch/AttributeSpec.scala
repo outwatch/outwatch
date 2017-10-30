@@ -5,7 +5,7 @@ import outwatch.dom._
 class AttributeSpec extends UnitSpec {
 
   "data attribute" should "correctly render only data" in {
-    val node = input(data := "bar").value.unsafeRunSync().asProxy
+    val node = input(data := "bar").asProxy
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data" -> "bar"
@@ -13,7 +13,7 @@ class AttributeSpec extends UnitSpec {
   }
 
   it should "correctly render expanded data with dynamic content" in {
-    val node = input(data.foo := "bar").value.unsafeRunSync().asProxy
+    val node = input(data.foo := "bar").asProxy
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data-foo" -> "bar"
@@ -24,7 +24,7 @@ class AttributeSpec extends UnitSpec {
     val node = input(
       data.foo :=? Option("bar"),
       data.bar :=? Option.empty[String]
-    ).value.unsafeRunSync().asProxy
+    ).asProxy
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data-foo" -> "bar"
@@ -33,7 +33,7 @@ class AttributeSpec extends UnitSpec {
 
   "apply on vtree" should "correctly merge attributes" in {
     val node = input(data := "bar",
-        data.gurke := "franz")(data := "buh", data.tomate := "gisela").value.unsafeRunSync().asProxy
+        data.gurke := "franz")(data := "buh", data.tomate := "gisela").asProxy
 
     node.data.attrs.toList should contain theSameElementsAs List(
         "data" -> "buh",
@@ -49,7 +49,7 @@ class AttributeSpec extends UnitSpec {
     )(
       Style("color", "blue"),
       Style("border", "1px solid black")
-    ).value.unsafeRunSync().asProxy
+    ).asProxy
 
     node.data.style.toList should contain theSameElementsAs List(
       ("color", "blue"),
@@ -59,18 +59,18 @@ class AttributeSpec extends UnitSpec {
   }
 
   it should "correctly merge keys" in {
-    val node = input( dom.key := "bumm")( dom.key := "klapp").value.unsafeRunSync().asProxy
+    val node = input( dom.key := "bumm")( dom.key := "klapp").asProxy
     node.data.key.toList should contain theSameElementsAs List("klapp")
 
-    val node2 = input()( dom.key := "klapp").value.unsafeRunSync().asProxy
+    val node2 = input()( dom.key := "klapp").asProxy
     node2.data.key.toList should contain theSameElementsAs List("klapp")
 
-    val node3 = input( dom.key := "bumm")().value.unsafeRunSync().asProxy
+    val node3 = input( dom.key := "bumm")().asProxy
     node3.data.key.toList should contain theSameElementsAs List("bumm")
   }
 
   "style attribute" should "render correctly" in {
-    val node = input(Style("color", "red")).value.unsafeRunSync().asProxy
+    val node = input(Style("color", "red")).asProxy
 
     node.data.style.toList should contain theSameElementsAs List(
       "color" -> "red"

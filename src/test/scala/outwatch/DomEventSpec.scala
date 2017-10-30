@@ -25,13 +25,12 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val vtree = for {
       observable <- createMouseHandler()
       buttonDisabled = observable.mapTo(true).startWith(false)
-      root <- div(id :="click", click --> observable,
+    } yield div(id :="click", click --> observable,
         button(id := "btn", disabled <-- buttonDisabled)
       )
-    } yield root
 
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    vtree.flatMap(vtree => OutWatch.render("#app", vtree)).unsafeRunSync()
     document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
     val event = document.createEvent("Events")
@@ -48,14 +47,12 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val vtree = for {
       observable <- createStringHandler()
-
-      root <- div(id := "click", click(message) --> observable,
-       span(id := "child", child <-- observable)
+    } yield div(id := "click", click(message) --> observable,
+        span(id := "child", child <-- observable)
       )
-    } yield root
 
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    vtree.flatMap(vtree => OutWatch.render("#app", vtree)).unsafeRunSync()
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -76,18 +73,16 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be converted to a generic stream emitter correctly" in {
     import outwatch.dom._
 
-    val messages = createStringHandler().value.unsafeRunSync()
+    val messages = createStringHandler().unsafeRunSync()
 
     val vtree = for {
       stream <- createStringHandler()
-
-      root <- div(id :="click", click(messages) --> stream,
+    } yield div(id :="click", click(messages) --> stream,
         span(id := "child", child <-- stream)
       )
-    } yield root
 
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    vtree.flatMap(vtree => OutWatch.render("#app", vtree)).unsafeRunSync()
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -192,9 +187,9 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     import outwatch.dom._
 
 
-    val first = createStringHandler().value.unsafeRunSync()
+    val first = createStringHandler().unsafeRunSync()
 
-    val second = createStringHandler().value.unsafeRunSync()
+    val second = createStringHandler().unsafeRunSync()
 
     val messages = ("Hello", "World")
 
@@ -219,7 +214,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed by a function in place" in {
     import outwatch.dom._
 
-    val stream = createHandler[(MouseEvent, Int)]().value.unsafeRunSync()
+    val stream = createHandler[(MouseEvent, Int)]().unsafeRunSync()
 
     val number = 42
 
@@ -244,7 +239,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed from strings" in {
     import outwatch.dom._
 
-    val stream = createHandler[Int]().value.unsafeRunSync()
+    val stream = createHandler[Int]().unsafeRunSync()
 
     val number = 42
 
@@ -268,7 +263,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     import outwatch.dom._
     import outwatch.util.SyntaxSugar._
 
-    val stream = createBoolHandler().value.unsafeRunSync()
+    val stream = createBoolHandler().unsafeRunSync()
 
     val someClass = "some-class"
 
