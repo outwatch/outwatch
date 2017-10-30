@@ -60,7 +60,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Attribute("class", "red"),
       EmptyVDomModifier,
       EventEmitter("click", Subject()),
-      VDomIO(IO(new StringNode("Test"))),
+      new StringNode("Test"),
       div(),
       AttributeStreamReceiver("hidden",Observable.of())
     )
@@ -142,7 +142,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(attributes.head, attributes(1), child).value.unsafeRunSync()
+    val vtree = div(attributes.head, attributes(1), child)
 
     val proxy = fixture.proxy
 
@@ -154,7 +154,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(attributes.head, attributes(1), child).value.unsafeRunSync()
+    val vtree = div(attributes.head, attributes(1), child)
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
   }
@@ -185,7 +185,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be replaced if they contain changeables" in {
 
     def page(num: Int): VNode = {
-      val pageNum = createHandler[Int](num).value.unsafeRunSync()
+      val pageNum = createHandler[Int](num).unsafeRunSync()
 
       div( id := "page",
         num match {
@@ -225,7 +225,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val vtree = div(cls := "red", id := "msg",
       span("Hello")
-    ).value.unsafeRunSync()
+    )
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
 
@@ -237,7 +237,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val vtree = div(cls := "red", id := "msg",
       Option(span("Hello")),
       Option.empty[VDomModifier]
-    ).value.unsafeRunSync()
+    )
 
     JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
 
@@ -254,7 +254,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       boolBuilder("c") := false,
       anyBuilder("d") := true,
       anyBuilder("e") := false
-    ).value.unsafeRunSync()
+    )
 
     val attrs = js.Dictionary[String | Boolean]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "false")
     val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
