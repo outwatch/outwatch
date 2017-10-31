@@ -61,7 +61,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       EmptyVDomModifier,
       EventEmitter("click", Subject()),
       new StringNode("Test"),
-      div(),
+      div().unsafeRunSync(),
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
@@ -142,11 +142,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(attributes.head, attributes(1), child)
+    val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
     val proxy = fixture.proxy
 
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(proxy)
+    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(proxy)
 
   }
 
@@ -154,9 +154,9 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(attributes.head, attributes(1), child)
+    val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
 
@@ -166,7 +166,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val attributes = List(Attribute("class", cls), Attribute("id", id))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(attributes.head, attributes(1), child)
+    val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
 
     val node = document.createElement("div")
@@ -227,7 +227,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       span("Hello")
     )
 
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
 
   }
 
@@ -239,7 +239,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Option.empty[VDomModifier]
     )
 
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
 
   }
 
@@ -249,7 +249,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     def boolBuilder(name: String) = new BoolAttributeBuilder(name)
     def anyBuilder(name: String) = new AttributeBuilder[Boolean](name)
     val vtree = div(
-      boolBuilder("a"),
+      IO.pure(boolBuilder("a")),
       boolBuilder("b") := true,
       boolBuilder("c") := false,
       anyBuilder("d") := true,
@@ -259,7 +259,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val attrs = js.Dictionary[String | Boolean]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "false")
     val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
 
-    JSON.stringify(vtree.asProxy) shouldBe JSON.stringify(expected)
+    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)
 
   }
 
