@@ -3,8 +3,8 @@ package outwatch
 import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLInputElement
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.helpers.DomUtils
 import outwatch.dom._
+import outwatch.dom.helpers.DomUtils
 
 class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   override def afterEach(): Unit = {
@@ -89,6 +89,38 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     document.getElementById("input").dispatchEvent(evt)
 
     document.getElementById("greeting").innerHTML shouldBe greetStart + name2
+  }
+
+  "A component" should "be referential transparent" in {
+
+    def component() = {
+      createStringHandler().flatMap { handler =>
+        div(
+          button(click("clicked") --> handler),
+          div(`class` := "label", child <-- handler)
+        )
+      }
+    }
+
+    val clickEvt = document.createEvent("Events")
+    clickEvt.initEvent("click", true, true)
+
+    val comp = component()
+
+    val component1 = div(component(), component())
+    val component2 = div(comp, comp)
+
+    val element1 = document.createElement("div")
+    DomUtils.render(element1, component1).unsafeRunSync()
+
+    val element2 = document.createElement("div")
+    DomUtils.render(element2, component2).unsafeRunSync()
+
+    element1.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
+
+    element2.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
+
+    element1.innerHTML shouldBe element2.innerHTML
   }
 
   "A todo application" should "work with components" in {
