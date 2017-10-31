@@ -49,7 +49,7 @@ scalacOptions ++= {
   CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, 12)) =>
       "-Ywarn-extra-implicit" ::
-      "-Ywarn-unused:-params,_" ::
+      "-Ywarn-unused:-explicits,-implicits,_" ::
       Nil
     case _             =>
       "-Ywarn-unused" ::

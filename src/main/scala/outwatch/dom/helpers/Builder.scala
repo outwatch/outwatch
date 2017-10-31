@@ -7,7 +7,7 @@ import outwatch.dom._
 import rxscalajs.Observable
 
 import scala.language.implicitConversions
-import outwatch.dom.VDomModifier.StringNode
+import outwatch.dom.StringNode
 
 trait ValueBuilder[T] extends Any {
   def :=(value: T): VDomModifier

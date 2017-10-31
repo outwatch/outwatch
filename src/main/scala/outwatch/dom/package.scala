@@ -1,7 +1,6 @@
 package outwatch
 
 import cats.effect.IO
-import outwatch.dom.VDomModifier.{StringNode, VTree}
 
 import scala.language.implicitConversions
 
@@ -20,4 +19,6 @@ package object dom extends Attributes with Tags with Handlers {
       tree.flatMap(vtree => IO.pure(VTree(vtree.nodeType, vtree.modifiers ++ args)))
     }
   }
+
+
 }
