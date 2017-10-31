@@ -12,10 +12,11 @@ object SyntaxSugar {
 
   implicit class BooleanSelector(val values: Observable[Boolean]) extends AnyVal {
     def ?=(attr: IO[Attribute]): IO[AttributeStreamReceiver] = {
-      val attr_ = attr.unsafeRunSync()
-      val attributes =
-        values.map(b => if (b) attr_ else emptyAttribute)
-      IO.pure(AttributeStreamReceiver(attr_.title, attributes))
+      attr.map { attr =>
+        val attributes = values.map(b => if (b) attr else emptyAttribute)
+        AttributeStreamReceiver(attr.title, attributes)
+      }
     }
   }
+
 }
