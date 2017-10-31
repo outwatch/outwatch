@@ -54,33 +54,32 @@ sealed trait VNode_ extends VDomModifier_ {
   def asProxy: VNodeProxy
 }
 
-object VDomModifier {
-  //TODO: extends AnyVal
-  case class StringNode(string: String) extends VNode_ {
-    val asProxy: VNodeProxy = VNodeProxy.fromString(string)
-  }
-
-  // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
-  // Fast concatenation and lastOption operations are important
-  // Needs to be benchmarked in the Browser
-  final case class VTree(nodeType: String,
-                         modifiers: Seq[VDomModifier]) extends VNode_ {
-
-    def asProxy = {
-      val modifiers_ = modifiers.map(_.unsafeRunSync())
-      val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers_)
-      //TODO: use .sequence instead of unsafeRunSync?
-      // import cats.instances.list._
-      // import cats.syntax.traverse._
-      // for { childProxies <- children.map(_.value).sequence }
-      // yield h(nodeType, attributeObject, childProxies.map(_.apsProxy)(breakOut))
-      val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
-      h(nodeType, attributeObject, childProxies)
-    }
-
-    override def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
-  }
+//TODO: extends AnyVal
+private[outwatch] case class StringNode(string: String) extends VNode_ {
+  val asProxy: VNodeProxy = VNodeProxy.fromString(string)
 }
+
+// TODO: instead of Seq[VDomModifier] use Vector or JSArray?
+// Fast concatenation and lastOption operations are important
+// Needs to be benchmarked in the Browser
+private[outwatch] final case class VTree(nodeType: String,
+                       modifiers: Seq[VDomModifier]) extends VNode_ {
+
+  def asProxy = {
+    val modifiers_ = modifiers.map(_.unsafeRunSync())
+    val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers_)
+    //TODO: use .sequence instead of unsafeRunSync?
+    // import cats.instances.list._
+    // import cats.syntax.traverse._
+    // for { childProxies <- children.map(_.value).sequence }
+    // yield h(nodeType, attributeObject, childProxies.map(_.apsProxy)(breakOut))
+    val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
+    h(nodeType, attributeObject, childProxies)
+  }
+
+  override def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
+}
+
 
 
 

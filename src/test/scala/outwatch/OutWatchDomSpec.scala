@@ -4,7 +4,7 @@ import cats.effect.IO
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.VDomModifier.StringNode
+import outwatch.dom.StringNode
 import outwatch.dom._
 import outwatch.dom.helpers._
 import rxscalajs.{Observable, Subject}

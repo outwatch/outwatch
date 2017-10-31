@@ -13,7 +13,6 @@
 package outwatch.dom
 
 import cats.effect.IO
-import outwatch.dom.VDomModifier.VTree
 
 
 /** Trait that contains all tags, so they can be mixed in to other objects if needed.
