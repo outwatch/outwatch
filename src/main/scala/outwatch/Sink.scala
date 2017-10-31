@@ -88,14 +88,14 @@ object Sink {
     * @tparam T the type parameter of the elements
     * @return the newly created Handler.
     */
-  def createHandler[T](seeds: T*): IO[Handler[T]] = {
+  def createHandler[T](seeds: T*): IO[Handler[T]] = IO {
     val handler = new SubjectSink[T]
 
     if (seeds.nonEmpty) {
-      IO(ObservableSink[T](handler, handler.startWithMany(seeds: _*)))
+      ObservableSink[T](handler, handler.startWithMany(seeds: _*))
     }
     else {
-      IO(handler)
+      handler
     }
   }
 
