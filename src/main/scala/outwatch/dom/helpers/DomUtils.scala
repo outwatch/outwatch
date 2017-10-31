@@ -117,7 +117,7 @@ object DomUtils {
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
       case (attributes, nodes) =>
         val updatedObj = proxy.data.withUpdatedAttributes(attributes)
-        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.asProxy)(breakOut):js.Array[VNodeProxy]))
+        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.unsafeRunSync().asProxy)(breakOut):js.Array[VNodeProxy]))
     }
 
     val subscription = changables.observable
@@ -142,17 +142,17 @@ object DomUtils {
     emitters: List[Emitter] = Nil,
     receivers: List[Receiver] = Nil,
     properties: List[Property] = Nil,
-    vNodes: List[VNode] = Nil
+    vNodes: List[VNode_] = Nil
   )
-  private[outwatch] def separateModifiers(args: Seq[VDomModifier]): SeparatedModifiers = {
+  private[outwatch] def separateModifiers(args: Seq[VDomModifier_]): SeparatedModifiers = {
     args.foldRight(SeparatedModifiers())(separatorFn)
   }
 
-  private[outwatch] def separatorFn(mod: VDomModifier, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
+  private[outwatch] def separatorFn(mod: VDomModifier_, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
     case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
-    case (vn: VNode, sf) => sf.copy(vNodes = vn :: sf.vNodes)
+    case (vn: VNode_, sf) => sf.copy(vNodes = vn :: sf.vNodes)
     case (EmptyVDomModifier, sf) => sf
   }
 
@@ -187,7 +187,7 @@ object DomUtils {
     }
   }
 
-  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier]): (Seq[VNode], DataObject) = {
+  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[VNode_], DataObject) = {
     val SeparatedModifiers(emitters, receivers, properties, children) = separateModifiers(args)
 
     val SeparatedReceivers(childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
@@ -201,9 +201,10 @@ object DomUtils {
     (children, dataObject)
   }
 
-  def render(element: Element, vNode: VNode): IO[Unit] = IO {
-    val elem = document.createElement("app")
-    element.appendChild(elem)
-    patch(elem, vNode.asProxy)
-  }
+  def render(element: Element, vNode: VNode): IO[Unit] = for {
+    node <- vNode
+    elem <- IO(document.createElement("app"))
+    _ <- IO(element.appendChild(elem))
+    _ <- IO(patch(elem, node.asProxy))
+  } yield ()
 }

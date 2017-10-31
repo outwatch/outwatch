@@ -1,27 +1,24 @@
 package outwatch.dom
 
-import cats.Monad
 import cats.effect.IO
 import org.scalajs.dom._
-import outwatch.Sink
-import rxscalajs.dom.Response
 import outwatch.dom.helpers.DomUtils
 import scala.scalajs.js.|
 import rxscalajs.{Observable, Observer}
-import snabbdom.{DataObject, VNodeProxy, h}
+import snabbdom.{VNodeProxy, h}
 
 import scala.scalajs.js
 import collection.breakOut
 
-sealed trait VDomModifier extends Any
+sealed trait VDomModifier_ extends Any
 
-sealed trait Emitter extends VDomModifier {
+sealed trait Emitter extends VDomModifier_ {
   val eventType: String
 }
 
-sealed trait Property extends VDomModifier
+sealed trait Property extends VDomModifier_
 
-sealed trait Receiver extends VDomModifier
+sealed trait Receiver extends VDomModifier_
 
 final case class EventEmitter[E <: Event](eventType: String, sink: Observer[E]) extends Emitter
 final case class StringEventEmitter(eventType: String, sink: Observer[String]) extends Emitter
@@ -48,9 +45,9 @@ final case class AttributeStreamReceiver(attribute: String, attributeStream: Obs
 final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Receiver
 final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends Receiver
 
-case object EmptyVDomModifier extends VDomModifier
+case object EmptyVDomModifier extends VDomModifier_
 
-sealed trait VNode extends VDomModifier {
+sealed trait VNode_ extends VDomModifier_ {
   // TODO: have apply() only on VTree?
   def apply(args: VDomModifier*): VNode = ???
   // TODO: rename asProxy to asSnabbdom?
@@ -59,20 +56,19 @@ sealed trait VNode extends VDomModifier {
 
 object VDomModifier {
   //TODO: extends AnyVal
-  implicit class StringNode(val string: String) extends VNode {
+  case class StringNode(string: String) extends VNode_ {
     val asProxy: VNodeProxy = VNodeProxy.fromString(string)
   }
-
-  implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse EmptyVDomModifier
 
   // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
   // Fast concatenation and lastOption operations are important
   // Needs to be benchmarked in the Browser
   final case class VTree(nodeType: String,
-                         modifiers: Seq[VDomModifier]) extends VNode {
+                         modifiers: Seq[VDomModifier]) extends VNode_ {
 
     def asProxy = {
-      val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
+      val modifiers_ = modifiers.map(_.unsafeRunSync())
+      val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers_)
       //TODO: use .sequence instead of unsafeRunSync?
       // import cats.instances.list._
       // import cats.syntax.traverse._
@@ -82,7 +78,7 @@ object VDomModifier {
       h(nodeType, attributeObject, childProxies)
     }
 
-    override def apply(args: VDomModifier*) = VTree(nodeType, modifiers ++ args)
+    override def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
   }
 }
 
