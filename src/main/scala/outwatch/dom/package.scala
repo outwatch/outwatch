@@ -20,5 +20,5 @@ package object dom extends Attributes with Tags with Handlers {
     }
   }
 
-
+  def stl(property:String) = new helpers.StyleBuilder(property)
 }

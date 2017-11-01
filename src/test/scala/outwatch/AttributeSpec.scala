@@ -1,6 +1,5 @@
 package outwatch
 
-import cats.effect.IO
 import outwatch.dom._
 
 class AttributeSpec extends UnitSpec {
@@ -43,15 +42,13 @@ class AttributeSpec extends UnitSpec {
     )
   }
 
-  def style_(title: String, value: String): IO[Style] = IO.pure(Style(title: String, value: String))
-
   it should "correctly merge styles" in {
     val node = input(
-      style_("color", "red"),
-      style_("font-size", "5px")
+      stl("color") := "red",
+      stl("font-size") := "5px"
     )(
-      style_("color", "blue"),
-      style_("border", "1px solid black")
+      stl("color") := "blue",
+      stl("border") := "1px solid black"
     ).map(_.asProxy).unsafeRunSync()
 
     node.data.style.toList should contain theSameElementsAs List(
@@ -73,7 +70,7 @@ class AttributeSpec extends UnitSpec {
   }
 
   "style attribute" should "render correctly" in {
-    val node = input(style_("color", "red")).map(_.asProxy).unsafeRunSync()
+    val node = input(stl("color") := "red").map(_.asProxy).unsafeRunSync()
 
     node.data.style.toList should contain theSameElementsAs List(
       "color" -> "red"
