@@ -426,7 +426,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "update merged node styles correctly" in {
     val messages = Subject[String]
     val otherMessages = Subject[String]
-    val vNode = div(new StyleBuilder("color") <-- messages)(new StyleBuilder("color") <-- otherMessages)
+    val vNode = div(stl("color") <-- messages)(stl("color") <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
