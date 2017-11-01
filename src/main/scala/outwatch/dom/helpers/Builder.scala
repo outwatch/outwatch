@@ -34,7 +34,7 @@ object ChildrenStreamReceiverBuilder {
 
 final class AttributeBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T] {
 
-  private def assign(value: T) = Attribute(attributeName, value.toString)
+  @inline private def assign(value: T) = Attribute(attributeName, value.toString)
 
   def :=(value: T) = IO.pure(assign(value))
 
@@ -44,7 +44,8 @@ final class AttributeBuilder[T](val attributeName: String) extends AnyVal with V
 }
 
 final class PropertyBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T] {
-  private def assign(value: T) = Prop(attributeName, value.toString)
+
+  @inline private def assign(value: T) = Prop(attributeName, value.toString)
 
   def :=(value: T) = IO.pure(assign(value))
 
@@ -54,7 +55,8 @@ final class PropertyBuilder[T](val attributeName: String) extends AnyVal with Va
 }
 
 final class StyleBuilder(val attributeName: String) extends AnyVal with ValueBuilder[String] {
-  private def assign(value: String) = Style(attributeName, value)
+
+  @inline private def assign(value: String) = Style(attributeName, value)
 
   def :=(value: String) = IO.pure(assign(value))
 
@@ -68,7 +70,7 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with
 
   def selectDynamic(s: String) = new DynamicAttributeBuilder[T](s :: parts)
 
-  private def assign(value: T) = Attribute(name, value.toString)
+  @inline private def assign(value: T) = Attribute(name, value.toString)
 
   def :=(value: T) = IO.pure(assign(value))
 
@@ -79,7 +81,7 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with
 
 final class BoolAttributeBuilder(val attributeName: String) extends AnyVal with ValueBuilder[Boolean] {
 
-  private def assign(value: Boolean) = Attribute(attributeName, value)
+  @inline private def assign(value: Boolean) = Attribute(attributeName, value)
 
   def :=(value: Boolean) = IO.pure(assign(value))
 
