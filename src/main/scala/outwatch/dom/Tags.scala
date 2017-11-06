@@ -18,64 +18,64 @@ import cats.effect.IO
 /** Trait that contains all tags, so they can be mixed in to other objects if needed.
   */
 trait Tags {
-  private def tag(nodeType: String)(args: Seq[VDomModifier]): IO[VTree] = IO.pure(VTree(nodeType, args))
+  private def tag(nodeType: String)(args: Seq[VDomModifier]): VNode = IO.pure(VTree(nodeType, args))
 
   /** Represents a hyperlink, linking to another resource.
     *
     *  MDN
     */
-  def a          (args: VDomModifier*): IO[VTree] = tag("a")(args)
+  def a          (args: VDomModifier*): VNode = tag("a")(args)
 
   /** An abbreviation or acronym; the expansion of the abbreviation can be
     * represented in the title attribute.
     *
     *  MDN
     */
-  def abbr       (args: VDomModifier*): IO[VTree] = tag("abbr")(args)
+  def abbr       (args: VDomModifier*): VNode = tag("abbr")(args)
 
   /** Defines a section containing contact information.
     *
     *  MDN
     */
-  def address    (args: VDomModifier*): IO[VTree] = tag("address")(args)
+  def address    (args: VDomModifier*): VNode = tag("address")(args)
 
   /** In conjunction with map, defines an image map
     *
     *  MDN
     */
-  def area       (args: VDomModifier*): IO[VTree] = tag("area")(args)
+  def area       (args: VDomModifier*): VNode = tag("area")(args)
 
   /** Defines self-contained content that could exist independently of the rest
     * of the content.
     *
     *  MDN
     */
-  def article    (args: VDomModifier*): IO[VTree] = tag("article")(args)
+  def article    (args: VDomModifier*): VNode = tag("article")(args)
 
   /** Defines some content loosely related to the page content. If it is removed,
     * the remaining content still makes sense.
     *
     *  MDN
     */
-  def aside      (args: VDomModifier*): IO[VTree] = tag("aside")(args)
+  def aside      (args: VDomModifier*): VNode = tag("aside")(args)
 
   /** Represents a sound or an audio stream.
     *
     *  MDN
     */
-  def audio      (args: VDomModifier*): IO[VTree] = tag("audio")(args)
+  def audio      (args: VDomModifier*): VNode = tag("audio")(args)
 
   /** Bold text.
     *
     *  MDN
     */
-  def b          (args: VDomModifier*): IO[VTree] = tag("b")(args)
+  def b          (args: VDomModifier*): VNode = tag("b")(args)
 
   /** Defines the base URL for relative URLs in the page.
     *
     *  MDN
     */
-  def base       (args: VDomModifier*): IO[VTree] = tag("base")(args)
+  def base       (args: VDomModifier*): VNode = tag("base")(args)
 
   /** Represents text that must be isolated from its surrounding for bidirectional
     * text formatting. It allows embedding a span of text with a different, or
@@ -83,278 +83,278 @@ trait Tags {
     *
     *  MDN
     */
-  def bdi        (args: VDomModifier*): IO[VTree] = tag("bdi")(args)
+  def bdi        (args: VDomModifier*): VNode = tag("bdi")(args)
 
   /** Represents the directionality of its children, in order to explicitly
     * override the Unicode bidirectional algorithm.
     *
     *  MDN
     */
-  def bdo        (args: VDomModifier*): IO[VTree] = tag("bdo")(args)
+  def bdo        (args: VDomModifier*): VNode = tag("bdo")(args)
 
   /** Represents a content that is quoted from another source.
     *
     *  MDN
     */
-  def blockquote (args: VDomModifier*): IO[VTree] = tag("blockquote")(args)
+  def blockquote (args: VDomModifier*): VNode = tag("blockquote")(args)
 
   /** Represents the content of an HTML document. There is only one body
     *   element in a document.
     *
     *  MDN
     */
-  def body       (args: VDomModifier*): IO[VTree] = tag("body")(args)
+  def body       (args: VDomModifier*): VNode = tag("body")(args)
 
   /** Represents a line break.
     *
     *  MDN
     */
-  def br         (args: VDomModifier*): IO[VTree] = tag("br")(args)
+  def br         (args: VDomModifier*): VNode = tag("br")(args)
 
   /** A button
     *
     *  MDN
     */
-  def button     (args: VDomModifier*): IO[VTree] = tag("button")(args)
+  def button     (args: VDomModifier*): VNode = tag("button")(args)
 
   /** Represents a bitmap area that scripts can use to render graphics like graphs,
     * games or any visual images on the fly.
     *
     *  MDN
     */
-  def canvas     (args: VDomModifier*): IO[VTree] = tag("canvas")(args)
+  def canvas     (args: VDomModifier*): VNode = tag("canvas")(args)
 
   /** The title of a table.
     *
     *  MDN
     */
-  def caption    (args: VDomModifier*): IO[VTree] = tag("caption")(args)
+  def caption    (args: VDomModifier*): VNode = tag("caption")(args)
 
   /** Represents the title of a work being cited.
     *
     *  MDN
     */
-  def cite       (args: VDomModifier*): IO[VTree] = tag("cite")(args)
+  def cite       (args: VDomModifier*): VNode = tag("cite")(args)
 
   /** Represents computer code.
     *
     *  MDN
     */
-  def code       (args: VDomModifier*): IO[VTree] = tag("code")(args)
+  def code       (args: VDomModifier*): VNode = tag("code")(args)
 
   /** A single column.
     *
     *  MDN
     */
-  def col        (args: VDomModifier*): IO[VTree] = tag("col")(args)
+  def col        (args: VDomModifier*): VNode = tag("col")(args)
 
   /** A set of columns.
     *
     *  MDN
     */
-  def colgroup   (args: VDomModifier*): IO[VTree] = tag("colgroup")(args)
+  def colgroup   (args: VDomModifier*): VNode = tag("colgroup")(args)
 
   /** Links a given content with a machine-readable translation.
     * If the content is time- or date-related, the `<time>` element must be used.
     *
     * MDN
     */
-  def dataElement(args: VDomModifier*): IO[VTree] = tag("data")(args)
+  def dataElement(args: VDomModifier*): VNode = tag("data")(args)
 
   /** A set of predefined options for other controls.
     *
     *  MDN
     */
-  def datalist   (args: VDomModifier*): IO[VTree] = tag("datalist")(args)
+  def datalist   (args: VDomModifier*): VNode = tag("datalist")(args)
 
   /** Represents the definition of the terms immediately listed before it.
     *
     * MDN
     */
-  def dd         (args: VDomModifier*): IO[VTree] = tag("dd")(args)
+  def dd         (args: VDomModifier*): VNode = tag("dd")(args)
 
   /** Defines a removal from the document.
     *
     * MDN
     */
-  def del        (args: VDomModifier*): IO[VTree] = tag("del")(args)
+  def del        (args: VDomModifier*): VNode = tag("del")(args)
 
   /** A widget from which the user can obtain additional information
     * or controls.
     *
     * MDN
     */
-  def details    (args: VDomModifier*): IO[VTree] = tag("details")(args)
+  def details    (args: VDomModifier*): VNode = tag("details")(args)
 
   /** Represents a term whose definition is contained in its nearest ancestor
     * content.
     *
     * MDN
     */
-  def dfn        (args: VDomModifier*): IO[VTree] = tag("dfn")(args)
+  def dfn        (args: VDomModifier*): VNode = tag("dfn")(args)
 
   /** Represents a dialog box or other interactive component, such as an inspector
     * or window.
     *
     * MDN
     */
-  def dialog     (args: VDomModifier*): IO[VTree] = tag("dialog")(args)
+  def dialog     (args: VDomModifier*): VNode = tag("dialog")(args)
 
   /** Represents a generic container with no special meaning.
     *
     * MDN
     */
-  def div        (args: VDomModifier*): IO[VTree] = tag("div")(args)
+  def div        (args: VDomModifier*): VNode = tag("div")(args)
 
   /** Defines a definition list; a list of terms and their associated definitions.
     *
     * MDN
     */
-  def dl         (args: VDomModifier*): IO[VTree] = tag("dl")(args)
+  def dl         (args: VDomModifier*): VNode = tag("dl")(args)
 
   /** Represents a term defined by the next dd
     *
     * MDN
     */
-  def dt         (args: VDomModifier*): IO[VTree] = tag("dt")(args)
+  def dt         (args: VDomModifier*): VNode = tag("dt")(args)
 
   /** Represents emphasized text.
     *
     * MDN
     */
-  def em         (args: VDomModifier*): IO[VTree] = tag("em")(args)
+  def em         (args: VDomModifier*): VNode = tag("em")(args)
 
   /** Represents a integration point for an external, often non-HTML, application
     * or interactive content.
     *
     * MDN
     */
-  def embed      (args: VDomModifier*): IO[VTree] = tag("embed")(args)
+  def embed      (args: VDomModifier*): VNode = tag("embed")(args)
 
   /** A set of fields.
     *
     * MDN
     */
-  def fieldset   (args: VDomModifier*): IO[VTree] = tag("fieldset")(args)
+  def fieldset   (args: VDomModifier*): VNode = tag("fieldset")(args)
 
   /** Represents the legend of a figure.
     *
     * MDN
     */
-  def figcaption (args: VDomModifier*): IO[VTree] = tag("figcaption")(args)
+  def figcaption (args: VDomModifier*): VNode = tag("figcaption")(args)
 
   /** Represents a figure illustrated as part of the document.
     *
     * MDN
     */
-  def figure     (args: VDomModifier*): IO[VTree] = tag("figure")(args)
+  def figure     (args: VDomModifier*): VNode = tag("figure")(args)
 
   /** Defines the footer for a page or section. It often contains a copyright
     * notice, some links to legal information, or addresses to give feedback.
     *
     * MDN
     */
-  def footer     (args: VDomModifier*): IO[VTree] = tag("footer")(args)
+  def footer     (args: VDomModifier*): VNode = tag("footer")(args)
 
   /** Represents a form, consisting of controls, that can be submitted to a
     * server for processing.
     *
     * MDN
     */
-  def form       (args: VDomModifier*): IO[VTree] = tag("form")(args)
+  def form       (args: VDomModifier*): VNode = tag("form")(args)
 
   /** Heading level 1
     *
     * MDN
     */
-  def h1         (args: VDomModifier*): IO[VTree] = tag("h1")(args)
+  def h1         (args: VDomModifier*): VNode = tag("h1")(args)
 
   /** Heading level 2
     *
     * MDN
     */
-  def h2         (args: VDomModifier*): IO[VTree] = tag("h2")(args)
+  def h2         (args: VDomModifier*): VNode = tag("h2")(args)
 
   /** Heading level 3
     *
     * MDN
     */
-  def h3         (args: VDomModifier*): IO[VTree] = tag("h3")(args)
+  def h3         (args: VDomModifier*): VNode = tag("h3")(args)
 
   /** Heading level 4
     *
     * MDN
     */
-  def h4         (args: VDomModifier*): IO[VTree] = tag("h4")(args)
+  def h4         (args: VDomModifier*): VNode = tag("h4")(args)
 
   /** Heading level 5
     *
     * MDN
     */
-  def h5         (args: VDomModifier*): IO[VTree] = tag("h5")(args)
+  def h5         (args: VDomModifier*): VNode = tag("h5")(args)
 
   /** Heading level 6
     *
     * MDN
     */
-  def h6         (args: VDomModifier*): IO[VTree] = tag("h6")(args)
+  def h6         (args: VDomModifier*): VNode = tag("h6")(args)
 
   /** Represents a collection of metadata about the document, including links to,
     * or definitions of, scripts and style sheets.
     *
     * MDN
     */
-  def head       (args: VDomModifier*): IO[VTree] = tag("head")(args)
+  def head       (args: VDomModifier*): VNode = tag("head")(args)
 
   /** Defines the header of a page or section. It often contains a logo, the
     * title of the Web site, and a navigational table of content.
     *
     * MDN
     */
-  def header     (args: VDomModifier*): IO[VTree] = tag("header")(args)
+  def header     (args: VDomModifier*): VNode = tag("header")(args)
 
   /** Represents a thematic break between paragraphs of a section or article or
     * any longer content.
     *
     * MDN
     */
-  def hr         (args: VDomModifier*): IO[VTree] = tag("hr")(args)
+  def hr         (args: VDomModifier*): VNode = tag("hr")(args)
 
   /** Italicized text.
     *
     * MDN
     */
-  def i          (args: VDomModifier*): IO[VTree] = tag("i")(args)
+  def i          (args: VDomModifier*): VNode = tag("i")(args)
 
   /** Represents a nested browsing context, that is an embedded HTML document.
     *
     * MDN
     */
-  def iframe     (args: VDomModifier*): IO[VTree] = tag("iframe")(args)
+  def iframe     (args: VDomModifier*): VNode = tag("iframe")(args)
 
   /** Represents an image.
     *
     * MDN
     */
-  def img        (args: VDomModifier*): IO[VTree] = tag("img")(args)
+  def img        (args: VDomModifier*): VNode = tag("img")(args)
 
   /** A typed data field allowing the user to input data.
     *
     * MDN
     */
-  def input      (args: VDomModifier*): IO[VTree] = tag("input")(args)
+  def input      (args: VDomModifier*): VNode = tag("input")(args)
 
   /** Defines an addition to the document.
     *
     * MDN
     */
-  def ins        (args: VDomModifier*): IO[VTree] = tag("ins")(args)
+  def ins        (args: VDomModifier*): VNode = tag("ins")(args)
 
   /** Represents user input, often from a keyboard, but not necessarily.
     *
     * MDN
     */
-  def kbd        (args: VDomModifier*): IO[VTree] = tag("kbd")(args)
+  def kbd        (args: VDomModifier*): VNode = tag("kbd")(args)
 
   /** A key-pair generator control.
     *
@@ -368,57 +368,57 @@ trait Tags {
       |compatibility table at the bottom of this page to guide your decision.
       |Be aware that this feature may cease to work at any time.
     """.stripMargin, "0.9.0")
-  def keygen     (args: VDomModifier*): IO[VTree] = tag("keygen")(args)
+  def keygen     (args: VDomModifier*): VNode = tag("keygen")(args)
 
   /** The caption of a single field
     *
     * MDN
     */
-  def label      (args: VDomModifier*): IO[VTree] = tag("label")(args)
+  def label      (args: VDomModifier*): VNode = tag("label")(args)
 
   /** The caption for a fieldset.
     *
     * MDN
     */
-  def legend     (args: VDomModifier*): IO[VTree] = tag("legend")(args)
+  def legend     (args: VDomModifier*): VNode = tag("legend")(args)
 
   /** Defines an item of an list.
     *
     * MDN
     */
-  def li         (args: VDomModifier*): IO[VTree] = tag("li")(args)
+  def li         (args: VDomModifier*): VNode = tag("li")(args)
 
   /** Used to link JavaScript and external CSS with the current HTML document.
     *
     * MDN
     */
-  def link       (args: VDomModifier*): IO[VTree] = tag("link")(args)
+  def link       (args: VDomModifier*): VNode = tag("link")(args)
 
   /** Defines the main or important content in the document. There is only one
     * main element in the document.
     *
     * MDN
     */
-  def main       (args: VDomModifier*): IO[VTree] = tag("main")(args)
+  def main       (args: VDomModifier*): VNode = tag("main")(args)
 
   /** In conjunction with area, defines an image map.
     *
     * MDN
     */
-  def map        (args: VDomModifier*): IO[VTree] = tag("map")(args)
+  def map        (args: VDomModifier*): VNode = tag("map")(args)
 
   /** Represents text highlighted for reference purposes, that is for its
     * relevance in another context.
     *
     * MDN
     */
-  def mark       (args: VDomModifier*): IO[VTree] = tag("mark")(args)
+  def mark       (args: VDomModifier*): VNode = tag("mark")(args)
 
   /** Defines a mathematical formula.
     *
     * MDN
     */
-  def math       (args: VDomModifier*): IO[VTree] = tag("math")(args)
+  def math       (args: VDomModifier*): VNode = tag("math")(args)
 
   /** Represents a group of commands that a user can perform or activate.
     * This includes both list menus, which might appear across the top of
@@ -427,7 +427,7 @@ trait Tags {
     *
     * MDN
     */
-  def menu       (args: VDomModifier*): IO[VTree] = tag("menu")(args)
+  def menu       (args: VDomModifier*): VNode = tag("menu")(args)
 
   /** Represents a command that a user is able to invoke through a popup menu.
     * This includes context menus, as well as menus that might be attached to
@@ -443,96 +443,96 @@ trait Tags {
     *
     * MDN
     */
-  def menuitem   (args: VDomModifier*): IO[VTree] = tag("menuitem")(args)
+  def menuitem   (args: VDomModifier*): VNode = tag("menuitem")(args)
 
   /** Defines metadata that can't be defined using another HTML element.
     *
     * MDN
     */
-  def meta       (args: VDomModifier*): IO[VTree] = tag("meta")(args)
+  def meta       (args: VDomModifier*): VNode = tag("meta")(args)
 
   /** A scalar measurement within a known range.
     *
     * MDN
     */
-  def meter      (args: VDomModifier*): IO[VTree] = tag("meter")(args)
+  def meter      (args: VDomModifier*): VNode = tag("meter")(args)
 
   /** Represents a section of a page that links to other pages or to parts within
     * the page: a section with navigation links.
     *
     * MDN
     */
-  def nav        (args: VDomModifier*): IO[VTree] = tag("nav")(args)
+  def nav        (args: VDomModifier*): VNode = tag("nav")(args)
 
   /** Defines alternative content to display when the browser doesn't support
     * scripting.
     *
     * MDN
     */
-  def noscript   (args: VDomModifier*): IO[VTree] = tag("noscript")(args)
+  def noscript   (args: VDomModifier*): VNode = tag("noscript")(args)
 
   /** Represents an external resource, which is treated as an image, an HTML
     * sub-document, or an external resource to be processed by a plug-in.
     *
     * MDN
     */
-  def `object`   (args: VDomModifier*): IO[VTree] = tag("object")(args)
+  def `object`   (args: VDomModifier*): VNode = tag("object")(args)
 
   /** Defines an ordered list of items.
     *
     * MDN
     */
-  def ol         (args: VDomModifier*): IO[VTree] = tag("ol")(args)
+  def ol         (args: VDomModifier*): VNode = tag("ol")(args)
 
   /** A set of options, logically grouped.
     *
     * MDN
     */
-  def optgroup   (args: VDomModifier*): IO[VTree] = tag("optgroup")(args)
+  def optgroup   (args: VDomModifier*): VNode = tag("optgroup")(args)
 
   /**
     * An option in a select element.
     *
     *  MDN
     */
-  def option     (args: VDomModifier*): IO[VTree] = tag("option")(args)
+  def option     (args: VDomModifier*): VNode = tag("option")(args)
 
   /** The result of a calculation
     *
     * MDN
     */
-  def output     (args: VDomModifier*): IO[VTree] = tag("output")(args)
+  def output     (args: VDomModifier*): VNode = tag("output")(args)
 
   /** Defines a portion that should be displayed as a paragraph.
     *
     * MDN
     */
-  def p          (args: VDomModifier*): IO[VTree] = tag("p")(args)
+  def p          (args: VDomModifier*): VNode = tag("p")(args)
 
   /** Defines parameters for use by plug-ins invoked by object elements.
     *
     * MDN
     */
-  def param      (args: VDomModifier*): IO[VTree] = tag("param")(args)
+  def param      (args: VDomModifier*): VNode = tag("param")(args)
 
   /** Indicates that its content is preformatted and that this format must be
     * preserved.
     *
     * MDN
     */
-  def pre        (args: VDomModifier*): IO[VTree] = tag("pre")(args)
+  def pre        (args: VDomModifier*): VNode = tag("pre")(args)
 
   /** A progress completion bar
     *
     * MDN
     */
-  def progress   (args: VDomModifier*): IO[VTree] = tag("progress")(args)
+  def progress   (args: VDomModifier*): VNode = tag("progress")(args)
 
   /** An inline quotation.
     *
     * MDN
     */
-  def q          (args: VDomModifier*): IO[VTree] = tag("q")(args)
+  def q          (args: VDomModifier*): VNode = tag("q")(args)
 
   /** Represents parenthesis around a ruby annotation, used to display the
     * annotation in an alternate way by browsers not supporting the standard
@@ -540,7 +540,7 @@ trait Tags {
     *
     * MDN
     */
-  def rp         (args: VDomModifier*): IO[VTree] = tag("rp")(args)
+  def rp         (args: VDomModifier*): VNode = tag("rp")(args)
 
   /** Represents content to be marked with ruby annotations, short runs of text
     * presented alongside the text. This is often used in conjunction with East
@@ -549,66 +549,66 @@ trait Tags {
     *
     * MDN
     */
-  def ruby         (args: VDomModifier*): IO[VTree] = tag("ruby")(args)
+  def ruby         (args: VDomModifier*): VNode = tag("ruby")(args)
 
   /** Represents the text of a ruby annotation.
     *
     * MDN
     */
-  def rt         (args: VDomModifier*): IO[VTree] = tag("rt")(args)
+  def rt         (args: VDomModifier*): VNode = tag("rt")(args)
 
   /** Strikethrough element, used for that is no longer accurate or relevant.
     *
     * MDN
     */
-  def s          (args: VDomModifier*): IO[VTree] = tag("s")(args)
+  def s          (args: VDomModifier*): VNode = tag("s")(args)
 
   /** Represents sample output of a program or a computer.
     *
     * MDN
     */
-  def samp       (args: VDomModifier*): IO[VTree] = tag("samp")(args)
+  def samp       (args: VDomModifier*): VNode = tag("samp")(args)
 
   /** Defines either an internal script or a link to an external script. The
     * script language is JavaScript.
     *
     * MDN
     */
-  def script     (args: VDomModifier*): IO[VTree] = tag("script")(args)
+  def script     (args: VDomModifier*): VNode = tag("script")(args)
 
   /** Represents a generic section of a document, i.e., a thematic grouping of
     * content, typically with a heading.
     *
     * MDN
     */
-  def section    (args: VDomModifier*): IO[VTree] = tag("section")(args)
+  def section    (args: VDomModifier*): VNode = tag("section")(args)
 
   /** A control that allows the user to select one of a set of options.
     *
     * MDN
     */
-  def select     (args: VDomModifier*): IO[VTree] = tag("select")(args)
+  def select     (args: VDomModifier*): VNode = tag("select")(args)
 
   /** Represents a placeholder inside a web component that you can fill with
     * your own markup, with the effect of composing different DOM trees together.
     *
     * MDN
     */
-  def slot       (args: VDomModifier*): IO[VTree] = tag("slot")(args)
+  def slot       (args: VDomModifier*): VNode = tag("slot")(args)
 
   /** Represents a side comment; text like a disclaimer or copyright, which is not
     * essential to the comprehension of the document.
     *
     * MDN
     */
-  def small      (args: VDomModifier*): IO[VTree] = tag("small")(args)
+  def small      (args: VDomModifier*): VNode = tag("small")(args)
 
   /** Allows the authors to specify alternate media resources for media elements
     * like video or audio
     *
     * MDN
     */
-  def source     (args: VDomModifier*): IO[VTree] = tag("source")(args)
+  def source     (args: VDomModifier*): VNode = tag("source")(args)
 
   /** Represents text with no specific meaning. This has to be used when no other
     * text-semantic element conveys an adequate meaning, which, in this case, is
@@ -616,86 +616,86 @@ trait Tags {
     *
     * MDN
     */
-  def span       (args: VDomModifier*): IO[VTree] = tag("span")(args)
+  def span       (args: VDomModifier*): VNode = tag("span")(args)
 
   /** Represents especially important text.
     *
     * MDN
     */
-  def strong     (args: VDomModifier*): IO[VTree] = tag("strong")(args)
+  def strong     (args: VDomModifier*): VNode = tag("strong")(args)
 
   /** Used to write inline CSS.
     *
     * MDN
     */
-  def style      (args: VDomModifier*): IO[VTree] = tag("style")(args)
+  def style      (args: VDomModifier*): VNode = tag("style")(args)
 
   /** Subscript tag
     *
     * MDN
     */
-  def sub        (args: VDomModifier*): IO[VTree] = tag("sub")(args)
+  def sub        (args: VDomModifier*): VNode = tag("sub")(args)
 
   /** A summary, caption, or legend for a given details.
     *
     * MDN
     */
-  def summary    (args: VDomModifier*): IO[VTree] = tag("summary")(args)
+  def summary    (args: VDomModifier*): VNode = tag("summary")(args)
 
   /** Superscript tag.
     *
     * MDN
     */
-  def sup        (args: VDomModifier*): IO[VTree] = tag("sup")(args)
+  def sup        (args: VDomModifier*): VNode = tag("sup")(args)
 
   /** Represents data with more than one dimension.
     *
     * MDN
     */
-  def table      (args: VDomModifier*): IO[VTree] = tag("table")(args)
+  def table      (args: VDomModifier*): VNode = tag("table")(args)
 
   /** The table body.
     *
     * MDN
     */
-  def tbody      (args: VDomModifier*): IO[VTree] = tag("tbody")(args)
+  def tbody      (args: VDomModifier*): VNode = tag("tbody")(args)
 
   /** A single cell in a table.
     *
     * MDN
     */
-  def td         (args: VDomModifier*): IO[VTree] = tag("td")(args)
+  def td         (args: VDomModifier*): VNode = tag("td")(args)
 
   /** A multiline text edit control.
     *
     * MDN
     */
-  def textarea   (args: VDomModifier*): IO[VTree] = tag("textarea")(args)
+  def textarea   (args: VDomModifier*): VNode = tag("textarea")(args)
 
   /** The table footer.
     *
     * MDN
     */
-  def tfoot      (args: VDomModifier*): IO[VTree] = tag("tfoot")(args)
+  def tfoot      (args: VDomModifier*): VNode = tag("tfoot")(args)
 
   /** A header cell in a table.
     *
     * MDN
     */
-  def th         (args: VDomModifier*): IO[VTree] = tag("th")(args)
+  def th         (args: VDomModifier*): VNode = tag("th")(args)
 
   /** The table headers.
     *
     * MDN
     */
-  def thead      (args: VDomModifier*): IO[VTree] = tag("thead")(args)
+  def thead      (args: VDomModifier*): VNode = tag("thead")(args)
 
   /** Represents a date and time value; the machine-readable equivalent can be
     * represented in the datetime attribetu
     *
     * MDN
     */
-  def time       (args: VDomModifier*): IO[VTree] = tag("time")(args)
+  def time       (args: VDomModifier*): VNode = tag("time")(args)
 
   /** Defines the title of the document, shown in a browser's title bar or on the
     * page's tab. It can only contain text and any contained tags are not
@@ -703,46 +703,46 @@ trait Tags {
     *
     * MDN
     */
-  def title      (args: VDomModifier*): IO[VTree] = tag("title")(args)
+  def title      (args: VDomModifier*): VNode = tag("title")(args)
 
   /** A single row in a table.
     *
     * MDN
     */
-  def tr         (args: VDomModifier*): IO[VTree] = tag("tr")(args)
+  def tr         (args: VDomModifier*): VNode = tag("tr")(args)
 
   /** Allows authors to specify timed text track for media elements like video or
     * audio
     *
     * MDN
     */
-  def track      (args: VDomModifier*): IO[VTree] = tag("track")(args)
+  def track      (args: VDomModifier*): VNode = tag("track")(args)
 
   /** Underlined text.
     *
     * MDN
     */
-  def u          (args: VDomModifier*): IO[VTree] = tag("u")(args)
+  def u          (args: VDomModifier*): VNode = tag("u")(args)
 
   /** Defines an unordered list of items.
     *
     * MDN
     */
-  def ul         (args: VDomModifier*): IO[VTree] = tag("ul")(args)
+  def ul         (args: VDomModifier*): VNode = tag("ul")(args)
 
   /** Represents a video, and its associated audio files and captions, with the
     * necessary interface to play it.
     *
     * MDN
     */
-  def video      (args: VDomModifier*): IO[VTree] = tag("video")(args)
+  def video      (args: VDomModifier*): VNode = tag("video")(args)
 
   /** Represents a line break opportunity, that is a suggested point for wrapping
     * text in order to improve readability of text split on several lines.
     *
     * MDN
     */
-  def wbr        (args: VDomModifier*): IO[VTree] = tag("wbr")(args)
+  def wbr        (args: VDomModifier*): VNode = tag("wbr")(args)
 }
 
 object Tags extends Tags
