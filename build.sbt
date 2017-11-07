@@ -14,9 +14,9 @@ crossScalaVersions := Seq("2.11.11", "2.12.4")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.15.0",
-  "org.typelevel" %%% "cats-core" % "1.0.0-MF",
-  "org.typelevel" %%% "cats-effect" % "0.4",
+  "com.github.lukajcb" %%% "rxscala-js" % "0.15.2",
+  "org.typelevel" %%% "cats-core" % "1.0.0-RC1",
+  "org.typelevel" %%% "cats-effect" % "0.5",
   "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
   "org.scalacheck" %%% "scalacheck" % "1.13.5" % Test
 )
