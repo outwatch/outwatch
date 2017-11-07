@@ -27,18 +27,20 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
       minusOne = handleMinus.mapTo(-1)
 
       count = plusOne.merge(minusOne).scan(0)(_ + _).startWith(0)
-    } yield div(
+
+      div <- div(
         div(
           button(id := "plus", "+", click --> handlePlus),
           button(id := "minus", "-", click --> handleMinus),
-          span(id:="counter",child <-- count)
+          span(id := "counter", child <-- count)
         )
       )
+    } yield div
 
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    node.flatMap(node => DomUtils.render(root, node)).unsafeRunSync()
+    DomUtils.render(root, node).unsafeRunSync()
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
@@ -59,19 +61,19 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A simple name application" should "work as intended" in {
     val greetStart = "Hello ,"
 
-    val node = for {
-      nameHandler <- createStringHandler()
-    } yield div(
+    val node = createStringHandler().flatMap { nameHandler =>
+      div(
         label("Name:"),
         input(id := "input", inputType := "text", inputString --> nameHandler),
         hr(),
-        h1(id :="greeting", greetStart, child <-- nameHandler)
+        h1(id := "greeting", greetStart, child <-- nameHandler)
       )
+    }
 
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    node.flatMap(node => DomUtils.render(root, node)).unsafeRunSync()
+    DomUtils.render(root, node).unsafeRunSync()
 
 
     val evt = document.createEvent("HTMLEvents")
@@ -148,11 +150,13 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
         .withLatestFromWith(textFieldStream)((_, input) => input)
 
       _ <- (outputStream <-- confirm)
-    } yield div(
+
+      div <- div(
         label(labelText),
         input(id:= "input", inputType := "text", inputString --> textFieldStream, keyup --> keyStream),
         button(id := "submit", click --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
+    } yield div
 
 
 
@@ -177,16 +181,18 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
       state = adds.merge(deletes)
         .scan(Vector[String]())((state, modify) => modify(state))
         .map(_.map(n => TodoComponent(n, deleteHandler)))
-      textFieldComponent <- TextFieldComponent("Todo: ", inputHandler)
-    } yield div(
+      textFieldComponent = TextFieldComponent("Todo: ", inputHandler)
+
+      div <- div(
         textFieldComponent,
         ul(id:= "list", children <-- state)
       )
+    } yield div
 
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    vtree.flatMap(vtree => DomUtils.render(root, vtree)).unsafeRunSync()
+    DomUtils.render(root, vtree).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     inputEvt.initEvent("input", false, true)
