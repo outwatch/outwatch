@@ -4,12 +4,11 @@ import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.Sink
 import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, UpdateHook}
-import rxscalajs.{Observable, Observer}
+import rxscalajs.Observable
 
-final case class EmitterBuilder[E, O] private (
+final case class EmitterBuilder[E <: Event, O] private (
   eventType: String,
-  transform: Observable[E] => Observable[O],
-  trigger: (Event, Observer[E]) => Unit
+  transform: Observable[E] => Observable[O]
 ) {
 
   def apply[T](value: T): EmitterBuilder[E, T] = map(_ => value)
@@ -27,14 +26,12 @@ final case class EmitterBuilder[E, O] private (
 
   def -->(sink: Sink[_ >: O]): IO[Emitter] = {
     val observer = sink.redirect(transform).observer
-    IO.pure(Emitter(eventType, event => trigger(event, observer)))
+    IO.pure(Emitter(eventType, event => observer.next(event.asInstanceOf[E])))
   }
 }
 
 object EmitterBuilder {
-  def apply[E <: Event](eventType: String): EmitterBuilder[E, E] = new EmitterBuilder[E, E](
-    eventType, identity, (e, o) => o.asInstanceOf[Observer[Event]].next(e)
-  )
+  def apply[E <: Event](eventType: String) = new EmitterBuilder[E, E]( eventType, identity )
 }
 
 trait HookBuilder[E, H <: Hook] {
