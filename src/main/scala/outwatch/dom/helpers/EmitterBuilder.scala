@@ -7,15 +7,19 @@ import outwatch.Sink
 import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, UpdateHook}
 import rxscalajs.{Observable, Observer}
 
-case class EmitterBuilder[E, O](eventType:String, transform: Observable[E] => Observable[O], trigger: (Event, Observer[E]) => Unit) {
-  def apply[T](mapping: O => T):EmitterBuilder[E,T] = copy(transform = obs => transform(obs).map(mapping))
-  def apply[T](value: T):EmitterBuilder[E,T] = copy(transform = obs => transform(obs).map(_ => value))
-  def apply[T](obs: Observable[T]):EmitterBuilder[E,T] = copy(transform = _ => obs)
-  def filter(predicate: O => Boolean):EmitterBuilder[E,O] = copy(transform = obs => transform(obs).filter(predicate))
+case class EmitterBuilder[E, O](
+  private val eventType: String,
+  private val transform: Observable[E] => Observable[O],
+  private val trigger: (Event, Observer[E]) => Unit
+) {
+  def apply[T](mapping: O => T): EmitterBuilder[E, T] = copy(transform = obs => transform(obs).map(mapping))
+  def apply[T](value: T): EmitterBuilder[E, T] = apply(_ => value)
+  def apply[T](latest: Observable[T]): EmitterBuilder[E, T] = copy(transform = obs => transform(obs).withLatestFromWith(latest)((_, u) => u))
+  def filter(predicate: O => Boolean): EmitterBuilder[E, O] = copy(transform = obs => transform(obs).filter(predicate))
 
   def -->(sink: Sink[_ >: O]): IO[Emitter[E]] = {
     val observer = sink.redirect(transform).observer
-    IO.pure(Emitter(eventType, observer, event => trigger(event,observer)))
+    IO.pure(Emitter(eventType, observer, event => trigger(event, observer)))
   }
 }
 
@@ -43,11 +47,11 @@ object EmitterBuilder {
 }
 
 trait HookBuilder[E, H <: Hook] {
-  def hook(sink: Sink[E]):Hook
-  def -->(sink: Sink[E]): IO[Hook] = IO.pure(hook(sink))
+  def hook(sink: Sink[E]): H
+  def -->(sink: Sink[E]): IO[H] = IO.pure(hook(sink))
 }
 
-object InsertHookBuilder extends HookBuilder[Element,InsertHook] {
+object InsertHookBuilder extends HookBuilder[Element, InsertHook] {
   def hook(sink: Sink[Element]) = InsertHook(sink.observer)
 }
 
@@ -55,6 +59,6 @@ object DestroyHookBuilder extends HookBuilder[Element, DestroyHook] {
   def hook(sink: Sink[Element]) = DestroyHook(sink.observer)
 }
 
-object UpdateHookBuilder extends HookBuilder[(Element,Element), UpdateHook] {
-  def hook(sink: Sink[(Element,Element)]) = UpdateHook(sink.observer)
+object UpdateHookBuilder extends HookBuilder[(Element, Element), UpdateHook] {
+  def hook(sink: Sink[(Element, Element)]) = UpdateHook(sink.observer)
 }
