@@ -282,4 +282,48 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("toggled").classList.contains(someClass) shouldBe true
   }
 
+
+  it should "currectly be transformed from latest in observable" in {
+    import outwatch.dom._
+
+
+    val node = createStringHandler().flatMap { submit =>
+
+      val state = submit.scan(List.empty[String])((l, s) => l :+ s)
+
+      createStringHandler().flatMap { stream =>
+        div(
+          input(id := "input", tpe := "text", inputString --> stream),
+          button(id := "submit", click(stream) --> submit),
+          ul( id := "items",
+            children <-- state.map(items => items.map(it => li(it)))
+          )
+        )
+      }
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val inputElement = document.getElementById("input").asInstanceOf[HTMLInputElement]
+    val submitButton = document.getElementById("submit")
+
+    val inputEvt = document.createEvent("HTMLEvents")
+    inputEvt.initEvent("input", false, true)
+
+    val clickEvt = document.createEvent("Events")
+    clickEvt.initEvent("click", true, true)
+
+    inputElement.value = "item 1"
+    inputElement.dispatchEvent(inputEvt)
+
+    inputElement.value = "item 2"
+    inputElement.dispatchEvent(inputEvt)
+
+    inputElement.value = "item 3"
+    inputElement.dispatchEvent(inputEvt)
+
+    submitButton.dispatchEvent(clickEvt)
+
+    document.getElementById("items").childNodes.length shouldBe 1
+  }
 }
