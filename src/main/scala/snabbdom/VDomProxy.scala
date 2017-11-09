@@ -25,14 +25,14 @@ object VDomProxy {
   }
 
 
-  def emittersToSnabbDom(eventEmitters: Seq[Emitter[_]]): js.Dictionary[js.Function1[Event,Unit]] = {
+  def emittersToSnabbDom(eventEmitters: Seq[Emitter]): js.Dictionary[js.Function1[Event,Unit]] = {
     eventEmitters
       .groupBy(_.eventType)
       .mapValues(emittersToFunction)
       .toJSDictionary
   }
 
-  private def emittersToFunction(emitters: Seq[Emitter[_]]): js.Function1[Event, Unit] = {
+  private def emittersToFunction(emitters: Seq[Emitter]): js.Function1[Event, Unit] = {
     (event: Event) => emitters.foreach(_.trigger(event))
   }
 }

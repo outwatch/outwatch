@@ -144,7 +144,7 @@ object DomUtils {
 
 
   private[outwatch] final case class SeparatedModifiers(
-    emitters: List[Emitter[_]] = Nil,
+    emitters: List[Emitter] = Nil,
     receivers: List[Receiver] = Nil,
     properties: List[Property] = Nil,
     vNodes: List[VNode_] = Nil
@@ -154,7 +154,7 @@ object DomUtils {
   }
 
   private[outwatch] def separatorFn(mod: VDomModifier_, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
-    case (em: Emitter[_], sf) => sf.copy(emitters = em :: sf.emitters)
+    case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
     case (vn: VNode_, sf) => sf.copy(vNodes = vn :: sf.vNodes)

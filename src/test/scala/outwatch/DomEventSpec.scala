@@ -218,10 +218,10 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val number = 42
 
-    val mapToTuple = (e: MouseEvent) => (e, number)
+    val toTuple = (e: MouseEvent) => (e, number)
 
     val node = div(
-      button(id := "click", click(mapToTuple) --> stream),
+      button(id := "click", click.map(toTuple) --> stream),
       span(id:="num",child <-- stream.map(_._2))
     )
 
@@ -244,7 +244,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val number = 42
 
     val node = div(
-      button(id := "input", inputString((_:String) => number) --> stream),
+      button(id := "input", inputString(number) --> stream),
       span(id:="num",child <-- stream)
     )
 
