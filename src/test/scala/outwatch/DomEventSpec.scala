@@ -244,7 +244,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val number = 42
 
     val node = div(
-      button(id := "input", inputString(_ => number) --> stream),
+      button(id := "input", inputString((_:String) => number) --> stream),
       span(id:="num",child <-- stream)
     )
 

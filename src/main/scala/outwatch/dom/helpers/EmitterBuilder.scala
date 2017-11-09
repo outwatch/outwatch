@@ -2,104 +2,59 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import org.scalajs.dom._
+import org.scalajs.dom.raw.HTMLInputElement
 import outwatch.Sink
-import outwatch.dom.{BoolEventEmitter, NumberEventEmitter, StringEventEmitter, _}
+import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, UpdateHook}
 import rxscalajs.{Observable, Observer}
 
-final case class GenericMappedEmitterBuilder[T,E](constructor: Observer[E] => Emitter, mapping: E => T){
-  def -->[U >: T](sink: Sink[U]): IO[Emitter] = {
-    IO.pure(constructor(sink.redirectMap(mapping).observer))
+case class EmitterBuilder[E, O](eventType:String, transform: Observable[E] => Observable[O], trigger: (Event, Observer[E]) => Unit) {
+  def apply[T](mapping: O => T):EmitterBuilder[E,T] = copy(transform = obs => transform(obs).map(mapping))
+  def apply[T](value: T):EmitterBuilder[E,T] = copy(transform = obs => transform(obs).map(_ => value))
+  def apply[T](obs: Observable[T]):EmitterBuilder[E,T] = copy(transform = _ => obs)
+  def filter(predicate: O => Boolean):EmitterBuilder[E,O] = copy(transform = obs => transform(obs).filter(predicate))
+
+  def -->(sink: Sink[_ >: O]): IO[Emitter[E]] = {
+    val observer = sink.redirect(transform).observer
+    IO.pure(Emitter(eventType, observer, event => trigger(event,observer)))
   }
 }
 
-final case class FilteredGenericMappedEmitterBuilder[T,E](
-  constructor: Observer[E] => Emitter,
-  mapping: E => T,
-  predicate: E => Boolean
-) {
-  def -->[U >: T](sink: Sink[U]): IO[Emitter] = {
-    IO.pure(constructor(sink.redirect[E](_.filter(predicate).map(mapping)).observer))
+object EmitterBuilder {
+  def apply[E](eventType:String, trigger:(Event,Observer[_ >: E]) => Unit) = {
+    new EmitterBuilder[E,E](eventType, identity, trigger)
   }
+
+  def event[E <: Event](eventType:String) = apply[E](
+    eventType,
+   (e: Event, o:Observer[_ >: E]) => o.asInstanceOf[Observer[Event]].next(e)
+  )
+  def inputValueAsString(eventType:String) = apply(
+    eventType,
+    (e: Event, o:Observer[_ >: String]) => o.next(e.target.asInstanceOf[HTMLInputElement].value)
+  )
+  def inputCheckedAsBool(eventType:String) = apply(
+    eventType,
+    (e: Event, o:Observer[_ >: Boolean]) => o.next(e.target.asInstanceOf[HTMLInputElement].checked)
+  )
+  def inputValueAsNumber(eventType:String) = apply(
+    eventType,
+    (e: Event, o:Observer[_ >: Double]) => o.next(e.target.asInstanceOf[HTMLInputElement].valueAsNumber)
+  )
 }
 
-final case class WithLatestFromEmitterBuilder[T, E <: Event](eventType: String, stream: Observable[T]) {
-  def -->[U >: T](sink: Sink[U]): IO[EventEmitter[E]] = {
-    val proxy: Sink[E] = sink.redirect[E](_.withLatestFromWith(stream)((_,u) => u))
-    IO.pure(EventEmitter(eventType, proxy.observer))
-  }
+trait HookBuilder[E, H <: Hook] {
+  def hook(sink: Sink[E]):Hook
+  def -->(sink: Sink[E]): IO[Hook] = IO.pure(hook(sink))
 }
 
-final case class FilteredWithLatestFromEmitterBuilder[T, E <: Event](
-  eventType: String,
-  stream: Observable[T],
-  predicate: E => Boolean
-) {
-  def -->[U >: T](sink: Sink[U]): IO[EventEmitter[E]] = {
-    val proxy: Sink[E] = sink.redirect(_.filter(predicate).withLatestFromWith(stream)((_, u) => u))
-    IO.pure(EventEmitter(eventType, proxy.observer))
-  }
+object InsertHookBuilder extends HookBuilder[Element,InsertHook] {
+  def hook(sink: Sink[Element]) = InsertHook(sink.observer)
 }
 
-final case class FilteredEmitterBuilder[E](eventType: String, predicate: E => Boolean) {
-  def -->(sink: Sink[E]) =
-    IO.pure(EventEmitter(eventType, sink.redirect[E](_.filter(predicate)).observer))
-
-  def apply[T](t: T) =
-    FilteredGenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[E]), (_: E) => t, predicate)
-
-  def apply[T](f: E => T) =
-    FilteredGenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[E]), f, predicate)
-
-  def apply[T](ts: Observable[T]) = FilteredWithLatestFromEmitterBuilder(eventType, ts, predicate)
+object DestroyHookBuilder extends HookBuilder[Element, DestroyHook] {
+  def hook(sink: Sink[Element]) = DestroyHook(sink.observer)
 }
 
-final class EventEmitterBuilder[E <: Event](val eventType: String) extends AnyVal {
-  def -->(sink: Sink[E]) =
-    IO.pure(EventEmitter(eventType, sink.observer))
-
-  def apply[T](t: T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[E]), (_: E) => t)
-
-  def apply[T](f: E => T) =
-    GenericMappedEmitterBuilder(EventEmitter(eventType, _:Observer[E]), f)
-
-  def apply[T](ts: Observable[T]) = WithLatestFromEmitterBuilder(eventType, ts)
-
-  def filter(predicate: E => Boolean) = FilteredEmitterBuilder(eventType, predicate)
-}
-
-final class StringEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[String]) =
-    IO.pure(StringEventEmitter(eventType, sink.observer))
-
-  def apply[T](f: String => T) =
-    GenericMappedEmitterBuilder(StringEventEmitter(eventType, _: Observer[String]), f)
-}
-
-final class BoolEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[Boolean]) =
-    IO.pure(BoolEventEmitter(eventType, sink.observer))
-
-  def apply[T](f: Boolean => T) =
-    GenericMappedEmitterBuilder(BoolEventEmitter(eventType, _: Observer[Boolean]), f)
-}
-
-final class NumberEventEmitterBuilder(val eventType: String) extends AnyVal {
-  def -->(sink: Sink[Double]) =
-    IO.pure(NumberEventEmitter(eventType, sink.observer))
-
-  def apply[T](f: Double => T) =
-    GenericMappedEmitterBuilder(NumberEventEmitter(eventType, _: Observer[Double]), f)
-}
-
-object InsertHookBuilder {
-  def -->(sink: Sink[Element]) = IO.pure(InsertHook(sink.observer))
-}
-
-object DestroyHookBuilder {
-  def -->(sink: Sink[Element]) = IO.pure(DestroyHook(sink.observer))
-}
-
-object UpdateHookBuilder {
-  def -->(sink: Sink[(Element, Element)]) = IO.pure(UpdateHook(sink.observer))
+object UpdateHookBuilder extends HookBuilder[(Element,Element), UpdateHook] {
+  def hook(sink: Sink[(Element,Element)]) = UpdateHook(sink.observer)
 }

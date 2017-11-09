@@ -59,7 +59,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val modifiers = Seq(
       Attribute("class", "red"),
       EmptyVDomModifier,
-      EventEmitter("click", Subject()),
+      Emitter("click", Subject(), _ => ()),
       new StringNode("Test"),
       div().unsafeRunSync(),
       AttributeStreamReceiver("hidden",Observable.of())
@@ -77,12 +77,12 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyVDomModifier,
-      EventEmitter[Event]("click",Subject()),
-      EventEmitter[InputEvent]("input", Subject()),
+      Emitter[Event]("click",Subject(), _ => ()),
+      Emitter[InputEvent]("input", Subject(), _ => ()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
-      EventEmitter[KeyboardEvent]("keyup", Subject())
+      Emitter[KeyboardEvent]("keyup", Subject(), _ => ())
     )
 
     val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
@@ -102,13 +102,13 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyVDomModifier,
-      EventEmitter[Event]("click",Subject()),
-      EventEmitter[InputEvent]("input", Subject()),
+      Emitter[Event]("click",Subject(), _ => ()),
+      Emitter[InputEvent]("input", Subject(), _ => ()),
       UpdateHook(Subject()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
-      EventEmitter[KeyboardEvent]("keyup", Subject()),
+      Emitter[KeyboardEvent]("keyup", Subject(), _ => ()),
       InsertHook(Subject())
     )
 

@@ -61,8 +61,8 @@ object DomUtils {
     val SeparatedProperties(insert, delete, update, attributes, keys) = separateProperties(properties)
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
 
-    val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
-    val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
+    val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.observer.next(e)))
+    val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.observer.next(e)))
     val updateHook = createUpdateHook(update)
     val key = keys.lastOption.map(_.value).orUndefined
 
@@ -106,7 +106,12 @@ object DomUtils {
   }
 
   private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
-    old.elm.foreach(o => cur.elm.foreach(c => hooks.foreach(_.sink.next((o,c)))))
+    for {
+      o <- old.elm
+      c <- cur.elm
+    } {
+      hooks.foreach(_.observer.next((o,c)))
+    }
   }
 
 
@@ -128,18 +133,18 @@ object DomUtils {
 
     subscriptionRef.put(subscription).unsafeRunSync()
 
-    proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
+    proxy.elm.foreach((e: Element) => hooks.foreach(_.observer.next(e)))
   }
 
   private def createDestroyHook(subscription: STRef[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
-    proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
+    proxy.elm.foreach((e: Element) => hooks.foreach(_.observer.next(e)))
     subscription.update { s => s.unsubscribe(); s }.unsafeRunSync()
     ()
   }
 
 
   private[outwatch] final case class SeparatedModifiers(
-    emitters: List[Emitter] = Nil,
+    emitters: List[Emitter[_]] = Nil,
     receivers: List[Receiver] = Nil,
     properties: List[Property] = Nil,
     vNodes: List[VNode_] = Nil
@@ -149,7 +154,7 @@ object DomUtils {
   }
 
   private[outwatch] def separatorFn(mod: VDomModifier_, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
-    case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
+    case (em: Emitter[_], sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
     case (vn: VNode_, sf) => sf.copy(vNodes = vn :: sf.vNodes)
