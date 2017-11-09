@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.{HTMLInputElement, MouseEvent}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.PropertyChecks
-import rxscalajs.Subject
+import rxscalajs.{Observable, Subject}
 
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
@@ -234,6 +234,35 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("num").innerHTML shouldBe number.toString
+  }
+
+
+  it should ".transform should work as expected" in {
+    import outwatch.dom._
+
+    val numbers = Observable.of(1, 2)
+
+    val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
+
+    val node = createHandler[Int]().flatMap { stream =>
+
+      val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
+
+      div(
+        button(id := "click", click.transform(transformer) --> stream),
+        span(id := "num", children <-- state.map(nums => nums.map(num => span(num.toString))))
+      )
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val event = document.createEvent("Events")
+    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+
+
+    document.getElementById("click").dispatchEvent(event)
+
+    document.getElementById("num").innerHTML shouldBe "<span>1</span><span>2</span>"
   }
 
   it should "be able to be transformed from strings" in {

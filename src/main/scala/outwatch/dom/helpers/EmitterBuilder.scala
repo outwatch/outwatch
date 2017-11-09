@@ -9,7 +9,7 @@ import rxscalajs.Observable
 
 trait EmitterBuilder[E <: Event, O] extends Any {
 
-  def transform[T](tr: Observable[O] => Observable[T]): TransformingEmitterBuilder[E, T]
+  private[outwatch] def transform[T](tr: Observable[O] => Observable[T]): TransformingEmitterBuilder[E, T]
 
   def apply[T](value: T): TransformingEmitterBuilder[E, T] = map(_ => value)
 
@@ -36,7 +36,7 @@ final case class TransformingEmitterBuilder[E <: Event, O] private[helpers] (
   transformer: Observable[E] => Observable[O]
 ) extends EmitterBuilder[E, O] {
 
-  def transform[T](tr: Observable[O] => Observable[T]): TransformingEmitterBuilder[E, T] = copy(
+  private[outwatch] def transform[T](tr: Observable[O] => Observable[T]): TransformingEmitterBuilder[E, T] = copy(
     transformer = tr compose transformer
   )
 
@@ -46,10 +46,12 @@ final case class TransformingEmitterBuilder[E <: Event, O] private[helpers] (
   }
 }
 
-final class SimpleEmitterBuilder[E <: Event] private[helpers](val eventType: String) extends AnyVal with
-                                                                                             EmitterBuilder[E, E] {
+final class SimpleEmitterBuilder[E <: Event] private[helpers](
+  val eventType: String
+) extends AnyVal with
+          EmitterBuilder[E, E] {
 
-  def transform[O](transformer: Observable[E] => Observable[O]) = new TransformingEmitterBuilder[E, O](eventType, transformer)
+  private[outwatch] def transform[O](transformer: Observable[E] => Observable[O]) = new TransformingEmitterBuilder[E, O](eventType, transformer)
 
   def -->(sink: Sink[_ >: E]): IO[Emitter] = {
     IO.pure(Emitter(eventType, event => sink.observer.next(event.asInstanceOf[E])))
