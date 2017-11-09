@@ -33,7 +33,7 @@ final case class EmitterBuilder[E, O] private (
 
 object EmitterBuilder {
   def apply[E <: Event](eventType: String): EmitterBuilder[E, E] = new EmitterBuilder[E, E](
-    eventType, identity, (e, o) => o.next(e.asInstanceOf[E])
+    eventType, identity, (e, o) => o.asInstanceOf[Observer[Event]].next(e)
   )
 }
 

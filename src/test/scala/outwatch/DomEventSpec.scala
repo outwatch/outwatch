@@ -214,16 +214,16 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed by a function in place" in {
     import outwatch.dom._
 
-    val stream = createHandler[(MouseEvent, Int)]().unsafeRunSync()
-
     val number = 42
 
     val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = div(
-      button(id := "click", click.map(toTuple) --> stream),
-      span(id:="num",child <-- stream.map(_._2))
-    )
+    val node = createHandler[(MouseEvent, Int)]().flatMap { stream =>
+      div(
+        button(id := "click", click.map(toTuple) --> stream),
+        span(id := "num", child <-- stream.map(_._2))
+      )
+    }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
@@ -239,14 +239,14 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed from strings" in {
     import outwatch.dom._
 
-    val stream = createHandler[Int]().unsafeRunSync()
-
     val number = 42
+    val node = createHandler[Int]().flatMap { stream =>
 
-    val node = div(
-      button(id := "input", inputString(number) --> stream),
-      span(id:="num",child <-- stream)
-    )
+      div(
+        button(id := "input", inputString(number) --> stream),
+        span(id := "num", child <-- stream)
+      )
+    }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
@@ -263,14 +263,13 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     import outwatch.dom._
     import outwatch.util.SyntaxSugar._
 
-    val stream = createBoolHandler().unsafeRunSync()
-
     val someClass = "some-class"
-
-    val node = div(
-      button(id := "input", tpe := "checkbox", click(true) --> stream),
-      span(id:="toggled", stream ?= (className := someClass))
-    )
+    val node = createBoolHandler().flatMap { stream =>
+      div(
+        button(id := "input", tpe := "checkbox", click(true) --> stream),
+        span(id := "toggled", stream ?= (className := someClass))
+      )
+    }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
