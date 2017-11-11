@@ -50,10 +50,6 @@ object Sink {
   private final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
     override private[outwatch] def observer = this
   }
-  private final case class ObservableSink[T]
-  (oldSink: Sink[T], stream: Observable[T]) extends Observable[T](stream.inner) with Sink[T] {
-    override private[outwatch] def observer = oldSink.observer
-  }
 
   /**
     * Creates a new Sink from Scratch.
@@ -198,5 +194,7 @@ object Sink {
 }
 
 final case class ObserverSink[-T](observer: Observer[T]) extends AnyVal with Sink[T]
-
+final case class ObservableSink[T](oldSink: Sink[T], stream: Observable[T]) extends Observable[T](stream.inner) with Sink[T] {
+  override private[outwatch] def observer = oldSink.observer
+}
 
