@@ -61,8 +61,8 @@ object DomUtils {
     val SeparatedProperties(insert, delete, update, attributes, keys) = separateProperties(properties)
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
 
-    val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.sink.next(e)))
-    val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.sink.next(e)))
+    val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.observer.next(e)))
+    val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.observer.next(e)))
     val updateHook = createUpdateHook(update)
     val key = keys.lastOption.map(_.value).orUndefined
 
@@ -106,7 +106,12 @@ object DomUtils {
   }
 
   private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
-    old.elm.foreach(o => cur.elm.foreach(c => hooks.foreach(_.sink.next((o,c)))))
+    for {
+      o <- old.elm
+      c <- cur.elm
+    } {
+      hooks.foreach(_.observer.next((o,c)))
+    }
   }
 
 
@@ -128,11 +133,11 @@ object DomUtils {
 
     subscriptionRef.put(subscription).unsafeRunSync()
 
-    proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
+    proxy.elm.foreach((e: Element) => hooks.foreach(_.observer.next(e)))
   }
 
   private def createDestroyHook(subscription: STRef[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
-    proxy.elm.foreach((e: Element) => hooks.foreach(_.sink.next(e)))
+    proxy.elm.foreach((e: Element) => hooks.foreach(_.observer.next(e)))
     subscription.update { s => s.unsubscribe(); s }.unsafeRunSync()
     ()
   }

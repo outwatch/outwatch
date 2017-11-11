@@ -1,11 +1,10 @@
 package outwatch
 
 import cats.effect.IO
+import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
-import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.StringNode
-import outwatch.dom._
+import outwatch.dom.{StringNode, _}
 import outwatch.dom.helpers._
 import rxscalajs.{Observable, Subject}
 import snabbdom.{DataObject, h}
@@ -59,7 +58,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val modifiers = Seq(
       Attribute("class", "red"),
       EmptyVDomModifier,
-      EventEmitter("click", Subject()),
+      Emitter("click", _ => ()),
       new StringNode("Test"),
       div().unsafeRunSync(),
       AttributeStreamReceiver("hidden",Observable.of())
@@ -77,12 +76,12 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyVDomModifier,
-      EventEmitter[Event]("click",Subject()),
-      EventEmitter[InputEvent]("input", Subject()),
+      Emitter("click", _ => ()),
+      Emitter("input",  _ => ()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
-      EventEmitter[KeyboardEvent]("keyup", Subject())
+      Emitter("keyup",  _ => ())
     )
 
     val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
@@ -102,13 +101,13 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyVDomModifier,
-      EventEmitter[Event]("click",Subject()),
-      EventEmitter[InputEvent]("input", Subject()),
+      Emitter("click", _ => ()),
+      Emitter("input", _ => ()),
       UpdateHook(Subject()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
-      EventEmitter[KeyboardEvent]("keyup", Subject()),
+      Emitter("keyup", _ => ()),
       InsertHook(Subject())
     )
 

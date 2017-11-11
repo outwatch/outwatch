@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.{HTMLInputElement, MouseEvent}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.PropertyChecks
-import rxscalajs.Subject
+import rxscalajs.{Observable, Subject}
 
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
@@ -214,16 +214,16 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed by a function in place" in {
     import outwatch.dom._
 
-    val stream = createHandler[(MouseEvent, Int)]().unsafeRunSync()
-
     val number = 42
 
-    val mapToTuple = (e: MouseEvent) => (e, number)
+    val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = div(
-      button(id := "click", click(mapToTuple) --> stream),
-      span(id:="num",child <-- stream.map(_._2))
-    )
+    val node = createHandler[(MouseEvent, Int)]().flatMap { stream =>
+      div(
+        button(id := "click", click.map(toTuple) --> stream),
+        span(id := "num", child <-- stream.map(_._2))
+      )
+    }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
@@ -236,17 +236,46 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("num").innerHTML shouldBe number.toString
   }
 
+
+  it should ".transform should work as expected" in {
+    import outwatch.dom._
+
+    val numbers = Observable.of(1, 2)
+
+    val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
+
+    val node = createHandler[Int]().flatMap { stream =>
+
+      val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
+
+      div(
+        button(id := "click", click.transform(transformer) --> stream),
+        span(id := "num", children <-- state.map(nums => nums.map(num => span(num.toString))))
+      )
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val event = document.createEvent("Events")
+    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+
+
+    document.getElementById("click").dispatchEvent(event)
+
+    document.getElementById("num").innerHTML shouldBe "<span>1</span><span>2</span>"
+  }
+
   it should "be able to be transformed from strings" in {
     import outwatch.dom._
 
-    val stream = createHandler[Int]().unsafeRunSync()
-
     val number = 42
+    val node = createHandler[Int]().flatMap { stream =>
 
-    val node = div(
-      button(id := "input", inputString(_ => number) --> stream),
-      span(id:="num",child <-- stream)
-    )
+      div(
+        button(id := "input", inputString(number) --> stream),
+        span(id := "num", child <-- stream)
+      )
+    }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
@@ -263,14 +292,13 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     import outwatch.dom._
     import outwatch.util.SyntaxSugar._
 
-    val stream = createBoolHandler().unsafeRunSync()
-
     val someClass = "some-class"
-
-    val node = div(
-      button(id := "input", tpe := "checkbox", click(true) --> stream),
-      span(id:="toggled", stream ?= (className := someClass))
-    )
+    val node = createBoolHandler().flatMap { stream =>
+      div(
+        button(id := "input", tpe := "checkbox", click(true) --> stream),
+        span(id := "toggled", stream ?= (className := someClass))
+      )
+    }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
@@ -283,4 +311,48 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("toggled").classList.contains(someClass) shouldBe true
   }
 
+
+  it should "currectly be transformed from latest in observable" in {
+    import outwatch.dom._
+
+
+    val node = createStringHandler().flatMap { submit =>
+
+      val state = submit.scan(List.empty[String])((l, s) => l :+ s)
+
+      createStringHandler().flatMap { stream =>
+        div(
+          input(id := "input", tpe := "text", inputString --> stream),
+          button(id := "submit", click(stream) --> submit),
+          ul( id := "items",
+            children <-- state.map(items => items.map(it => li(it)))
+          )
+        )
+      }
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val inputElement = document.getElementById("input").asInstanceOf[HTMLInputElement]
+    val submitButton = document.getElementById("submit")
+
+    val inputEvt = document.createEvent("HTMLEvents")
+    inputEvt.initEvent("input", false, true)
+
+    val clickEvt = document.createEvent("Events")
+    clickEvt.initEvent("click", true, true)
+
+    inputElement.value = "item 1"
+    inputElement.dispatchEvent(inputEvt)
+
+    inputElement.value = "item 2"
+    inputElement.dispatchEvent(inputEvt)
+
+    inputElement.value = "item 3"
+    inputElement.dispatchEvent(inputEvt)
+
+    submitButton.dispatchEvent(clickEvt)
+
+    document.getElementById("items").childNodes.length shouldBe 1
+  }
 }
