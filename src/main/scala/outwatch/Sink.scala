@@ -47,10 +47,10 @@ sealed trait Sink[-T] extends Any {
 }
 
 object Sink {
-  private final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
+  private[outwatch] final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
     override private[outwatch] def observer = this
   }
-  private final case class ObservableSink[T]
+  private[outwatch] final case class ObservableSink[T]
   (oldSink: Sink[T], stream: Observable[T]) extends Observable[T](stream.inner) with Sink[T] {
     override private[outwatch] def observer = oldSink.observer
   }
@@ -194,7 +194,6 @@ object Sink {
   def redirectMap[T, R](sink: Sink[T])(f: R => T): Sink[R] = {
     redirect(sink)(_.map(f))
   }
-
 }
 
 final case class ObserverSink[-T](observer: Observer[T]) extends AnyVal with Sink[T]
