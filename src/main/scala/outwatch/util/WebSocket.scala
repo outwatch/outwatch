@@ -1,7 +1,7 @@
 package outwatch.util
 
 import cats.effect.IO
-import org.scalajs.dom.raw.{CloseEvent, ErrorEvent, MessageEvent}
+import org.scalajs.dom.{CloseEvent, ErrorEvent, MessageEvent}
 import outwatch.Sink
 import rxscalajs.Observable
 

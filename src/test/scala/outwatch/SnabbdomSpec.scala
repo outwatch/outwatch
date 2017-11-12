@@ -5,7 +5,7 @@ import snabbdom.{DataObject, h, patch}
 import scalajs.js
 import scalajs.js.|
 import org.scalajs.dom.document
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.html
 
 class SnabbdomSpec extends UnitSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
@@ -30,7 +30,7 @@ class SnabbdomSpec extends UnitSpec {
   it should "correctly patch nodes with keys" in {
     import outwatch.dom._
 
-    val clicks = createHandler[Int](1).unsafeRunSync()
+    val clicks = Handler.create[Int](1).unsafeRunSync()
     val nodes = clicks.map { i =>
       div(
         dom.key := s"key-$i",
@@ -51,7 +51,7 @@ class SnabbdomSpec extends UnitSpec {
     val clickEvt = document.createEvent("Events")
     clickEvt.initEvent("click", true, true)
 
-    def inputElement() = document.getElementById("input").asInstanceOf[HTMLInputElement]
+    def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
     val btn = document.getElementById("btn")
 
     inputElement().value = "Something"

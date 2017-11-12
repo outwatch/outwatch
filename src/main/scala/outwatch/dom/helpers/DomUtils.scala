@@ -2,7 +2,7 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import org.scalajs.dom._
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.html
 import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
@@ -76,7 +76,7 @@ object DomUtils {
 
   private val valueSyncHook: (VNodeProxy, VNodeProxy) => Unit = (_, node) => {
     node.elm.foreach { elm =>
-      val input = elm.asInstanceOf[HTMLInputElement]
+      val input = elm.asInstanceOf[html.Input]
       if (input.value != input.getAttribute("value")) {
         input.value = input.getAttribute("value")
       }
