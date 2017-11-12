@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.{HTMLInputElement, MouseEvent}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.PropertyChecks
-import rxscalajs.{Observable, Subject}
+import rxscalajs.Subject
 
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
@@ -87,7 +87,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("child").innerHTML shouldBe ""
 
     val firstMessage = "First"
-    messages.asInstanceOf[Subject[String]].next(firstMessage)
+    messages.sink.observer.next(firstMessage)
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
@@ -101,7 +101,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("child").innerHTML shouldBe firstMessage
 
     val secondMessage = "Second"
-    messages.asInstanceOf[Subject[String]].next(secondMessage)
+    messages.sink.observer.next(secondMessage)
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -296,7 +296,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val node = createBoolHandler().flatMap { stream =>
       div(
         button(id := "input", tpe := "checkbox", click(true) --> stream),
-        span(id := "toggled", stream ?= (className := someClass))
+        span(id := "toggled", stream.source ?= (className := someClass))
       )
     }
 

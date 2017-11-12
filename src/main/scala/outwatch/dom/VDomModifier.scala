@@ -4,7 +4,7 @@ import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
 import scala.scalajs.js.|
-import rxscalajs.{Observable, Observer}
+import rxscalajs.Observer
 import snabbdom.{VNodeProxy, h}
 
 import scala.scalajs.js
