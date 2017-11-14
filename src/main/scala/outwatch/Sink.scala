@@ -48,9 +48,9 @@ sealed trait Sink[-T] extends Any {
 
 object Sink {
 
-  private[outwatch] final case class ObservableSink[-I, +O](
+  private[outwatch] case class ObservableSink[-I, +O](
     sink: Sink[I], source: Observable[O]
-  ) extends Observable[O](source.inner) with Sink[I] {
+  ) extends Observable[O](source.inner) with Sink[I]{
     override private[outwatch] def observer = sink.observer
   }
 

@@ -6,7 +6,7 @@ import outwatch.advanced._
 import rxscalajs.Observable
 
 
-trait HandlerOps[-I, +O] { self : Handler[I, O] =>
+trait HandlerOps[-I, +O] { self : Handler[I, O]  =>
 
   def mapSink[I2](f: I2 => I): Handler[I2, O] = Handler(redirectMap(f), self)
 
@@ -29,7 +29,7 @@ trait HandlerOps[-I, +O] { self : Handler[I, O] =>
 object Handler {
 
   private[outwatch] def apply[I, O](sink: Sink[I], source: Observable[O]): Handler[I, O] =
-    ObservableSink[I, O](sink, source)
+    new ObservableSink[I, O](sink, source) with HandlerOps[I, O]
 
   implicit class FilterSink[I, +O](handler: Handler[I, O]) {
     def filterSink(f: I => Boolean): Handler[I, O] = Handler(handler.redirect(_.filter(f)), handler)
