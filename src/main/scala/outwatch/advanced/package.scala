@@ -4,14 +4,14 @@ import rxscalajs.Observable
 
 package object advanced {
 
-  implicit class TransformPipe[-I, +O](pipe: Pipe[I, O]) {
+  implicit class TransformHandler[-I, +O](handler: Handler[I, O]) {
 
-    def transformSink[I2](f: Observable[I2] => Observable[I]): Pipe[I2, O] = Pipe(pipe.sink.redirect(f), pipe.source)
+    def transformSink[I2](f: Observable[I2] => Observable[I]): Handler[I2, O] = Handler(handler.redirect(f), handler)
 
-    def transformSource[O2](f: Observable[O] => Observable[O2]): Pipe[I, O2] = Pipe(pipe.sink, f(pipe.source))
+    def transformSource[O2](f: Observable[O] => Observable[O2]): Handler[I, O2] = Handler(handler, f(handler))
 
-    def transformPipe[I2, O2](f: Observable[I2] => Observable[I])(g: Observable[O] => Observable[O2]): Pipe[I2, O2] =
-      Pipe(pipe.sink.redirect(f), g(pipe.source))
+    def transformHandler[I2, O2](f: Observable[I2] => Observable[I])(g: Observable[O] => Observable[O2]): Handler[I2, O2] =
+      Handler(handler.redirect(f), g(handler))
   }
 
 }

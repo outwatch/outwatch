@@ -5,6 +5,7 @@ import org.scalajs.dom.html
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.PropertyChecks
 import rxscalajs.Subject
+import outwatch.dom._
 
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
@@ -20,7 +21,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   "EventStreams" should "emit and receive events correctly" in {
-    import outwatch.dom._
 
     val vtree = Handler.mouseEvents.flatMap { observable =>
 
@@ -42,7 +42,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be converted to a generic emitter correctly" in {
-    import outwatch.dom._
 
     val message = "ad"
 
@@ -51,7 +50,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
         span(id := "child", child <-- observable)
       )
     }
-
 
     OutWatch.render("#app", vtree).unsafeRunSync()
 
@@ -72,7 +70,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be converted to a generic stream emitter correctly" in {
-    import outwatch.dom._
 
     val messages = Handler.create[String]().unsafeRunSync()
 
@@ -87,7 +84,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("child").innerHTML shouldBe ""
 
     val firstMessage = "First"
-    messages.sink.observer.next(firstMessage)
+    messages.observer.next(firstMessage)
 
     val event = document.createEvent("Events")
     event.initEvent("click", canBubbleArg = true, cancelableArg = false)
@@ -101,7 +98,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("child").innerHTML shouldBe firstMessage
 
     val secondMessage = "Second"
-    messages.sink.observer.next(secondMessage)
+    messages.observer.next(secondMessage)
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -137,8 +134,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be bindable to a list of children" in {
-    import outwatch.dom._
-
 
     val state = Subject[Seq[VNode]]
 
@@ -184,8 +179,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to handle two events of the same type" in {
-    import outwatch.dom._
-
 
     val first = Handler.create[String]().unsafeRunSync()
 
@@ -212,7 +205,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to be transformed by a function in place" in {
-    import outwatch.dom._
 
     val number = 42
 
@@ -239,7 +231,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
 
   it should ".transform should work as expected" in {
-    import outwatch.dom._
 
     val numbers = Observable.of(1, 2)
 
@@ -267,7 +258,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to be transformed from strings" in {
-    import outwatch.dom._
 
     val number = 42
     val node = Handler.create[Int]().flatMap { stream =>
@@ -290,14 +280,13 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to toggle attributes with a boolean observer" in {
-    import outwatch.dom._
     import outwatch.util.SyntaxSugar._
 
     val someClass = "some-class"
     val node = Handler.create[Boolean]().flatMap { stream =>
       div(
         button(id := "input", tpe := "checkbox", click(true) --> stream),
-        span(id := "toggled", stream.source ?= (className := someClass))
+        span(id := "toggled", stream ?= (className := someClass))
       )
     }
 
@@ -314,8 +303,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
 
   it should "currectly be transformed from latest in observable" in {
-    import outwatch.dom._
-
 
     val node = Handler.create[String]().flatMap { submit =>
 

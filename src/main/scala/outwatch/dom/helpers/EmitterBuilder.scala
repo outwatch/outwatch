@@ -2,8 +2,8 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import org.scalajs.dom._
+import outwatch.Sink
 import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, UpdateHook}
-import outwatch.{Pipe, Sink}
 import rxscalajs.Observable
 
 
@@ -12,8 +12,6 @@ trait EmitterBuilder[E <: Event, O] extends Any {
   private[outwatch] def transform[T](tr: Observable[O] => Observable[T]): TransformingEmitterBuilder[E, T]
 
   def apply[T](value: T): TransformingEmitterBuilder[E, T] = map(_ => value)
-
-  def apply[T](latest: Pipe[_, T]): TransformingEmitterBuilder[E, T] = apply(latest.source)
 
   def apply[T](latest: Observable[T]): TransformingEmitterBuilder[E, T] = transform(_.withLatestFromWith(latest)((_, u) => u))
 

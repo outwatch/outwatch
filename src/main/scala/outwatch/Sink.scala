@@ -5,6 +5,7 @@ import rxscalajs.facade.SubjectFacade
 import rxscalajs.subscription.Subscription
 import rxscalajs.{Observable, Observer, Subject}
 
+
 import scala.scalajs.js
 
 sealed trait Sink[-T] extends Any {
@@ -47,6 +48,12 @@ sealed trait Sink[-T] extends Any {
 
 object Sink {
 
+  private[outwatch] final case class ObservableSink[-I, +O](
+    sink: Sink[I], source: Observable[O]
+  ) extends Observable[O](source.inner) with Sink[I] {
+    override private[outwatch] def observer = sink.observer
+  }
+
   private[outwatch] final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
     override private[outwatch] def observer = this
   }
@@ -79,6 +86,8 @@ object Sink {
     sink match {
       case subject@SubjectSink() =>
         Some(subject.ignoreElements.defaultIfEmpty(()))
+      case observable@ObservableSink(_, _) =>
+        Some(observable.ignoreElements.defaultIfEmpty(()))
       case ObserverSink(_) =>
         None
     }
@@ -171,5 +180,3 @@ object Sink {
 }
 
 final case class ObserverSink[-T](observer: Observer[T]) extends AnyVal with Sink[T]
-
-

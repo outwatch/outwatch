@@ -55,7 +55,6 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
       document.getElementById("plus").dispatchEvent(event)
       document.getElementById("counter").innerHTML shouldBe i.toString
     }
-
   }
 
   "A simple name application" should "work as intended" in {

@@ -28,7 +28,7 @@ trait Handlers {
   def createNumberHandler(defaultValues: Double*) = Handler.create[Double](defaultValues: _*)
 
   @deprecated("Use Handler.create[T] instead", "0.11.0")
-  def createHandler[T](defaultValues: T*): IO[Handler[T]] = Handler.create[T](defaultValues: _*)
+  def createHandler[T](defaultValues: T*): IO[Handler[T, T]] = Handler.create[T](defaultValues: _*)
 
 
   implicit class HandlerCreateHelpers(handler: Handler.type) {

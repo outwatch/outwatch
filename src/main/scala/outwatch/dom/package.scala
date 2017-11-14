@@ -16,7 +16,7 @@ package object dom extends Attributes with Tags with Handlers {
   type Sink[-A] = outwatch.Sink[A]
   val Sink = outwatch.Sink
 
-  type Handler[A] = outwatch.Handler[A]
+  type Handler[-I, +O] = outwatch.Handler[I, O]
   val Handler = outwatch.Handler
 
   implicit def stringNode(string: String): VDomModifier = IO.pure(StringNode(string))
