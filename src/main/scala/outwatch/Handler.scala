@@ -2,7 +2,6 @@ package outwatch
 
 import cats.effect.IO
 import outwatch.Sink.{ObservableSink, SubjectSink}
-import outwatch.advanced._
 import rxscalajs.Observable
 
 
@@ -23,6 +22,13 @@ trait HandlerOps[-I, +O] { self : Handler[I, O]  =>
   def collectHandler[I2, O2](f: PartialFunction[I2, I])(g: PartialFunction[O, O2]): Handler[I2, O2] = Handler(
     self.redirect(_.collect(f)), self.collect(g)
   )
+
+  def transformSink[I2](f: Observable[I2] => Observable[I]): Handler[I2, O] = Handler(self.redirect(f), self)
+
+  def transformSource[O2](f: Observable[O] => Observable[O2]): Handler[I, O2] = Handler(self, f(self))
+
+  def transformHandler[I2, O2](f: Observable[I2] => Observable[I])(g: Observable[O] => Observable[O2]): Handler[I2, O2] =
+    Handler(self.redirect(f), g(self))
 }
 
 
