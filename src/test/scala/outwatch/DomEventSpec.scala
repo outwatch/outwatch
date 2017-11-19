@@ -340,4 +340,28 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     document.getElementById("items").childNodes.length shouldBe 1
   }
+
+  "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
+    import outwatch.dom._
+
+    var docClicked = false
+    var winClicked = false
+    DomWindowEvents.onClick( ev => winClicked = true)
+    DomDocumentEvents.onClick( ev => docClicked = true)
+
+    val node =
+      div(
+        button(id := "input", tpe := "checkbox")
+      )
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val inputEvt = document.createEvent("HTMLEvents")
+    inputEvt.initEvent("click", true, false)
+
+    document.getElementById("input").dispatchEvent(inputEvt)
+
+    winClicked shouldBe true
+    docClicked shouldBe true
+  }
 }

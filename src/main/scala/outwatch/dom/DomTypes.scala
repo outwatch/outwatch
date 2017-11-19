@@ -9,6 +9,7 @@ import com.raquo.domtypes.generic.defs.props._
 import com.raquo.domtypes.generic.defs.styles._
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.jsdom.defs.eventProps._
+import rxscalajs.Observable
 import cats.effect.IO
 import org.scalajs.dom
 import helpers._
@@ -36,6 +37,12 @@ private[outwatch] object DomTypesBuilder {
       //of type boolean (not string) for toggling the presence of the attribute.
       case _: BooleanAsAttrPresenceCodec.type => identity
       case _ => codec.encode _
+    }
+  }
+
+  abstract class ObservableEventPropBuilder(target: dom.EventTarget) extends EventPropBuilder[Observable, dom.Event] {
+    override def eventProp[V <: dom.Event](key: String): Observable[V] = Observable.create { obs =>
+      target.addEventListener(key, obs.next _)
     }
   }
 
@@ -109,17 +116,20 @@ trait DomProps
 object DomProps extends DomProps
 
 trait DomEvents
-  extends MouseEventProps[SimpleEmitterBuilder]
-  with FormEventProps[SimpleEmitterBuilder]
-  with KeyboardEventProps[SimpleEmitterBuilder]
-  with ClipboardEventProps[SimpleEmitterBuilder]
-  with ErrorEventProps[SimpleEmitterBuilder]
+  extends HTMLElementEventProps[SimpleEmitterBuilder]
   with EventPropBuilder[SimpleEmitterBuilder, dom.Event] {
 
   override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =
     EmitterBuilder[V](key)
 }
 object DomEvents extends DomEvents
+
+object DomWindowEvents
+  extends ObservableEventPropBuilder(dom.window)
+  with WindowEventProps[Observable]
+object DomDocumentEvents
+  extends ObservableEventPropBuilder(dom.document)
+  with DocumentEventProps[Observable]
 
 trait DomStyles
   extends Styles[IO[Style]]
