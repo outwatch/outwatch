@@ -61,7 +61,7 @@ object Pipe {
   }
 
   def create[T]: IO[Pipe[T, T]] = IO {
-    val sink = SubjectSink[T]()
-    Pipe(sink, sink)
+    val subjectSink = SubjectSink[T]()
+    Pipe(subjectSink, subjectSink)
   }
 }
