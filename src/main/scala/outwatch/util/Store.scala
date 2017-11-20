@@ -1,7 +1,7 @@
 package outwatch.util
 
 import cats.effect.IO
-import outwatch.{Handler, Sink}
+import outwatch.{Pipe, Sink}
 import outwatch.dom._
 import outwatch.dom.helpers.STRef
 import rxscalajs.Observable
@@ -12,7 +12,7 @@ import scala.language.implicitConversions
 
 final case class Store[State, Action](initialState: State,
                                            reducer: (State, Action) => (State, Option[IO[Action]]),
-                                           handler: Handler[Action, Action]) {
+                                           handler: Pipe[Action, Action]) {
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
     .scan(initialState)(fold)
@@ -35,13 +35,13 @@ final case class Store[State, Action](initialState: State,
 }
 
 object Store {
-  implicit def toHandler[State, Action](store: Store[State, Action]): Handler[Action, State] =
-    Handler(store.sink, store.source)
+  implicit def toHandler[State, Action](store: Store[State, Action]): Pipe[Action, State] =
+    Pipe(store.sink, store.source)
 
   private val storeRef = STRef.empty
 
   def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode): IO[Unit] = for {
-    handler <- Handler.create[A]()
+    handler <- Pipe.create[A]()
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
     _ <- OutWatch.render(selector, root)

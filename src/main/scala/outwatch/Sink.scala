@@ -48,6 +48,7 @@ sealed trait Sink[-T] extends Any {
 
 object Sink {
 
+  // these classes need to be in this file, because Sink is sealed
   private[outwatch] case class ObservableSink[-I, +O](
     sink: Sink[I], source: Observable[O]
   ) extends Observable[O](source.inner) with Sink[I]{

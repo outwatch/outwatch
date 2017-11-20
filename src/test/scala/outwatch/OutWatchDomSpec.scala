@@ -184,7 +184,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be replaced if they contain changeables" in {
 
     def page(num: Int): VNode = {
-      val pageNum = Handler.create[Int](num).unsafeRunSync()
+      val pageNum = Pipe.create[Int](num).unsafeRunSync()
 
       div( id := "page",
         num match {
