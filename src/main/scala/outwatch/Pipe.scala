@@ -17,9 +17,9 @@ trait PipeOps[-I, +O] { self : Pipe[I, O]  =>
 
   def filterSource(f: O => Boolean): Pipe[I, O] = Pipe(self, self.filter(f))
 
-  def mapHandler[I2, O2](f: I2 => I)(g: O => O2): Pipe[I2, O2] = Pipe(self.redirectMap(f), self.map(g))
+  def mapPipe[I2, O2](f: I2 => I)(g: O => O2): Pipe[I2, O2] = Pipe(self.redirectMap(f), self.map(g))
 
-  def collectHandler[I2, O2](f: PartialFunction[I2, I])(g: PartialFunction[O, O2]): Pipe[I2, O2] = Pipe(
+  def collectPipe[I2, O2](f: PartialFunction[I2, I])(g: PartialFunction[O, O2]): Pipe[I2, O2] = Pipe(
     self.redirect(_.collect(f)), self.collect(g)
   )
 
@@ -27,7 +27,7 @@ trait PipeOps[-I, +O] { self : Pipe[I, O]  =>
 
   def transformSource[O2](f: Observable[O] => Observable[O2]): Pipe[I, O2] = Pipe(self, f(self))
 
-  def transformHandler[I2, O2](f: Observable[I2] => Observable[I])(g: Observable[O] => Observable[O2]): Pipe[I2, O2] =
+  def transformPipe[I2, O2](f: Observable[I2] => Observable[I])(g: Observable[O] => Observable[O2]): Pipe[I2, O2] =
     Pipe(self.redirect(f), g(self))
 }
 
@@ -41,11 +41,11 @@ object Pipe {
   }
 
   /**
-    * This function also allows you to create initial values for your newly created Handler.
+    * This function also allows you to create initial values for your newly created Pipe.
     * This is equivalent to calling `startWithMany` with the given values.
-    * @param seeds a sequence of initial values that the Handler will emit.
+    * @param seeds a sequence of initial values that the Pipe will emit.
     * @tparam T the type parameter of the elements
-    * @return the newly created Handler.
+    * @return the newly created Pipe.
     */
   def create[T](seeds: T*): IO[Pipe[T, T]] = create[T].map { handler =>
     if (seeds.nonEmpty) {
