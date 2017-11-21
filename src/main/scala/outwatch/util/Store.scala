@@ -35,13 +35,13 @@ final case class Store[State, Action](initialState: State,
 }
 
 object Store {
-  implicit def toHandler[State, Action](store: Store[State, Action]): Pipe[Action, State] =
+  implicit def toPipe[State, Action](store: Store[State, Action]): Pipe[Action, State] =
     Pipe(store.sink, store.source)
 
   private val storeRef = STRef.empty
 
   def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode): IO[Unit] = for {
-    handler <- Pipe.create[A]()
+    handler <- Handler.create[A]
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
     _ <- OutWatch.render(selector, root)

@@ -60,7 +60,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A simple name application" should "work as intended" in {
     val greetStart = "Hello ,"
 
-    val node = Handler.create[String]().flatMap { nameHandler =>
+    val node = Handler.create[String].flatMap { nameHandler =>
       div(
         label("Name:"),
         input(id := "input", inputType := "text", inputString --> nameHandler),
@@ -95,7 +95,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   "A component" should "be referential transparent" in {
 
     def component() = {
-      Handler.create[String]().flatMap { handler =>
+      Handler.create[String].flatMap { handler =>
         div(
           button(click("clicked") --> handler),
           div(`class` := "label", child <-- handler)
@@ -134,7 +134,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
     def TextFieldComponent(labelText: String, outputStream: Sink[String]) = for {
 
-      textFieldStream <- Handler.create[String]()
+      textFieldStream <- Handler.create[String]
       clickStream <- Handler.mouseEvents
       keyStream <- Handler.keyboardEvents
 
@@ -168,8 +168,8 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     }
 
     val vtree = for {
-      inputHandler <- Handler.create[String]()
-      deleteHandler <- Handler.create[String]()
+      inputHandler <- Handler.create[String]
+      deleteHandler <- Handler.create[String]
 
       adds = inputHandler
         .map(addToList)

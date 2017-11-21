@@ -1,12 +1,10 @@
 package outwatch
 
 import cats.effect.IO
-import outwatch.Sink.{ObservableSink, SubjectSink}
 import outwatch.dom.Observable
 
 object Handler {
-  private[outwatch] def apply[T](sink: Sink[T], source: Observable[T]): Handler[T] =
-    new ObservableSink[T, T](sink, source)
+  private[outwatch] def apply[T](sink: Sink[T], source: Observable[T]): Handler[T] = Pipe(sink, source)
 
   /**
     * This function also allows you to create initial values for your newly created Handler.

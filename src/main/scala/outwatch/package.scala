@@ -38,7 +38,7 @@ package object outwatch {
     def filterSink(f: I => Boolean): Pipe[I, O] = Pipe(self.redirect(_.filter(f)), self)
   }
 
-  implicit class HandlerOps[T](val self: Pipe[T, T]) extends AnyVal {
+  implicit class HandlerOps[T](val self: Handler[T]) extends AnyVal {
 
     def imap[S](read: T => S)(write: S => T): Handler[S] = self.mapPipe(write)(read)
 

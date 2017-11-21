@@ -71,9 +71,9 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
   it should "be converted to a generic stream emitter correctly" in {
 
-    val messages = Handler.create[String]().unsafeRunSync()
+    val messages = Handler.create[String].unsafeRunSync()
 
-    val vtree = Handler.create[String]().flatMap { stream =>
+    val vtree = Handler.create[String].flatMap { stream =>
       div(id := "click", click(messages) --> stream,
         span(id := "child", child <-- stream)
       )
@@ -180,9 +180,9 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
   it should "be able to handle two events of the same type" in {
 
-    val first = Handler.create[String]().unsafeRunSync()
+    val first = Handler.create[String].unsafeRunSync()
 
-    val second = Handler.create[String]().unsafeRunSync()
+    val second = Handler.create[String].unsafeRunSync()
 
     val messages = ("Hello", "World")
 
@@ -210,7 +210,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = Handler.create[(MouseEvent, Int)]().flatMap { stream =>
+    val node = Handler.create[(MouseEvent, Int)].flatMap { stream =>
       div(
         button(id := "click", click.map(toTuple) --> stream),
         span(id := "num", child <-- stream.map(_._2))
@@ -236,7 +236,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
 
-    val node = Handler.create[Int]().flatMap { stream =>
+    val node = Handler.create[Int].flatMap { stream =>
 
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
@@ -260,7 +260,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   it should "be able to be transformed from strings" in {
 
     val number = 42
-    val node = Handler.create[Int]().flatMap { stream =>
+    val node = Handler.create[Int].flatMap { stream =>
 
       div(
         button(id := "input", inputString(number) --> stream),
@@ -283,7 +283,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     import outwatch.util.SyntaxSugar._
 
     val someClass = "some-class"
-    val node = Handler.create[Boolean]().flatMap { stream =>
+    val node = Handler.create[Boolean].flatMap { stream =>
       div(
         button(id := "input", tpe := "checkbox", click(true) --> stream),
         span(id := "toggled", stream ?= (className := someClass))
@@ -304,11 +304,11 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
   it should "currectly be transformed from latest in observable" in {
 
-    val node = Handler.create[String]().flatMap { submit =>
+    val node = Handler.create[String].flatMap { submit =>
 
       val state = submit.scan(List.empty[String])((l, s) => l :+ s)
 
-      Handler.create[String]().flatMap { stream =>
+      Handler.create[String].flatMap { stream =>
         div(
           input(id := "input", tpe := "text", inputString --> stream),
           button(id := "submit", click(stream) --> submit),

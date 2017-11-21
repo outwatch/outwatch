@@ -30,7 +30,7 @@ class SnabbdomSpec extends UnitSpec {
   it should "correctly patch nodes with keys" in {
     import outwatch.dom._
 
-    val clicks = Pipe.create[Int](1).unsafeRunSync()
+    val clicks = Handler.create[Int](1).unsafeRunSync()
     val nodes = clicks.map { i =>
       div(
         dom.key := s"key-$i",
