@@ -7,7 +7,6 @@ import outwatch.dom._
 import rxscalajs.Observable
 
 import scala.language.implicitConversions
-import outwatch.dom.StringNode
 
 trait ValueBuilder[T] extends Any {
   protected def attributeName: String
@@ -53,13 +52,8 @@ object KeyBuilder {
 }
 
 object ChildStreamReceiverBuilder {
-  def <--[T <: Any](valueStream: Observable[T]): IO[ChildStreamReceiver] = {
-    IO.pure(ChildStreamReceiver(valueStream.map(anyToVNode)))
-  }
-
-  private val anyToVNode: Any => VNode = {
-    case vn: IO[_] => vn.asInstanceOf[VNode]
-    case any => IO.pure(StringNode(any.toString))
+  def <--[T](valueStream: Observable[T])(implicit conv: T => VNode): IO[ChildStreamReceiver] = {
+    IO.pure(ChildStreamReceiver(valueStream.map(conv)))
   }
 }
 
