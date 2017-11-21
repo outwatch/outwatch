@@ -137,7 +137,7 @@ object patch {
 
   def apply(firstNode: VNodeProxy, vNode: VNodeProxy): Unit = p(firstNode,vNode)
 
-  def apply(firstNode: org.scalajs.dom.raw.Element, vNode: VNodeProxy): Unit = p(firstNode,vNode)
+  def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): Unit = p(firstNode,vNode)
 }
 
 @js.native

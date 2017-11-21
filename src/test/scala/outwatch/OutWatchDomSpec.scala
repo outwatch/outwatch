@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import org.scalajs.dom.document
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
+import org.scalajs.dom.html
 import org.scalatest.BeforeAndAfterEach
 import outwatch.dom.{StringNode, _}
 import outwatch.dom.helpers._
@@ -184,7 +184,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "be replaced if they contain changeables" in {
 
     def page(num: Int): VNode = {
-      val pageNum = createHandler[Int](num).unsafeRunSync()
+      val pageNum = Handler.create[Int](num).unsafeRunSync()
 
       div( id := "page",
         num match {
@@ -303,7 +303,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     DomUtils.render(node, vtree).unsafeRunSync()
 
-    val field = document.getElementById("input").asInstanceOf[HTMLInputElement]
+    val field = document.getElementById("input").asInstanceOf[html.Input]
 
     field.value shouldBe ""
 
@@ -432,13 +432,13 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     DomUtils.render(node, vNode).unsafeRunSync()
 
     otherMessages.next("red")
-    node.children(0).asInstanceOf[HTMLElement].style.color shouldBe "red"
+    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
     messages.next("blue") // should be ignored
-    node.children(0).asInstanceOf[HTMLElement].style.color shouldBe "red"
+    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
     otherMessages.next("green")
-    node.children(0).asInstanceOf[HTMLElement].style.color shouldBe "green"
+    node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
   }
 
 }

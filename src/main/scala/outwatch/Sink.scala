@@ -1,10 +1,10 @@
 package outwatch
 
 import cats.effect.IO
-import outwatch.dom.Handler
 import rxscalajs.facade.SubjectFacade
 import rxscalajs.subscription.Subscription
 import rxscalajs.{Observable, Observer, Subject}
+
 
 import scala.scalajs.js
 
@@ -47,12 +47,16 @@ sealed trait Sink[-T] extends Any {
 }
 
 object Sink {
-  private final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
-    override private[outwatch] def observer = this
+
+  // these classes need to be in this file, because Sink is sealed
+  private[outwatch] case class ObservableSink[-I, +O](
+    sink: Sink[I], source: Observable[O]
+  ) extends Observable[O](source.inner) with Sink[I]{
+    override private[outwatch] def observer = sink.observer
   }
-  private final case class ObservableSink[T]
-  (oldSink: Sink[T], stream: Observable[T]) extends Observable[T](stream.inner) with Sink[T] {
-    override private[outwatch] def observer = oldSink.observer
+
+  private[outwatch] final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
+    override private[outwatch] def observer = this
   }
 
   /**
@@ -78,27 +82,6 @@ object Sink {
     sink
   }
 
-  /**
-    * Creates a Handler that is both Observable and Sink.
-    * An Observable with Sink is an Observable that can also receive Events, i.e. it’s both a Source and a Sink of events.
-    * If you’re familiar with Rx, they’re very similar to Subjects.
-    * This function also allows you to create initial values for your newly created Handler.
-    * This is equivalent to calling `startWithMany` with the given values.
-    * @param seeds a sequence of initial values that the Handler will emit.
-    * @tparam T the type parameter of the elements
-    * @return the newly created Handler.
-    */
-  def createHandler[T](seeds: T*): IO[Handler[T]] = IO {
-    val handler = new SubjectSink[T]
-
-    if (seeds.nonEmpty) {
-      ObservableSink[T](handler, handler.startWithMany(seeds: _*))
-    }
-    else {
-      handler
-    }
-  }
-
 
   private def completionObservable[T](sink: Sink[T]): Option[Observable[Unit]] = {
     sink match {
@@ -122,7 +105,7 @@ object Sink {
     * @return the resulting sink, that will forward the values
     */
   def redirect[T,R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
-    val forward = Sink.createHandler[R]().unsafeRunSync()
+    val forward = SubjectSink[R]()
 
     completionObservable(sink)
       .fold(project(forward))(completed => project(forward).takeUntil(completed))
@@ -144,8 +127,8 @@ object Sink {
     * @return the two resulting sinks, that will forward the values
     */
   def redirect2[T,U,R](sink: Sink[T])(project: (Observable[R], Observable[U]) => Observable[T]): (Sink[R], Sink[U]) = {
-    val r = Sink.createHandler[R]().unsafeRunSync()
-    val u = Sink.createHandler[U]().unsafeRunSync()
+    val r = SubjectSink[R]()
+    val u = SubjectSink[U]()
 
     completionObservable(sink)
       .fold(project(r, u))(completed => project(r, u).takeUntil(completed))
@@ -170,9 +153,9 @@ object Sink {
   def redirect3[T,U,V,R](sink: Sink[T])
                        (project: (Observable[R], Observable[U], Observable[V]) => Observable[T])
                        :(Sink[R], Sink[U], Sink[V]) = {
-    val r = Sink.createHandler[R]().unsafeRunSync()
-    val u = Sink.createHandler[U]().unsafeRunSync()
-    val v = Sink.createHandler[V]().unsafeRunSync()
+    val r = SubjectSink[R]()
+    val u = SubjectSink[U]()
+    val v = SubjectSink[V]()
 
     completionObservable(sink)
       .fold(project(r, u, v))(completed => project(r, u, v).takeUntil(completed))
@@ -198,5 +181,3 @@ object Sink {
 }
 
 final case class ObserverSink[-T](observer: Observer[T]) extends AnyVal with Sink[T]
-
-

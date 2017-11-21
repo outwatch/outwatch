@@ -1,7 +1,7 @@
 package outwatch.util
 
 import cats.effect.IO
-import outwatch.Sink
+import outwatch.{Pipe, Sink}
 import outwatch.dom._
 import outwatch.dom.helpers.STRef
 import rxscalajs.Observable
@@ -12,7 +12,7 @@ import scala.language.implicitConversions
 
 final case class Store[State, Action](initialState: State,
                                            reducer: (State, Action) => (State, Option[IO[Action]]),
-                                           handler: Observable[Action] with Sink[Action]) {
+                                           handler: Pipe[Action, Action]) {
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
     .scan(initialState)(fold)
@@ -35,19 +35,19 @@ final case class Store[State, Action](initialState: State,
 }
 
 object Store {
-  implicit def toSink[Action](store: Store[_, Action]): Sink[Action] = store.sink
-  implicit def toSource[State](store: Store[State, _]): Observable[State] = store.source
+  implicit def toPipe[State, Action](store: Store[State, Action]): Pipe[Action, State] =
+    Pipe(store.sink, store.source)
 
   private val storeRef = STRef.empty
 
   def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode): IO[Unit] = for {
-    handler <- createHandler[A]()
+    handler <- Handler.create[A]
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
     _ <- OutWatch.render(selector, root)
   } yield ()
 
-  def getStore[S, A]: IO[Store[S, A]] = 
+  def getStore[S, A]: IO[Store[S, A]] =
     storeRef.asInstanceOf[STRef[Store[S, A]]].getOrThrow(NoStoreException)
 
   private object NoStoreException extends
