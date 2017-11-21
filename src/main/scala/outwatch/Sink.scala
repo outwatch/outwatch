@@ -55,12 +55,6 @@ object Sink {
     override private[outwatch] def observer = sink.observer
   }
 
-  private[outwatch] case class ObservableSinkHandler[T](
-                                                       sink: Sink[T], source: Observable[T]
-                                                     ) extends Observable[T](source.inner) with Sink[T]{
-    override private[outwatch] def observer = sink.observer
-  }
-
   private[outwatch] final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
     override private[outwatch] def observer = this
   }
@@ -94,8 +88,6 @@ object Sink {
       case subject@SubjectSink() =>
         Some(subject.ignoreElements.defaultIfEmpty(()))
       case observable@ObservableSink(_, _) =>
-        Some(observable.ignoreElements.defaultIfEmpty(()))
-      case observable@ObservableSinkHandler(_, _) =>
         Some(observable.ignoreElements.defaultIfEmpty(()))
       case ObserverSink(_) =>
         None
