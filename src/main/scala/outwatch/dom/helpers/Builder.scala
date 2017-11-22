@@ -28,6 +28,11 @@ final class PropertyBuilder[T](val attributeName: String) extends AnyVal with Va
   @inline protected def assign(value: T) = Prop(attributeName, value.toString)
 }
 
+
+final class BoolPropertyBuilder(val attributeName: String) extends AnyVal with ValueBuilder[Boolean] {
+  @inline protected def assign(value: Boolean) = Prop(attributeName, value)
+}
+
 final class StyleBuilder(val attributeName: String) extends AnyVal with ValueBuilder[String] {
   @inline protected def assign(value: String) = Style(attributeName, value)
 }
