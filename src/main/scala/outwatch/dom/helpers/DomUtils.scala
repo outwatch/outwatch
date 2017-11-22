@@ -165,7 +165,7 @@ object DomUtils {
         emitters = sm.emitters ++ sf.emitters,
         receivers = sm.receivers ++ sf.receivers,
         properties = sm.properties ++ sf.properties,
-        vNodes = sm.vNodes ++ sf.vNodes,
+        vNodes = sm.vNodes ++ sf.vNodes
       )
     case (EmptyVDomModifier, sf) => sf
   }
