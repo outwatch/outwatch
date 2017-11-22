@@ -61,15 +61,23 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Emitter("click", _ => ()),
       new StringNode("Test"),
       div().unsafeRunSync(),
+      CompositeVDomModifier(
+        Seq(
+          div(),
+          Attributes.`class` := "blue",
+          Attributes.click(1) --> Sink.create[Int](_ => IO.pure(())),
+          Attributes.hidden <-- Observable.of(false)
+        )
+      ),
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
     val DomUtils.SeparatedModifiers(emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers)
 
-    emitters.length shouldBe 1
-    receivers.length shouldBe 1
-    vNodes.length shouldBe 2
-    properties.length shouldBe 1
+    emitters.length shouldBe 2
+    receivers.length shouldBe 2
+    vNodes.length shouldBe 3
+    properties.length shouldBe 2
   }
 
   it should "be separated correctly with children" in {

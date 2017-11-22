@@ -158,6 +158,15 @@ object DomUtils {
     case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
     case (vn: VNode_, sf) => sf.copy(vNodes = vn :: sf.vNodes)
+    case (vn: CompositeVDomModifier, sf) =>
+      val modifiers = vn.modifiers.map(_.unsafeRunSync())
+      val sm = separateModifiers(modifiers)
+      sf.copy(
+        emitters = sm.emitters ++ sf.emitters,
+        receivers = sm.receivers ++ sf.receivers,
+        properties = sm.properties ++ sf.properties,
+        vNodes = sm.vNodes ++ sf.vNodes,
+      )
     case (EmptyVDomModifier, sf) => sf
   }
 

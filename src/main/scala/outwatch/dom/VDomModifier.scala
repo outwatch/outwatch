@@ -12,9 +12,12 @@ import collection.breakOut
 
 sealed trait VDomModifier_ extends Any
 
+case class CompositeVDomModifier(modifiers: Seq[VDomModifier]) extends VDomModifier_
+
 case class Emitter(eventType: String, trigger: Event => Unit) extends VDomModifier_
 
 sealed trait Property extends VDomModifier_
+
 sealed trait Attribute extends Property {
   val title: String
 }
