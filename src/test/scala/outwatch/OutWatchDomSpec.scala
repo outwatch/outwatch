@@ -19,22 +19,6 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     document.body.innerHTML = ""
   }
 
-  "Receivers" should "be separated correctly" in {
-    val receivers = Seq(
-      AttributeStreamReceiver("hidden",Observable.of()),
-      AttributeStreamReceiver("disabled",Observable.of()),
-      ChildStreamReceiver(Observable.of()),
-      ChildrenStreamReceiver(Observable.of())
-    )
-
-    val DomUtils.SeparatedReceivers(child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
-
-    child$.length shouldBe 1
-    children$.length shouldBe 1
-    attribute$.length shouldBe 2
-
-  }
-
   "Properties" should "be separated correctly" in {
     val properties = Seq(
       Attribute("hidden", "true"),
@@ -93,15 +77,10 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
-    val DomUtils.SeparatedReceivers(child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
-
     emitters.length shouldBe 3
-    child$.length shouldBe 0
-    children$.length shouldBe 1
+    receivers.length shouldBe 2
     properties.length shouldBe 1
-    attribute$.length shouldBe 2
-    children.length shouldBe 0
-
+    children.length shouldBe 1
   }
 
   it should "be separated correctly with children and properties" in {
@@ -120,19 +99,16 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
-    val DomUtils.SeparatedReceivers(child$, children$, attribute$) = DomUtils.separateReceivers(receivers)
 
     val DomUtils.SeparatedProperties(inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
 
     emitters.length shouldBe 3
-    child$.length shouldBe 0
-    children$.length shouldBe 1
     inserts.length shouldBe 1
     deletes.length shouldBe 0
     updates.length shouldBe 1
     attributes.length shouldBe 1
-    attribute$.length shouldBe 2
-    children.length shouldBe 0
+    receivers.length shouldBe 2
+    children.length shouldBe 1
     keys.length shouldBe 0
 
   }
@@ -299,8 +275,6 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   it should "change the value of a textfield" in {
-
-
     val messages = Subject[String]
     val vtree = div(
       input(outwatch.dom.value <-- messages, id := "input")
@@ -324,7 +298,69 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     messages.next(message2)
 
     field.value shouldBe message2
+  }
 
+  it should "render child nodes in correct order" in {
+    val messagesA = Subject[String]
+    val messagesB = Subject[String]
+    val vNode = div(
+      span("A"),
+      child <-- messagesA.map(span(_)),
+      span("B"),
+      child <-- messagesB.map(span(_))
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    messagesA.next("1")
+    messagesB.next("2")
+
+    node.innerHTML shouldBe "<div><span>A</span><span>1</span><span>B</span><span>2</span></div>"
+  }
+
+  it should "render child string-nodes in correct order" in {
+    val messagesA = Subject[String]
+    val messagesB = Subject[String]
+    val vNode = div(
+      "A",
+      child <-- messagesA,
+      "B",
+      child <-- messagesB
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    messagesA.next("1")
+    messagesB.next("2")
+
+    node.innerHTML shouldBe "<div>A1B2</div>"
+  }
+
+  it should "render child string-nodes in correct order, mixed with children" in {
+    val messagesA = Subject[String]
+    val messagesB = Subject[String]
+    val messagesC = Subject[Seq[VNode]]
+    val vNode = div(
+      "A",
+      child <-- messagesA,
+      children <-- messagesC,
+      "B",
+      child <-- messagesB
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    messagesA.next("1")
+    messagesB.next("2")
+    messagesC.next(Seq(div("5"), div("7")))
+
+    node.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
   }
 
   it should "update merged nodes children correctly" in {
@@ -340,10 +376,10 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
 
     messages.next(Seq(div("message")))
-    node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
+    node.children(0).innerHTML shouldBe "<div>message</div><div>otherMessage</div>"
 
     otherMessages.next(Seq(div("genus")))
-    node.children(0).innerHTML shouldBe "<div>genus</div>"
+    node.children(0).innerHTML shouldBe "<div>message</div><div>genus</div>"
   }
 
   it should "update merged nodes separate children correctly" in {
