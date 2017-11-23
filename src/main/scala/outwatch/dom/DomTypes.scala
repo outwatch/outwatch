@@ -27,16 +27,13 @@ private[outwatch] object DomTypesBuilder {
     type Attribute[T, _] = AttributeBuilder[T]
     type Property[T, _] = PropertyBuilder[T]
 
-    def encodeProperty[V](codec: Codec[V, _]): V => String =
-      // codec.encode may encode to null values
-      (codec.encode _) andThen (v => if (v != null) v.toString else null)
-
-    def encodeAttribute[V](codec: Codec[V, String]): V => Attribute.Value = codec match {
+    def encode[V](codec: Codec[V, _]): V => Attribute.Value = codec match {
       //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
       //encodes true as "" and false as null, whereas snabbdom needs true/false
       //of type boolean (not string) for toggling the presence of the attribute.
       case _: BooleanAsAttrPresenceCodec.type => identity
-      case _ => codec.encode _
+      // codec.encode may encode to null values
+      case _ => (codec.encode _) andThen (v => if (v != null) v.toString else null)
     }
   }
 
@@ -101,8 +98,8 @@ trait DomReflectedAttrs
     attrCodec: Codec[V, String],
     propCodec: Codec[V, DomPropV]
   ): AttributeBuilder[V] =
-    new AttributeBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
-    //or: new PropertyBuilder(propKey, CodecBuilder.encodeProperty(propCodec))
+    new AttributeBuilder(attrKey, CodecBuilder.encode(attrCodec))
+    //or: new PropertyBuilder(propKey, CodecBuilder.encode(propCodec))
 }
 object DomReflectedAttrs extends DomReflectedAttrs
 
@@ -111,7 +108,7 @@ trait DomProps
   with PropBuilder[CodecBuilder.Property] {
 
   override protected def prop[V, DomV](key: String, codec: Codec[V, DomV]): PropertyBuilder[V] =
-    new PropertyBuilder(key, CodecBuilder.encodeProperty(codec))
+    new PropertyBuilder(key, CodecBuilder.encode(codec))
 }
 object DomProps extends DomProps
 
