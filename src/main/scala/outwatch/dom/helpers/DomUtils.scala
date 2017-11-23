@@ -2,47 +2,21 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import org.scalajs.dom._
+import org.scalajs.dom.html
 import outwatch.dom._
 import rxscalajs.Observable
+import rxscalajs.subjects.BehaviorSubject
 import rxscalajs.subscription.Subscription
 import snabbdom._
-import collection.breakOut
 
+import collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 
 object DomUtils {
 
-  private case class Changeables(attributeStreamReceivers: Seq[AttributeStreamReceiver],
-                                 childrenStreamReceivers: Seq[ChildrenStreamReceiver],
-                                 childStreamReceivers: Seq[ChildStreamReceiver]) {
-    lazy val observable: Observable[(Seq[Attribute], Seq[VNode])] = {
-      val childReceivers: Observable[Seq[VNode]] = Observable.combineLatest(
-        childStreamReceivers.map(_.childStream)
-      )
-
-      val childrenReceivers = childrenStreamReceivers.lastOption.map(_.childrenStream)
-
-      // only use last encountered observable per attribute
-      val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
-        attributeStreamReceivers
-          .groupBy(_.attribute)
-          .values
-          .map(_.last.attributeStream)(breakOut)
-      )
-
-      val allChildReceivers = childrenReceivers.getOrElse(childReceivers)
-
-      attributeReceivers.combineLatest(allChildReceivers)
-    }
-
-    lazy val nonEmpty: Boolean = {
-      attributeStreamReceivers.nonEmpty || childrenStreamReceivers.nonEmpty || childStreamReceivers.nonEmpty
-    }
-  }
-
-  private def createDataObject(changeables: Changeables,
+  private def createDataObject(changeables: SeparatedReceivers,
                                properties: Seq[Property],
                                eventHandlers: js.Dictionary[js.Function1[Event, Unit]]): DataObject = {
 
@@ -66,7 +40,7 @@ object DomUtils {
     DataObject.create(attrs, props, style, handlers, insertHook, deleteHook, updateHook, key)
   }
 
-  private def createReceiverDataObject(changeables: Changeables,
+  private def createReceiverDataObject(changeables: SeparatedReceivers,
                                        properties: Seq[Property],
                                        eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
@@ -92,21 +66,24 @@ object DomUtils {
   }
 
 
-  private def createInsertHook(changables: Changeables,
+  private def createInsertHook(changables: SeparatedReceivers,
                                subscriptionRef: STRef[Subscription],
                                hooks: Seq[InsertHook]) = (proxy: VNodeProxy) => {
 
-    def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = changable match {
-      case (attributes, nodes) =>
-        val updatedObj = proxy.data.withUpdatedAttributes(attributes)
-        h(proxy.sel, updatedObj, proxy.children ++ (nodes.map(_.unsafeRunSync().asProxy)(breakOut):js.Array[VNodeProxy]))
+    def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = {
+      val (attributes, nodes) = changable
+      h(
+        proxy.sel,
+        proxy.data.withUpdatedAttributes(attributes),
+        if (nodes.isEmpty) proxy.children else nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy]
+      )
     }
 
     val subscription = changables.observable
       .map(toProxy)
       .startWith(proxy)
       .pairwise
-      .subscribe(tuple => patch(tuple._1, tuple._2), console.error(_))
+      .subscribe({ case (prev, crt) => patch(prev, crt) }, console.error(_))
 
     subscriptionRef.put(subscription).unsafeRunSync()
 
@@ -122,9 +99,9 @@ object DomUtils {
 
   private[outwatch] final case class SeparatedModifiers(
     emitters: List[Emitter] = Nil,
-    receivers: List[Receiver] = Nil,
+    attributeReceivers: List[AttributeStreamReceiver] = Nil,
     properties: List[Property] = Nil,
-    vNodes: List[VNode_] = Nil
+    vNodes: List[ChildVNode] = Nil
   )
   private[outwatch] def separateModifiers(args: Seq[VDomModifier_]): SeparatedModifiers = {
     args.foldRight(SeparatedModifiers())(separatorFn)
@@ -132,15 +109,15 @@ object DomUtils {
 
   private[outwatch] def separatorFn(mod: VDomModifier_, res: SeparatedModifiers): SeparatedModifiers = (mod, res) match {
     case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
-    case (rc: Receiver, sf) => sf.copy(receivers = rc :: sf.receivers)
+    case (rc: AttributeStreamReceiver, sf) => sf.copy(attributeReceivers = rc :: sf.attributeReceivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
-    case (vn: VNode_, sf) => sf.copy(vNodes = vn :: sf.vNodes)
+    case (vn: ChildVNode, sf) => sf.copy(vNodes = vn :: sf.vNodes)
     case (vn: CompositeVDomModifier, sf) =>
       val modifiers = vn.modifiers.map(_.unsafeRunSync())
       val sm = separateModifiers(modifiers)
       sf.copy(
         emitters = sm.emitters ++ sf.emitters,
-        receivers = sm.receivers ++ sf.receivers,
+        attributeReceivers = sm.attributeReceivers ++ sf.attributeReceivers,
         properties = sm.properties ++ sf.properties,
         vNodes = sm.vNodes ++ sf.vNodes
       )
@@ -149,15 +126,37 @@ object DomUtils {
 
 
   private[outwatch] final case class SeparatedReceivers(
-    childStream: List[ChildStreamReceiver] = Nil,
-    childrenStream: List[ChildrenStreamReceiver] = Nil,
-    attributeStream: List[AttributeStreamReceiver] = Nil
-  )
-  private[outwatch] def separateReceivers(receivers: Seq[Receiver]): SeparatedReceivers = {
-    receivers.foldRight(SeparatedReceivers()) {
-      case (cr: ChildStreamReceiver, sr) => sr.copy(childStream = cr :: sr.childStream)
-      case (cs: ChildrenStreamReceiver, sr) => sr.copy(childrenStream = cs :: sr.childrenStream)
-      case (ar: AttributeStreamReceiver, sr) => sr.copy(attributeStream = ar :: sr.attributeStream)
+    childNodes: List[ChildVNode] = Nil,
+    hasNodeStreams: Boolean = false,
+    attributeStreamReceivers: List[AttributeStreamReceiver] = Nil
+  ) {
+
+    lazy val observable: Observable[(Seq[Attribute], Seq[VNode])] = {
+
+      val childStreamReceivers = if (hasNodeStreams) {
+        childNodes.foldRight(Observable.of(List.empty[VNode])) {
+          case (vn: VNode_, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
+          case (csr: ChildStreamReceiver, obs) => obs.combineLatestWith(csr.childStream)((nodes, n) => n :: nodes)
+          case (csr: ChildrenStreamReceiver, obs) =>
+            obs.combineLatestWith(csr.childrenStream.startWith(Seq.empty))((nodes, n) => n.toList ++ nodes)
+        }
+      } else {
+        Observable.of(Seq.empty)
+      }
+
+      // only use last encountered observable per attribute
+      val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
+        attributeStreamReceivers
+          .groupBy(_.attribute)
+          .values
+          .map(_.last.attributeStream)(breakOut)
+      )
+
+      attributeReceivers.combineLatest(childStreamReceivers)
+    }
+
+    lazy val nonEmpty: Boolean = {
+      attributeStreamReceivers.nonEmpty || hasNodeStreams
     }
   }
 
@@ -178,12 +177,22 @@ object DomUtils {
     }
   }
 
+
+  private final case class ChildrenNodes(
+    children: List[VNode_] = Nil,
+    hasStreams: Boolean = false
+  )
+  private def extractChildren(nodes: Seq[ChildVNode]): ChildrenNodes = nodes.foldRight(ChildrenNodes()) {
+    case (vn: VNode_, cn) => cn.copy(children = vn :: cn.children)
+    case (_, cn) => cn.copy(hasStreams = true)
+  }
+
   private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[VNode_], DataObject) = {
-    val SeparatedModifiers(emitters, receivers, properties, children) = separateModifiers(args)
+    val SeparatedModifiers(emitters, attributeReceivers, properties, nodes) = separateModifiers(args)
 
-    val SeparatedReceivers(childReceivers, childrenReceivers, attributeReceivers) = separateReceivers(receivers)
+    val ChildrenNodes(children, hasChildStreams) = extractChildren(nodes)
 
-    val changeables = Changeables(attributeReceivers, childrenReceivers, childReceivers)
+    val changeables = SeparatedReceivers(nodes, hasChildStreams, attributeReceivers)
 
     val eventHandlers = VDomProxy.emittersToSnabbDom(emitters)
 
