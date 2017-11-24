@@ -75,6 +75,7 @@ trait Attributes
   with Props
   with Events
   with Styles
+  with AttributesCompat
   with OutwatchAttributes
 object Attributes extends Attributes
 
@@ -89,7 +90,6 @@ object Attrs extends Attrs
 
 trait ReflectedAttrs
   extends reflectedAttrs.ReflectedAttrs[CodecBuilder.Attribute]
-  with ReflectedAttrsCompat[CodecBuilder.Attribute]
   with ReflectedAttrBuilder[CodecBuilder.Attribute] {
 
   override protected def reflectedAttr[V, DomPropV](

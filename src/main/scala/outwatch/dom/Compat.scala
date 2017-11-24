@@ -29,8 +29,30 @@ trait Handlers {
 
 object Handlers extends Handlers
 
-trait ReflectedAttrsCompat[RA[_, _]] { self: reflectedAttrs.ReflectedAttrs[RA] =>
-  lazy val `class`: RA[String, String] = className
+trait AttributesCompat {
+  lazy val `class` = className
 
-  lazy val `for`: RA[String, String] = forId
+  @deprecated("Use forId instead", "0.11.0")
+  lazy val `for` = forId
+
+  @deprecated("Use `type`, tpe or typ instead", "0.11.0")
+  lazy val inputType = tpe
+
+  @deprecated("Use styleAttr instead", "0.11.0")
+  lazy val style = styleAttr
+
+  @deprecated("Use contentAttr instead", "0.11.0")
+  lazy val content = contentAttr
+
+  @deprecated("Use listId instead", "0.11.0")
+  lazy val list = listId
+
+  @deprecated("Use onInputString instead", "0.11.0")
+  lazy val inputString = onInputString
+
+  @deprecated("Use onInputNumber instead", "0.11.0")
+  lazy val inputNumber = onInputNumber
+
+  @deprecated("Use onInputChecked instead", "0.11.0")
+  lazy val inputChecked = onInputChecked
 }
