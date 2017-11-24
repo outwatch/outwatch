@@ -13,25 +13,24 @@ import cats.effect.IO
 import org.scalajs.dom
 import helpers._
 
+import scala.language.implicitConversions
+
 private[outwatch] object DomTypesBuilder {
   type GenericVNode[T] = VNode_
 
   trait VNodeBuilder extends TagBuilder[GenericVNode, VNode_] {
     // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-    override def tag[Ref <: VNode_](tagName: String, void: Boolean): VNode_ =
-      VTree(tagName, Seq.empty)
+    override def tag[Ref <: VNode_](tagName: String, void: Boolean): VNode_ = VTree(tagName, Seq.empty)
   }
 
   object CodecBuilder {
     type Attribute[T, _] = AttributeBuilder[T]
     type Property[T, _] = PropertyBuilder[T]
 
-    def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = codec match {
-      //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
-      //encodes true as "" and false as null, whereas snabbdom needs true/false
-      //of type boolean (not string) for toggling the presence of the attribute.
-      case _: BooleanAsAttrPresenceCodec.type => identity
-      case _ => codec.encode _
+    // snabbdom needs true/false of type boolean (not string) for toggling the presence of the attribute.
+    def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = {
+      case b: Boolean => b
+      case v => codec.encode(v)
     }
   }
 
@@ -72,7 +71,7 @@ trait Attributes
   extends Attrs
   with ReflectedAttrs
   with Props
-  with EventProps
+  with Events
   with Styles
   with OutwatchAttributes
 object Attributes extends Attributes
@@ -82,7 +81,7 @@ trait Attrs
   with AttrBuilder[AttributeBuilder] {
 
   override protected def attr[V](key: String, codec: Codec[V, String]): AttributeBuilder[V] =
-    new AttributeBuilder(key, codec.encode _)
+    new AttributeBuilder(key, codec.encode)
 }
 object Attrs extends Attrs
 
@@ -111,19 +110,19 @@ trait Props
 }
 object Props extends Props
 
-trait EventProps
+trait Events
   extends HTMLElementEventProps[SimpleEmitterBuilder]
   with EventPropBuilder[SimpleEmitterBuilder, dom.Event] {
 
-  override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =
-    EmitterBuilder[V](key)
+  override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =  EmitterBuilder[V](key)
 }
-object EventProps extends EventProps
+object Events extends Events
 
-object DomWindowEvents
+object WindowEvents
   extends ObservableEventPropBuilder(dom.window)
   with WindowEventProps[Observable]
-object DomDocumentEvents
+
+object DocumentEvents
   extends ObservableEventPropBuilder(dom.document)
   with DocumentEventProps[Observable]
 

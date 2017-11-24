@@ -379,8 +379,8 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     var docClicked = false
     var winClicked = false
-    DomWindowEvents.onClick( ev => winClicked = true)
-    DomDocumentEvents.onClick( ev => docClicked = true)
+    WindowEvents.onClick( ev => winClicked = true)
+    DocumentEvents.onClick( ev => docClicked = true)
 
     val node =
       div(

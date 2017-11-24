@@ -3,7 +3,6 @@ package outwatch.dom
 import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
-import scala.scalajs.js.|
 import rxscalajs.Observer
 import snabbdom.{DataObject, VNodeProxy, h}
 

@@ -45,13 +45,13 @@ trait TypedInputEventProps {
   import org.scalajs.dom
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputChecked = EventProps.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
+  lazy val onInputChecked = Events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputNumber  = EventProps.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
+  lazy val onInputNumber  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputString  = EventProps.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
+  lazy val onInputString  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
 }
 
 trait AttributeHelpers {
