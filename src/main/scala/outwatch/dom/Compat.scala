@@ -55,4 +55,15 @@ trait AttributesCompat {
 
   @deprecated("Use onInputChecked instead", "0.11.0")
   lazy val inputChecked = onInputChecked
+
+  @deprecated("Use onClick instead", "0.11.0")
+  lazy val click = onClick
+
+  @deprecated("Use onKeyDown instead", "0.11.0")
+  lazy val keydown = onKeyDown
+}
+
+trait TagsCompat {
+  @deprecated("Use textArea instead", "0.11.0")
+  lazy val textarea = textArea
 }

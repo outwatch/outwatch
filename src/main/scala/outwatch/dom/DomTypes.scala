@@ -76,6 +76,7 @@ trait Attributes
   with Events
   with Styles
   with AttributesCompat
+  with TagsCompat
   with OutwatchAttributes
 object Attributes extends Attributes
 
