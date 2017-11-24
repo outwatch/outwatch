@@ -29,6 +29,7 @@ object AttributeBuilder {
 final class PropertyBuilder[T](val attributeName: String, encode: T => Attribute.Value = (t: T) => t.toString) extends ValueBuilder[T, Prop] {
   @inline protected def assign(value: T) = Prop(attributeName, encode(value))
 }
+
 object PropertyBuilder {
   implicit def toProperty(builder: PropertyBuilder[Boolean]): IO[Property] = IO.pure(builder assign true)
 }

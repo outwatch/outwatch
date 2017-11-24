@@ -341,6 +341,37 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("items").childNodes.length shouldBe 1
   }
 
+
+  "Boolean Props" should "be handled corectly" in {
+
+    val node = Handler.create[Boolean].flatMap { checkValue =>
+      div(
+        input(id := "checkbox", `type` := "Checkbox", checked <-- checkValue),
+        button(id := "on_button", onClick(true) --> checkValue, "On"),
+        button(id := "off_button", onClick(false) --> checkValue, "Off"),
+      )
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
+    val onButton = document.getElementById("on_button")
+    val offButton = document.getElementById("off_button")
+
+    checkbox.checked shouldBe false
+
+    val clickEvt = document.createEvent("Events")
+    clickEvt.initEvent("click", true, true)
+
+    onButton.dispatchEvent(clickEvt)
+
+    checkbox.checked shouldBe true
+
+    offButton.dispatchEvent(clickEvt)
+
+    checkbox.checked shouldBe false
+  }
+
   "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
     import outwatch.dom._
 
@@ -364,4 +395,5 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     winClicked shouldBe true
     docClicked shouldBe true
   }
+
 }

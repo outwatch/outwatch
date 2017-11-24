@@ -9,7 +9,6 @@ import com.raquo.domtypes.generic.defs.props._
 import com.raquo.domtypes.generic.defs.styles._
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.jsdom.defs.eventProps._
-import rxscalajs.Observable
 import cats.effect.IO
 import org.scalajs.dom
 import helpers._
@@ -32,6 +31,7 @@ private[outwatch] object DomTypesBuilder {
       //encodes true as "" and false as null, whereas snabbdom needs true/false
       //of type boolean (not string) for toggling the presence of the attribute.
       case _: BooleanAsAttrPresenceCodec.type => identity
+      case _: BooleanAsIsCodec.type => identity
       // codec.encode may encode to null values
       case _ => (codec.encode _) andThen (v => if (v != null) v.toString else null)
     }
