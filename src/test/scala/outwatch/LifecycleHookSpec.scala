@@ -59,7 +59,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch2 = false
     val sink2 = Sink.create((_: Element) => IO{switch2 = true})
 
-    val node = div(child <-- Observable.of(span(destroy --> sink)(destroy --> sink2), "Hasdasd"))
+    val node = div(child <-- Observable.of[VNode](span(destroy --> sink)(destroy --> sink2), "Hasdasd"))
 
     switch shouldBe false
     switch2 shouldBe false
@@ -76,7 +76,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch = false
     val sink = Sink.create((_: Element) => IO { switch = true })
 
-    val node = div(child <-- Observable.of(span(destroy --> sink), "Hasdasd"))
+    val node = div(child <-- Observable.of[VNode](span(destroy --> sink), "Hasdasd"))
 
     switch shouldBe false
 
