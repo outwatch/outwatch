@@ -37,22 +37,30 @@ class AttributeSpec extends UnitSpec {
 //     """input(data := "bar")""" shouldNot compile
 //   }
 
-  "custom attr/prop/style" should "correctly render" in {
+  "attr/prop/style" should "correctly render type" in {
     val node = input(
       attr("foo") := "foo",
       attr[Boolean]("boo", identity) := true,
       attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
       prop("bar") := "bar",
-      style("baz") := "baz"
+      prop("num") := 12,
+      style("baz") := "baz",
+      contentEditable := false,
+      autoComplete := false,
+      disabled := false
     ).map(_.asProxy).unsafeRunSync()
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "foo" -> "foo",
       "boo" -> true,
-      "yoo" -> "yes"
+      "yoo" -> "yes",
+      "contenteditable" -> "false",
+      "autocomplete" -> "off",
+      "disabled" -> false
     )
     node.data.props.toList should contain theSameElementsAs List(
-      "bar" -> "bar"
+      "bar" -> "bar",
+      "num" -> 12
     )
     node.data.style.toList should contain theSameElementsAs List(
       "baz" -> "baz"

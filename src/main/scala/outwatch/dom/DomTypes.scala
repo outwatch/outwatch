@@ -27,10 +27,12 @@ private[outwatch] object DomTypesBuilder {
     type Attribute[T, _] = AttributeBuilder[T]
     type Property[T, _] = PropertyBuilder[T]
 
-    // snabbdom needs true/false of type boolean (not string) for toggling the presence of the attribute.
-    def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = {
-      case b: Boolean => b
-      case v => codec.encode(v)
+    def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = codec match {
+      //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
+      //encodes true as "" and false as null, whereas snabbdom needs true/false
+      //of type boolean (not string) for toggling the presence of the attribute.
+      case _: BooleanAsAttrPresenceCodec.type => identity
+      case _ => codec.encode
     }
   }
 
@@ -81,7 +83,7 @@ trait Attrs
   with AttrBuilder[AttributeBuilder] {
 
   override protected def attr[V](key: String, codec: Codec[V, String]): AttributeBuilder[V] =
-    new AttributeBuilder(key, codec.encode)
+    new AttributeBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
 object Attrs extends Attrs
 
