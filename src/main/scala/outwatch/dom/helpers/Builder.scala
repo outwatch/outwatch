@@ -19,7 +19,7 @@ trait ValueBuilder[T, SELF <: Attribute] extends Any {
   }
 }
 
-final class AttributeBuilder[T](val attributeName: String, encode: T => Attr.Value = (t: T) => t.toString) extends ValueBuilder[T, Attr] {
+final class AttributeBuilder[T](val attributeName: String, encode: T => Attr.Value) extends ValueBuilder[T, Attr] {
   @inline protected def assign(value: T) = Attr(attributeName, encode(value))
 }
 
@@ -27,7 +27,7 @@ object AttributeBuilder {
   implicit def toAttribute(builder: AttributeBuilder[Boolean]): IO[Attribute] = IO.pure(builder assign true)
 }
 
-final class PropertyBuilder[T](val attributeName: String, encode: T => Prop.Value = (t: T) => t) extends ValueBuilder[T, Prop] {
+final class PropertyBuilder[T](val attributeName: String, encode: T => Prop.Value) extends ValueBuilder[T, Prop] {
   @inline protected def assign(value: T) = Prop(attributeName, encode(value))
 }
 

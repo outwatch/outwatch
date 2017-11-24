@@ -254,7 +254,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     import outwatch.dom._
 
     def boolBuilder(name: String) = new AttributeBuilder[Boolean](name, identity)
-    def stringBuilder(name: String) = new AttributeBuilder[Boolean](name)
+    def stringBuilder(name: String) = new AttributeBuilder[Boolean](name, _.toString)
     val vtree = div(
       boolBuilder("a"),
       boolBuilder("b") := true,
