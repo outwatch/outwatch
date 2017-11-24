@@ -6,6 +6,8 @@ import scalajs.js
 import org.scalajs.dom.document
 import org.scalajs.dom.html
 
+import Deprecated.IgnoreWarnings.initEvent
+
 class SnabbdomSpec extends UnitSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
     val message = "Hello World"
@@ -45,10 +47,10 @@ class SnabbdomSpec extends UnitSpec {
     OutWatch.render("#app", div(child <-- nodes)).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
     val btn = document.getElementById("btn")

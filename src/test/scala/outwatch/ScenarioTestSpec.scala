@@ -6,6 +6,8 @@ import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
 import outwatch.dom.helpers.DomUtils
 
+import Deprecated.IgnoreWarnings.initEvent
+
 class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
   override def afterEach(): Unit = {
     document.body.innerHTML = ""
@@ -43,7 +45,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     DomUtils.render(root, node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
     document.getElementById("counter").innerHTML shouldBe 0.toString
 
@@ -76,7 +78,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
 
 
     val evt = document.createEvent("HTMLEvents")
-    evt.initEvent("input", false, true)
+    initEvent(evt)("input", false, true)
     val name = "Luka"
 
     document.getElementById("input").asInstanceOf[html.Input].value = name
@@ -104,7 +106,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     }
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     val comp = component()
 
@@ -194,10 +196,10 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     DomUtils.render(root, vtree).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     val inputElement = document.getElementById("input").asInstanceOf[html.Input]
     val submitButton = document.getElementById("submit")

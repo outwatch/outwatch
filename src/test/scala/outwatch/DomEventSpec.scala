@@ -6,6 +6,8 @@ import org.scalatest.prop.PropertyChecks
 import rxscalajs.Subject
 import outwatch.dom._
 
+import Deprecated.IgnoreWarnings.initEvent
+
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
   override def beforeEach(): Unit = {
@@ -34,7 +36,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("btn").getAttribute("disabled") shouldBe ""
@@ -55,7 +57,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("child").innerHTML shouldBe ""
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("child").innerHTML shouldBe message
@@ -86,7 +88,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     messages.observer.next(firstMessage)
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("child").innerHTML shouldBe firstMessage
@@ -193,7 +195,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
 
     document.getElementById("click").dispatchEvent(event)
@@ -218,7 +220,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
 
     document.getElementById("click").dispatchEvent(event)
@@ -247,7 +249,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
 
     document.getElementById("click").dispatchEvent(event)
@@ -268,7 +270,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
 
     document.getElementById("input").dispatchEvent(inputEvt)
@@ -290,7 +292,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("click", true, false)
+    initEvent(inputEvt)("click", true, false)
 
 
     document.getElementById("input").dispatchEvent(inputEvt)
@@ -322,10 +324,10 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val submitButton = document.getElementById("submit")
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     inputElement.value = "item 1"
     inputElement.dispatchEvent(inputEvt)
@@ -348,7 +350,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       div(
         input(id := "checkbox", `type` := "Checkbox", checked <-- checkValue),
         button(id := "on_button", onClick(true) --> checkValue, "On"),
-        button(id := "off_button", onClick(false) --> checkValue, "Off"),
+        button(id := "off_button", onClick(false) --> checkValue, "Off")
       )
     }
 
@@ -361,7 +363,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     checkbox.checked shouldBe false
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     onButton.dispatchEvent(clickEvt)
 
@@ -388,7 +390,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("click", true, false)
+    initEvent(inputEvt)("click", true, false)
 
     document.getElementById("input").dispatchEvent(inputEvt)
 
