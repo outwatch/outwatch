@@ -3,10 +3,10 @@ package outwatch.dom
 import com.raquo.domtypes.generic.builders._
 import com.raquo.domtypes.generic.keys
 import com.raquo.domtypes.generic.codecs._
-import com.raquo.domtypes.generic.defs.attrs._
-import com.raquo.domtypes.generic.defs.reflectedAttrs._
-import com.raquo.domtypes.generic.defs.props._
-import com.raquo.domtypes.generic.defs.styles._
+import com.raquo.domtypes.generic.defs.attrs
+import com.raquo.domtypes.generic.defs.reflectedAttrs
+import com.raquo.domtypes.generic.defs.props
+import com.raquo.domtypes.generic.defs.styles
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.jsdom.defs.eventProps._
 import cats.effect.IO
@@ -52,42 +52,43 @@ private[outwatch] object DomTypesBuilder {
 }
 import DomTypesBuilder._
 
-trait DomTypes
-  extends DomTags
-  with DomAttrs
-  with DomReflectedAttrs
-  with DomProps
-  with DomEvents
-  with DomStyles
-
-trait DomTags
-  extends GroupingTags[GenericVNode, VNode_]
+trait Tags
+  extends EmbedTags[GenericVNode, VNode_]
+  with GroupingTags[GenericVNode, VNode_]
   with TextTags[GenericVNode, VNode_]
   with FormTags[GenericVNode, VNode_]
   with SectionTags[GenericVNode, VNode_]
   with TableTags[GenericVNode, VNode_]
   with VNodeBuilder
-object DomTags extends DomTags
+object Tags extends Tags
 
-trait DomTagsExtra
+trait TagsExtra
   extends DocumentTags[GenericVNode, VNode_]
-  with EmbedTags[GenericVNode, VNode_]
   with MiscTags[GenericVNode, VNode_]
   with VNodeBuilder
-object DomTagsExtra extends DomTagsExtra
+object TagsExtra extends TagsExtra
 
-trait DomAttrs
-  extends Attrs[AttributeBuilder]
+trait Attributes
+  extends Attrs
+  with ReflectedAttrs
+  with Props
+  with EventProps
+  with Styles
+  with OutwatchAttributes
+object Attributes extends Attributes
+
+trait Attrs
+  extends attrs.Attrs[AttributeBuilder]
   with AttrBuilder[AttributeBuilder] {
 
   override protected def attr[V](key: String, codec: Codec[V, String]): AttributeBuilder[V] =
     new AttributeBuilder(key, codec.encode _)
 }
-object DomAttrs extends DomAttrs
+object Attrs extends Attrs
 
-trait DomReflectedAttrs
-  extends ReflectedAttrs[CodecBuilder.Attribute]
-  with DomAttrsCompat[CodecBuilder.Attribute]
+trait ReflectedAttrs
+  extends reflectedAttrs.ReflectedAttrs[CodecBuilder.Attribute]
+  with ReflectedAttrsCompat[CodecBuilder.Attribute]
   with ReflectedAttrBuilder[CodecBuilder.Attribute] {
 
   override protected def reflectedAttr[V, DomPropV](
@@ -99,25 +100,25 @@ trait DomReflectedAttrs
     new AttributeBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
     //or: new PropertyBuilder(propKey, propCodec.encode)
 }
-object DomReflectedAttrs extends DomReflectedAttrs
+object ReflectedAttrs extends ReflectedAttrs
 
-trait DomProps
-  extends Props[CodecBuilder.Property]
+trait Props
+  extends props.Props[CodecBuilder.Property]
   with PropBuilder[CodecBuilder.Property] {
 
   override protected def prop[V, DomV](key: String, codec: Codec[V, DomV]): PropertyBuilder[V] =
     new PropertyBuilder(key, codec.encode)
 }
-object DomProps extends DomProps
+object Props extends Props
 
-trait DomEvents
+trait EventProps
   extends HTMLElementEventProps[SimpleEmitterBuilder]
   with EventPropBuilder[SimpleEmitterBuilder, dom.Event] {
 
   override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =
     EmitterBuilder[V](key)
 }
-object DomEvents extends DomEvents
+object EventProps extends EventProps
 
 object DomWindowEvents
   extends ObservableEventPropBuilder(dom.window)
@@ -126,12 +127,12 @@ object DomDocumentEvents
   extends ObservableEventPropBuilder(dom.document)
   with DocumentEventProps[Observable]
 
-trait DomStyles
-  extends Styles[IO[Style]]
+trait Styles
+  extends styles.Styles[IO[Style]]
   with SimpleStyleBuilder
-object DomStyles extends DomStyles
+object Styles extends Styles
 
-trait DomStylesExtra
-  extends Styles2[IO[Style]]
+trait StylesExtra
+  extends styles.Styles2[IO[Style]]
   with SimpleStyleBuilder
-object DomStylesExtra extends DomStylesExtra
+object StylesExtra extends StylesExtra
