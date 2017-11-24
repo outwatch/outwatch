@@ -264,7 +264,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       stringBuilder("f") := false
     )
 
-    val attrs = js.Dictionary[dom.Attribute.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
+    val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
 
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)

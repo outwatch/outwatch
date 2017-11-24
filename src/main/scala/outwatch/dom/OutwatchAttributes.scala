@@ -58,7 +58,7 @@ trait AttributeHelpers {
 
   lazy val data = new DynamicAttributeBuilder[Any]("data" :: Nil)
 
-  def attr[T](key: String, convert: T => Attribute.Value = (t: T) => t.toString : Attribute.Value) = new AttributeBuilder[T](key, convert)
+  def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new AttributeBuilder[T](key, convert)
   def prop[T](key: String, convert: T => String = (t: T) => t.toString) = new PropertyBuilder[T](key, convert)
   def style[T](key: String) = new StyleBuilder[T](key)
 }

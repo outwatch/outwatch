@@ -9,9 +9,9 @@ object VDomProxy {
 
   import js.JSConverters._
 
-  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[Attribute.Value], js.Dictionary[Attribute.Value], js.Dictionary[String]) = {
-    val attrsDict = js.Dictionary[Attribute.Value]()
-    val propsDict = js.Dictionary[Attribute.Value]()
+  def attrsToSnabbDom(attributes: Seq[Attribute]): (js.Dictionary[Attr.Value], js.Dictionary[Prop.Value], js.Dictionary[String]) = {
+    val attrsDict = js.Dictionary[Attr.Value]()
+    val propsDict = js.Dictionary[Prop.Value]()
     val styleDict = js.Dictionary[String]()
 
     attributes.foreach {

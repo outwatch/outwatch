@@ -5,7 +5,7 @@ import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
 import scala.scalajs.js.|
 import rxscalajs.Observer
-import snabbdom.{VNodeProxy, h}
+import snabbdom.{DataObject, VNodeProxy, h}
 
 import scala.scalajs.js
 import collection.breakOut
@@ -21,14 +21,14 @@ sealed trait Property extends VDomModifier_
 sealed trait Attribute extends Property {
   val title: String
 }
-
 object Attribute {
-  type Value = String | Boolean
-  def apply(title: String, value: Value) = Attr(title, value)
+  def apply(title: String, value: Attr.Value) = Attr(title, value)
 }
 
-final case class Attr(title: String, value: Attribute.Value) extends Attribute
-final case class Prop(title: String, value: Attribute.Value) extends Attribute
+final case class Attr(title: String, value: Attr.Value) extends Attribute
+object Attr { type Value = DataObject.AttrValue }
+final case class Prop(title: String, value: Prop.Value) extends Attribute
+object Prop { type Value = DataObject.PropValue }
 final case class Style(title: String, value: String) extends Attribute
 final case class Key(value: String) extends Property
 

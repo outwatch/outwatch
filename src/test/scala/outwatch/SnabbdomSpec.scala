@@ -64,7 +64,7 @@ class SnabbdomSpec extends UnitSpec {
 
   it should "correctly handle boolean attributes" in {
     val message = "Hello World"
-    val attributes = js.Dictionary[dom.Attribute.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
+    val attributes = js.Dictionary[dom.Attr.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
     val vNode = h("span#msg", DataObject(attributes, js.Dictionary()), message)
 
     val node = document.createElement("div")
