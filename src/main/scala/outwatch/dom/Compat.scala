@@ -32,7 +32,6 @@ object Handlers extends Handlers
 trait AttributesCompat {
   lazy val `class` = className
 
-  @deprecated("Use forId instead", "0.11.0")
   lazy val `for` = forId
 
   @deprecated("Use `type`, tpe or typ instead", "0.11.0")
