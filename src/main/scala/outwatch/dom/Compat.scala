@@ -1,12 +1,12 @@
 package outwatch.dom
 
 import cats.effect.IO
+import com.raquo.domtypes.generic.defs.reflectedAttrs
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
-import outwatch.dom.helpers.InputEvent
+
+import scala.language.higherKinds
 
 trait Handlers {
-  @deprecated("Use Handler.inputEvents instead", "0.11.0")
-  def createInputHandler() = Handler.create[InputEvent]
   @deprecated("Use Handler.mouseEvents instead", "0.11.0")
   def createMouseHandler() = Handler.create[MouseEvent]
   @deprecated("Use Handler.keyboardEvents instead", "0.11.0")
@@ -28,3 +28,41 @@ trait Handlers {
 }
 
 object Handlers extends Handlers
+
+trait AttributesCompat {
+  lazy val `class` = className
+
+  lazy val `for` = forId
+
+  @deprecated("Use `type`, tpe or typ instead", "0.11.0")
+  lazy val inputType = tpe
+
+  @deprecated("Use styleAttr instead", "0.11.0")
+  lazy val style = styleAttr
+
+  @deprecated("Use contentAttr instead", "0.11.0")
+  lazy val content = contentAttr
+
+  @deprecated("Use listId instead", "0.11.0")
+  lazy val list = listId
+
+  @deprecated("Use onInputString instead", "0.11.0")
+  lazy val inputString = onInputString
+
+  @deprecated("Use onInputNumber instead", "0.11.0")
+  lazy val inputNumber = onInputNumber
+
+  @deprecated("Use onInputChecked instead", "0.11.0")
+  lazy val inputChecked = onInputChecked
+
+  @deprecated("Use onClick instead", "0.11.0")
+  lazy val click = onClick
+
+  @deprecated("Use onKeyDown instead", "0.11.0")
+  lazy val keydown = onKeyDown
+}
+
+trait TagsCompat {
+  @deprecated("Use textArea instead", "0.11.0")
+  lazy val textarea = textArea
+}

@@ -12,7 +12,7 @@ import snabbdom.{DataObject, h}
 import scala.collection.immutable.Seq
 import scala.language.reflectiveCalls
 import scala.scalajs.js
-import scala.scalajs.js.{JSON, |}
+import scala.scalajs.js.JSON
 
 class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
@@ -253,17 +253,18 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "construct VTrees with boolean attributes" in {
     import outwatch.dom._
 
-    def boolBuilder(name: String) = new BoolAttributeBuilder(name)
-    def anyBuilder(name: String) = new AttributeBuilder[Boolean](name)
+    def boolBuilder(name: String) = new AttributeBuilder[Boolean](name, identity)
+    def stringBuilder(name: String) = new AttributeBuilder[Boolean](name, _.toString)
     val vtree = div(
-      IO.pure(boolBuilder("a")),
+      boolBuilder("a"),
       boolBuilder("b") := true,
       boolBuilder("c") := false,
-      anyBuilder("d") := true,
-      anyBuilder("e") := false
+      stringBuilder("d"),
+      stringBuilder("e") := true,
+      stringBuilder("f") := false
     )
 
-    val attrs = js.Dictionary[String | Boolean]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "false")
+    val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
 
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)
@@ -414,26 +415,26 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "update merged node attributes correctly" in {
     val messages = Subject[String]
     val otherMessages = Subject[String]
-    val vNode = div(data <-- messages)(data <-- otherMessages)
+    val vNode = div(data.noise <-- messages)(data.noise <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     DomUtils.render(node, vNode).unsafeRunSync()
 
     otherMessages.next("otherMessage")
-    node.children(0).getAttribute("data") shouldBe "otherMessage"
+    node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
 
     messages.next("message") // should be ignored
-    node.children(0).getAttribute("data") shouldBe "otherMessage"
+    node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
 
     otherMessages.next("genus")
-    node.children(0).getAttribute("data") shouldBe "genus"
+    node.children(0).getAttribute("data-noise") shouldBe "genus"
   }
 
-  it should "update merged node styles correctly" in {
+  it should "update merged node styles written with style() correctly" in {
     val messages = Subject[String]
     val otherMessages = Subject[String]
-    val vNode = div(stl("color") <-- messages)(stl("color") <-- otherMessages)
+    val vNode = div(style("color") <-- messages)(style("color") <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
@@ -449,4 +450,22 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
   }
 
+  it should "update merged node styles correctly" in {
+    val messages = Subject[String]
+    val otherMessages = Subject[String]
+    val vNode = div(color <-- messages)(color <-- otherMessages)
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    otherMessages.next("red")
+    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+
+    messages.next("blue") // should be ignored
+    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+
+    otherMessages.next("green")
+    node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+  }
 }

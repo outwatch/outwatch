@@ -3,9 +3,10 @@ package outwatch
 import snabbdom.{DataObject, h, patch}
 
 import scalajs.js
-import scalajs.js.|
 import org.scalajs.dom.document
 import org.scalajs.dom.html
+
+import Deprecated.IgnoreWarnings.initEvent
 
 class SnabbdomSpec extends UnitSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
@@ -34,7 +35,7 @@ class SnabbdomSpec extends UnitSpec {
     val nodes = clicks.map { i =>
       div(
         dom.key := s"key-$i",
-        span(click(if (i == 1) 2 else 1) --> clicks,  s"This is number $i", id := "btn"),
+        span(onClick(if (i == 1) 2 else 1) --> clicks,  s"This is number $i", id := "btn"),
         input(id := "input")
       )
     }
@@ -46,10 +47,10 @@ class SnabbdomSpec extends UnitSpec {
     OutWatch.render("#app", div(child <-- nodes)).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
     val btn = document.getElementById("btn")
@@ -63,7 +64,7 @@ class SnabbdomSpec extends UnitSpec {
 
   it should "correctly handle boolean attributes" in {
     val message = "Hello World"
-    val attributes = js.Dictionary[String | Boolean]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
+    val attributes = js.Dictionary[dom.Attr.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
     val vNode = h("span#msg", DataObject(attributes, js.Dictionary()), message)
 
     val node = document.createElement("div")

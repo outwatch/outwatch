@@ -33,6 +33,4 @@ package object dom extends Attributes with Tags with HandlerFactories {
       vnode.flatMap(vnode_ => vnode_(args:_*))
     }
   }
-
-  def stl(property:String) = new helpers.StyleBuilder(property)
 }

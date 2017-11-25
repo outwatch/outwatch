@@ -1,11 +1,12 @@
 package outwatch
 
 import org.scalajs.dom._
-import org.scalajs.dom.html
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.PropertyChecks
 import rxscalajs.Subject
 import outwatch.dom._
+
+import Deprecated.IgnoreWarnings.initEvent
 
 class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
 
@@ -26,7 +27,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
       val buttonDisabled = observable.mapTo(true).startWith(false)
       
-      div(id := "click", click --> observable,
+      div(id := "click", onClick --> observable,
         button(id := "btn", disabled <-- buttonDisabled)
       )
     }
@@ -35,7 +36,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("btn").getAttribute("disabled") shouldBe ""
@@ -46,7 +47,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val message = "ad"
 
     val vtree = Handler.create[String].flatMap { observable =>
-      div(id := "click", click(message) --> observable,
+      div(id := "click", onClick(message) --> observable,
         span(id := "child", child <-- observable)
       )
     }
@@ -56,7 +57,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     document.getElementById("child").innerHTML shouldBe ""
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("child").innerHTML shouldBe message
@@ -74,7 +75,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val messages = Handler.create[String].unsafeRunSync()
 
     val vtree = Handler.create[String].flatMap { stream =>
-      div(id := "click", click(messages) --> stream,
+      div(id := "click", onClick(messages) --> stream,
         span(id := "child", child <-- stream)
       )
     }
@@ -87,7 +88,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     messages.observer.next(firstMessage)
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("child").innerHTML shouldBe firstMessage
@@ -106,7 +107,6 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   }
 
   it should "be able to set the value of a text field" in {
-    import outwatch.dom._
 
     val values = Subject[String]
 
@@ -187,7 +187,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val messages = ("Hello", "World")
 
     val node = div(
-      button(id := "click", click(messages._1) --> first, click(messages._2) --> second),
+      button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
       span(id:="first",child <-- first),
       span(id:="second",child <-- second)
     )
@@ -195,7 +195,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
 
     document.getElementById("click").dispatchEvent(event)
@@ -212,7 +212,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val node = Handler.create[(MouseEvent, Int)].flatMap { stream =>
       div(
-        button(id := "click", click.map(toTuple) --> stream),
+        button(id := "click", onClick.map(toTuple) --> stream),
         span(id := "num", child <-- stream.map(_._2))
       )
     }
@@ -220,7 +220,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
 
     document.getElementById("click").dispatchEvent(event)
@@ -241,7 +241,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
       div(
-        button(id := "click", click.transform(transformer) --> stream),
+        button(id := "click", onClick.transform(transformer) --> stream),
         span(id := "num", children <-- state.map(nums => nums.map(num => span(num.toString))))
       )
     }
@@ -249,7 +249,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
-    event.initEvent("click", canBubbleArg = true, cancelableArg = false)
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
 
 
     document.getElementById("click").dispatchEvent(event)
@@ -261,17 +261,16 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val number = 42
     val node = Handler.create[Int].flatMap { stream =>
-
       div(
-        button(id := "input", inputString(number) --> stream),
-        span(id := "num", child <-- stream)
+        button(id := "input", onInputString(number) --> stream),
+        span(id:="num",child <-- stream)
       )
     }
 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
 
     document.getElementById("input").dispatchEvent(inputEvt)
@@ -285,7 +284,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val someClass = "some-class"
     val node = Handler.create[Boolean].flatMap { stream =>
       div(
-        button(id := "input", tpe := "checkbox", click(true) --> stream),
+        button(id := "input", tpe := "checkbox", onClick(true) --> stream),
         span(id := "toggled", stream ?= (className := someClass))
       )
     }
@@ -293,7 +292,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     OutWatch.render("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("click", true, false)
+    initEvent(inputEvt)("click", true, false)
 
 
     document.getElementById("input").dispatchEvent(inputEvt)
@@ -310,8 +309,8 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
       Handler.create[String].flatMap { stream =>
         div(
-          input(id := "input", tpe := "text", inputString --> stream),
-          button(id := "submit", click(stream) --> submit),
+          input(id := "input", tpe := "text", onInputString --> stream),
+          button(id := "submit", onClick(stream) --> submit),
           ul( id := "items",
             children <-- state.map(items => items.map(it => li(it)))
           )
@@ -325,10 +324,10 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val submitButton = document.getElementById("submit")
 
     val inputEvt = document.createEvent("HTMLEvents")
-    inputEvt.initEvent("input", false, true)
+    initEvent(inputEvt)("input", false, true)
 
     val clickEvt = document.createEvent("Events")
-    clickEvt.initEvent("click", true, true)
+    initEvent(clickEvt)("click", true, true)
 
     inputElement.value = "item 1"
     inputElement.dispatchEvent(inputEvt)
@@ -343,4 +342,60 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     document.getElementById("items").childNodes.length shouldBe 1
   }
+
+
+  "Boolean Props" should "be handled corectly" in {
+
+    val node = Handler.create[Boolean].flatMap { checkValue =>
+      div(
+        input(id := "checkbox", `type` := "Checkbox", checked <-- checkValue),
+        button(id := "on_button", onClick(true) --> checkValue, "On"),
+        button(id := "off_button", onClick(false) --> checkValue, "Off")
+      )
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
+    val onButton = document.getElementById("on_button")
+    val offButton = document.getElementById("off_button")
+
+    checkbox.checked shouldBe false
+
+    val clickEvt = document.createEvent("Events")
+    initEvent(clickEvt)("click", true, true)
+
+    onButton.dispatchEvent(clickEvt)
+
+    checkbox.checked shouldBe true
+
+    offButton.dispatchEvent(clickEvt)
+
+    checkbox.checked shouldBe false
+  }
+
+  "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
+    import outwatch.dom._
+
+    var docClicked = false
+    var winClicked = false
+    WindowEvents.onClick( ev => winClicked = true)
+    DocumentEvents.onClick( ev => docClicked = true)
+
+    val node =
+      div(
+        button(id := "input", tpe := "checkbox")
+      )
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val inputEvt = document.createEvent("HTMLEvents")
+    initEvent(inputEvt)("click", true, false)
+
+    document.getElementById("input").dispatchEvent(inputEvt)
+
+    winClicked shouldBe true
+    docClicked shouldBe true
+  }
+
 }
