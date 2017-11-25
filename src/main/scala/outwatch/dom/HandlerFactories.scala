@@ -9,11 +9,11 @@ import outwatch.dom.helpers.InputEvent
 trait HandlerFactories extends Handlers {
 
   implicit class HandlerCreateHelpers(handler: Handler.type) {
-    lazy val inputEvents = Handler.create[InputEvent]
-    lazy val mouseEvents = Handler.create[MouseEvent]
-    lazy val keyboardEvents = Handler.create[KeyboardEvent]
-    lazy val dragEvents = Handler.create[DragEvent]
-    lazy val clipboardEvents = Handler.create[ClipboardEvent]
+    def inputEvents = Handler.create[InputEvent]
+    def mouseEvents = Handler.create[MouseEvent]
+    def keyboardEvents = Handler.create[KeyboardEvent]
+    def dragEvents = Handler.create[DragEvent]
+    def clipboardEvents = Handler.create[ClipboardEvent]
   }
 
 }
