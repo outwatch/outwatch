@@ -1,9 +1,11 @@
 package outwatch
 
 import cats.effect.IO
+import org.scalajs.dom.Element
 
 package object dom extends Attributes with Tags with HandlerFactories {
 
+  type VTree[Elem <: Element] = IO[VTree_[Elem]]
   type VNode = IO[VNode_]
   type VDomModifier = IO[VDomModifier_]
 
@@ -25,9 +27,8 @@ package object dom extends Attributes with Tags with HandlerFactories {
 
   implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = IO.pure(CompositeVDomModifier(modifiers))
 
-  implicit class ioVTreeMerge(vnode: VNode) {
-    def apply(args: VDomModifier*): VNode = {
-      vnode.flatMap(vnode_ => vnode_(args:_*))
-    }
+  implicit class ioVTreeMerge[Elem <: Element](vnode: VTree[Elem]) {
+    def apply(newModifiers: VDomModifier*): VTree[Elem] = macro VTreeApply.impl[Elem]
+    def apply(args: TagContext[Elem] => Seq[VDomModifier]): VTree[Elem] = vnode.flatMap(_.apply(args))
   }
 }

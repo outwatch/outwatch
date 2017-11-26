@@ -1,7 +1,7 @@
 package outwatch.dom
 
 import cats.effect.IO
-import org.scalajs.dom._
+import org.scalajs.dom
 import outwatch.dom.helpers.DomUtils
 import rxscalajs.Observer
 import snabbdom.{DataObject, VNodeProxy, h}
@@ -13,7 +13,7 @@ sealed trait VDomModifier_ extends Any
 
 case class CompositeVDomModifier(modifiers: Seq[VDomModifier]) extends VDomModifier_
 
-case class Emitter(eventType: String, trigger: Event => Unit) extends VDomModifier_
+case class Emitter(eventType: String, trigger: dom.Event => Unit) extends VDomModifier_
 
 sealed trait Property extends VDomModifier_
 
@@ -32,9 +32,9 @@ final case class Style(title: String, value: String) extends Attribute
 final case class Key(value: String) extends Property
 
 sealed trait Hook extends Property
-final case class InsertHook(observer: Observer[Element]) extends Hook
-final case class DestroyHook(observer: Observer[Element]) extends Hook
-final case class UpdateHook(observer: Observer[(Element, Element)]) extends Hook
+final case class InsertHook(observer: Observer[dom.Element]) extends Hook
+final case class DestroyHook(observer: Observer[dom.Element]) extends Hook
+final case class UpdateHook(observer: Observer[(dom.Element, dom.Element)]) extends Hook
 
 final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier_
 
@@ -46,21 +46,19 @@ final case class ChildStreamReceiver(childStream: Observable[VNode]) extends Chi
 final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[VNode]]) extends ChildVNode
 
 sealed trait VNode_ extends ChildVNode {
-  // TODO: have apply() only on VTree?
-  def apply(args: VDomModifier*): VNode = ???
   // TODO: rename asProxy to asSnabbdom?
   def asProxy: VNodeProxy
 }
 
 //TODO: extends AnyVal
-private[outwatch] case class StringNode(string: String) extends VNode_ {
+private[outwatch] final case class StringNode(string: String) extends VNode_ {
   val asProxy: VNodeProxy = VNodeProxy.fromString(string)
 }
 
 // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
-private[outwatch] final case class VTree(nodeType: String,
+final case class VTree_[Elem <: dom.Element](nodeType: String,
                        modifiers: Seq[VDomModifier]) extends VNode_ {
 
   def asProxy = {
@@ -75,9 +73,7 @@ private[outwatch] final case class VTree(nodeType: String,
     h(nodeType, attributeObject, childProxies)
   }
 
-  override def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
+  private val tagContext = new TagContext.Assigned[Elem]
+  def apply(newModifiers: VDomModifier*): VTree[Elem] = macro VTreeApply.impl[Elem]
+  def apply(args: TagContext[Elem] => Seq[VDomModifier]): VTree[Elem] = IO.pure(copy[Elem](modifiers = modifiers ++ args(tagContext)))
 }
-
-
-
-
