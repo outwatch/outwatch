@@ -2,7 +2,6 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import org.scalajs.dom._
-import org.scalajs.dom.html
 import outwatch.dom._
 import rxscalajs.Observable
 import rxscalajs.subjects.BehaviorSubject
@@ -184,7 +183,8 @@ object DomUtils {
   )
   private def extractChildren(nodes: Seq[ChildVNode]): ChildrenNodes = nodes.foldRight(ChildrenNodes()) {
     case (vn: VNode_, cn) => cn.copy(children = vn :: cn.children)
-    case (_, cn) => cn.copy(hasStreams = true)
+    case (_: ChildStreamReceiver, cn) => cn.copy(hasStreams = true)
+    case (_: ChildrenStreamReceiver, cn) => cn.copy(hasStreams = true)
   }
 
   private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[VNode_], DataObject) = {

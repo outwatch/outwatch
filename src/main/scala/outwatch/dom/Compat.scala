@@ -3,7 +3,6 @@ package outwatch.dom
 import cats.effect.IO
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
 
-
 trait Handlers {
   @deprecated("Use Handler.mouseEvents instead", "0.11.0")
   def createMouseHandler() = Handler.create[MouseEvent]
