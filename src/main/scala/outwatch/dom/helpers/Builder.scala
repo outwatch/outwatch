@@ -52,7 +52,7 @@ object KeyBuilder {
 
 // TODO: avoid nested IO?
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO.pure ( 
+  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[_ >: T]): IO[ChildStreamReceiver] = IO.pure(
     ChildStreamReceiver(valueStream.map(r.render))
   )
 }

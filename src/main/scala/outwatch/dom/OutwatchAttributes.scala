@@ -1,6 +1,7 @@
 package outwatch.dom
 
 import outwatch.dom.helpers._
+import org.scalajs.dom
 import cats.effect.IO
 
 /** Trait containing the contents of the `Attributes` module, so they can be
@@ -63,16 +64,17 @@ trait SnabbdomKeyAttributes {
 }
 
 trait TypedInputEventProps {
-  import org.scalajs.dom
-
   /** The input event is fired when an element gets user input. */
+  @deprecated("Use _.event(onChange).checked or onChange.target.checked instead", "0.11.0")
   lazy val onInputChecked = Events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputNumber  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
+  @deprecated("Use _.event(onInput).valueAsNumber or onInput.target.valueAsNumber instead", "0.11.0")
+  lazy val onInputNumber = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputString  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
+  @deprecated("Use _.event(onInput).value or onInput.target.value instead", "0.11.0")
+  lazy val onInputString = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
 }
 
 trait AttributeHelpers {
@@ -84,5 +86,5 @@ trait AttributeHelpers {
 }
 
 trait TagHelpers {
-  def tag(name: String): VNode= IO.pure(VTree(name, Seq.empty))
+  def tag/*[Elem <: dom.Element]*/(name: String): VTree[dom.Element] = IO.pure(VTree_(name, Seq.empty))
 }

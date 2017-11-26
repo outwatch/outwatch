@@ -7,19 +7,18 @@ import com.raquo.domtypes.generic.defs.attrs
 import com.raquo.domtypes.generic.defs.reflectedAttrs
 import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
-import com.raquo.domtypes.generic.defs.sameRefTags._
+import com.raquo.domtypes.jsdom.defs.tags._
 import com.raquo.domtypes.jsdom.defs.eventProps._
 import cats.effect.IO
 import org.scalajs.dom
 import helpers._
 
 private[outwatch] object DomTypesBuilder {
-  type VNode = IO[VTree]
-  type GenericVNode[T] = VNode
+  type VTree[Elem <: dom.Element] = IO[VTree_[Elem]]
 
-  trait VNodeBuilder extends TagBuilder[GenericVNode, VNode] {
+  trait VNodeBuilder extends TagBuilder[VTree, dom.Element] {
     // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-    protected override def tag[Ref <: VNode](tagName: String, void: Boolean): VNode = IO.pure(VTree(tagName, Seq.empty))
+    protected override def tag[Elem <: dom.Element](tagName: String, void: Boolean): VTree[Elem] = IO.pure(VTree_[Elem](tagName, Seq.empty))
   }
 
   object CodecBuilder {
@@ -53,20 +52,20 @@ private[outwatch] object DomTypesBuilder {
 import DomTypesBuilder._
 
 trait Tags
-  extends EmbedTags[GenericVNode, VNode]
-  with GroupingTags[GenericVNode, VNode]
-  with TextTags[GenericVNode, VNode]
-  with FormTags[GenericVNode, VNode]
-  with SectionTags[GenericVNode, VNode]
-  with TableTags[GenericVNode, VNode]
+  extends EmbedTags[VTree]
+  with GroupingTags[VTree]
+  with TextTags[VTree]
+  with FormTags[VTree]
+  with SectionTags[VTree]
+  with TableTags[VTree]
   with TagsCompat
   with VNodeBuilder
   with TagHelpers
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[GenericVNode, VNode]
-  with MiscTags[GenericVNode, VNode]
+  extends DocumentTags[VTree]
+  with MiscTags[VTree]
   with VNodeBuilder
 object TagsExtra extends TagsExtra
 
