@@ -136,7 +136,7 @@ object patch {
     SnabbdomClass.default,
     SnabbdomEventListeners.default,
     SnabbdomAttributes.default,
-    SnabbdomProps.default,
+    SnabbdomCustomProps.default,
     SnabbdomStyle.default
   ))
 
@@ -183,11 +183,20 @@ object SnabbdomAttributes extends js.Object{
   val default: js.Any = js.native
 }
 
+// forked snabbdom-props module where the ground-thruth is the dom
 @js.native
-@JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
-object SnabbdomProps extends js.Object{
+@JSImport("./snabbdom-custom-props", JSImport.Namespace)
+object SnabbdomCustomProps extends js.Object {
   val default: js.Any = js.native
 }
+
+// original snabbdom-props
+// @js.native
+// @JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
+// object SnabbdomProps extends js.Object{
+//   val default: js.Any = js.native
+// }
+
 
 @js.native
 @JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
