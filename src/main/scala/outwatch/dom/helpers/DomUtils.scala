@@ -123,7 +123,6 @@ object DomUtils {
     case (EmptyVDomModifier, sf) => sf
   }
 
-
   private[outwatch] final case class SeparatedReceivers(
     childNodes: List[ChildVNode] = Nil,
     hasNodeStreams: Boolean = false,
@@ -131,7 +130,6 @@ object DomUtils {
   ) {
 
     lazy val observable: Observable[(Seq[Attribute], Seq[VNode])] = {
-
       val childStreamReceivers = if (hasNodeStreams) {
         childNodes.foldRight(Observable.of(List.empty[VNode])) {
           case (vn: VNode_, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
@@ -187,10 +185,26 @@ object DomUtils {
     case (_: ChildrenStreamReceiver, cn) => cn.copy(hasStreams = true)
   }
 
+  private[outwatch] def ensureVNodeKey(vn: VNode_): VNode_ = {
+    val withKey: VNode_ = vn match {
+      case vtree: VTree =>
+        val modifiers = vtree.modifiers
+        val hasKey = modifiers.exists(m => m.unsafeRunSync().isInstanceOf[Key])
+        val newModifiers = if (hasKey) modifiers else IO.pure(Key(vtree.hashCode.toString)) +: modifiers
+        vtree.copy(modifiers = newModifiers)
+      case sn: StringNode => sn
+    }
+    withKey
+  }
+
   private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[VNode_], DataObject) = {
     val SeparatedModifiers(emitters, attributeReceivers, properties, nodes) = separateModifiers(args)
 
     val ChildrenNodes(children, hasChildStreams) = extractChildren(nodes)
+
+    // if child streams exists, we want the static children in the same node have keys
+    // for efficient patching when the streams change
+    val childrenWithKey = if (hasChildStreams) children.map(ensureVNodeKey) else children
 
     val changeables = SeparatedReceivers(nodes, hasChildStreams, attributeReceivers)
 
@@ -198,7 +212,7 @@ object DomUtils {
 
     val dataObject = createDataObject(changeables, properties, eventHandlers)
 
-    (children, dataObject)
+    (childrenWithKey, dataObject)
   }
 
   def render(element: Element, vNode: VNode): IO[Unit] = for {
