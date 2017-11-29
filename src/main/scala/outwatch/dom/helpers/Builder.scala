@@ -6,8 +6,6 @@ import scala.language.dynamics
 import outwatch.dom._
 import rxscalajs.Observable
 
-import scala.language.implicitConversions
-
 trait ValueBuilder[T, SELF <: Attribute] extends Any {
   protected def attributeName: String
   protected def assign(value: T): SELF

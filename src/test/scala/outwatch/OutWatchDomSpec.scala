@@ -10,7 +10,6 @@ import rxscalajs.{Observable, Subject}
 import snabbdom.{DataObject, h}
 
 import scala.collection.immutable.Seq
-import scala.language.reflectiveCalls
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 
@@ -65,7 +64,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
         Seq(
           div(),
           Attributes.`class` := "blue",
-          Attributes.click(1) --> Sink.create[Int](_ => IO.pure(())),
+          Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure(())),
           Attributes.hidden <-- Observable.of(false)
         )
       ),

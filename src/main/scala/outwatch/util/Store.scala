@@ -7,9 +7,6 @@ import outwatch.dom.helpers.STRef
 import rxscalajs.Observable
 import rxscalajs.subscription.Subscription
 
-import scala.language.implicitConversions
-
-
 final case class Store[State, Action](initialState: State,
                                            reducer: (State, Action) => (State, Option[IO[Action]]),
                                            handler: Pipe[Action, Action]) {

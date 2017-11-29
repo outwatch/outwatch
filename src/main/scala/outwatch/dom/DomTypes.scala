@@ -13,8 +13,6 @@ import cats.effect.IO
 import org.scalajs.dom
 import helpers._
 
-import scala.language.implicitConversions
-
 private[outwatch] object DomTypesBuilder {
   type GenericVNode[T] = VNode_
 

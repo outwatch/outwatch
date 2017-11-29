@@ -5,8 +5,6 @@ import org.scalajs.dom.{CloseEvent, ErrorEvent, MessageEvent}
 import outwatch.Sink
 import rxscalajs.Observable
 
-import scala.language.implicitConversions
-
 object WebSocket {
   implicit def toSink(socket: WebSocket): Sink[String] = socket.sink
   implicit def toSource(socket: WebSocket): Observable[MessageEvent] = socket.source
