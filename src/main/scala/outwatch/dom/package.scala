@@ -2,9 +2,6 @@ package outwatch
 
 import cats.effect.IO
 
-import scala.language.implicitConversions
-
-
 package object dom extends Attributes with Tags with HandlerFactories {
 
   type VNode = IO[VNode_]
@@ -22,7 +19,7 @@ package object dom extends Attributes with Tags with HandlerFactories {
   type Handler[T] = outwatch.Handler[T]
   val Handler = outwatch.Handler
 
- implicit def renderVNode[T](value: T)(implicit vnr: VNodeRender[T]): VNode = vnr.render(value)
+  implicit def renderVNode[T](value: T)(implicit vnr: VNodeRender[T]): VNode = vnr.render(value)
 
   implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse IO.pure(EmptyVDomModifier)
 

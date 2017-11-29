@@ -1,10 +1,8 @@
 package outwatch.dom
 
 import cats.effect.IO
-import com.raquo.domtypes.generic.defs.reflectedAttrs
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
 
-import scala.language.higherKinds
 
 trait Handlers {
   @deprecated("Use Handler.mouseEvents instead", "0.11.0")
