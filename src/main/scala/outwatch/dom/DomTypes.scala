@@ -7,18 +7,18 @@ import com.raquo.domtypes.generic.defs.attrs
 import com.raquo.domtypes.generic.defs.reflectedAttrs
 import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
-import com.raquo.domtypes.generic.defs.sameRefTags._
+import com.raquo.domtypes.jsdom.defs.tags._
 import com.raquo.domtypes.jsdom.defs.eventProps._
 import cats.effect.IO
 import org.scalajs.dom
 import helpers._
 
 private[outwatch] object DomTypesBuilder {
-  type GenericVNode[T] = VNode_
+  type VTree[Elem <: dom.Element] = IO[VTree_[Elem]]
 
-  trait VNodeBuilder extends TagBuilder[GenericVNode, VNode_] {
+  trait VNodeBuilder extends TagBuilder[VTree, dom.Element] {
     // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-    override def tag[Ref <: VNode_](tagName: String, void: Boolean): VNode_ = VTree(tagName, Seq.empty)
+    override def tag[Elem <: dom.Element](tagName: String, void: Boolean): VTree[Elem] = IO.pure(VTree_[Elem](tagName, Seq.empty))
   }
 
   object CodecBuilder {
@@ -52,18 +52,19 @@ private[outwatch] object DomTypesBuilder {
 import DomTypesBuilder._
 
 trait Tags
-  extends EmbedTags[GenericVNode, VNode_]
-  with GroupingTags[GenericVNode, VNode_]
-  with TextTags[GenericVNode, VNode_]
-  with FormTags[GenericVNode, VNode_]
-  with SectionTags[GenericVNode, VNode_]
-  with TableTags[GenericVNode, VNode_]
+  extends EmbedTags[VTree]
+  with GroupingTags[VTree]
+  with TextTags[VTree]
+  with FormTags[VTree]
+  with SectionTags[VTree]
+  with TableTags[VTree]
+  with TagContextImplicits
   with VNodeBuilder
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[GenericVNode, VNode_]
-  with MiscTags[GenericVNode, VNode_]
+  extends DocumentTags[VTree]
+  with MiscTags[VTree]
   with VNodeBuilder
 object TagsExtra extends TagsExtra
 
@@ -112,10 +113,10 @@ trait Props
 object Props extends Props
 
 trait Events
-  extends HTMLElementEventProps[SimpleEmitterBuilder]
-  with EventPropBuilder[SimpleEmitterBuilder, dom.Event] {
+  extends HTMLElementEventProps[UnassignedEvent]
+  with EventPropBuilder[UnassignedEvent, dom.Event] {
 
-  override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =  EmitterBuilder[V](key)
+  override def eventProp[V <: dom.Event](key: String): UnassignedEvent[V] =  UnassignedEvent[V](key)
 }
 object Events extends Events
 

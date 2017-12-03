@@ -187,7 +187,7 @@ object DomUtils {
 
   private[outwatch] def ensureVNodeKey(vn: VNode_): VNode_ = {
     val withKey: VNode_ = vn match {
-      case vtree: VTree =>
+      case vtree: VTree_[_] =>
         val modifiers = vtree.modifiers
         val hasKey = modifiers.exists(m => m.unsafeRunSync().isInstanceOf[Key])
         val newModifiers = if (hasKey) modifiers else IO.pure(Key(vtree.hashCode.toString)) +: modifiers

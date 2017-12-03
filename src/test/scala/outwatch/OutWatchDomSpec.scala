@@ -38,6 +38,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   "VDomModifiers" should "be separated correctly" in {
+    val sink = Sink.create[Int](_ => IO.pure(()))
     val modifiers = Seq(
       Attribute("class", "red"),
       EmptyVDomModifier,
@@ -48,7 +49,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
         Seq(
           div(),
           Attributes.`class` := "blue",
-          Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure(())),
+          Attributes.onClick.onElement(1) --> sink,
           Attributes.hidden <-- Observable.of(false)
         )
       ),

@@ -18,6 +18,7 @@ libraryDependencies ++= Seq(
   "com.raquo" %%% "domtypes" % "0.4.2",
   "org.typelevel" %%% "cats-core" % "1.0.0-RC1",
   "org.typelevel" %%% "cats-effect" % "0.5",
+  "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
   "org.scalacheck" %%% "scalacheck" % "1.13.5" % Test
 )

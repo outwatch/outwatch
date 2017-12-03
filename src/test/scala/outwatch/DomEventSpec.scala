@@ -262,7 +262,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val number = 42
     val node = Handler.create[Int].flatMap { stream =>
       div(
-        button(id := "input", onInputString(number) --> stream),
+        button(id := "input", onInput(number) --> stream),
         span(id:="num",child <-- stream)
       )
     }
@@ -309,7 +309,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
       Handler.create[String].flatMap { stream =>
         div(
-          input(id := "input", tpe := "text", onInputString --> stream),
+          input(id := "input", tpe := "text", onInput.map(_.currentTarget.value) --> stream),
           button(id := "submit", onClick(stream) --> submit),
           ul( id := "items",
             children <-- state.map(items => items.map(it => li(it)))
@@ -398,4 +398,107 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     docClicked shouldBe true
   }
 
+  "TagWith" should "correctly work on events" in {
+
+    val node = Handler.create[String].flatMap { submit =>
+
+      for {
+        stringStream <- Handler.create[String]
+        doubleStream <- Handler.create[Double]
+        boolStream <- Handler.create[Boolean]
+        eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
+        elem <- div(
+          input(
+            id := "input", tpe := "text",
+            onSearch.target.string --> stringStream,
+            onClick.currentTarget.string --> stringStream,
+            onSearch.target.number --> doubleStream,
+            onClick.currentTarget.number --> doubleStream,
+            onSearch.target.boolean --> boolStream,
+            onClick.currentTarget.boolean --> boolStream
+          ),
+          ul( id := "items")
+        )
+      } yield elem
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val element =document.getElementById("input")
+    element should not be null
+  }
+
+  "DomEvents" should "correctly be compiled with currentTarget (no macro)" in {
+
+    val stringHandler = Handler.create[String].unsafeRunSync()
+    def modifier(implicit ctx: TagContext[html.Input]): VDomModifier =
+      onDrag.map(_.currentTarget.value) --> stringHandler
+    def stringModifier[Elem <: Element : TagContext : TagWithString]: VDomModifier =
+      onDrag.currentTarget.string --> stringHandler
+
+    val node = Handler.create[String].flatMap { submit =>
+
+      for {
+        stream <- Handler.create[String]
+        eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
+        elem <- div(implicit tagContext => Seq(
+          input(implicit tagContext => Seq(
+            id := "input", tpe := "text",
+            onInput.map(_.currentTarget.value) --> stream,
+            onClick --> eventStream,
+            modifier,
+            stringModifier,
+            onSearch.target.string --> stream,
+            onClick.currentTarget.string --> stream,
+            cats.effect.IO.pure(CompositeVDomModifier(Seq(
+              onDrag --> eventStream
+            )))
+          )),
+          ul(implicit tagContext => Seq(id := "items"))
+        ))
+      } yield elem
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val element =document.getElementById("input")
+    element should not be null
+  }
+
+  it should "correctly be compiled with currentTarget (macro)" in {
+
+    val stringHandler = Handler.create[String].unsafeRunSync()
+    def modifier(implicit ctx: TagContext[html.Input]): VDomModifier =
+      onDrag.map(_.currentTarget.value) --> stringHandler
+    def stringModifier[Elem <: Element : TagContext : TagWithString]: VDomModifier =
+      onDrag.currentTarget.string --> stringHandler
+
+    val node = Handler.create[String].flatMap { submit =>
+
+      for {
+        stream <- Handler.create[String]
+        eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
+        elem <- div(
+          input(
+            id := "input", tpe := "text",
+            onInput.map(_.currentTarget.value) --> stream,
+            onClick --> eventStream,
+            modifier,
+            stringModifier,
+            onSearch.target.string --> stream,
+            onClick.currentTarget.string --> stream,
+            cats.effect.IO.pure(CompositeVDomModifier(Seq(
+              onDrag --> eventStream
+            )))
+          ),
+          ul( id := "items")
+        )
+      } yield elem
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val element =document.getElementById("input")
+    element should not be null
+  }
 }
