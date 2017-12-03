@@ -2,8 +2,8 @@ language: scala
 jdk:
   - oraclejdk8
 scala:
-   - 2.11.11
-   - 2.12.2
+   - 2.11.12
+   - 2.12.4
 before_install:
   - nvm install 6
   - npm install -g yarn
