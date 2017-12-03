@@ -37,5 +37,5 @@ object TagContext {
 }
 trait TagContextImplicits {
   @compileTimeOnly(MacroMessages.error)
-  implicit def DummyElementUsableEvent[Event <: dom.Event, T <: Sink[_ <: Event with TypedCurrentTargetEvent[dom.Element]]](dummy: T): Sink[Event with TypedCurrentTargetEvent[TagContext.DummyElement]] = ???
+  implicit def DummyElementUsableEvent[Event <: dom.Event](dummy: Sink[_ <: Event with TypedCurrentTargetEvent[dom.Element]]): Sink[Event with TypedCurrentTargetEvent[TagContext.DummyElement]] = ???
 }

@@ -33,7 +33,7 @@ private[outwatch] object Macros {
           tree match {
             case q"dom.this.TagContext.DummyUnassignedTagContext" => q"$injectable"
             case q"dom.this.TagContext.AnyUnassignedTagContext[$_]" => q"$injectable"
-            case q"outwatch.dom.`package`.DummyElementUsableEvent[$_, $_]($arg)" => q"$arg"
+            case q"outwatch.dom.`package`.DummyElementUsableEvent[$_]($arg)" => q"$arg"
             case q"TagContext.this.DummyElement.DummyWithProperties($arg).$fun" => q"$arg.$fun"
             case q"TagContext.this.DummyElement.DummyWithString" => q"implicitly[$withStringType]"
             case q"TagContext.this.DummyElement.DummyWithNumber" => q"implicitly[$withNumberType]"
