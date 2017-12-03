@@ -2,7 +2,7 @@ package outwatch.dom
 
 import scala.scalajs.js
 import org.scalajs.dom
-import helpers.{EmitterBuilder, SimpleEmitterBuilder, TransformingEmitterBuilder}
+import helpers.{EmitterBuilder, SimpleEmitterBuilder}
 import com.raquo.domtypes.jsdom.defs.events.TypedTargetEvent
 
 /** Represents an event for which we know what exact type the `currentTarget` is. */

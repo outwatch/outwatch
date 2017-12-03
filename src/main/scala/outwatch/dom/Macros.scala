@@ -17,7 +17,6 @@ private[outwatch] object Macros {
 
     val elemType = weakTypeOf[Elem]
     val eventType = weakTypeOf[TypedCurrentTargetEvent[Elem]]
-    val contextType = weakTypeOf[TagContext[Elem]]
     val withStringType = weakTypeOf[TagWithString[Elem]]
     val withNumberType = weakTypeOf[TagWithNumber[Elem]]
     val withBooleanType = weakTypeOf[TagWithBoolean[Elem]]

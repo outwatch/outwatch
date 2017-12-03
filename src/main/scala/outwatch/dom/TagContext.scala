@@ -15,7 +15,7 @@ object TagContext {
   @compileTimeOnly(MacroMessages.error)
   implicit def AnyUnassignedTagContext[Elem <: dom.Element]: TagContext[Elem] = ???
 
-  @compileTimeOnly("Events can only be used in arguments of the VTree.apply method. Otherwise, you need to provide an implicit TagContext or use e.g. onClick.onElement[Element] --> sink.")
+  @compileTimeOnly(MacroMessages.error)
   @js.native
   class DummyElement extends dom.Element
   object DummyElement {
