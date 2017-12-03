@@ -15,7 +15,7 @@ crossScalaVersions := Seq("2.11.11", "2.12.4")
 
 libraryDependencies ++= Seq(
   "com.github.lukajcb" %%% "rxscala-js" % "0.15.2",
-  "com.raquo" %%% "domtypes" % "0.4.1",
+  "com.raquo" %%% "domtypes" % "0.4.2",
   "org.typelevel" %%% "cats-core" % "1.0.0-RC1",
   "org.typelevel" %%% "cats-effect" % "0.5",
   "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
@@ -34,7 +34,6 @@ scalacOptions ++=
   "-explaintypes" ::
   "-feature" ::
   "-language:_" ::
-  "-Xcheckinit" ::
   "-Xfuture" ::
   "-Xlint" ::
   "-Ypartial-unification" ::
