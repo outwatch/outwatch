@@ -57,6 +57,28 @@ final class SimpleEmitterBuilder[E <: Event] private[helpers](
     IO.pure(Emitter(eventType, event => sink.observer.next(event.asInstanceOf[E])))
   }
 }
+object SimpleEmitterBuilder {
+  import com.raquo.domtypes.jsdom.defs.events.TypedTargetEvent
+  import outwatch.dom.{TagWithNumber, TagWithString, TagWithBoolean, TypedCurrentTargetEvent}
+
+  implicit class WithTypedTarget[E <: Event, Elem <: Element](event: SimpleEmitterBuilder[E with TypedTargetEvent[Elem]]) {
+
+    object target {
+      def string(implicit tag: TagWithString[Elem]): TransformingEmitterBuilder[E with TypedTargetEvent[Elem], String] = event.map(ev => tag.string(ev.target))
+      def number(implicit tag: TagWithNumber[Elem]): TransformingEmitterBuilder[E with TypedTargetEvent[Elem], Double] = event.map(ev => tag.number(ev.target))
+      def boolean(implicit tag: TagWithBoolean[Elem]): TransformingEmitterBuilder[E with TypedTargetEvent[Elem], Boolean] = event.map(ev => tag.boolean(ev.target))
+    }
+  }
+
+  implicit class WithTypedCurrentTarget[E <: Event, Elem <: Element](event: SimpleEmitterBuilder[E with TypedCurrentTargetEvent[Elem]]) {
+
+    object currentTarget {
+      def string(implicit tag: TagWithString[Elem]): TransformingEmitterBuilder[E with TypedCurrentTargetEvent[Elem], String] = event.map(ev => tag.string(ev.currentTarget))
+      def number(implicit tag: TagWithNumber[Elem]): TransformingEmitterBuilder[E with TypedCurrentTargetEvent[Elem], Double] = event.map(ev => tag.number(ev.currentTarget))
+      def boolean(implicit tag: TagWithBoolean[Elem]): TransformingEmitterBuilder[E with TypedCurrentTargetEvent[Elem], Boolean] = event.map(ev => tag.boolean(ev.currentTarget))
+    }
+  }
+}
 
 trait HookBuilder[E, H <: Hook] {
   def hook(sink: Sink[E]): H
