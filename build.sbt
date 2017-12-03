@@ -27,6 +27,12 @@ npmDependencies in Compile ++= Seq(
   "snabbdom" -> "0.7.0"
 )
 
+scalacOptions += {
+  val local = baseDirectory.value.toURI
+  val remote = s"https://raw.githubusercontent.com/OutWatch/outwatch/${git.gitHeadCommit.value.get}/"
+  s"-P:scalajs:mapSourceURI:$local->$remote"
+}
+
 scalacOptions ++=
   "-encoding" :: "UTF-8" ::
   "-unchecked" ::
