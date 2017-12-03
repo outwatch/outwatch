@@ -400,22 +400,27 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
   "DomEvents" should "correctly be compiled with currentTarget (no macro)" in {
 
+    val stringHandler = Handler.create[String].unsafeRunSync()
+    def modifier(implicit ctx: TagContext[html.Input]): VDomModifier =
+      onDrag.map(_.currentTarget.toString) --> stringHandler
+
     val node = Handler.create[String].flatMap { submit =>
 
       for {
         stream <- Handler.create[String]
         eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
-        elem <- div(
+        elem <- div(implicit tagContext => Seq(
           input(implicit tagContext => Seq(
             id := "input", tpe := "text",
             onInput.map(_.currentTarget.value) --> stream,
             onClick --> eventStream,
+            modifier,
             cats.effect.IO.pure(CompositeVDomModifier(Seq(
               onDrag --> eventStream
             )))
           )),
-          ul( id := "items")
-        )
+          ul(implicit tagContext => Seq(id := "items"))
+        ))
       } yield elem
     }
 
@@ -427,6 +432,10 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
   it should "correctly be compiled with currentTarget (macro)" in {
 
+    val stringHandler = Handler.create[String].unsafeRunSync()
+    def modifier(implicit ctx: TagContext[html.Input]): VDomModifier =
+      onDrag.map(_.currentTarget.value) --> stringHandler
+
     val node = Handler.create[String].flatMap { submit =>
 
       for {
@@ -437,6 +446,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
             id := "input", tpe := "text",
             onInput.map(_.currentTarget.value) --> stream,
             onClick --> eventStream,
+            modifier,
             cats.effect.IO.pure(CompositeVDomModifier(Seq(
               onDrag --> eventStream
             )))

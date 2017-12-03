@@ -8,32 +8,26 @@ import scala.annotation.compileTimeOnly
 private[outwatch] object VTreeApply {
   import scala.reflect.macros.blackbox.Context
 
-  private def injectTagContext[T <: dom.Element : c.WeakTypeTag](c: Context)(src: c.Tree, injectable: c.universe.TermName): c.Tree = {
+  private def injectTagContext[Elem <: dom.Element : c.WeakTypeTag](c: Context)(src: c.Tree, injectable: c.universe.TermName): c.Tree = {
     import c.universe._
 
-    val tType = weakTypeOf[T]
-    val tEventType = weakTypeOf[TypedCurrentTargetEvent[T]]
+    val elemType = weakTypeOf[Elem]
+    val eventType = weakTypeOf[TypedCurrentTargetEvent[Elem]]
+    val contextType = weakTypeOf[TagContext[Elem]]
 
     object Transformer extends c.universe.Transformer {
+      private def isReplaceType(tree: Tree): Boolean = tree.isType && !(tree.tpe =:= weakTypeOf[Nothing])
+
       override def transform(tree: c.Tree): c.Tree = {
         if (tree.tpe == null) tree
-        else if (tree.tpe =:= weakTypeOf[TagContext.Unassigned.type]) q"$injectable"
-        else if (tree.isType && tree.tpe =:= weakTypeOf[TagContext.DummyElement]) q"$tType"
-        else if (tree.isType && tree.tpe =:= weakTypeOf[TypedCurrentTargetEvent[TagContext.DummyElement]]) q"$tEventType"
-        else if (tree.isType && tree.tpe <:< weakTypeOf[TypedCurrentTargetEvent[TagContext.DummyElement]]) {
-          tree.tpe match {
-            //TODO: why do we need to force transformation of parts of the refined type?
-            case RefinedType(components, _) =>
-              val types = components.map(tpe => transform(q"$tpe"))
-              tq"${types.head} with ..${types.tail}"
-            case _ => tree
-          }
-        }
+        else if (isReplaceType(tree) && tree.tpe.typeConstructor <:< weakTypeOf[TagContext.Unassigned[_]].typeConstructor) q"$contextType"
+        else if (isReplaceType(tree) && tree.tpe <:< weakTypeOf[TagContext.DummyElement]) q"$elemType"
+        else if (isReplaceType(tree) && tree.tpe <:< weakTypeOf[TypedCurrentTargetEvent[TagContext.DummyElement]]) q"$eventType"
         else {
           tree match {
-            // case q"outwatch.dom.`package`.UsableDummyElement($x)" => q"$x" // replacement does not trigger typecheck of expression
-            case q"TagContext.this.DummyElement.UsableElement($x).$fun" => q"$x.$fun" //TODO does this always work?
-            case q"outwatch.dom.`package`.DummyElementUsableEvent[$_, $_]($x)" => q"$x"
+            case q"TagContext.this.DummyElement.UsableElement($arg).$fun" => q"$arg.$fun"
+            case q"outwatch.dom.`package`.DummyElementUsableEvent[$_, $_]($arg)" => q"$arg"
+            case q"dom.this.TagContext.UnassignedTagContext[$_]" => q"$injectable"
             case _ => super.transform(tree)
           }
         }

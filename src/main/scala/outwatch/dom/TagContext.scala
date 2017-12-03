@@ -5,12 +5,15 @@ import org.scalajs.dom
 import scala.annotation.compileTimeOnly
 import scala.scalajs.js
 
-trait TagContext[Elem <: dom.Element]
+trait TagContext[+Elem <: dom.Element]
 object TagContext {
   class Assigned[Elem <: dom.Element] extends TagContext[Elem]
 
   @compileTimeOnly("Events can only be used in arguments of the VTree.apply method. Otherwise, you need to provide an implicit TagContext or use onElement explicitly (e.g. onClick.onElement[Element] --> sink).")
-  implicit object Unassigned extends TagContext[DummyElement]
+  class Unassigned[Elem <: dom.Element] extends TagContext[Elem]
+
+  @compileTimeOnly("Events can only be used in arguments of the VTree.apply method. Otherwise, you need to provide an implicit TagContext or use onElement explicitly (e.g. onClick.onElement[Element] --> sink).")
+  implicit def UnassignedTagContext[Elem <: dom.Element]: TagContext[Elem with DummyElement] = new Unassigned
 
   @compileTimeOnly("Events can only be used in arguments of the VTree.apply method. Otherwise, you need to provide an implicit TagContext or use e.g. onClick.onElement[Element] --> sink.")
   @js.native
