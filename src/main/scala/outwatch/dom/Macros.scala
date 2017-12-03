@@ -47,7 +47,7 @@ private[outwatch] object VTreeApply {
     import c.universe._
 
     val elemType = weakTypeOf[Elem]
-    val tagContextName = c.freshName(TermName("tagContext"))
+    val tagContextName = TermName("_injected_tag_context_")
     val injectedMofifiers = newModifiers.map(expr => injectTagContext(c)(expr.tree, tagContextName))
 
     val tree = q"""
