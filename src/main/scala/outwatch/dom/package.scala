@@ -28,7 +28,7 @@ package object dom extends Attributes with Tags with HandlerFactories {
   implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = IO.pure(CompositeVDomModifier(modifiers))
 
   implicit class ioVTreeMerge[Elem <: Element](vnode: VTree[Elem]) {
-    def apply(newModifiers: VDomModifier*): VTree[Elem] = macro VTreeApply.impl[Elem]
+    def apply(newModifiers: VDomModifier*): VTree[Elem] = macro Macros.vtreeImpl[Elem]
     def apply(args: TagContext[Elem] => Seq[VDomModifier]): VTree[Elem] = vnode.flatMap(_.apply(args))
   }
 }

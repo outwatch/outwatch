@@ -45,15 +45,15 @@ trait TypedInputEventProps {
   import org.scalajs.dom
 
   /** The input event is fired when an element gets user input. */
-  @deprecated("Use onChange(_.currentTarget.checked) instead. Note this uses currentTarget instead of target, for typing target resort to asInstanceOf", "0.11.0")
+  @deprecated("Use onChange.target.boolean or onChange.currentTarget.boolean instead", "0.11.0")
   lazy val onInputChecked = Events.onChange.onElement[dom.Element].map(_.target.asInstanceOf[dom.html.Input].checked)
 
   /** The input event is fired when an element gets user input. */
-  @deprecated("Use onInput(_.currentTarget.valueAsNumber) instead (note this uses currentTarget instead of target, for typing target resort to asInstanceOf", "0.11.0")
+  @deprecated("Use onChange.target.number or onChange.currentTarget.number instead", "0.11.0")
   lazy val onInputNumber = Events.onInput.onElement[dom.Element].map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
 
   /** The input event is fired when an element gets user input. */
-  @deprecated("Use onInput(_.currentTarget.value) instead (note this uses currentTarget instead of target, for typing target resort to asInstanceOf", "0.11.0")
+  @deprecated("Use onInput.target.string or onChange.currentTarget.string instead", "0.11.0")
   lazy val onInputString = Events.onInput.onElement[dom.Element].map(_.target.asInstanceOf[dom.html.Input].value)
 }
 

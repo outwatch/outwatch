@@ -398,11 +398,43 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     docClicked shouldBe true
   }
 
+  "TagWith" should "correctly work on events" in {
+
+    val node = Handler.create[String].flatMap { submit =>
+
+      for {
+        stringStream <- Handler.create[String]
+        doubleStream <- Handler.create[Double]
+        boolStream <- Handler.create[Boolean]
+        eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
+        elem <- div(
+          input(
+            id := "input", tpe := "text",
+            onSearch.target.string --> stringStream,
+            onClick.currentTarget.string --> stringStream,
+            onSearch.target.number --> doubleStream,
+            onClick.currentTarget.number --> doubleStream,
+            onSearch.target.boolean --> boolStream,
+            onClick.currentTarget.boolean --> boolStream
+          ),
+          ul( id := "items")
+        )
+      } yield elem
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val element =document.getElementById("input")
+    element should not be null
+  }
+
   "DomEvents" should "correctly be compiled with currentTarget (no macro)" in {
 
     val stringHandler = Handler.create[String].unsafeRunSync()
     def modifier(implicit ctx: TagContext[html.Input]): VDomModifier =
-      onDrag.map(_.currentTarget.toString) --> stringHandler
+      onDrag.map(_.currentTarget.value) --> stringHandler
+    def stringModifier[Elem <: Element : TagContext : TagWithString]: VDomModifier =
+      onDrag.currentTarget.string --> stringHandler
 
     val node = Handler.create[String].flatMap { submit =>
 
@@ -415,6 +447,9 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
             onInput.map(_.currentTarget.value) --> stream,
             onClick --> eventStream,
             modifier,
+            stringModifier,
+            onSearch.target.string --> stream,
+            onClick.currentTarget.string --> stream,
             cats.effect.IO.pure(CompositeVDomModifier(Seq(
               onDrag --> eventStream
             )))
@@ -435,6 +470,8 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val stringHandler = Handler.create[String].unsafeRunSync()
     def modifier(implicit ctx: TagContext[html.Input]): VDomModifier =
       onDrag.map(_.currentTarget.value) --> stringHandler
+    def stringModifier[Elem <: Element : TagContext : TagWithString]: VDomModifier =
+      onDrag.currentTarget.string --> stringHandler
 
     val node = Handler.create[String].flatMap { submit =>
 
@@ -447,6 +484,9 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
             onInput.map(_.currentTarget.value) --> stream,
             onClick --> eventStream,
             modifier,
+            stringModifier,
+            onSearch.target.string --> stream,
+            onClick.currentTarget.string --> stream,
             cats.effect.IO.pure(CompositeVDomModifier(Seq(
               onDrag --> eventStream
             )))

@@ -74,6 +74,6 @@ final case class VTree_[Elem <: dom.Element](nodeType: String,
   }
 
   private val tagContext = new TagContext.Assigned[Elem]
-  def apply(newModifiers: VDomModifier*): VTree[Elem] = macro VTreeApply.impl[Elem]
+  def apply(newModifiers: VDomModifier*): VTree[Elem] = macro Macros.vtreeImpl[Elem]
   def apply(args: TagContext[Elem] => Seq[VDomModifier]): VTree[Elem] = IO.pure(copy[Elem](modifiers = modifiers ++ args(tagContext)))
 }
