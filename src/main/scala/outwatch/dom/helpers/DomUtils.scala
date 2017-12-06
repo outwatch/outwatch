@@ -28,46 +28,66 @@ object DomUtils {
 
   private def createSimpleDataObject(properties: Seq[Property], handlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val SeparatedProperties(insert, delete, update, attributes, keys) = separateProperties(properties)
+    val SeparatedProperties(insert, prepatch, update, postpatch, destroy, attributes, keys) = separateProperties(properties)
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
 
-    val insertHook = (p: VNodeProxy) => p.elm.foreach(e => insert.foreach(_.observer.next(e)))
-    val deleteHook = (p: VNodeProxy) => p.elm.foreach(e => delete.foreach(_.observer.next(e)))
-    val updateHook = createUpdateHook(update)
+    val insertHook = createHookSingle(insert)
+    val prePatchHook = createHookPairOption(prepatch)
+    val updateHook = createHookPair(update)
+    val postPatchHook = createHookPair(postpatch)
+    val destroyHook = createHookSingle(destroy)
     val key = keys.lastOption.map(_.value).orUndefined
 
-    DataObject.create(attrs, props, style, handlers, insertHook, deleteHook, updateHook, key)
+    DataObject(attrs, props, style, handlers,
+      Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook),
+      key
+    )
   }
 
   private def createReceiverDataObject(changeables: SeparatedReceivers,
                                        properties: Seq[Property],
                                        eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
-    val SeparatedProperties(insert, destroy, update, attributes, keys) = separateProperties(properties)
+    val SeparatedProperties(insert, prepatch, update, postpatch, destroy, attributes, keys) = separateProperties(properties)
 
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
     val subscriptionRef = STRef.empty[Subscription]
+
     val insertHook = createInsertHook(changeables, subscriptionRef, insert)
-    val deleteHook = createDestroyHook(subscriptionRef, destroy)
-    val updateHook = createUpdateHook(update)
+    val prePatchHook = createHookPairOption(prepatch)
+    val updateHook = createHookPair(update)
+    val postPatchHook = createHookPair(postpatch)
+    val destroyHook = createDestroyHook(subscriptionRef, destroy)
     val key = keys.lastOption.fold[Key.Value](changeables.hashCode)(_.value)
 
-    DataObject.create(attrs, props, style, eventHandlers, insertHook, deleteHook, updateHook, key)
+    DataObject(
+      attrs, props, style, eventHandlers,
+      Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook),
+      key
+    )
   }
 
-  private def createUpdateHook(hooks: Seq[UpdateHook]) = (old: VNodeProxy, cur: VNodeProxy) => {
-    for {
-      o <- old.elm
-      c <- cur.elm
-    } {
-      hooks.foreach(_.observer.next((o,c)))
-    }
+  private def createHookSingle(hooks: Seq[Hook[Element]]): js.UndefOr[Hooks.HookSingleFn] = {
+    Option(hooks).filter(_.nonEmpty).map[Hooks.HookSingleFn](hooks =>
+      (p: VNodeProxy) => for (e <- p.elm) hooks.foreach(_.observer.next(e))
+    ).orUndefined
   }
 
+  private def createHookPair(hooks: Seq[Hook[(Element, Element)]]): js.UndefOr[Hooks.HookPairFn] = {
+    Option(hooks).filter(_.nonEmpty).map[Hooks.HookPairFn](hooks =>
+      (old: VNodeProxy, cur: VNodeProxy) => for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.next((o, c)))
+    ).orUndefined
+  }
+
+  private def createHookPairOption(hooks: Seq[Hook[(Option[Element], Option[Element])]]): js.UndefOr[Hooks.HookPairFn] = {
+    Option(hooks).filter(_.nonEmpty).map[Hooks.HookPairFn](hooks =>
+      (old: VNodeProxy, cur: VNodeProxy) => hooks.foreach(_.observer.next((old.elm.toOption, cur.elm.toOption)))
+    ).orUndefined
+  }
 
   private def createInsertHook(changables: SeparatedReceivers,
                                subscriptionRef: STRef[Subscription],
-                               hooks: Seq[InsertHook]) = (proxy: VNodeProxy) => {
+                               hooks: Seq[InsertHook]): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = {
       val (attributes, nodes) = changable
@@ -89,7 +109,7 @@ object DomUtils {
     proxy.elm.foreach((e: Element) => hooks.foreach(_.observer.next(e)))
   }
 
-  private def createDestroyHook(subscription: STRef[Subscription], hooks: Seq[DestroyHook]) = (proxy: VNodeProxy) => {
+  private def createDestroyHook(subscription: STRef[Subscription], hooks: Seq[DestroyHook]): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
     proxy.elm.foreach((e: Element) => hooks.foreach(_.observer.next(e)))
     subscription.update { s => s.unsubscribe(); s }.unsafeRunSync()
     ()
@@ -162,17 +182,21 @@ object DomUtils {
 
   private[outwatch] final case class SeparatedProperties(
     insertHooks: List[InsertHook] = Nil,
-    destroyHooks: List[DestroyHook] = Nil,
+    prePatchHooks: List[PrePatchHook] = Nil,
     updateHooks: List[UpdateHook] = Nil,
+    postPatchHooks: List[PostPatchHook] = Nil,
+    destroyHooks: List[DestroyHook] = Nil,
     attributeHooks: List[Attribute] = Nil,
     keys: List[Key] = Nil
   )
   private[outwatch] def separateProperties(properties: Seq[Property]): SeparatedProperties = {
     properties.foldRight(SeparatedProperties()) {
       case (ih: InsertHook, sp) => sp.copy(insertHooks = ih :: sp.insertHooks)
-      case (dh: DestroyHook, sp) => sp.copy(destroyHooks = dh :: sp.destroyHooks)
+      case (pph: PrePatchHook, sp) => sp.copy(prePatchHooks = pph :: sp.prePatchHooks)
       case (uh: UpdateHook, sp) => sp.copy(updateHooks = uh :: sp.updateHooks)
-      case (at: Attribute, sp)  => sp.copy(attributeHooks = at :: sp.attributeHooks)
+      case (pph: PostPatchHook, sp) => sp.copy(postPatchHooks = pph :: sp.postPatchHooks)
+      case (dh: DestroyHook, sp) => sp.copy(destroyHooks = dh :: sp.destroyHooks)
+      case (at: Attribute, sp) => sp.copy(attributeHooks = at :: sp.attributeHooks)
       case (key: Key, sp) => sp.copy(keys = key :: sp.keys)
     }
   }

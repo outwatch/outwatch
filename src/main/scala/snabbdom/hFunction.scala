@@ -31,23 +31,35 @@ object hFunction {
 
 @ScalaJSDefined
 trait Hooks extends js.Object {
-  val insert: js.UndefOr[js.Function1[VNodeProxy, Unit]]
-  val destroy: js.UndefOr[js.Function1[VNodeProxy, Unit]]
-  val update: js.UndefOr[js.Function2[VNodeProxy, VNodeProxy, Unit]]
+  val insert: js.UndefOr[Hooks.HookSingleFn]
+  val prepatch: js.UndefOr[Hooks.HookPairFn]
+  val update: js.UndefOr[Hooks.HookPairFn]
+  val postpatch: js.UndefOr[Hooks.HookPairFn]
+  val destroy: js.UndefOr[Hooks.HookSingleFn]
 }
 
 object Hooks {
-  def apply(insert: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined,
-            destroy: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined,
-            update: js.UndefOr[js.Function2[VNodeProxy, VNodeProxy, Unit]] = js.undefined
-           ): Hooks = {
+  type HookSingleFn = js.Function1[VNodeProxy, Unit]
+  type HookPairFn = js.Function2[VNodeProxy, VNodeProxy, Unit]
+
+  def apply(
+    insert: js.UndefOr[HookSingleFn] = js.undefined,
+    prepatch: js.UndefOr[HookPairFn] = js.undefined,
+    update: js.UndefOr[HookPairFn] = js.undefined,
+    postpatch: js.UndefOr[HookPairFn] = js.undefined,
+    destroy: js.UndefOr[HookSingleFn] = js.undefined
+  ): Hooks = {
     val _insert = insert
-    val _destroy = destroy
+    val _prepatch = prepatch
     val _update = update
+    val _postpatch = postpatch
+    val _destroy = destroy
     new Hooks {
       val insert = _insert
-      val destroy = _destroy
+      val prepatch = _prepatch
       val update = _update
+      val postpatch = _postpatch
+      val destroy = _destroy
     }
   }
 }
@@ -71,8 +83,9 @@ object DataObject {
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
   def apply(attrs: js.Dictionary[AttrValue],
-            on: js.Dictionary[js.Function1[Event, Unit]]
-           ): DataObject = apply(attrs, js.Dictionary.empty, js.Dictionary.empty, on, Hooks(), js.undefined)
+            on: js.Dictionary[js.Function1[Event, Unit]],
+            hooks : Hooks = Hooks()
+           ): DataObject = apply(attrs, js.Dictionary.empty, js.Dictionary.empty, on, hooks, js.undefined)
 
 
   def apply(attrs: js.Dictionary[AttrValue],
@@ -98,26 +111,6 @@ object DataObject {
       val hook: Hooks = _hook
       val key: UndefOr[KeyValue] = _key
     }
-  }
-
-  def create(attrs: js.Dictionary[AttrValue],
-             props: js.Dictionary[PropValue],
-             style: js.Dictionary[String],
-             on: js.Dictionary[js.Function1[Event, Unit]],
-             insert: js.Function1[VNodeProxy, Unit],
-             destroy: js.Function1[VNodeProxy, Unit],
-             update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-             key: js.UndefOr[KeyValue]
-            ): DataObject = {
-
-    DataObject(
-      attrs = attrs,
-      props = props,
-      style = style,
-      on = on,
-      hook = Hooks(insert = insert, destroy = destroy, update = update),
-      key = key
-    )
   }
 
   implicit class DataObjectExt(val obj: DataObject) extends AnyVal {

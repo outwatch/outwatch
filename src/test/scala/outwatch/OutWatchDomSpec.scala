@@ -25,14 +25,18 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       InsertHook(Subject()),
       UpdateHook(Subject()),
       InsertHook(Subject()),
-      DestroyHook(Subject())
+      DestroyHook(Subject()),
+      PrePatchHook(Subject()),
+      PostPatchHook(Subject())
     )
 
-    val DomUtils.SeparatedProperties(inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
+    val DomUtils.SeparatedProperties(inserts, prepatch, updates, postpatch, deletes, attributes, keys) = DomUtils.separateProperties(properties)
 
     inserts.length shouldBe 2
-    deletes.length shouldBe 1
+    prepatch.length shouldBe 1
     updates.length shouldBe 1
+    postpatch.length shouldBe 1
+    deletes.length shouldBe 1
     attributes.length shouldBe 1
     keys.length shouldBe 0
   }
@@ -94,18 +98,22 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("disabled",Observable.of()),
       ChildrenStreamReceiver(Observable.of()),
       Emitter("keyup", _ => ()),
-      InsertHook(Subject())
+      InsertHook(Subject()),
+      PrePatchHook(Subject()),
+      PostPatchHook(Subject())
     )
 
     val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
 
+    val DomUtils.SeparatedProperties(inserts, prepatch, updates, postpatch, deletes, attributes, keys) = DomUtils.separateProperties(properties)
 
-    val DomUtils.SeparatedProperties(inserts, deletes, updates, attributes, keys) = DomUtils.separateProperties(properties)
-
+    emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
     emitters.length shouldBe 3
     inserts.length shouldBe 1
-    deletes.length shouldBe 0
+    prepatch.length shouldBe 1
     updates.length shouldBe 1
+    postpatch.length shouldBe 1
+    deletes.length shouldBe 0
     attributes.length shouldBe 1
     receivers.length shouldBe 2
     children.length shouldBe 1
