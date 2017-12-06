@@ -15,11 +15,15 @@ object hProvider extends js.Object {
 
 @js.native
 trait hFunction extends js.Any {
-  def apply(nodeType: String, dataObject: DataObject, children: String | js.Array[_ <: Any]): VNodeProxy = js.native
+  def apply(nodeType: String, dataObject: DataObject, text: String): VNodeProxy = js.native
+  def apply(nodeType: String, dataObject: DataObject, children: js.Array[VNodeProxy]): VNodeProxy = js.native
 }
 
-object h {
-  def apply(nodeType: String, dataObject: DataObject, children: String | js.Array[_ <: Any]): VNodeProxy = {
+object hFunction {
+  def apply(nodeType: String, dataObject: DataObject, text: String): VNodeProxy = {
+    hProvider.default.apply(nodeType, dataObject, text)
+  }
+  def apply(nodeType: String, dataObject: DataObject, children: js.Array[VNodeProxy]): VNodeProxy = {
     hProvider.default.apply(nodeType, dataObject, children)
   }
 }
@@ -57,13 +61,14 @@ trait DataObject extends js.Object {
   val style: js.Dictionary[String]
   val on: js.Dictionary[js.Function1[Event, Unit]]
   val hook: Hooks
-  val key: js.UndefOr[String | Int]
+  val key: js.UndefOr[KeyValue]
 }
 
 object DataObject {
 
   type PropValue = Any
   type AttrValue = String | Boolean
+  type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
   def apply(attrs: js.Dictionary[AttrValue],
             on: js.Dictionary[js.Function1[Event, Unit]]
@@ -75,7 +80,7 @@ object DataObject {
             style: js.Dictionary[String],
             on: js.Dictionary[js.Function1[Event, Unit]],
             hook: Hooks,
-            key: js.UndefOr[String | Int]
+            key: js.UndefOr[KeyValue]
            ): DataObject = {
 
     val _attrs = attrs
@@ -91,7 +96,7 @@ object DataObject {
       val style: js.Dictionary[String] = _style
       val on: js.Dictionary[js.Function1[Event, Unit]] = _on
       val hook: Hooks = _hook
-      val key: UndefOr[String | Int] = _key
+      val key: UndefOr[KeyValue] = _key
     }
   }
 
@@ -102,7 +107,7 @@ object DataObject {
              insert: js.Function1[VNodeProxy, Unit],
              destroy: js.Function1[VNodeProxy, Unit],
              update: js.Function2[VNodeProxy, VNodeProxy, Unit],
-             key: js.UndefOr[String | Int]
+             key: js.UndefOr[KeyValue]
             ): DataObject = {
 
     DataObject(

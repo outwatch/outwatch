@@ -46,7 +46,7 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with
 }
 
 object KeyBuilder {
-  def :=(key: String) = IO.pure(Key(key))
+  def :=(key: Key.Value) = IO.pure(Key(key))
 }
 
 object ChildStreamReceiverBuilder {
