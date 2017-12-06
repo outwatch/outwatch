@@ -50,7 +50,7 @@ object DomUtils {
     val insertHook = createInsertHook(changeables, subscriptionRef, insert)
     val deleteHook = createDestroyHook(subscriptionRef, destroy)
     val updateHook = createUpdateHook(update)
-    val key = keys.lastOption.map(_.value).getOrElse(changeables.hashCode.toString)
+    val key = keys.lastOption.fold[Key.Value](changeables.hashCode)(_.value)
 
     DataObject.create(attrs, props, style, eventHandlers, insertHook, deleteHook, updateHook, key)
   }
@@ -71,7 +71,7 @@ object DomUtils {
 
     def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = {
       val (attributes, nodes) = changable
-      h(
+      hFunction(
         proxy.sel,
         proxy.data.withUpdatedAttributes(attributes),
         if (nodes.isEmpty) proxy.children else nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy]
@@ -126,6 +126,7 @@ object DomUtils {
   private[outwatch] final case class SeparatedReceivers(
     childNodes: List[ChildVNode] = Nil,
     hasNodeStreams: Boolean = false,
+    multipleChildrenStreams: Boolean = false,
     attributeStreamReceivers: List[AttributeStreamReceiver] = Nil
   ) {
 
@@ -135,7 +136,9 @@ object DomUtils {
           case (vn: VNode_, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
           case (csr: ChildStreamReceiver, obs) => obs.combineLatestWith(csr.childStream)((nodes, n) => n :: nodes)
           case (csr: ChildrenStreamReceiver, obs) =>
-            obs.combineLatestWith(csr.childrenStream.startWith(Seq.empty))((nodes, n) => n.toList ++ nodes)
+            obs.combineLatestWith(
+              if (multipleChildrenStreams) csr.childrenStream.startWith(Seq.empty) else csr.childrenStream
+            )((nodes, n) => n.toList ++ nodes)
         }
       } else {
         Observable.of(Seq.empty)
@@ -177,36 +180,39 @@ object DomUtils {
 
   private final case class ChildrenNodes(
     children: List[VNode_] = Nil,
-    hasStreams: Boolean = false
+    hasStreams: Boolean = false,
+    childrenStreams: Int = 0
   )
   private def extractChildren(nodes: Seq[ChildVNode]): ChildrenNodes = nodes.foldRight(ChildrenNodes()) {
     case (vn: VNode_, cn) => cn.copy(children = vn :: cn.children)
     case (_: ChildStreamReceiver, cn) => cn.copy(hasStreams = true)
-    case (_: ChildrenStreamReceiver, cn) => cn.copy(hasStreams = true)
+    case (_: ChildrenStreamReceiver, cn) => cn.copy(hasStreams = true, childrenStreams = cn.childrenStreams + 1)
   }
 
-  private[outwatch] def ensureVNodeKey(vn: VNode_): VNode_ = {
-    val withKey: VNode_ = vn match {
-      case vtree: VTree =>
-        val modifiers = vtree.modifiers
-        val hasKey = modifiers.exists(m => m.unsafeRunSync().isInstanceOf[Key])
-        val newModifiers = if (hasKey) modifiers else IO.pure(Key(vtree.hashCode.toString)) +: modifiers
-        vtree.copy(modifiers = newModifiers)
-      case sn: StringNode => sn
-    }
-    withKey
+  // ensure a key is present in the VTree modifiers
+  // used to ensure efficient Snabbdom patch operation in the presence of children streams
+  private def ensureVTreeKey(vtree: VTree): VTree = {
+    val hasKey = vtree.modifiers.exists(m => m.unsafeRunSync().isInstanceOf[Key])
+    val newModifiers = if (hasKey) vtree.modifiers else IO.pure(Key(this.hashCode)) +: vtree.modifiers
+    vtree.copy(modifiers = newModifiers)
+  }
+
+  private[outwatch] def ensureVNodeKey[N >: VNode_](node: N): N = node match {
+    case vtree: VTree => ensureVTreeKey(vtree)
+    case other => other
   }
 
   private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[VNode_], DataObject) = {
     val SeparatedModifiers(emitters, attributeReceivers, properties, nodes) = separateModifiers(args)
 
-    val ChildrenNodes(children, hasChildStreams) = extractChildren(nodes)
+    val ChildrenNodes(children, hasChildStreams, childrenStreams) = extractChildren(nodes)
 
     // if child streams exists, we want the static children in the same node have keys
     // for efficient patching when the streams change
     val childrenWithKey = if (hasChildStreams) children.map(ensureVNodeKey) else children
+    val nodesWithKey = if (hasChildStreams) nodes.map(ensureVNodeKey) else nodes
 
-    val changeables = SeparatedReceivers(nodes, hasChildStreams, attributeReceivers)
+    val changeables = SeparatedReceivers(nodesWithKey, hasChildStreams, childrenStreams > 1, attributeReceivers)
 
     val eventHandlers = VDomProxy.emittersToSnabbDom(emitters)
 

@@ -1,6 +1,6 @@
 package outwatch
 
-import snabbdom.{DataObject, h, patch}
+import snabbdom.{DataObject, hFunction, patch}
 
 import scalajs.js
 import org.scalajs.dom.document
@@ -11,7 +11,7 @@ import Deprecated.IgnoreWarnings.initEvent
 class SnabbdomSpec extends UnitSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
     val message = "Hello World"
-    val vNode = h("span#msg", DataObject(js.Dictionary(), js.Dictionary()), message)
+    val vNode = hFunction("span#msg", DataObject(js.Dictionary(), js.Dictionary()), message)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
@@ -21,7 +21,7 @@ class SnabbdomSpec extends UnitSpec {
     document.getElementById("msg").innerHTML shouldBe message
 
     val newMessage = "Hello Snabbdom!"
-    val newNode = h("div#new", DataObject(js.Dictionary(), js.Dictionary()), newMessage)
+    val newNode = hFunction("div#new", DataObject(js.Dictionary(), js.Dictionary()), newMessage)
 
     patch(vNode, newNode)
 
@@ -65,7 +65,7 @@ class SnabbdomSpec extends UnitSpec {
   it should "correctly handle boolean attributes" in {
     val message = "Hello World"
     val attributes = js.Dictionary[dom.Attr.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
-    val vNode = h("span#msg", DataObject(attributes, js.Dictionary()), message)
+    val vNode = hFunction("span#msg", DataObject(attributes, js.Dictionary()), message)
 
     val node = document.createElement("div")
     document.body.appendChild(node)

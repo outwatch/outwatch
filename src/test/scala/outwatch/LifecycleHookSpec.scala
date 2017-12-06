@@ -6,6 +6,8 @@ import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
 import rxscalajs.{Observable, Subject}
 
+import scala.collection.mutable
+
 class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   override def beforeEach(): Unit = {
@@ -118,6 +120,68 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe true
 
+  }
+
+
+
+  "Empty single children receiver" should "not trigger node update on render" in {
+    val hooks = mutable.ArrayBuffer.empty[String]
+    val insertSink = Sink.create((_: Element) => IO(hooks += "insert"))
+    val updateSink = Sink.create((_: (Element, Element)) => IO(hooks += "update"))
+
+    val messageList = Subject[Seq[String]]()
+    val node = div("Hello",  children <-- messageList.map(_.map(span(_))),
+      insert --> insertSink,
+      update --> updateSink
+    )
+
+    hooks shouldBe empty
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    hooks.toList shouldBe  List("insert")
+  }
+
+  "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
+    val hooks = mutable.ArrayBuffer.empty[String]
+    val insertSink = Sink.create((_: Element) => IO(hooks += "insert"))
+    val updateSink = Sink.create((_: (Element, Element)) => IO(hooks += "update"))
+    val destroySink = Sink.create((_: Element) => IO(hooks += "destroy"))
+
+    val message = Subject[String]()
+    val node = div(span("Hello", insert --> insertSink, update --> updateSink,destroy --> destroySink),
+      child <-- message.map(span(_))
+    )
+
+    hooks shouldBe empty
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    message.next("next")
+
+    hooks.contains("destroy") shouldBe false
+  }
+
+  "Static child nodes" should "be only inserted once when children stream emits" in {
+    val hooks = mutable.ArrayBuffer.empty[String]
+    val insertSink = Sink.create((_: Element) => IO(hooks += "insert"))
+    val updateSink = Sink.create((_: (Element, Element)) => IO(hooks += "update"))
+    val destroySink = Sink.create((_: Element) => IO(hooks += "destroy"))
+
+    val messageList = Subject[Seq[String]]()
+    val node = div(children <-- messageList.map(_.map(span(_))),
+      span("Hello", insert --> insertSink, update --> updateSink,destroy --> destroySink)
+    )
+
+    hooks shouldBe empty
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    messageList.next(Seq("one"))
+
+    messageList.next(Seq("one", "two"))
+
+    hooks.count(_ == "insert") shouldBe 1
   }
 
 }

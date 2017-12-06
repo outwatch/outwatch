@@ -7,7 +7,7 @@ import org.scalatest.BeforeAndAfterEach
 import outwatch.dom.{StringNode, _}
 import outwatch.dom.helpers._
 import rxscalajs.{Observable, Subject}
-import snabbdom.{DataObject, h}
+import snabbdom.{DataObject, VNodeProxy, hFunction}
 
 import scala.collection.immutable.Seq
 import scala.scalajs.js
@@ -114,8 +114,8 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
   val fixture = new {
-    val proxy = h("div", DataObject(js.Dictionary("class" -> "red", "id" -> "msg"), js.Dictionary()), js.Array(
-      h("span", DataObject(js.Dictionary(), js.Dictionary()), js.Array("Hello"))
+    val proxy = hFunction("div", DataObject(js.Dictionary("class" -> "red", "id" -> "msg"), js.Dictionary()), js.Array(
+      hFunction("span", DataObject(js.Dictionary(), js.Dictionary()), js.Array(VNodeProxy.fromString("Hello")))
     ))
   }
 
@@ -240,7 +240,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     )
 
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
-    val expected = h("div", DataObject(attrs, js.Dictionary()), js.Array[Any]())
+    val expected = hFunction("div", DataObject(attrs, js.Dictionary()), js.Array[VNodeProxy]())
 
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)
 
