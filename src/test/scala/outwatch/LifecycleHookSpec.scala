@@ -54,14 +54,30 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   }
 
-  "Destruction hooks" should "be called correctly on merged nodes" in {
+
+  "Destruction hooks"  should "be called correctly" in {
+
+    var switch = false
+    val sink = Sink.create((_: Element) => IO { switch = true })
+
+    val node = div(child <-- Observable.of(span(destroy --> sink), div("Hasdasd")))
+
+    switch shouldBe false
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    switch shouldBe true
+
+  }
+
+  it should "be called correctly on merged nodes" in {
 
     var switch = false
     val sink = Sink.create((_: Element) => IO{switch = true})
     var switch2 = false
     val sink2 = Sink.create((_: Element) => IO{switch2 = true})
 
-    val node = div(child <-- Observable.of[VNode](span(destroy --> sink)(destroy --> sink2), "Hasdasd"))
+    val node = div(child <-- Observable.of(span(destroy --> sink)(destroy --> sink2), div("Hasdasd")))
 
     switch shouldBe false
     switch2 shouldBe false
@@ -70,22 +86,6 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe true
     switch2 shouldBe true
-
-  }
-
-  it should "be called correctly" in {
-
-    var switch = false
-    val sink = Sink.create((_: Element) => IO { switch = true })
-
-    val node = div(child <-- Observable.of[VNode](span(destroy --> sink), "Hasdasd"))
-
-    switch shouldBe false
-
-    OutWatch.render("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-
   }
 
   "Update hooks" should "be called correctly on merged nodes" in {

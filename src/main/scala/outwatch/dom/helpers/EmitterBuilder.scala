@@ -22,6 +22,8 @@ trait EmitterBuilder[E <: Event, O] extends Any {
 
   def filter(predicate: O => Boolean): TransformingEmitterBuilder[E, O] = transform(_.filter(predicate))
 
+  def collect[T](f: PartialFunction[O, T]): TransformingEmitterBuilder[E, T] = transform(_.collect(f))
+
   def -->(sink: Sink[_ >: O]): IO[Emitter]
 }
 

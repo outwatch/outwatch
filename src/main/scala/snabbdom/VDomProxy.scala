@@ -18,6 +18,7 @@ object VDomProxy {
       case a:Attr => attrsDict(a.title) = a.value
       case a:Prop => propsDict(a.title) = a.value
       case a:Style => styleDict(a.title) = a.value
+      case EmptyAttribute =>
     }
 
     (attrsDict, propsDict, styleDict)

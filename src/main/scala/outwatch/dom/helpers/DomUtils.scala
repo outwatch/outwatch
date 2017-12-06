@@ -89,13 +89,19 @@ object DomUtils {
                                subscriptionRef: STRef[Subscription],
                                hooks: Seq[InsertHook]): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
-    def toProxy(changable: (Seq[Attribute], Seq[VNode])): VNodeProxy = {
+    def toProxy(changable: (Seq[Attribute], Seq[IO[StaticVNode]])): VNodeProxy = {
       val (attributes, nodes) = changable
-      hFunction(
-        proxy.sel,
-        proxy.data.withUpdatedAttributes(attributes),
-        if (nodes.isEmpty) proxy.children else nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy]
-      )
+      val newData = proxy.data.withUpdatedAttributes(attributes)
+
+      if (nodes.isEmpty) {
+        if (proxy.children.isDefined) {
+          hFunction(proxy.sel, newData, proxy.children.get)
+        } else {
+          hFunction(proxy.sel, newData, proxy.text)
+        }
+      } else {
+        hFunction(proxy.sel,newData, nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy])
+      }
     }
 
     val subscription = changables.observable
@@ -120,7 +126,9 @@ object DomUtils {
     emitters: List[Emitter] = Nil,
     attributeReceivers: List[AttributeStreamReceiver] = Nil,
     properties: List[Property] = Nil,
-    vNodes: List[ChildVNode] = Nil
+    vNodes: List[ChildVNode] = Nil,
+    hasChildVNodes : Boolean = false,
+    stringModifiers: List[StringModifier] = Nil
   )
   private[outwatch] def separateModifiers(args: Seq[VDomModifier_]): SeparatedModifiers = {
     args.foldRight(SeparatedModifiers())(separatorFn)
@@ -130,17 +138,22 @@ object DomUtils {
     case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: AttributeStreamReceiver, sf) => sf.copy(attributeReceivers = rc :: sf.attributeReceivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
-    case (vn: ChildVNode, sf) => sf.copy(vNodes = vn :: sf.vNodes)
-    case (vn: CompositeVDomModifier, sf) =>
+    case (vn: ChildVNode, sf) =>
+      sf.copy(vNodes = vn :: sf.vNodes, hasChildVNodes = true)
+    case (sm: StringModifier, sf) =>
+      sf.copy(vNodes = StringVNode(sm.string) :: sf.vNodes, stringModifiers = sm :: sf.stringModifiers)
+    case (vn: CompositeModifier, sf) =>
       val modifiers = vn.modifiers.map(_.unsafeRunSync())
       val sm = separateModifiers(modifiers)
-      sf.copy(
+      SeparatedModifiers(
         emitters = sm.emitters ++ sf.emitters,
         attributeReceivers = sm.attributeReceivers ++ sf.attributeReceivers,
         properties = sm.properties ++ sf.properties,
-        vNodes = sm.vNodes ++ sf.vNodes
+        vNodes = sm.vNodes ++ sf.vNodes,
+        hasChildVNodes = sm.hasChildVNodes || sf.hasChildVNodes,
+        stringModifiers = sm.stringModifiers ++ sf.stringModifiers
       )
-    case (EmptyVDomModifier, sf) => sf
+    case (EmptyModifier, sf) => sf
   }
 
   private[outwatch] final case class SeparatedReceivers(
@@ -150,10 +163,10 @@ object DomUtils {
     attributeStreamReceivers: List[AttributeStreamReceiver] = Nil
   ) {
 
-    lazy val observable: Observable[(Seq[Attribute], Seq[VNode])] = {
+    lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
       val childStreamReceivers = if (hasNodeStreams) {
-        childNodes.foldRight(Observable.of(List.empty[VNode])) {
-          case (vn: VNode_, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
+        childNodes.foldRight(Observable.of(List.empty[IO[StaticVNode]])) {
+          case (vn: StaticVNode, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
           case (csr: ChildStreamReceiver, obs) => obs.combineLatestWith(csr.childStream)((nodes, n) => n :: nodes)
           case (csr: ChildrenStreamReceiver, obs) =>
             obs.combineLatestWith(
@@ -203,12 +216,12 @@ object DomUtils {
 
 
   private final case class ChildrenNodes(
-    children: List[VNode_] = Nil,
+    children: List[StaticVNode] = Nil,
     hasStreams: Boolean = false,
     childrenStreams: Int = 0
   )
   private def extractChildren(nodes: Seq[ChildVNode]): ChildrenNodes = nodes.foldRight(ChildrenNodes()) {
-    case (vn: VNode_, cn) => cn.copy(children = vn :: cn.children)
+    case (vn: StaticVNode, cn) => cn.copy(children = vn :: cn.children)
     case (_: ChildStreamReceiver, cn) => cn.copy(hasStreams = true)
     case (_: ChildrenStreamReceiver, cn) => cn.copy(hasStreams = true, childrenStreams = cn.childrenStreams + 1)
   }
@@ -221,13 +234,13 @@ object DomUtils {
     vtree.copy(modifiers = newModifiers)
   }
 
-  private[outwatch] def ensureVNodeKey[N >: VNode_](node: N): N = node match {
+  private def ensureVNodeKey[N >: VTree](node: N): N = node match {
     case vtree: VTree => ensureVTreeKey(vtree)
     case other => other
   }
 
-  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[VNode_], DataObject) = {
-    val SeparatedModifiers(emitters, attributeReceivers, properties, nodes) = separateModifiers(args)
+  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[StaticVNode], DataObject, Boolean, Seq[StringModifier]) = {
+    val SeparatedModifiers(emitters, attributeReceivers, properties, nodes, hasChildVNodes, stringModifiers) = separateModifiers(args)
 
     val ChildrenNodes(children, hasChildStreams, childrenStreams) = extractChildren(nodes)
 
@@ -242,7 +255,7 @@ object DomUtils {
 
     val dataObject = createDataObject(changeables, properties, eventHandlers)
 
-    (childrenWithKey, dataObject)
+    (childrenWithKey, dataObject, hasChildVNodes, stringModifiers)
   }
 
   def render(element: Element, vNode: VNode): IO[Unit] = for {

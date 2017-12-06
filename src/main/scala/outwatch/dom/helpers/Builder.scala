@@ -1,6 +1,7 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
+import outwatch.StaticVNodeRender
 
 import scala.language.dynamics
 import outwatch.dom._
@@ -46,17 +47,17 @@ final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with
 }
 
 object KeyBuilder {
-  def :=(key: Key.Value) = IO.pure(Key(key))
+  def :=(key: Key.Value): IO[Key] = IO.pure(Key(key))
 }
 
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[T])(implicit conv: T => VNode): IO[ChildStreamReceiver] = {
-    IO.pure(ChildStreamReceiver(valueStream.map(conv)))
+  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = {
+    IO.pure(ChildStreamReceiver(valueStream.map(r.render)))
   }
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VNode]]) = {
+  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = {
     IO.pure(ChildrenStreamReceiver(childrenStream))
   }
 }

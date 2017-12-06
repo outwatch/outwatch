@@ -1,13 +1,12 @@
 package outwatch
 
 import cats.effect.IO
-import org.scalajs.dom.document
-import org.scalajs.dom.html
+import org.scalajs.dom.{document, html}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.{StringNode, _}
 import outwatch.dom.helpers._
+import outwatch.dom.{StringModifier, _}
 import rxscalajs.{Observable, Subject}
-import snabbdom.{DataObject, VNodeProxy, hFunction}
+import snabbdom.{DataObject, hFunction}
 
 import scala.collection.immutable.Seq
 import scala.scalajs.js
@@ -44,11 +43,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   "VDomModifiers" should "be separated correctly" in {
     val modifiers = Seq(
       Attribute("class", "red"),
-      EmptyVDomModifier,
+      EmptyModifier,
       Emitter("click", _ => ()),
-      new StringNode("Test"),
+      new StringModifier("Test"),
       div().unsafeRunSync(),
-      CompositeVDomModifier(
+      CompositeModifier(
         Seq(
           div(),
           Attributes.`class` := "blue",
@@ -59,38 +58,42 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, vNodes) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, vNodes, hasChildVNodes, stringModifiers) = DomUtils.separateModifiers(modifiers)
 
     emitters.length shouldBe 2
     receivers.length shouldBe 2
     vNodes.length shouldBe 3
     properties.length shouldBe 2
+    hasChildVNodes shouldBe true
+    stringModifiers.length shouldBe 1
   }
 
   it should "be separated correctly with children" in {
     val modifiers = Seq(
       Attribute("class","red"),
-      EmptyVDomModifier,
+      EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
-      ChildrenStreamReceiver(Observable.of()),
-      Emitter("keyup",  _ => ())
+      Emitter("keyup",  _ => ()),
+      StringModifier("text")
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children, hasChildVNodes, stringModifiers) = DomUtils.separateModifiers(modifiers)
 
     emitters.length shouldBe 3
     receivers.length shouldBe 2
     properties.length shouldBe 1
     children.length shouldBe 1
+    hasChildVNodes shouldBe false
+    stringModifiers.length shouldBe 1
   }
 
   it should "be separated correctly with children and properties" in {
     val modifiers = Seq(
       Attribute("class","red"),
-      EmptyVDomModifier,
+      EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
       UpdateHook(Subject()),
@@ -100,10 +103,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       Emitter("keyup", _ => ()),
       InsertHook(Subject()),
       PrePatchHook(Subject()),
-      PostPatchHook(Subject())
+      PostPatchHook(Subject()),
+      StringModifier("text")
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children, hasChildVNodes, stringModifiers) = DomUtils.separateModifiers(modifiers)
 
     val DomUtils.SeparatedProperties(inserts, prepatch, updates, postpatch, deletes, attributes, keys) = DomUtils.separateProperties(properties)
 
@@ -116,14 +120,15 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     deletes.length shouldBe 0
     attributes.length shouldBe 1
     receivers.length shouldBe 2
-    children.length shouldBe 1
+    children.length shouldBe 2
     keys.length shouldBe 0
-
+    hasChildVNodes shouldBe true
+    stringModifiers.length shouldBe 1
   }
 
   val fixture = new {
     val proxy = hFunction("div", DataObject(js.Dictionary("class" -> "red", "id" -> "msg"), js.Dictionary()), js.Array(
-      hFunction("span", DataObject(js.Dictionary(), js.Dictionary()), js.Array(VNodeProxy.fromString("Hello")))
+      hFunction("span", DataObject(js.Dictionary(), js.Dictionary()), "Hello")
     ))
   }
 
@@ -218,7 +223,6 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     )
 
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
-
   }
 
   it should "construct VTrees with optional children properly" in {
@@ -248,7 +252,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     )
 
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
-    val expected = hFunction("div", DataObject(attrs, js.Dictionary()), js.Array[VNodeProxy]())
+    val expected = hFunction("div", DataObject(attrs, js.Dictionary()))
 
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)
 
@@ -510,5 +514,43 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     otherMessages.next("green")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+  }
+
+
+  it should "render composite VNodes properly" in {
+    val items = Seq("one", "two", "three")
+    val vNode = div(items.map(item => span(item)))
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    node.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
+
+  }
+
+  it should "render nodes with only attribute receivers properly" in {
+    val classes = Subject[String]
+    val vNode = button( className <-- classes, "Submit")
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    classes.next("active")
+
+    node.innerHTML shouldBe """<button class="active">Submit</button>"""
+  }
+
+  it should "work with custom tags" in {
+
+    val vNode = div(tag("main")())
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    DomUtils.render(node, vNode).unsafeRunSync()
+
+    node.innerHTML shouldBe "<div><main></main></div>"
   }
 }

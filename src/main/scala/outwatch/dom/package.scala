@@ -4,8 +4,11 @@ import cats.effect.IO
 
 package object dom extends Attributes with Tags with HandlerFactories {
 
-  type VNode = IO[VNode_]
+  type VNode = IO[VTree]
   type VDomModifier = IO[VDomModifier_]
+  object VDomModifier {
+    val empty = IO.pure(EmptyModifier)
+  }
 
   type Observable[+A] = rxscalajs.Observable[A]
   val Observable = rxscalajs.Observable
@@ -19,11 +22,11 @@ package object dom extends Attributes with Tags with HandlerFactories {
   type Handler[T] = outwatch.Handler[T]
   val Handler = outwatch.Handler
 
-  implicit def renderVNode[T](value: T)(implicit vnr: VNodeRender[T]): VNode = vnr.render(value)
+  implicit def valueModifier[T](value: T)(implicit mr: ValueModifier[T]): VDomModifier = mr.asModifier(value)
 
-  implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse IO.pure(EmptyVDomModifier)
+  implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse VDomModifier.empty
 
-  implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = IO.pure(CompositeVDomModifier(modifiers))
+  implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = IO.pure(CompositeModifier(modifiers))
 
   implicit class ioVTreeMerge(vnode: VNode) {
     def apply(args: VDomModifier*): VNode = {

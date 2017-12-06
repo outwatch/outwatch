@@ -2,6 +2,7 @@ package snabbdom
 
 import org.scalajs.dom._
 import outwatch.dom.Attribute
+import snabbdom.DataObject.KeyValue
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
@@ -15,12 +16,16 @@ object hProvider extends js.Object {
 
 @js.native
 trait hFunction extends js.Any {
-  def apply(nodeType: String, dataObject: DataObject, text: String): VNodeProxy = js.native
+  def apply(nodeType: String, dataObject: DataObject): VNodeProxy = js.native
+  def apply(nodeType: String, dataObject: DataObject, text: js.UndefOr[String]): VNodeProxy = js.native
   def apply(nodeType: String, dataObject: DataObject, children: js.Array[VNodeProxy]): VNodeProxy = js.native
 }
 
 object hFunction {
-  def apply(nodeType: String, dataObject: DataObject, text: String): VNodeProxy = {
+  def apply(nodeType: String, dataObject: DataObject): VNodeProxy = {
+    hProvider.default.apply(nodeType, dataObject)
+  }
+  def apply(nodeType: String, dataObject: DataObject, text: js.UndefOr[String]): VNodeProxy = {
     hProvider.default.apply(nodeType, dataObject, text)
   }
   def apply(nodeType: String, dataObject: DataObject, children: js.Array[VNodeProxy]): VNodeProxy = {
@@ -145,10 +150,12 @@ object patch {
 
 @js.native
 trait VNodeProxy extends js.Object {
-  val elm: js.UndefOr[Element]
-  val data: DataObject
-  val children: js.Array[VNodeProxy]
   val sel: String
+  val data: DataObject
+  val children: js.UndefOr[js.Array[VNodeProxy]]
+  val elm: js.UndefOr[Element]
+  val text: js.UndefOr[String]
+  val key: js.UndefOr[KeyValue]
 }
 
 object VNodeProxy {
