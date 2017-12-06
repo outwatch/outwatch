@@ -122,12 +122,151 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   }
 
+  "Prepatch hooks" should "be called" in {
 
+    var switch = false
+    val sink = Sink.create((_: (Option[Element], Option[Element])) => IO {
+      switch = true
+    })
+
+    val node = div(child <-- Observable.of(span("Hello")), span(outwatch.dom.key := "1", prepatch --> sink, "Hey"))
+
+    switch shouldBe false
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    switch shouldBe true
+  }
+
+  it should "be called correctly on merged nodes" in {
+    var switch1 = false
+    val sink1 = Sink.create((_: (Option[Element], Option[Element])) => IO {
+      switch1 = true
+    })
+    var switch2 = false
+    val sink2 = Sink.create((_: (Option[Element], Option[Element])) => IO {
+      switch2 = true
+    })
+    val message = Subject[String]()
+    val node = div(child <-- message, prepatch --> sink1)(prepatch --> sink2)
+
+    OutWatch.render("#app", node).unsafeRunSync()
+    switch1 shouldBe false
+    switch2 shouldBe false
+
+    message.next("wursi")
+
+    switch1 shouldBe true
+    switch2 shouldBe true
+  }
+
+  "Postpatch hooks" should "be called" in {
+
+    var switch = false
+    val sink = Sink.create((_: (Element, Element)) => IO {
+      switch = true
+    })
+
+    val node = div(child <-- Observable.of("message"), postpatch --> sink, "Hey")
+
+    switch shouldBe false
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    switch shouldBe true
+  }
+
+
+  it should "be called correctly on merged nodes" in {
+    var switch1 = false
+    val sink1 = Sink.create((_: (Element, Element)) => IO {
+      switch1 = true
+    })
+    var switch2 = false
+    val sink2 = Sink.create((_: (Element, Element)) => IO {
+      switch2 = true
+    })
+    val message = Subject[String]()
+    val node = div(child <-- message, postpatch --> sink1)(postpatch --> sink2)
+
+    OutWatch.render("#app", node).unsafeRunSync()
+    switch1 shouldBe false
+    switch2 shouldBe false
+
+    message.next("wursi")
+
+    switch1 shouldBe true
+    switch2 shouldBe true
+  }
+
+
+  "Hooks" should "be called in the correct order for modified node" in {
+    val hooks = mutable.ArrayBuffer.empty[String]
+    val insertSink = Sink.create((_: Element) =>
+      IO {
+        hooks += "insert"
+        ()
+      }
+    )
+    val prepatchSink = Sink.create((_: (Option[Element], Option[Element])) =>
+      IO {
+        hooks += "prepatch"
+        ()
+      }
+    )
+    val updateSink = Sink.create((_: (Element, Element)) =>
+      IO {
+        hooks += "update"
+        ()
+      }
+    )
+    val postpatchSink = Sink.create((_: (Element, Element)) =>
+      IO {
+        hooks += "postpatch"
+        ()
+      }
+    )
+    val destroySink = Sink.create((_: Element) =>
+      IO {
+        hooks += "destroy"
+        ()
+      }
+    )
+
+    val message = Subject[String]()
+    val node = div(child <-- message,
+      insert --> insertSink,
+      prepatch --> prepatchSink,
+      update --> updateSink,
+      postpatch --> postpatchSink,
+      destroy --> destroySink
+    )
+
+    hooks shouldBe empty
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    hooks.toList shouldBe List("insert")
+
+    message.next("next")
+
+    hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
+  }
 
   "Empty single children receiver" should "not trigger node update on render" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create((_: Element) => IO(hooks += "insert"))
-    val updateSink = Sink.create((_: (Element, Element)) => IO(hooks += "update"))
+    val insertSink = Sink.create((_: Element) =>
+      IO {
+        hooks += "insert"
+        ()
+      }
+    )
+    val updateSink = Sink.create((_: (Element, Element)) =>
+      IO {
+        hooks += "update"
+        ()
+      }
+    )
 
     val messageList = Subject[Seq[String]]()
     val node = div("Hello",  children <-- messageList.map(_.map(span(_))),
@@ -144,9 +283,24 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create((_: Element) => IO(hooks += "insert"))
-    val updateSink = Sink.create((_: (Element, Element)) => IO(hooks += "update"))
-    val destroySink = Sink.create((_: Element) => IO(hooks += "destroy"))
+    val insertSink = Sink.create((_: Element) =>
+      IO {
+        hooks += "insert"
+        ()
+      }
+    )
+    val updateSink = Sink.create((_: (Element, Element)) =>
+      IO {
+        hooks += "update"
+        ()
+      }
+    )
+    val destroySink = Sink.create((_: Element) =>
+      IO {
+        hooks += "destroy"
+        ()
+      }
+    )
 
     val message = Subject[String]()
     val node = div(span("Hello", insert --> insertSink, update --> updateSink,destroy --> destroySink),
@@ -164,13 +318,28 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
   "Static child nodes" should "be only inserted once when children stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create((_: Element) => IO(hooks += "insert"))
-    val updateSink = Sink.create((_: (Element, Element)) => IO(hooks += "update"))
-    val destroySink = Sink.create((_: Element) => IO(hooks += "destroy"))
+    val insertSink = Sink.create((_: Element) =>
+      IO {
+        hooks += "insert"
+        ()
+      }
+    )
+    val updateSink = Sink.create((_: (Element, Element)) =>
+      IO {
+        hooks += "update"
+        ()
+      }
+    )
+    val destroySink = Sink.create((_: Element) =>
+      IO {
+        hooks += "destroy"
+        ()
+      }
+    )
 
     val messageList = Subject[Seq[String]]()
     val node = div(children <-- messageList.map(_.map(span(_))),
-      span("Hello", insert --> insertSink, update --> updateSink,destroy --> destroySink)
+      span("Hello", insert --> insertSink, update --> updateSink, destroy --> destroySink)
     )
 
     hooks shouldBe empty

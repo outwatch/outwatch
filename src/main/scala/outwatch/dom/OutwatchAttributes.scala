@@ -26,13 +26,33 @@ trait OutWatchChildAttributes {
 
 /** Outwatch component life cycle hooks. */
 trait OutWatchLifeCycleAttributes {
-  /** Lifecycle hook for component insertion. */
+  /**
+    * Lifecycle hook for component insertion.
+    *
+    * This hook is invoked once the DOM element for a vnode has been inserted into the document
+    * and the rest of the patch cycle is done.
+    */
   lazy val insert   = InsertHookBuilder
+
+  /** Lifecycle hook for component prepatch. */
+  lazy val prepatch   = PrePatchHookBuilder
 
   /** Lifecycle hook for component updates. */
   lazy val update   = UpdateHookBuilder
 
-  /** Lifecycle hook for component destruction. */
+  /**
+    * Lifecycle hook for component postpatch.
+    *
+    *  This hook is invoked every time a node has been patched against an older instance of itself.
+    */
+  lazy val postpatch   = PostPatchHookBuilder
+
+  /**
+    * Lifecycle hook for component destruction.
+    *
+    * This hook is invoked on a virtual node when its DOM element is removed from the DOM
+    * or if its parent is being removed from the DOM.
+    */
   lazy val destroy  = DestroyHookBuilder
 }
 

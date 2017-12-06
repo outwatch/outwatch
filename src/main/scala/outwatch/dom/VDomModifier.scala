@@ -41,10 +41,17 @@ object Key {
   type Value = DataObject.KeyValue
 }
 
-sealed trait Hook extends Property
-final case class InsertHook(observer: Observer[Element]) extends Hook
-final case class DestroyHook(observer: Observer[Element]) extends Hook
-final case class UpdateHook(observer: Observer[(Element, Element)]) extends Hook
+sealed trait Hook[T] extends Property {
+  def observer: Observer[T]
+}
+
+private[outwatch] final case class InsertHook(observer: Observer[Element]) extends Hook[Element]
+private[outwatch] final case class PrePatchHook(observer: Observer[(Option[Element], Option[Element])])
+  extends Hook[(Option[Element], Option[Element])]
+private[outwatch] final case class UpdateHook(observer: Observer[(Element, Element)]) extends Hook[(Element, Element)]
+private[outwatch] final case class PostPatchHook(observer: Observer[(Element, Element)]) extends Hook[(Element, Element)]
+private[outwatch] final case class DestroyHook(observer: Observer[Element]) extends Hook[Element]
+
 
 final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier_
 
