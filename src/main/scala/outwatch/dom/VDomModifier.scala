@@ -9,8 +9,38 @@ import snabbdom.{DataObject, VNodeProxy, hFunction}
 import scala.scalajs.js
 import collection.breakOut
 
-sealed trait VDomModifier_ extends Any
 
+/*
+VDomModifier_
+  Property
+    Attribute
+      Attr
+      AccumAttr
+      Prop
+      Style
+      EmptyAttribute
+    Hook
+      InsertHook
+      PrePatchHook
+      UpdateHook
+      PostPatchHook
+      DestroyHook
+    Key
+  ChildVNode
+    StaticVNode
+      StringVNode
+      VTree
+    ChildStreamReceiver
+    ChildrenStreamReceiver
+  Emitter
+  AttributeStreamReceiver
+  CompositeModifier
+  StringModifier
+  EmptyModifier
+ */
+
+
+sealed trait VDomModifier_ extends Any
 
 // Modifiers
 
