@@ -65,9 +65,7 @@ object Key {
   type Value = DataObject.KeyValue
 }
 
-sealed trait Attribute extends Property {
-  val title: String
-}
+sealed trait Attribute extends Property
 object Attribute {
   def apply(title: String, value: Attr.Value) = Attr(title, value)
 }
@@ -79,21 +77,23 @@ sealed trait Hook[T] extends Property {
 
 // Attributes
 
-case object EmptyAttribute extends Attribute {
-  val title: String = ""
+case object EmptyAttribute extends Attribute
+
+sealed trait TitledAttribute extends Attribute {
+  val title: String
 }
 
-final case class Attr(title: String, value: Attr.Value) extends Attribute
+final case class Attr(title: String, value: Attr.Value) extends TitledAttribute
 object Attr {
   type Value = DataObject.AttrValue
 }
 
-final case class Prop(title: String, value: Prop.Value) extends Attribute
+final case class Prop(title: String, value: Prop.Value) extends TitledAttribute
 object Prop {
   type Value = DataObject.PropValue
 }
 
-final case class Style(title: String, value: String) extends Attribute
+final case class Style(title: String, value: String) extends TitledAttribute
 
 // Hooks
 
