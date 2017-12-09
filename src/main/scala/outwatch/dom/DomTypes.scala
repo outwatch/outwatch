@@ -51,6 +51,13 @@ private[outwatch] object DomTypesBuilder {
 }
 import DomTypesBuilder._
 
+class TagContext[Elem <: dom.Element]
+  extends HTMLElementEventProps[({ type T[E <: dom.Event] = SimpleEmitterBuilder[E with TypedCurrentTargetEvent[Elem]] })#T]
+  with EventPropBuilder[({ type T[E <: dom.Event] = SimpleEmitterBuilder[E with TypedCurrentTargetEvent[Elem]] })#T, dom.Event] {
+
+  override def eventProp[V <: dom.Event](key: String) =  EmitterBuilder[V with TypedCurrentTargetEvent[Elem]](key)
+}
+
 trait Tags
   extends EmbedTags[VTree]
   with GroupingTags[VTree]

@@ -65,15 +65,15 @@ trait SnabbdomKeyAttributes {
 
 trait TypedInputEventProps {
   /** The input event is fired when an element gets user input. */
-  @deprecated("Use _.event(onChange).checked or onChange.target.checked instead", "0.11.0")
+  @deprecated("Use _.onChange.checked or onChange.target.checked instead", "0.11.0")
   lazy val onInputChecked = Events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
 
   /** The input event is fired when an element gets user input. */
-  @deprecated("Use _.event(onInput).valueAsNumber or onInput.target.valueAsNumber instead", "0.11.0")
+  @deprecated("Use _.onInput.valueAsNumber or onInput.target.valueAsNumber instead", "0.11.0")
   lazy val onInputNumber = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
 
   /** The input event is fired when an element gets user input. */
-  @deprecated("Use _.event(onInput).value or onInput.target.value instead", "0.11.0")
+  @deprecated("Use _.onInput.value or onInput.target.value instead", "0.11.0")
   lazy val onInputString = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
 }
 
