@@ -127,21 +127,22 @@ private[outwatch] final case class VTree(nodeType: String,
 
   override def asProxy: VNodeProxy = {
     val modifiers_ = modifiers.map(_.unsafeRunSync())
-    val (children, attributeObject, hasChildVNodes, textChildren) = DomUtils.extractChildrenAndDataObject(modifiers_)
+    val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers_)
     //TODO: use .sequence instead of unsafeRunSync?
     // import cats.instances.list._
     // import cats.syntax.traverse._
     // for { childProxies <- children.map(_.value).sequence }
     // yield hFunction(nodeType, attributeObject, childProxies.map(_.apsProxy)(breakOut))
-    if (hasChildVNodes) { // children.nonEmpty doesn't work, children will always include StringModifiers as StringNodes
-      val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
-      hFunction(nodeType, attributeObject, childProxies)
-    }
-    else if (textChildren.nonEmpty) {
-      hFunction(nodeType, attributeObject, textChildren.map(_.string).mkString)
-    }
-    else {
-      hFunction(nodeType, attributeObject)
+
+    import DomUtils.Children
+    children match {
+      case Children.VNodes(vnodes, _) =>
+        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
+        hFunction(nodeType, attributeObject, childProxies)
+      case Children.StringModifiers(textChildren) =>
+        hFunction(nodeType, attributeObject, textChildren.map(_.string).mkString)
+      case Children.Empty =>
+        hFunction(nodeType, attributeObject)
     }
   }
 }

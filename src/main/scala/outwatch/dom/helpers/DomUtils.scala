@@ -12,12 +12,51 @@ import collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-
 object DomUtils {
+
+  private[outwatch] case class StreamStatus(numChild: Int = 0, numChildren: Int = 0) {
+    def hasChildOrChildren = (numChild + numChildren) > 0
+    def hasMultipleChildren = numChildren > 1
+    def and(other: StreamStatus) = StreamStatus(numChild + other.numChild, numChildren + other.numChildren)
+  }
+  private[outwatch] trait Children {
+    def ::(mod: StringModifier): Children
+    def ::(node: ChildVNode): Children
+  }
+  object Children {
+    private def StringModifierIsVNode(mod: StringModifier) = StringVNode(mod.string)
+    private def StringVNodeIsModifier(node: StringVNode) = StringModifier(node.string)
+
+    private[outwatch] case object Empty extends Children {
+      override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
+      override def ::(node: ChildVNode): Children = node match {
+        case s: StringVNode => StringVNodeIsModifier(s) :: this
+        case s => s :: VNodes(Nil, StreamStatus())
+      }
+    }
+    private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
+      override def ::(mod: StringModifier): Children = StringModifiers(mod :: modifiers)
+      override def ::(node: ChildVNode): Children = node match {
+        case s: StringVNode => StringVNodeIsModifier(s) :: this
+        case s => s :: VNodes(modifiers.map(StringModifierIsVNode), StreamStatus())
+      }
+    }
+    private[outwatch] case class VNodes(nodes: List[ChildVNode], streamStatus: StreamStatus) extends Children {
+      override def ::(mod: StringModifier) = copy(StringModifierIsVNode(mod) :: nodes)
+      override def ::(node: ChildVNode): Children = node match {
+        case s: VTree => copy(s :: nodes, streamStatus)
+        case s: StringVNode => StringVNodeIsModifier(s) :: this
+        case s: ChildStreamReceiver => Children.VNodes(s :: nodes, streamStatus.copy(numChild = streamStatus.numChild + 1))
+        case s: ChildrenStreamReceiver => Children.VNodes(s :: nodes, streamStatus.copy(numChildren = streamStatus.numChildren + 1))
+      }
+    }
+  }
 
   private def createDataObject(changeables: SeparatedReceivers,
                                properties: Seq[Property],
-                               eventHandlers: js.Dictionary[js.Function1[Event, Unit]]): DataObject = {
+                               emitters: Seq[Emitter]): DataObject = {
+
+    val eventHandlers = VDomProxy.emittersToSnabbDom(emitters)
 
     if (changeables.nonEmpty){
       createReceiverDataObject(changeables, properties, eventHandlers)
@@ -49,8 +88,8 @@ object DomUtils {
                                        eventHandlers: js.Dictionary[js.Function1[Event, Unit]]) = {
 
     val SeparatedProperties(insert, prepatch, update, postpatch, destroy, attributes, keys) = separateProperties(properties)
-
     val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
+
     val subscriptionRef = STRef.empty[Subscription]
 
     val insertHook = createInsertHook(changeables, subscriptionRef, insert)
@@ -60,8 +99,7 @@ object DomUtils {
     val destroyHook = createDestroyHook(subscriptionRef, destroy)
     val key = keys.lastOption.fold[Key.Value](changeables.hashCode)(_.value)
 
-    DataObject(
-      attrs, props, style, eventHandlers,
+    DataObject(attrs, props, style, eventHandlers,
       Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook),
       key
     )
@@ -121,14 +159,11 @@ object DomUtils {
     ()
   }
 
-
   private[outwatch] final case class SeparatedModifiers(
     emitters: List[Emitter] = Nil,
     attributeReceivers: List[AttributeStreamReceiver] = Nil,
     properties: List[Property] = Nil,
-    vNodes: List[ChildVNode] = Nil,
-    hasChildVNodes : Boolean = false,
-    stringModifiers: List[StringModifier] = Nil
+    children: Children = Children.Empty
   )
   private[outwatch] def separateModifiers(args: Seq[VDomModifier_]): SeparatedModifiers = {
     args.foldRight(SeparatedModifiers())(separatorFn)
@@ -138,39 +173,37 @@ object DomUtils {
     case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: AttributeStreamReceiver, sf) => sf.copy(attributeReceivers = rc :: sf.attributeReceivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
+
     case (vn: ChildVNode, sf) =>
-      sf.copy(vNodes = vn :: sf.vNodes, hasChildVNodes = true)
+      sf.copy(children = vn :: sf.children)
     case (sm: StringModifier, sf) =>
-      sf.copy(vNodes = StringVNode(sm.string) :: sf.vNodes, stringModifiers = sm :: sf.stringModifiers)
+      sf.copy(children = sm :: sf.children)
+
     case (vn: CompositeModifier, sf) =>
       val modifiers = vn.modifiers.map(_.unsafeRunSync())
-      val sm = separateModifiers(modifiers)
-      SeparatedModifiers(
-        emitters = sm.emitters ++ sf.emitters,
-        attributeReceivers = sm.attributeReceivers ++ sf.attributeReceivers,
-        properties = sm.properties ++ sf.properties,
-        vNodes = sm.vNodes ++ sf.vNodes,
-        hasChildVNodes = sm.hasChildVNodes || sf.hasChildVNodes,
-        stringModifiers = sm.stringModifiers ++ sf.stringModifiers
-      )
+      modifiers.foldRight(sf)(separatorFn)
+
     case (EmptyModifier, sf) => sf
   }
 
   private[outwatch] final case class SeparatedReceivers(
-    childNodes: List[ChildVNode] = Nil,
-    hasNodeStreams: Boolean = false,
-    multipleChildrenStreams: Boolean = false,
-    attributeStreamReceivers: List[AttributeStreamReceiver] = Nil
+    children: Children,
+    attributeStreamReceivers: List[AttributeStreamReceiver]
   ) {
 
+    private val (childNodes, childStreamStatus) = children match {
+      case Children.VNodes(nodes, streamStatus) => (nodes, streamStatus)
+      case _ => (Nil, StreamStatus())
+    }
+
     lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
-      val childStreamReceivers = if (hasNodeStreams) {
+      val childStreamReceivers = if (childStreamStatus.hasChildOrChildren) {
         childNodes.foldRight(Observable.of(List.empty[IO[StaticVNode]])) {
           case (vn: StaticVNode, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
           case (csr: ChildStreamReceiver, obs) => obs.combineLatestWith(csr.childStream)((nodes, n) => n :: nodes)
           case (csr: ChildrenStreamReceiver, obs) =>
             obs.combineLatestWith(
-              if (multipleChildrenStreams) csr.childrenStream.startWith(Seq.empty) else csr.childrenStream
+              if (childStreamStatus.hasMultipleChildren) csr.childrenStream.startWith(Seq.empty) else csr.childrenStream
             )((nodes, n) => n.toList ++ nodes)
         }
       } else {
@@ -189,7 +222,7 @@ object DomUtils {
     }
 
     lazy val nonEmpty: Boolean = {
-      attributeStreamReceivers.nonEmpty || hasNodeStreams
+      attributeStreamReceivers.nonEmpty || childStreamStatus.hasChildOrChildren
     }
   }
 
@@ -214,23 +247,11 @@ object DomUtils {
     }
   }
 
-
-  private final case class ChildrenNodes(
-    children: List[StaticVNode] = Nil,
-    hasStreams: Boolean = false,
-    childrenStreams: Int = 0
-  )
-  private def extractChildren(nodes: Seq[ChildVNode]): ChildrenNodes = nodes.foldRight(ChildrenNodes()) {
-    case (vn: StaticVNode, cn) => cn.copy(children = vn :: cn.children)
-    case (_: ChildStreamReceiver, cn) => cn.copy(hasStreams = true)
-    case (_: ChildrenStreamReceiver, cn) => cn.copy(hasStreams = true, childrenStreams = cn.childrenStreams + 1)
-  }
-
   // ensure a key is present in the VTree modifiers
   // used to ensure efficient Snabbdom patch operation in the presence of children streams
   private def ensureVTreeKey(vtree: VTree): VTree = {
     val hasKey = vtree.modifiers.exists(m => m.unsafeRunSync().isInstanceOf[Key])
-    val newModifiers = if (hasKey) vtree.modifiers else IO.pure(Key(this.hashCode)) +: vtree.modifiers
+    val newModifiers = if (hasKey) vtree.modifiers else IO.pure(Key(vtree.hashCode)) +: vtree.modifiers
     vtree.copy(modifiers = newModifiers)
   }
 
@@ -239,23 +260,20 @@ object DomUtils {
     case other => other
   }
 
-  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Seq[StaticVNode], DataObject, Boolean, Seq[StringModifier]) = {
-    val SeparatedModifiers(emitters, attributeReceivers, properties, nodes, hasChildVNodes, stringModifiers) = separateModifiers(args)
+  private[outwatch] def extractChildrenAndDataObject(args: Seq[VDomModifier_]): (Children, DataObject) = {
+    val SeparatedModifiers(emitters, attributeReceivers, properties, children) = separateModifiers(args)
 
-    val ChildrenNodes(children, hasChildStreams, childrenStreams) = extractChildren(nodes)
+    val childrenWithKey = children match {
+      // if child streams exists, we want the static children in the same node have keys
+      // for efficient patching when the streams change
+      case c@Children.VNodes(vnodes, streams) => if (streams.hasChildOrChildren) c.copy(vnodes.map(ensureVNodeKey)) else c
+      case c => c
+    }
 
-    // if child streams exists, we want the static children in the same node have keys
-    // for efficient patching when the streams change
-    val childrenWithKey = if (hasChildStreams) children.map(ensureVNodeKey) else children
-    val nodesWithKey = if (hasChildStreams) nodes.map(ensureVNodeKey) else nodes
+    val changeables = SeparatedReceivers(childrenWithKey, attributeReceivers)
+    val dataObject = createDataObject(changeables, properties, emitters)
 
-    val changeables = SeparatedReceivers(nodesWithKey, hasChildStreams, childrenStreams > 1, attributeReceivers)
-
-    val eventHandlers = VDomProxy.emittersToSnabbDom(emitters)
-
-    val dataObject = createDataObject(changeables, properties, eventHandlers)
-
-    (childrenWithKey, dataObject, hasChildVNodes, stringModifiers)
+    (childrenWithKey, dataObject)
   }
 
   def render(element: Element, vNode: VNode): IO[Unit] = for {
