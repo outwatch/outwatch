@@ -150,6 +150,38 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   }
 
 
+  it should "run its modifiers once!" in {
+    val stringHandler = Handler.create[String]().unsafeRunSync()
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler { _ =>
+      handlerCounter += 1
+    }
+
+    val elemId = "identity"
+    val vtree = div(
+      div(
+        IO {
+          ioCounter += 1
+          Attribute("hans", "")
+        }
+      ),
+      child <-- stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+    DomUtils.render(node, vtree).unsafeRunSync()
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 0
+    stringHandler.observer.next("pups")
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 1
+  }
+
   it should "be correctly patched into the DOM" in {
     val id = "msg"
     val cls = "red"
