@@ -449,10 +449,13 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
           input(
             id := "input", tpe := "text",
             onSearch.target.value --> stringStream,
+            onClick.targetAs[html.Input].value --> stringStream,
             _.onClick.value --> stringStream,
             onSearch.target.valueAsNumber --> doubleStream,
+            onClick.targetAs[html.Input].valueAsNumber --> doubleStream,
             _.onClick.valueAsNumber --> doubleStream,
             onSearch.target.checked --> boolStream,
+            onClick.targetAs[html.Input].checked --> boolStream,
             _.onClick.checked --> boolStream
           ),
           ul(id := "items")
@@ -469,10 +472,14 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
   "DomEvents" should "correctly be compiled with currentTarget" in {
 
     val stringHandler = Handler.create[String].unsafeRunSync()
-    def modifier(ctx: TagContext[html.Input]): VDomModifier =
+    def modifier(ctx: TagContext[html.Input]): VDomModifier = Seq(
+      ctx.onDrag.value --> stringHandler,
       ctx.onDrag.map(_.currentTarget.value) --> stringHandler
-    def stringModifier[Elem <: Element : TagWithString](ctx: TagContext[Elem]): VDomModifier =
-      ctx.onDrag.value --> stringHandler
+    )
+    def stringModifier[Elem <: Element : TagWithString](ctx: TagContext[Elem]): VDomModifier = Seq(
+      ctx.onDrag.value --> stringHandler,
+      ctx.onDrag.map(_.currentTarget.value) --> stringHandler
+    )
 
     val node = Handler.create[String].flatMap { submit =>
 
@@ -482,12 +489,18 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
         elem <- div(
           input(
             id := "input", tpe := "text",
-            _.onInput.map(_.currentTarget.value) --> stream,
-            _.onClick --> eventStream,
-            modifier,
-            stringModifier,
+            onSearch.map(_.target.value) --> stream,
             onSearch.target.value --> stream,
-            _.onClick.value --> stream
+
+            onClick.map(_.targetAs[html.Input].value) --> stream,
+            onClick.targetAs[html.Input].value --> stream,
+
+            _.onClick.map(_.currentTarget.value) --> stream,
+            _.onClick.value --> stream,
+            _.onClick --> eventStream,
+
+            modifier,
+            stringModifier
           ),
           ul(id := "items")
         )
