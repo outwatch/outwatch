@@ -247,11 +247,12 @@ object DomUtils {
     }
   }
 
-  // ensure a key is present in the VTree modifiers
-  // used to ensure efficient Snabbdom patch operation in the presence of children streams
+  // ensure a key is present in the VTree modifiers. used to ensure efficient
+  // Snabbdom patch operation in the presence of children streams. if there
+  // already is a key, our default key is overriden by the modifiers.
   private def ensureVTreeKey(vtree: VTree): VTree = {
-    val hasKey = vtree.modifiers.exists(m => m.unsafeRunSync().isInstanceOf[Key])
-    val newModifiers = if (hasKey) vtree.modifiers else IO.pure(Key(vtree.hashCode)) +: vtree.modifiers
+    val defaultKey = Key(this.hashCode)
+    val newModifiers = IO.pure(defaultKey) +: vtree.modifiers
     vtree.copy(modifiers = newModifiers)
   }
 
