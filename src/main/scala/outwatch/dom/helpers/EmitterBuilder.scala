@@ -26,9 +26,24 @@ trait EmitterBuilder[E <: Event, O] extends Any {
 
   def -->(sink: Sink[_ >: O]): IO[Emitter]
 }
-
-
 object EmitterBuilder {
+  import com.raquo.domtypes.jsdom.defs.events.TypedTargetEvent
+  import outwatch.dom.{TagWithNumber, TagWithString, TagWithChecked, TypedCurrentTargetEvent}
+
+
+  class EmitterBuilderTargetOps[E <: Event, O <: Event, Elem <: EventTarget](event: EmitterBuilder[E, O], getTarget: O => Elem) {
+    def value(implicit tag: TagWithString[Elem]): EmitterBuilder[E, String] = event.map(ev => tag.value(getTarget(ev)))
+    def valueAsNumber(implicit tag: TagWithNumber[Elem]): EmitterBuilder[E, Double] = event.map(ev => tag.valueAsNumber(getTarget(ev)))
+    def checked(implicit tag: TagWithChecked[Elem]): EmitterBuilder[E, Boolean] = event.map(ev => tag.checked(getTarget(ev)))
+  }
+  implicit class WithTargetAs[E <: Event, O <: Event](private val event: EmitterBuilder[E, O]) extends AnyVal {
+    def targetAs[Elem <: EventTarget] = new EmitterBuilderTargetOps[E, O with TypedTargetEvent[Elem], Elem](event.asInstanceOf[EmitterBuilder[E, O with TypedTargetEvent[Elem]]], _.target)
+  }
+  implicit class WithTypedTarget[E <: Event, O <: Event, Elem <: EventTarget](private val event: EmitterBuilder[E, O with TypedTargetEvent[Elem]]) extends AnyVal {
+    def target = new EmitterBuilderTargetOps[E, O with TypedTargetEvent[Elem], Elem](event, _.target)
+  }
+  implicit class WithTypedCurrentTarget[E <: Event, O <: Event, Elem <: EventTarget](private val event: EmitterBuilder[E, O with TypedCurrentTargetEvent[Elem]]) extends EmitterBuilderTargetOps[E, O with TypedCurrentTargetEvent[Elem], Elem](event, _.currentTarget)
+
   def apply[E <: Event](eventType: String) = new SimpleEmitterBuilder[E](eventType)
 }
 
@@ -58,23 +73,6 @@ final class SimpleEmitterBuilder[E <: Event] private[helpers](
   def -->(sink: Sink[_ >: E]): IO[Emitter] = {
     IO.pure(Emitter(eventType, event => sink.observer.next(event.asInstanceOf[E])))
   }
-}
-object SimpleEmitterBuilder {
-  import com.raquo.domtypes.jsdom.defs.events.TypedTargetEvent
-  import outwatch.dom.{TagWithNumber, TagWithString, TagWithChecked, TypedCurrentTargetEvent}
-
-  class EmitterBuilderTargetOps[E <: Event, Elem <: EventTarget](event: SimpleEmitterBuilder[E], getTarget: E => Elem) {
-    def value(implicit tag: TagWithString[Elem]): TransformingEmitterBuilder[E, String] = event.map(ev => tag.value(getTarget(ev)))
-    def valueAsNumber(implicit tag: TagWithNumber[Elem]): TransformingEmitterBuilder[E, Double] = event.map(ev => tag.valueAsNumber(getTarget(ev)))
-    def checked(implicit tag: TagWithChecked[Elem]): TransformingEmitterBuilder[E, Boolean] = event.map(ev => tag.checked(getTarget(ev)))
-  }
-  implicit class WithTargetAs[E <: Event](event: SimpleEmitterBuilder[E]) {
-    def targetAs[Elem <: EventTarget] = new EmitterBuilderTargetOps[E with TypedTargetEvent[Elem], Elem](EmitterBuilder(event.eventType), _.target)
-  }
-  implicit class WithTypedTarget[E <: Event, Elem <: EventTarget](event: SimpleEmitterBuilder[E with TypedTargetEvent[Elem]]) {
-    val target = new EmitterBuilderTargetOps[E with TypedTargetEvent[Elem], Elem](event, _.target)
-  }
-  implicit class WithTypedCurrentTarget[E <: Event, Elem <: EventTarget](event: SimpleEmitterBuilder[E with TypedCurrentTargetEvent[Elem]]) extends EmitterBuilderTargetOps[E with TypedCurrentTargetEvent[Elem], Elem](event, _.currentTarget)
 }
 
 trait HookBuilder[E, H <: Hook[_]] {

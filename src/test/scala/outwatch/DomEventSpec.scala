@@ -456,7 +456,11 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
             _.onClick.valueAsNumber --> doubleStream,
             onSearch.target.checked --> boolStream,
             onClick.targetAs[html.Input].checked --> boolStream,
-            _.onClick.checked --> boolStream
+            _.onClick.checked --> boolStream,
+
+            onSearch.filter(_ => true).target.value --> stringStream,
+            onClick.filter(_ => true).targetAs[html.Input].value --> stringStream,
+            _.onClick.filter(_ => true).value --> stringStream
           ),
           ul(id := "items")
         )
