@@ -252,7 +252,7 @@ object DomUtils {
   // already is a key, our default key is overriden by the modifiers.
   private def ensureVTreeKey(vtree: VTree): VTree = {
     val defaultKey = Key(vtree.hashCode)
-    val newModifiers = IO.pure(defaultKey) +: vtree.modifiers
+    val newModifiers = defaultKey +: vtree.modifiers
     vtree.copy(modifiers = newModifiers)
   }
 

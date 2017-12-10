@@ -220,8 +220,8 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val vtreeChildren1 = vtreeChildren(0)
     val vtreeChildren2 = vtreeChildren(1)
 
-    val (Children.Empty, dataObject1) = DomUtils.extractChildrenAndDataObject(vtreeChildren1.modifiers.map(_.unsafeRunSync()))
-    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren2.modifiers.map(_.unsafeRunSync()))
+    val (Children.Empty, dataObject1) = DomUtils.extractChildrenAndDataObject(vtreeChildren1.modifiers)
+    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren2.modifiers)
 
     dataObject1.key.nonEmpty shouldBe true
     dataObject2.key.nonEmpty shouldBe true
@@ -244,7 +244,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     dataObject.key.toOption shouldBe Some(1234)
 
     val vtreeChildren = childNodes collect { case s: VTree => s }
-    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren.head.modifiers.map(_.unsafeRunSync()))
+    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren.head.modifiers)
 
     dataObject2.key.toOption shouldBe Some(5678)
   }
@@ -271,6 +271,38 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
+
+  it should "run its modifiers once!" in {
+    val stringHandler = Handler.create[String]().unsafeRunSync()
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler { _ =>
+      handlerCounter += 1
+    }
+
+    val elemId = "identity"
+    val vtree = div(
+      div(
+        IO {
+          ioCounter += 1
+          Attribute("hans", "")
+        }
+      ),
+      child <-- stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+    DomUtils.render(node, vtree).unsafeRunSync()
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 0
+    stringHandler.observer.next("pups")
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 1
+  }
 
   it should "be correctly patched into the DOM" in {
     val id = "msg"

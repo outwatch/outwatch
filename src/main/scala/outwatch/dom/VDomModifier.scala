@@ -8,6 +8,7 @@ import snabbdom.{DataObject, VNodeProxy, hFunction}
 
 import scala.scalajs.js
 import collection.breakOut
+import cats.implicits._
 
 
 /*
@@ -121,18 +122,13 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
 private[outwatch] final case class VTree(nodeType: String,
-                       modifiers: Seq[VDomModifier]) extends StaticVNode {
+                       modifiers: Seq[VDomModifier_]) extends StaticVNode {
 
-  def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
+  //TODO no .toList
+  def apply(args: VDomModifier*) = args.toList.sequence.map(args => VTree(nodeType, modifiers ++ args))
 
   override def asProxy: VNodeProxy = {
-    val modifiers_ = modifiers.map(_.unsafeRunSync())
-    val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers_)
-    //TODO: use .sequence instead of unsafeRunSync?
-    // import cats.instances.list._
-    // import cats.syntax.traverse._
-    // for { childProxies <- children.map(_.value).sequence }
-    // yield hFunction(nodeType, attributeObject, childProxies.map(_.apsProxy)(breakOut))
+    val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
 
     import DomUtils.Children
     children match {
