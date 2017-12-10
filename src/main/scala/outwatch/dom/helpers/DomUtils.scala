@@ -251,7 +251,7 @@ object DomUtils {
   // Snabbdom patch operation in the presence of children streams. if there
   // already is a key, our default key is overriden by the modifiers.
   private def ensureVTreeKey(vtree: VTree): VTree = {
-    val defaultKey = Key(this.hashCode)
+    val defaultKey = Key(vtree.hashCode)
     val newModifiers = IO.pure(defaultKey) +: vtree.modifiers
     vtree.copy(modifiers = newModifiers)
   }
