@@ -2,12 +2,9 @@ package outwatch.dom
 
 import cats.effect.IO
 import org.scalajs.dom._
-import outwatch.dom.helpers.DomUtils
+import outwatch.dom.helpers.SeparatedModifiers
 import rxscalajs.Observer
-import snabbdom.{DataObject, VNodeProxy, hFunction}
-
-import scala.scalajs.js
-import collection.breakOut
+import snabbdom.{DataObject, VNodeProxy}
 
 /*
 VDomModifier_
@@ -124,18 +121,8 @@ private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[VDomMo
   def apply(args: VDomModifier*): VNode = args.sequence.map(args => VTree(nodeType, modifiers ++ args))
 
   override def asProxy: VNodeProxy = {
-    val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
-
-    import DomUtils.Children
-    children match {
-      case Children.VNodes(vnodes, _) =>
-        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
-        hFunction(nodeType, attributeObject, childProxies)
-      case Children.StringModifiers(textChildren) =>
-        hFunction(nodeType, attributeObject, textChildren.map(_.string).mkString)
-      case Children.Empty =>
-        hFunction(nodeType, attributeObject)
-    }
+    val separatedModifiers = SeparatedModifiers.separate(modifiers)
+    separatedModifiers.toSnabbdom(nodeType)
   }
 }
 

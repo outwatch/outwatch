@@ -3,7 +3,7 @@ package outwatch
 import cats.effect.IO
 import org.scalajs.dom.{document, html}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.helpers._, DomUtils.Children
+import outwatch.dom.helpers._
 import outwatch.dom.{StringModifier, _}
 import rxscalajs.{Observable, Subject}
 import snabbdom.{DataObject, hFunction}
@@ -29,14 +29,14 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       PostPatchHook(Subject())
     )
 
-    val DomUtils.SeparatedProperties(inserts, prepatch, updates, postpatch, deletes, attributes, keys) = DomUtils.separateProperties(properties)
+    val SeparatedProperties(att, hooks, keys) = properties.foldRight(SeparatedProperties())((p, sp) => p :: sp)
 
-    inserts.length shouldBe 2
-    prepatch.length shouldBe 1
-    updates.length shouldBe 1
-    postpatch.length shouldBe 1
-    deletes.length shouldBe 1
-    attributes.length shouldBe 1
+    hooks.insertHooks.length shouldBe 2
+    hooks.prePatchHooks.length shouldBe 1
+    hooks.updateHooks.length shouldBe 1
+    hooks.postPatchHooks.length shouldBe 1
+    hooks.destroyHooks.length shouldBe 1
+    att.attributes.length shouldBe 1
     keys.length shouldBe 0
   }
 
@@ -58,18 +58,19 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.VNodes(childNodes, streamStatus)) = DomUtils.separateModifiers(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
+      SeparatedModifiers.separate(modifiers)
 
-    emitters.length shouldBe 2
+    emitters.emitters.length shouldBe 2
     receivers.length shouldBe 2
-    properties.length shouldBe 2
+    properties.attributes.attributes.length shouldBe 2
     childNodes.length shouldBe 3
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 0
   }
 
   it should "be separated correctly with children" in {
-    val modifiers = Seq(
+    val modifiers: Seq[VDomModifier_] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => ()),
@@ -78,14 +79,15 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("disabled",Observable.of()),
       Emitter("keyup",  _ => ()),
       StringModifier("text"),
-      div
+      div().unsafeRunSync()
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.VNodes(childNodes, streamStatus)) = DomUtils.separateModifiers(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
+      SeparatedModifiers.separate(modifiers)
 
-    emitters.length shouldBe 3
+    emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
-    properties.length shouldBe 1
+    properties.attributes.attributes.length shouldBe 1
     childNodes.length shouldBe 2
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 0
@@ -104,11 +106,12 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       StringVNode("text2")
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.StringModifiers(stringMods)) = DomUtils.separateModifiers(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.StringModifiers(stringMods)) =
+      SeparatedModifiers.separate(modifiers)
 
-    emitters.length shouldBe 3
+    emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
-    properties.length shouldBe 1
+    properties.attributes.attributes.length shouldBe 1
     stringMods.map(_.string) should contain theSameElementsAs(List(
       "text", "text2"
     ))
@@ -131,20 +134,19 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       StringModifier("text")
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.VNodes(childNodes, streamStatus)) = DomUtils.separateModifiers(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
+      SeparatedModifiers.separate(modifiers)
 
-    val DomUtils.SeparatedProperties(inserts, prepatch, updates, postpatch, deletes, attributes, keys) = DomUtils.separateProperties(properties)
-
-    emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
-    emitters.length shouldBe 3
-    inserts.length shouldBe 1
-    prepatch.length shouldBe 1
-    updates.length shouldBe 1
-    postpatch.length shouldBe 1
-    deletes.length shouldBe 0
-    attributes.length shouldBe 1
+    emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
+    emitters.emitters.length shouldBe 3
+    properties.hooks.insertHooks.length shouldBe 1
+    properties.hooks.prePatchHooks.length shouldBe 1
+    properties.hooks.updateHooks.length shouldBe 1
+    properties.hooks.postPatchHooks.length shouldBe 1
+    properties.hooks.destroyHooks.length shouldBe 0
+    properties.attributes.attributes.length shouldBe 1
     receivers.length shouldBe 2
-    keys.length shouldBe 0
+    properties.keys.length shouldBe 0
     childNodes.length shouldBe 2
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 1
@@ -195,7 +197,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     list.isEmpty shouldBe true
 
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
 
     list should contain theSameElementsAs List(
       "child1", "child2", "children1", "children2", "attr1", "attr2"
@@ -205,27 +207,29 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
   it should "provide unique key for child nodes if stream is present" in {
     val mods = Seq(
       ChildrenStreamReceiver(Observable.of()),
-      div(id := "1").unsafeRunSync(), div(id := "2").unsafeRunSync()
+      div(id := "1").unsafeRunSync(),
+      div(id := "2").unsafeRunSync()
       // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
     )
 
-    val (Children.VNodes(childNodes, streamStatus), dataObject) = DomUtils.extractChildrenAndDataObject(mods)
+    val modifiers =  SeparatedModifiers.separate(mods)
+    val Children.VNodes(childNodes, streamStatus) = modifiers.children
 
     childNodes.size shouldBe 3
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 1
-    dataObject.key.nonEmpty shouldBe true
 
-    val vtreeChildren = childNodes collect { case s: VTree => s }
-    val vtreeChildren1 = vtreeChildren(0)
-    val vtreeChildren2 = vtreeChildren(1)
+    val proxy = modifiers.toSnabbdom("div")
+    proxy.key.isDefined shouldBe true
 
-    val (Children.Empty, dataObject1) = DomUtils.extractChildrenAndDataObject(vtreeChildren1.modifiers)
-    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren2.modifiers)
+    proxy.children.get.length shouldBe 2
 
-    dataObject1.key.nonEmpty shouldBe true
-    dataObject2.key.nonEmpty shouldBe true
-    dataObject1.key.get should not be dataObject2.key.get
+    val key1 = proxy.children.get(0).key
+    val key2 = proxy.children.get(1).key
+
+    key1.isDefined shouldBe true
+    key2.isDefined shouldBe true
+    key1.get should not be key2.get
   }
 
   it should "keep existing key for child nodes" in {
@@ -235,18 +239,17 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       div()(IO.pure(Key(5678))).unsafeRunSync()
     )
 
-
-    val (Children.VNodes(childNodes, streamStatus), dataObject) = DomUtils.extractChildrenAndDataObject(mods)
+    val modifiers =  SeparatedModifiers.separate(mods)
+    val Children.VNodes(childNodes, streamStatus) = modifiers.children
 
     childNodes.size shouldBe 2
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 1
-    dataObject.key.toOption shouldBe Some(1234)
 
-    val vtreeChildren = childNodes collect { case s: VTree => s }
-    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren.head.modifiers)
+    val proxy = modifiers.toSnabbdom("div")
+    proxy.key.toOption  shouldBe Some(1234)
 
-    dataObject2.key.toOption shouldBe Some(5678)
+    proxy.children.get(0).key.toOption shouldBe Some(5678)
   }
 
   "VTrees" should "be constructed correctly" in {
@@ -295,7 +298,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     ioCounter shouldBe 0
     handlerCounter shouldBe 0
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
     ioCounter shouldBe 1
     handlerCounter shouldBe 0
     stringHandler.observer.next("pups")
@@ -326,7 +329,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     ioCounter shouldBe 0
     handlerCounter shouldBe 0
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
     ioCounter shouldBe 1
     handlerCounter shouldBe 0
     stringHandler.observer.next("pups")
@@ -346,7 +349,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
 
     val patchedNode = document.getElementById(id)
 
@@ -380,7 +383,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
 
     pageHandler.next(1)
 
@@ -453,7 +456,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
 
     val patchedNode = document.getElementById("test")
 
@@ -474,7 +477,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vtree).unsafeRunSync()
+    OutWatch.renderInto(node, vtree).unsafeRunSync()
 
     val field = document.getElementById("input").asInstanceOf[html.Input]
 
@@ -503,7 +506,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     messagesA.next("1")
     messagesB.next("2")
@@ -523,7 +526,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     messagesA.next("1")
     messagesB.next("2")
@@ -545,7 +548,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     messagesA.next("1")
     messagesB.next("2")
@@ -561,7 +564,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     otherMessages.next(Seq(div("otherMessage")))
     node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
@@ -580,7 +583,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     otherMessages.next("otherMessage")
     node.children(0).innerHTML shouldBe ""
@@ -599,7 +602,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, container).unsafeRunSync()
+    OutWatch.renderInto(node, container).unsafeRunSync()
 
     messages.next("message")
     node.children(0).children(0).innerHTML shouldBe "message"
@@ -618,11 +621,11 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node1 = document.createElement("div")
     document.body.appendChild(node1)
-    DomUtils.render(node1, vNodeTemplate).unsafeRunSync()
+    OutWatch.renderInto(node1, vNodeTemplate).unsafeRunSync()
 
     val node2 = document.createElement("div")
     document.body.appendChild(node2)
-    DomUtils.render(node2, vNode).unsafeRunSync()
+    OutWatch.renderInto(node2, vNode).unsafeRunSync()
 
     messages.next("gurkon")
     otherMessages.next("otherMessage")
@@ -645,7 +648,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     otherMessages.next("otherMessage")
     node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
@@ -664,7 +667,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     otherMessages.next("red")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
@@ -683,7 +686,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     otherMessages.next("red")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
@@ -702,7 +705,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     node.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
 
@@ -714,7 +717,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
 
     val node = document.createElement("div")
     document.body.appendChild(node)
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     classes.next("active")
 
@@ -728,7 +731,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    DomUtils.render(node, vNode).unsafeRunSync()
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
     node.innerHTML shouldBe "<div><main></main></div>"
   }

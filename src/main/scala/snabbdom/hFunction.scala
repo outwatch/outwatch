@@ -1,8 +1,6 @@
 package snabbdom
 
 import org.scalajs.dom._
-import outwatch.dom.Attribute
-import snabbdom.DataObject.KeyValue
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
@@ -117,20 +115,6 @@ object DataObject {
       val key: UndefOr[KeyValue] = _key
     }
   }
-
-  implicit class DataObjectExt(val obj: DataObject) extends AnyVal {
-
-    def withUpdatedAttributes(attributes: Seq[Attribute]): DataObject = {
-      import scala.scalajs.js.JSConverters._
-
-      val (attrs, props, style) = VDomProxy.attrsToSnabbDom(attributes)
-
-      val newAttrs = (obj.attrs ++ attrs).toJSDictionary
-      val newProps = (obj.props ++ props).toJSDictionary
-      val newStyle = (obj.style ++ style).toJSDictionary
-      DataObject(attrs = newAttrs, props = newProps, style = newStyle, on = obj.on, hook = obj.hook, key = obj.key)
-    }
-  }
 }
 
 object patch {
@@ -155,7 +139,7 @@ trait VNodeProxy extends js.Object {
   val children: js.UndefOr[js.Array[VNodeProxy]]
   val elm: js.UndefOr[Element]
   val text: js.UndefOr[String]
-  val key: js.UndefOr[KeyValue]
+  val key: js.UndefOr[DataObject.KeyValue]
 }
 
 object VNodeProxy {
