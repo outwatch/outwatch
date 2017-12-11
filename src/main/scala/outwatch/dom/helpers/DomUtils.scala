@@ -15,39 +15,37 @@ import scala.scalajs.js.JSConverters._
 object DomUtils {
 
   private[outwatch] case class StreamStatus(numChild: Int = 0, numChildren: Int = 0) {
-    def hasChildOrChildren = (numChild + numChildren) > 0
-    def hasMultipleChildren = numChildren > 1
-    def and(other: StreamStatus) = StreamStatus(numChild + other.numChild, numChildren + other.numChildren)
+    def hasChildOrChildren: Boolean = (numChild + numChildren) > 0
+    def hasMultipleChildren: Boolean = numChildren > 1
   }
   private[outwatch] trait Children {
     def ::(mod: StringModifier): Children
     def ::(node: ChildVNode): Children
   }
   object Children {
-    private def StringModifierIsVNode(mod: StringModifier) = StringVNode(mod.string)
-    private def StringVNodeIsModifier(node: StringVNode) = StringModifier(node.string)
+    private def toVNode(mod: StringModifier) = StringVNode(mod.string)
+    private def toModifier(node: StringVNode) = StringModifier(node.string)
 
     private[outwatch] case object Empty extends Children {
       override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
       override def ::(node: ChildVNode): Children = node match {
-        case s: StringVNode => StringVNodeIsModifier(s) :: this
-        case s => s :: VNodes(Nil, StreamStatus())
+        case s: StringVNode => toModifier(s) :: this
+        case n => n :: VNodes(Nil, StreamStatus())
       }
     }
     private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
-      override def ::(mod: StringModifier): Children = StringModifiers(mod :: modifiers)
+      override def ::(mod: StringModifier): Children = copy(mod :: modifiers)
       override def ::(node: ChildVNode): Children = node match {
-        case s: StringVNode => StringVNodeIsModifier(s) :: this
-        case s => s :: VNodes(modifiers.map(StringModifierIsVNode), StreamStatus())
+        case s: StringVNode => toModifier(s) :: this // this should never happen
+        case n => n :: VNodes(modifiers.map(toVNode), StreamStatus())
       }
     }
     private[outwatch] case class VNodes(nodes: List[ChildVNode], streamStatus: StreamStatus) extends Children {
-      override def ::(mod: StringModifier) = copy(StringModifierIsVNode(mod) :: nodes)
+      override def ::(mod: StringModifier): Children = copy(toVNode(mod) :: nodes)
       override def ::(node: ChildVNode): Children = node match {
-        case s: VTree => copy(s :: nodes, streamStatus)
-        case s: StringVNode => StringVNodeIsModifier(s) :: this
-        case s: ChildStreamReceiver => Children.VNodes(s :: nodes, streamStatus.copy(numChild = streamStatus.numChild + 1))
-        case s: ChildrenStreamReceiver => Children.VNodes(s :: nodes, streamStatus.copy(numChildren = streamStatus.numChildren + 1))
+        case s: StaticVNode => copy(nodes = s :: nodes)
+        case s: ChildStreamReceiver => copy(s :: nodes, streamStatus.copy(numChild = streamStatus.numChild + 1))
+        case s: ChildrenStreamReceiver => copy(s :: nodes, streamStatus.copy(numChildren = streamStatus.numChildren + 1))
       }
     }
   }
