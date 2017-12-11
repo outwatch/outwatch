@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
 import rxscalajs.Observer
@@ -110,8 +109,8 @@ sealed trait StaticVNode extends Any with ChildVNode {
   def asProxy: VNodeProxy
 }
 
-final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends ChildVNode
-final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends ChildVNode
+final case class ChildStreamReceiver(childStream: Observable[StaticVNode]) extends ChildVNode
+final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[StaticVNode]]) extends ChildVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
