@@ -51,7 +51,7 @@ final case class Emitter(eventType: String, trigger: Event => Unit) extends VDom
 
 private[outwatch] final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier_
 
-private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier]) extends VDomModifier_
+private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier_]) extends VDomModifier_
 
 case object EmptyModifier extends VDomModifier_
 

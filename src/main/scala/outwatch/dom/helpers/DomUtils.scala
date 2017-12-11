@@ -180,8 +180,7 @@ object DomUtils {
       sf.copy(children = sm :: sf.children)
 
     case (vn: CompositeModifier, sf) =>
-      val modifiers = vn.modifiers.map(_.unsafeRunSync())
-      modifiers.foldRight(sf)(separatorFn)
+      vn.modifiers.foldRight(sf)(separatorFn)
 
     case (EmptyModifier, sf) => sf
   }

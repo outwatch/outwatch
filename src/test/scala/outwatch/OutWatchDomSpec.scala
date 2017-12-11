@@ -53,7 +53,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
           Attributes.`class` := "blue",
           Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure(())),
           Attributes.hidden <-- Observable.of(false)
-        )
+        ).map(_.unsafeRunSync())
       ),
       AttributeStreamReceiver("hidden",Observable.of())
     )
@@ -280,7 +280,6 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       handlerCounter += 1
     }
 
-    val elemId = "identity"
     val vtree = div(
       div(
         IO {
@@ -288,6 +287,37 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
           Attribute("hans", "")
         }
       ),
+      child <-- stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+    DomUtils.render(node, vtree).unsafeRunSync()
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 0
+    stringHandler.observer.next("pups")
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 1
+  }
+
+  it should "run its modifiers once in CompositeModifier!" in {
+    val stringHandler = Handler.create[String]().unsafeRunSync()
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler { _ =>
+      handlerCounter += 1
+    }
+
+    val vtree = div(
+      div(Seq(
+        IO {
+          ioCounter += 1
+          Attribute("hans", "")
+        }
+      )),
       child <-- stringHandler
     )
 
