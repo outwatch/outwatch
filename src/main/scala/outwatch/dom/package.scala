@@ -30,9 +30,10 @@ package object dom extends Attributes with Tags with HandlerFactories {
   implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = modifiers.sequence.map(CompositeModifier)
 
   implicit class ioVTreeMerge(vnode: VNode) {
-    def apply(args: VDomModifier*): VNode = {
-      vnode.flatMap(vnode_ => vnode_(args:_*))
-    }
+    def apply(args: VDomModifier*): VNode = for {
+      vnode <- vnode
+      args <- args.sequence
+    } yield vnode(args: _*)
   }
 
   private[outwatch] implicit class SeqIOSequence[T](args: Seq[IO[T]]) {

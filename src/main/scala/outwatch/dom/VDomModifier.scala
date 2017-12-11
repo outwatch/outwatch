@@ -117,8 +117,8 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
 private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[VDomModifier_]) extends StaticVNode {
-  
-  def apply(args: VDomModifier*): VNode = args.sequence.map(args => VTree(nodeType, modifiers ++ args))
+
+  def apply(args: (VDomModifier_)*): VTree = copy(modifiers = modifiers ++ args)
 
   override def asProxy: VNodeProxy = {
     val separatedModifiers = SeparatedModifiers.separate(modifiers)
