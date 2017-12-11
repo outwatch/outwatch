@@ -125,7 +125,7 @@ object DomUtils {
                                subscriptionRef: STRef[Subscription],
                                hooks: Seq[InsertHook]): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
-    def toProxy(changable: (Seq[Attribute], Seq[StaticVNode])): VNodeProxy = {
+    def toProxy(changable: (Seq[Attribute], Seq[IO[StaticVNode]])): VNodeProxy = {
       val (attributes, nodes) = changable
       val newData = proxy.data.withUpdatedAttributes(attributes)
 
@@ -136,7 +136,7 @@ object DomUtils {
           hFunction(proxy.sel, newData, proxy.text)
         }
       } else {
-        hFunction(proxy.sel,newData, nodes.map(_.asProxy)(breakOut): js.Array[VNodeProxy])
+        hFunction(proxy.sel,newData, nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy])
       }
     }
 
@@ -171,15 +171,9 @@ object DomUtils {
     case (em: Emitter, sf) => sf.copy(emitters = em :: sf.emitters)
     case (rc: AttributeStreamReceiver, sf) => sf.copy(attributeReceivers = rc :: sf.attributeReceivers)
     case (pr: Property, sf) => sf.copy(properties = pr :: sf.properties)
-
-    case (vn: ChildVNode, sf) =>
-      sf.copy(children = vn :: sf.children)
-    case (sm: StringModifier, sf) =>
-      sf.copy(children = sm :: sf.children)
-
-    case (vn: CompositeModifier, sf) =>
-      vn.modifiers.foldRight(sf)(separatorFn)
-
+    case (vn: ChildVNode, sf) => sf.copy(children = vn :: sf.children)
+    case (sm: StringModifier, sf) => sf.copy(children = sm :: sf.children)
+    case (vn: CompositeModifier, sf) => vn.modifiers.foldRight(sf)(separatorFn)
     case (EmptyModifier, sf) => sf
   }
 
@@ -193,10 +187,10 @@ object DomUtils {
       case _ => (Nil, StreamStatus())
     }
 
-    lazy val observable: Observable[(Seq[Attribute], Seq[StaticVNode])] = {
+    lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
       val childStreamReceivers = if (childStreamStatus.hasChildOrChildren) {
-        childNodes.foldRight(Observable.of(List.empty[StaticVNode])) {
-          case (vn: StaticVNode, obs) => obs.combineLatestWith(BehaviorSubject(vn))((nodes, n) => n :: nodes)
+        childNodes.foldRight(Observable.of(List.empty[IO[StaticVNode]])) {
+          case (vn: StaticVNode, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
           case (csr: ChildStreamReceiver, obs) => obs.combineLatestWith(csr.childStream)((nodes, n) => n :: nodes)
           case (csr: ChildrenStreamReceiver, obs) =>
             obs.combineLatestWith(

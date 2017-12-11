@@ -1,5 +1,6 @@
 package outwatch.dom
 
+import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
 import rxscalajs.Observer
@@ -107,8 +108,8 @@ sealed trait StaticVNode extends Any with ChildVNode {
   def asProxy: VNodeProxy
 }
 
-final case class ChildStreamReceiver(childStream: Observable[StaticVNode]) extends ChildVNode
-final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[StaticVNode]]) extends ChildVNode
+final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends ChildVNode
+final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends ChildVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
@@ -118,8 +119,7 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
-private[outwatch] final case class VTree(nodeType: String,
-                       modifiers: Seq[VDomModifier_]) extends StaticVNode {
+private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[VDomModifier_]) extends StaticVNode {
   
   def apply(args: VDomModifier*): VNode = args.sequence.map(args => VTree(nodeType, modifiers ++ args))
 
