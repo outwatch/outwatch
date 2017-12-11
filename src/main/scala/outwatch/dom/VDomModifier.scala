@@ -15,6 +15,8 @@ VDomModifier_
     Attribute
       TitledAttribute
         Attr
+          BasicAttr
+          AccumAttr
         Prop
         Style
       EmptyAttribute
@@ -66,7 +68,7 @@ object Key {
 
 sealed trait Attribute extends Property
 object Attribute {
-  def apply(title: String, value: Attr.Value) = Attr(title, value)
+  def apply(title: String, value: Attr.Value): Attribute = BasicAttr(title, value)
 }
 
 
@@ -82,10 +84,20 @@ sealed trait TitledAttribute extends Attribute {
   val title: String
 }
 
-final case class Attr(title: String, value: Attr.Value) extends TitledAttribute
+
+sealed trait Attr extends TitledAttribute {
+  val value: Attr.Value
+}
 object Attr {
   type Value = DataObject.AttrValue
 }
+
+final case class BasicAttr(title: String, value: Attr.Value) extends Attr
+
+/**
+  * Attribute that accumulates the previous value in the same VNode with it's value
+  */
+final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value)=> Attr.Value) extends Attr
 
 final case class Prop(title: String, value: Prop.Value) extends TitledAttribute
 object Prop {

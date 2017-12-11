@@ -5,7 +5,8 @@ import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignmentCancelable
 import org.scalajs.dom
-import outwatch.dom.{Attr, Attribute, DestroyHook, Emitter, EmptyAttribute, Hook, InsertHook, Key, Prop, StaticVNode, Style}
+
+import outwatch.dom._
 import snabbdom._
 
 import scala.scalajs.js.JSConverters._
@@ -22,7 +23,8 @@ private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
     val styleDict = js.Dictionary[String]()
 
     attributes.foreach {
-      case a: Attr => attrsDict(a.title) = a.value
+      case a: BasicAttr => attrsDict(a.title) = a.value
+      case a: AccumAttr => attrsDict(a.title) = attrsDict.get(a.title).map(a.accum(_, a.value)).getOrElse(a.value)
       case p: Prop => propsDict(p.title) = p.value
       case s: Style => styleDict(s.title) = s.value
       case EmptyAttribute =>
