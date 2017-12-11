@@ -7,17 +7,15 @@ import snabbdom.{DataObject, VNodeProxy, hFunction}
 
 import scala.scalajs.js
 import collection.breakOut
-import cats.implicits._
-
 
 /*
 VDomModifier_
   Property
     Attribute
-      Attr
-      AccumAttr
-      Prop
-      Style
+      TitledAttribute
+        Attr
+        Prop
+        Style
       EmptyAttribute
     Hook
       InsertHook
@@ -122,9 +120,8 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // Needs to be benchmarked in the Browser
 private[outwatch] final case class VTree(nodeType: String,
                        modifiers: Seq[VDomModifier_]) extends StaticVNode {
-
-  //TODO no .toList
-  def apply(args: VDomModifier*) = args.toList.sequence.map(args => VTree(nodeType, modifiers ++ args))
+  
+  def apply(args: VDomModifier*): VNode = args.sequence.map(args => VTree(nodeType, modifiers ++ args))
 
   override def asProxy: VNodeProxy = {
     val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
