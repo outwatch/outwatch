@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.dom.helpers.DomUtils
 import rxscalajs.Observer
@@ -8,6 +7,7 @@ import snabbdom.{DataObject, VNodeProxy, hFunction}
 
 import scala.scalajs.js
 import collection.breakOut
+import cats.implicits._
 
 
 /*
@@ -50,7 +50,7 @@ final case class Emitter(eventType: String, trigger: Event => Unit) extends VDom
 
 private[outwatch] final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier_
 
-private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier]) extends VDomModifier_
+private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier_]) extends VDomModifier_
 
 case object EmptyModifier extends VDomModifier_
 
@@ -109,8 +109,8 @@ sealed trait StaticVNode extends Any with ChildVNode {
   def asProxy: VNodeProxy
 }
 
-final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends ChildVNode
-final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends ChildVNode
+final case class ChildStreamReceiver(childStream: Observable[StaticVNode]) extends ChildVNode
+final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[StaticVNode]]) extends ChildVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
@@ -121,27 +121,23 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
 private[outwatch] final case class VTree(nodeType: String,
-                       modifiers: Seq[VDomModifier]) extends StaticVNode {
+                       modifiers: Seq[VDomModifier_]) extends StaticVNode {
 
-  def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
+  //TODO no .toList
+  def apply(args: VDomModifier*) = args.toList.sequence.map(args => VTree(nodeType, modifiers ++ args))
 
   override def asProxy: VNodeProxy = {
-    val modifiers_ = modifiers.map(_.unsafeRunSync())
-    val (children, attributeObject, hasChildVNodes, textChildren) = DomUtils.extractChildrenAndDataObject(modifiers_)
-    //TODO: use .sequence instead of unsafeRunSync?
-    // import cats.instances.list._
-    // import cats.syntax.traverse._
-    // for { childProxies <- children.map(_.value).sequence }
-    // yield hFunction(nodeType, attributeObject, childProxies.map(_.apsProxy)(breakOut))
-    if (hasChildVNodes) { // children.nonEmpty doesn't work, children will always include StringModifiers as StringNodes
-      val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
-      hFunction(nodeType, attributeObject, childProxies)
-    }
-    else if (textChildren.nonEmpty) {
-      hFunction(nodeType, attributeObject, textChildren.map(_.string).mkString)
-    }
-    else {
-      hFunction(nodeType, attributeObject)
+    val (children, attributeObject) = DomUtils.extractChildrenAndDataObject(modifiers)
+
+    import DomUtils.Children
+    children match {
+      case Children.VNodes(vnodes, _) =>
+        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
+        hFunction(nodeType, attributeObject, childProxies)
+      case Children.StringModifiers(textChildren) =>
+        hFunction(nodeType, attributeObject, textChildren.map(_.string).mkString)
+      case Children.Empty =>
+        hFunction(nodeType, attributeObject)
     }
   }
 }

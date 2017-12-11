@@ -316,7 +316,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     hooks.contains("destroy") shouldBe false
   }
 
-  "Static child nodes" should "be only inserted once when children stream emits" in {
+  it should "be only inserted once when children stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
     val insertSink = Sink.create((_: Element) =>
       IO {

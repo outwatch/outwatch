@@ -1,6 +1,7 @@
 package outwatch
 
 import cats.effect.IO
+import cats.implicits._
 
 package object dom extends Attributes with Tags with HandlerFactories {
 
@@ -26,7 +27,8 @@ package object dom extends Attributes with Tags with HandlerFactories {
 
   implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse VDomModifier.empty
 
-  implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = IO.pure(CompositeModifier(modifiers))
+  //TODO no .toList
+  implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = modifiers.toList.sequence.map(CompositeModifier(_))
 
   implicit class ioVTreeMerge(vnode: VNode) {
     def apply(args: VDomModifier*): VNode = {

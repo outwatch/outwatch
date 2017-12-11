@@ -3,7 +3,7 @@ package outwatch
 import cats.effect.IO
 import org.scalajs.dom.{document, html}
 import org.scalatest.BeforeAndAfterEach
-import outwatch.dom.helpers._
+import outwatch.dom.helpers._, DomUtils.Children
 import outwatch.dom.{StringModifier, _}
 import rxscalajs.{Observable, Subject}
 import snabbdom.{DataObject, hFunction}
@@ -53,19 +53,19 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
           Attributes.`class` := "blue",
           Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure(())),
           Attributes.hidden <-- Observable.of(false)
-        )
+        ).map(_.unsafeRunSync())
       ),
       AttributeStreamReceiver("hidden",Observable.of())
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, vNodes, hasChildVNodes, stringModifiers) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.VNodes(childNodes, streamStatus)) = DomUtils.separateModifiers(modifiers)
 
     emitters.length shouldBe 2
     receivers.length shouldBe 2
-    vNodes.length shouldBe 3
     properties.length shouldBe 2
-    hasChildVNodes shouldBe true
-    stringModifiers.length shouldBe 1
+    childNodes.length shouldBe 3
+    streamStatus.numChild shouldBe 0
+    streamStatus.numChildren shouldBe 0
   }
 
   it should "be separated correctly with children" in {
@@ -77,17 +77,41 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       AttributeStreamReceiver("hidden",Observable.of()),
       AttributeStreamReceiver("disabled",Observable.of()),
       Emitter("keyup",  _ => ()),
-      StringModifier("text")
+      StringModifier("text"),
+      div
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children, hasChildVNodes, stringModifiers) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.VNodes(childNodes, streamStatus)) = DomUtils.separateModifiers(modifiers)
 
     emitters.length shouldBe 3
     receivers.length shouldBe 2
     properties.length shouldBe 1
-    children.length shouldBe 1
-    hasChildVNodes shouldBe false
-    stringModifiers.length shouldBe 1
+    childNodes.length shouldBe 2
+    streamStatus.numChild shouldBe 0
+    streamStatus.numChildren shouldBe 0
+  }
+
+  it should "be separated correctly with string children" in {
+    val modifiers: Seq[VDomModifier_] = Seq(
+      Attribute("class","red"),
+      EmptyModifier,
+      Emitter("click", _ => ()),
+      Emitter("input",  _ => ()),
+      Emitter("keyup",  _ => ()),
+      AttributeStreamReceiver("hidden",Observable.of()),
+      AttributeStreamReceiver("disabled",Observable.of()),
+      StringModifier("text"),
+      StringVNode("text2")
+    )
+
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.StringModifiers(stringMods)) = DomUtils.separateModifiers(modifiers)
+
+    emitters.length shouldBe 3
+    receivers.length shouldBe 2
+    properties.length shouldBe 1
+    stringMods.map(_.string) should contain theSameElementsAs(List(
+      "text", "text2"
+    ))
   }
 
   it should "be separated correctly with children and properties" in {
@@ -107,7 +131,7 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
       StringModifier("text")
     )
 
-    val DomUtils.SeparatedModifiers(emitters, receivers, properties, children, hasChildVNodes, stringModifiers) = DomUtils.separateModifiers(modifiers)
+    val DomUtils.SeparatedModifiers(emitters, receivers, properties, Children.VNodes(childNodes, streamStatus)) = DomUtils.separateModifiers(modifiers)
 
     val DomUtils.SeparatedProperties(inserts, prepatch, updates, postpatch, deletes, attributes, keys) = DomUtils.separateProperties(properties)
 
@@ -120,16 +144,109 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     deletes.length shouldBe 0
     attributes.length shouldBe 1
     receivers.length shouldBe 2
-    children.length shouldBe 2
     keys.length shouldBe 0
-    hasChildVNodes shouldBe true
-    stringModifiers.length shouldBe 1
+    childNodes.length shouldBe 2
+    streamStatus.numChild shouldBe 0
+    streamStatus.numChildren shouldBe 1
   }
 
   val fixture = new {
     val proxy = hFunction("div", DataObject(js.Dictionary("class" -> "red", "id" -> "msg"), js.Dictionary()), js.Array(
       hFunction("span", DataObject(js.Dictionary(), js.Dictionary()), "Hello")
     ))
+  }
+
+  it should "be run once" in {
+    val list = new collection.mutable.ArrayBuffer[String]
+
+    val vtree = div(
+      IO {
+        list += "child1"
+        ChildStreamReceiver(Observable.of())
+      },
+      IO {
+        list += "child2"
+        ChildStreamReceiver(Observable.of())
+      },
+      IO {
+        list += "children1"
+        ChildrenStreamReceiver(Observable.of())
+      },
+      IO {
+        list += "children2"
+        ChildrenStreamReceiver(Observable.of())
+      },
+      div(
+        IO {
+          list += "attr1"
+          Attribute("attr1", "peter")
+        },
+        Seq(
+          IO {
+            list += "attr2"
+            Attribute("attr2", "hans")
+          }
+        )
+      )
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    list.isEmpty shouldBe true
+
+    DomUtils.render(node, vtree).unsafeRunSync()
+
+    list should contain theSameElementsAs List(
+      "child1", "child2", "children1", "children2", "attr1", "attr2"
+    )
+  }
+
+  it should "provide unique key for child nodes if stream is present" in {
+    val mods = Seq(
+      ChildrenStreamReceiver(Observable.of()),
+      div(id := "1").unsafeRunSync(), div(id := "2").unsafeRunSync()
+      // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
+    )
+
+    val (Children.VNodes(childNodes, streamStatus), dataObject) = DomUtils.extractChildrenAndDataObject(mods)
+
+    childNodes.size shouldBe 3
+    streamStatus.numChild shouldBe 0
+    streamStatus.numChildren shouldBe 1
+    dataObject.key.nonEmpty shouldBe true
+
+    val vtreeChildren = childNodes collect { case s: VTree => s }
+    val vtreeChildren1 = vtreeChildren(0)
+    val vtreeChildren2 = vtreeChildren(1)
+
+    val (Children.Empty, dataObject1) = DomUtils.extractChildrenAndDataObject(vtreeChildren1.modifiers)
+    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren2.modifiers)
+
+    dataObject1.key.nonEmpty shouldBe true
+    dataObject2.key.nonEmpty shouldBe true
+    dataObject1.key.get should not be dataObject2.key.get
+  }
+
+  it should "keep existing key for child nodes" in {
+    val mods = Seq(
+      Key(1234),
+      ChildrenStreamReceiver(Observable.of()),
+      div()(IO.pure(Key(5678))).unsafeRunSync()
+    )
+
+
+    val (Children.VNodes(childNodes, streamStatus), dataObject) = DomUtils.extractChildrenAndDataObject(mods)
+
+    childNodes.size shouldBe 2
+    streamStatus.numChild shouldBe 0
+    streamStatus.numChildren shouldBe 1
+    dataObject.key.toOption shouldBe Some(1234)
+
+    val vtreeChildren = childNodes collect { case s: VTree => s }
+    val (Children.Empty, dataObject2) = DomUtils.extractChildrenAndDataObject(vtreeChildren.head.modifiers)
+
+    dataObject2.key.toOption shouldBe Some(5678)
   }
 
   "VTrees" should "be constructed correctly" in {
@@ -154,6 +271,68 @@ class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
     JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
+
+  it should "run its modifiers once!" in {
+    val stringHandler = Handler.create[String]().unsafeRunSync()
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler { _ =>
+      handlerCounter += 1
+    }
+
+    val vtree = div(
+      div(
+        IO {
+          ioCounter += 1
+          Attribute("hans", "")
+        }
+      ),
+      child <-- stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+    DomUtils.render(node, vtree).unsafeRunSync()
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 0
+    stringHandler.observer.next("pups")
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 1
+  }
+
+  it should "run its modifiers once in CompositeModifier!" in {
+    val stringHandler = Handler.create[String]().unsafeRunSync()
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler { _ =>
+      handlerCounter += 1
+    }
+
+    val vtree = div(
+      div(Seq(
+        IO {
+          ioCounter += 1
+          Attribute("hans", "")
+        }
+      )),
+      child <-- stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+    DomUtils.render(node, vtree).unsafeRunSync()
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 0
+    stringHandler.observer.next("pups")
+    ioCounter shouldBe 1
+    handlerCounter shouldBe 1
+  }
 
   it should "be correctly patched into the DOM" in {
     val id = "msg"

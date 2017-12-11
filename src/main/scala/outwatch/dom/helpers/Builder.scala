@@ -51,13 +51,13 @@ object KeyBuilder {
 }
 
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = {
-    IO.pure(ChildStreamReceiver(valueStream.map(r.render)))
+  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO {
+    ChildStreamReceiver(valueStream.map(v => r.render(v).unsafeRunSync()))
   }
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = {
-    IO.pure(ChildrenStreamReceiver(childrenStream))
+  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = IO {
+    ChildrenStreamReceiver(childrenStream.map(_.map(_.unsafeRunSync())))
   }
 }
