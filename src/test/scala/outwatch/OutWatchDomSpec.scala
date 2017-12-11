@@ -732,4 +732,21 @@ class OutWatchDomSpec extends JSDomSpec {
 
     node.innerHTML shouldBe "<div><main></main></div>"
   }
+
+  it should "work with un-assigned booleans attributes and props" in {
+
+    val vNode = option(selected, disabled)
+
+    val node = document.createElement("option").asInstanceOf[html.Option]
+    document.body.appendChild(node)
+
+    node.selected shouldBe false
+    node.disabled shouldBe false
+
+    OutWatch.renderReplace(node, vNode).unsafeRunSync()
+
+    node.selected shouldBe true
+    node.disabled shouldBe true
+  }
+
 }

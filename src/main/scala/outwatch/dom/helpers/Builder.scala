@@ -6,9 +6,9 @@ import outwatch.StaticVNodeRender
 import scala.language.dynamics
 import outwatch.dom._
 
-trait ValueBuilder[T, SELF <: Attribute] extends Any {
+trait ValueBuilder[-T, +SELF <: Attribute] extends Any {
   protected def attributeName: String
-  protected def assign(value: T): SELF
+  private[outwatch] def assign(value: T): SELF
 
   def :=(value: T): IO[SELF] = IO.pure(assign(value))
   def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
@@ -16,34 +16,50 @@ trait ValueBuilder[T, SELF <: Attribute] extends Any {
     IO.pure(AttributeStreamReceiver(attributeName, valueStream.map(assign)))
   }
 }
-
-final class AttributeBuilder[T](val attributeName: String, encode: T => Attr.Value) extends ValueBuilder[T, Attr] {
-  @inline protected def assign(value: T) = Attr(attributeName, encode(value))
+object ValueBuilder {
+  implicit def toAttribute(builder: ValueBuilder[Boolean, Attr]): IO[Attribute] = builder := true
+  implicit def toProperty(builder: ValueBuilder[Boolean, Prop]): IO[Property] = builder := true
 }
 
-object AttributeBuilder {
-  implicit def toAttribute(builder: AttributeBuilder[Boolean]): IO[Attribute] = IO.pure(builder assign true)
+
+trait AccumulateOps[T] { self: ValueBuilder[T, BasicAttr] =>
+  def accum(s: String): AccumAttributeBuilder[T] = accum(_ + s + _)
+  def accum(reducer: (Attr.Value, Attr.Value) => Attr.Value) = new AccumAttributeBuilder[T](attributeName, this, reducer)
 }
 
-final class PropertyBuilder[T](val attributeName: String, encode: T => Prop.Value) extends ValueBuilder[T, Prop] {
-  @inline protected def assign(value: T) = Prop(attributeName, encode(value))
+final class AttributeBuilder[T](val attributeName: String, encode: T => Attr.Value) extends ValueBuilder[T, BasicAttr]
+                                                                                            with AccumulateOps[T] {
+  @inline private[outwatch] def assign(value: T) = BasicAttr(attributeName, encode(value))
 }
 
-object PropertyBuilder {
-  implicit def toProperty(builder: PropertyBuilder[Boolean]): IO[Property] = IO.pure(builder assign true)
-}
-
-final class StyleBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T, Style] {
-  @inline protected def assign(value: T) = Style(attributeName, value.toString)
-}
-
-final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic with ValueBuilder[T, Attr] {
+final class DynamicAttributeBuilder[T](parts: List[String]) extends Dynamic
+                                                                    with ValueBuilder[T, BasicAttr]
+                                                                    with AccumulateOps[T] {
   lazy val attributeName: String = parts.reverse.mkString("-")
 
   def selectDynamic(s: String) = new DynamicAttributeBuilder[T](s :: parts)
 
-  @inline protected def assign(value: T) = Attr(attributeName, value.toString)
+  @inline private[outwatch] def assign(value: T) = BasicAttr(attributeName, value.toString)
 }
+
+final class AccumAttributeBuilder[T](
+  val attributeName: String,
+  builder: ValueBuilder[T, Attr],
+  reduce: (Attr.Value, Attr.Value) => Attr.Value
+) extends ValueBuilder[T, AccumAttr] {
+  @inline private[outwatch] def assign(value: T) = AccumAttr(attributeName, builder.assign(value).value, reduce)
+}
+
+
+final class PropertyBuilder[T](val attributeName: String, encode: T => Prop.Value) extends ValueBuilder[T, Prop] {
+  @inline private[outwatch] def assign(value: T) = Prop(attributeName, encode(value))
+}
+
+
+final class StyleBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T, Style] {
+  @inline private[outwatch] def assign(value: T) = Style(attributeName, value.toString)
+}
+
 
 object KeyBuilder {
   def :=(key: Key.Value): IO[Key] = IO.pure(Key(key))

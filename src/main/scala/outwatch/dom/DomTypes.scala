@@ -27,7 +27,7 @@ private[outwatch] object DomTypesBuilder {
   }
 
   object CodecBuilder {
-    type Attribute[T, _] = AttributeBuilder[T]
+    type Attribute[T, _] = ValueBuilder[T, Attr]
     type Property[T, _] = PropertyBuilder[T]
 
     def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = codec match {
@@ -95,13 +95,18 @@ trait ReflectedAttrs
   extends reflectedAttrs.ReflectedAttrs[CodecBuilder.Attribute]
   with ReflectedAttrBuilder[CodecBuilder.Attribute] {
 
+  // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
+  override lazy val className = new AccumAttributeBuilder[String]("class",
+    stringReflectedAttr(attrKey = "class", propKey = "className"),
+    _ + " " + _
+  )
+
   override protected def reflectedAttr[V, DomPropV](
     attrKey: String,
     propKey: String,
     attrCodec: Codec[V, String],
     propCodec: Codec[V, DomPropV]
-  ): AttributeBuilder[V] =
-    new AttributeBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+  ) = new AttributeBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
     //or: new PropertyBuilder(propKey, propCodec.encode)
 }
 

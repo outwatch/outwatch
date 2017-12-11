@@ -5,6 +5,36 @@ import outwatch.dom.dsl._
 
 class AttributeSpec extends JSDomSpec {
 
+  "class attributes" should "be accumulated" in {
+
+    val node = input(
+      className := "class1",
+      cls := "class2"
+    ).map(_.asProxy).unsafeRunSync()
+
+    node.data.attrs.toList shouldBe List("class" -> "class1 class2")
+  }
+
+  "custom attributes" should "be able to be accumulated" in {
+
+    val node = input(
+      attr("id").accum(",") := "foo1",
+      attr("id").accum(",") := "foo2"
+    ).map(_.asProxy).unsafeRunSync()
+
+    node.data.attrs.toList shouldBe List("id" -> "foo1,foo2")
+  }
+
+  "data attributes" should "be able to be accumulated" in {
+
+    val node = input(
+      data.foo.accum(",") := "foo1",
+      data.foo.accum(",") := "foo2"
+    ).map(_.asProxy).unsafeRunSync()
+
+    node.data.attrs.toList shouldBe List("data-foo" -> "foo1,foo2")
+  }
+
   "data attribute" should "correctly render only Data" in {
     val node = input(
       data.geul := "bar",

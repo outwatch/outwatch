@@ -27,6 +27,7 @@ trait Handlers {
 object Handlers extends Handlers
 
 trait AttributesCompat { self: Attributes =>
+
   @deprecated("Use `type`, tpe or typ instead", "0.11.0")
   lazy val inputType = tpe
 
