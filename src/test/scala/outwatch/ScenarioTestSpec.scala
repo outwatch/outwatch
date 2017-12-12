@@ -4,7 +4,6 @@ import org.scalajs.dom._
 import org.scalajs.dom.html
 import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
-import outwatch.dom.helpers.DomUtils
 
 import Deprecated.IgnoreWarnings.initEvent
 
@@ -42,7 +41,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    DomUtils.render(root, node).unsafeRunSync()
+    OutWatch.renderInto(root, node).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -74,7 +73,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    DomUtils.render(root, node).unsafeRunSync()
+    OutWatch.renderInto(root, node).unsafeRunSync()
 
 
     val evt = document.createEvent("HTMLEvents")
@@ -114,10 +113,10 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     val component2 = div(comp, comp)
 
     val element1 = document.createElement("div")
-    DomUtils.render(element1, component1).unsafeRunSync()
+    OutWatch.renderInto(element1, component1).unsafeRunSync()
 
     val element2 = document.createElement("div")
-    DomUtils.render(element2, component2).unsafeRunSync()
+    OutWatch.renderInto(element2, component2).unsafeRunSync()
 
     element1.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
 
@@ -193,7 +192,7 @@ class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    DomUtils.render(root, vtree).unsafeRunSync()
+    OutWatch.renderInto(root, vtree).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("input", false, true)

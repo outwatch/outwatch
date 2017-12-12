@@ -2,22 +2,18 @@ package outwatch.dom
 
 import cats.effect.IO
 import org.scalajs.dom._
-import outwatch.dom.helpers.DomUtils
+import outwatch.dom.helpers.SeparatedModifiers
 import rxscalajs.Observer
-import snabbdom.{DataObject, VNodeProxy, hFunction}
-
-import scala.scalajs.js
-import collection.breakOut
-
+import snabbdom.{DataObject, VNodeProxy}
 
 /*
 VDomModifier_
   Property
     Attribute
-      Attr
-      AccumAttr
-      Prop
-      Style
+      TitledAttribute
+        Attr
+        Prop
+        Style
       EmptyAttribute
     Hook
       InsertHook
@@ -50,7 +46,7 @@ final case class Emitter(eventType: String, trigger: Event => Unit) extends VDom
 
 private[outwatch] final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier_
 
-private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier]) extends VDomModifier_
+private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier_]) extends VDomModifier_
 
 case object EmptyModifier extends VDomModifier_
 
@@ -120,29 +116,13 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
-private[outwatch] final case class VTree(nodeType: String,
-                       modifiers: Seq[VDomModifier]) extends StaticVNode {
+private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[VDomModifier_]) extends StaticVNode {
 
-  def apply(args: VDomModifier*) = IO.pure(VTree(nodeType, modifiers ++ args))
+  def apply(args: (VDomModifier_)*): VTree = copy(modifiers = modifiers ++ args)
 
   override def asProxy: VNodeProxy = {
-    val modifiers_ = modifiers.map(_.unsafeRunSync())
-    val (children, attributeObject, hasChildVNodes, textChildren) = DomUtils.extractChildrenAndDataObject(modifiers_)
-    //TODO: use .sequence instead of unsafeRunSync?
-    // import cats.instances.list._
-    // import cats.syntax.traverse._
-    // for { childProxies <- children.map(_.value).sequence }
-    // yield hFunction(nodeType, attributeObject, childProxies.map(_.apsProxy)(breakOut))
-    if (hasChildVNodes) { // children.nonEmpty doesn't work, children will always include StringModifiers as StringNodes
-      val childProxies: js.Array[VNodeProxy] = children.map(_.asProxy)(breakOut)
-      hFunction(nodeType, attributeObject, childProxies)
-    }
-    else if (textChildren.nonEmpty) {
-      hFunction(nodeType, attributeObject, textChildren.map(_.string).mkString)
-    }
-    else {
-      hFunction(nodeType, attributeObject)
-    }
+    val separatedModifiers = SeparatedModifiers.separate(modifiers)
+    separatedModifiers.toSnabbdom(nodeType)
   }
 }
 

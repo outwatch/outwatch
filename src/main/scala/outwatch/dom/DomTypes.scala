@@ -14,11 +14,12 @@ import org.scalajs.dom
 import helpers._
 
 private[outwatch] object DomTypesBuilder {
-  type GenericVNode[T] = VTree
+  type VNode = IO[VTree]
+  type GenericVNode[T] = VNode
 
-  trait VNodeBuilder extends TagBuilder[GenericVNode, VTree] {
+  trait VNodeBuilder extends TagBuilder[GenericVNode, VNode] {
     // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-    protected override def tag[Ref <: VTree](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+    protected override def tag[Ref <: VNode](tagName: String, void: Boolean): VNode = IO.pure(VTree(tagName, Seq.empty))
   }
 
   object CodecBuilder {
@@ -52,20 +53,20 @@ private[outwatch] object DomTypesBuilder {
 import DomTypesBuilder._
 
 trait Tags
-  extends EmbedTags[GenericVNode, VTree]
-  with GroupingTags[GenericVNode, VTree]
-  with TextTags[GenericVNode, VTree]
-  with FormTags[GenericVNode, VTree]
-  with SectionTags[GenericVNode, VTree]
-  with TableTags[GenericVNode, VTree]
+  extends EmbedTags[GenericVNode, VNode]
+  with GroupingTags[GenericVNode, VNode]
+  with TextTags[GenericVNode, VNode]
+  with FormTags[GenericVNode, VNode]
+  with SectionTags[GenericVNode, VNode]
+  with TableTags[GenericVNode, VNode]
   with TagsCompat
   with VNodeBuilder
   with TagHelpers
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[GenericVNode, VTree]
-  with MiscTags[GenericVNode, VTree]
+  extends DocumentTags[GenericVNode, VNode]
+  with MiscTags[GenericVNode, VNode]
   with VNodeBuilder
 object TagsExtra extends TagsExtra
 
