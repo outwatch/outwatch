@@ -30,7 +30,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -47,7 +47,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
     switch2 shouldBe true
@@ -64,7 +64,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -82,7 +82,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
     switch2 shouldBe true
@@ -97,7 +97,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     val message = Subject[String]()
     val node = div(child <-- message, update --> sink1)(update --> sink2)
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
     switch2 shouldBe false
 
@@ -116,7 +116,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -133,7 +133,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
   }
@@ -150,7 +150,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     val message = Subject[String]()
     val node = div(child <-- message, prepatch --> sink1)(prepatch --> sink2)
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
     switch2 shouldBe false
 
@@ -171,7 +171,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     switch shouldBe false
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
   }
@@ -189,7 +189,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     val message = Subject[String]()
     val node = div(child <-- message, postpatch --> sink1)(postpatch --> sink2)
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
     switch2 shouldBe false
 
@@ -244,7 +244,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     hooks shouldBe empty
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     hooks.toList shouldBe List("insert")
 
@@ -276,7 +276,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     hooks shouldBe empty
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     hooks.toList shouldBe  List("insert")
   }
@@ -309,7 +309,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     hooks shouldBe empty
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     message.next("next")
 
@@ -344,7 +344,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     hooks shouldBe empty
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     messageList.next(Seq("one"))
 

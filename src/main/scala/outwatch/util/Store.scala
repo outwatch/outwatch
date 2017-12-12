@@ -41,7 +41,7 @@ object Store {
     handler <- Handler.create[A]
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
-    _ <- OutWatch.render(selector, root)
+    _ <- OutWatch.renderInto(selector, root)
   } yield ()
 
   def getStore[S, A]: IO[Store[S, A]] =
