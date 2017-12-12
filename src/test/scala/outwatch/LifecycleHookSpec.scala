@@ -26,7 +26,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch = false
     val sink = Sink.create((_: Element) => IO { switch = true })
 
-    val node = div(insert --> sink)
+    val node = div(onInsert --> sink)
 
     switch shouldBe false
 
@@ -42,7 +42,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch2 = false
     val sink2 = Sink.create((_: Element) => IO{switch2 = true})
 
-    val node = div(insert --> sink)(insert --> sink2)
+    val node = div(onInsert --> sink)(onInsert --> sink2)
 
     switch shouldBe false
     switch2 shouldBe false
@@ -60,7 +60,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch = false
     val sink = Sink.create((_: Element) => IO { switch = true })
 
-    val node = div(child <-- Observable.of(span(destroy --> sink), div("Hasdasd")))
+    val node = div(child <-- Observable.of(span(onDestroy --> sink), div("Hasdasd")))
 
     switch shouldBe false
 
@@ -77,7 +77,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch2 = false
     val sink2 = Sink.create((_: Element) => IO{switch2 = true})
 
-    val node = div(child <-- Observable.of(span(destroy --> sink)(destroy --> sink2), div("Hasdasd")))
+    val node = div(child <-- Observable.of(span(onDestroy --> sink)(onDestroy --> sink2), div("Hasdasd")))
 
     switch shouldBe false
     switch2 shouldBe false
@@ -95,7 +95,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     val sink2 = Sink.create((_: (Element, Element)) => IO{switch2 = true})
 
     val message = Subject[String]()
-    val node = div(child <-- message, update --> sink1)(update --> sink2)
+    val node = div(child <-- message, onUpdate --> sink1)(onUpdate --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
@@ -112,7 +112,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     var switch = false
     val sink = Sink.create((_: (Element, Element)) => IO { switch = true })
 
-    val node = div(child <-- Observable.of(span(update --> sink, "Hello"), span(update --> sink, "Hey")))
+    val node = div(child <-- Observable.of(span(onUpdate --> sink, "Hello"), span(onUpdate --> sink, "Hey")))
 
     switch shouldBe false
 
@@ -129,7 +129,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
       switch = true
     })
 
-    val node = div(child <-- Observable.of(span("Hello")), span(outwatch.dom.key := "1", prepatch --> sink, "Hey"))
+    val node = div(child <-- Observable.of(span("Hello")), span(outwatch.dom.key := "1", onPrepatch --> sink, "Hey"))
 
     switch shouldBe false
 
@@ -148,7 +148,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
       switch2 = true
     })
     val message = Subject[String]()
-    val node = div(child <-- message, prepatch --> sink1)(prepatch --> sink2)
+    val node = div(child <-- message, onPrepatch --> sink1)(onPrepatch --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
@@ -167,7 +167,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
       switch = true
     })
 
-    val node = div(child <-- Observable.of("message"), postpatch --> sink, "Hey")
+    val node = div(child <-- Observable.of("message"), onPostpatch --> sink, "Hey")
 
     switch shouldBe false
 
@@ -187,7 +187,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
       switch2 = true
     })
     val message = Subject[String]()
-    val node = div(child <-- message, postpatch --> sink1)(postpatch --> sink2)
+    val node = div(child <-- message, onPostpatch --> sink1)(onPostpatch --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
@@ -235,11 +235,11 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     val message = Subject[String]()
     val node = div(child <-- message,
-      insert --> insertSink,
-      prepatch --> prepatchSink,
-      update --> updateSink,
-      postpatch --> postpatchSink,
-      destroy --> destroySink
+      onInsert --> insertSink,
+      onPrepatch --> prepatchSink,
+      onUpdate --> updateSink,
+      onPostpatch --> postpatchSink,
+      onDestroy --> destroySink
     )
 
     hooks shouldBe empty
@@ -270,8 +270,8 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     val messageList = Subject[Seq[String]]()
     val node = div("Hello",  children <-- messageList.map(_.map(span(_))),
-      insert --> insertSink,
-      update --> updateSink
+      onInsert --> insertSink,
+      onUpdate --> updateSink
     )
 
     hooks shouldBe empty
@@ -303,7 +303,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
     )
 
     val message = Subject[String]()
-    val node = div(span("Hello", insert --> insertSink, update --> updateSink,destroy --> destroySink),
+    val node = div(span("Hello", onInsert --> insertSink, onUpdate --> updateSink, onDestroy --> destroySink),
       child <-- message.map(span(_))
     )
 
@@ -339,7 +339,7 @@ class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
 
     val messageList = Subject[Seq[String]]()
     val node = div(children <-- messageList.map(_.map(span(_))),
-      span("Hello", insert --> insertSink, update --> updateSink, destroy --> destroySink)
+      span("Hello", onInsert --> insertSink, onUpdate --> updateSink, onDestroy --> destroySink)
     )
 
     hooks shouldBe empty

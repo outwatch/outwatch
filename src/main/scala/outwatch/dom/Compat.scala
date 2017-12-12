@@ -57,6 +57,21 @@ trait AttributesCompat {
 
   @deprecated("Use onKeyDown instead", "0.11.0")
   lazy val keydown = onKeyDown
+
+  @deprecated("Use onInsert instead", "0.11.0")
+  lazy val insert = onInsert
+
+  @deprecated("Use onPrepatch instead", "0.11.0")
+  lazy val prepatch = onPrepatch
+
+  @deprecated("Use onUpdate instead", "0.11.0")
+  lazy val update = onUpdate
+
+  @deprecated("Use onPostpatch instead", "0.11.0")
+  lazy val postpatch = onPostpatch
+
+  @deprecated("Use onDestroy instead", "0.11.0")
+  lazy val destroy = onDestroy
 }
 
 trait TagsCompat {
