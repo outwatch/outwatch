@@ -32,7 +32,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
     document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
     val event = document.createEvent("Events")
@@ -52,7 +52,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -80,7 +80,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -112,7 +112,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
 
     val vtree = input(id:= "input", outwatch.dom.value <-- values)
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
 
@@ -136,7 +136,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val defaultValues = Subject[String]
 
     val vtree = input(id:= "input", outwatch.dom.defaultValue <-- defaultValues)
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
     patched.value shouldBe ""
@@ -156,7 +156,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
     val values = Subject[String]
 
     val vtree = input(id:= "input", outwatch.dom.value <-- values)
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
     patched.value shouldBe ""
@@ -180,7 +180,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       ul(id:= "list", children <-- state)
     )
 
-    OutWatch.render("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val list = document.getElementById("list")
 
@@ -230,7 +230,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       span(id:="second",child <-- second)
     )
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -255,7 +255,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -284,7 +284,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -305,7 +305,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("input", false, true)
@@ -327,7 +327,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("click", true, false)
@@ -356,7 +356,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       }
     }
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val inputElement = document.getElementById("input").asInstanceOf[html.Input]
     val submitButton = document.getElementById("submit")
@@ -392,7 +392,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
       )
     }
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
     val onButton = document.getElementById("on_button")
@@ -425,7 +425,7 @@ class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks 
         button(id := "input", tpe := "checkbox")
       )
 
-    OutWatch.render("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("click", true, false)
