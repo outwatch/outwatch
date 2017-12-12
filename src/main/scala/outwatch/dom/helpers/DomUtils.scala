@@ -7,10 +7,28 @@ import rxscalajs.subjects.BehaviorSubject
 
 import scala.collection.breakOut
 
-private[outwatch] case class StreamStatus(numChild: Int = 0, numChildren: Int = 0) {
-  def hasChildOrChildren: Boolean = (numChild + numChildren) > 0
+object SeparatedModifiers {
+  private[outwatch] def separate(modifiers: Seq[VDomModifier_]): SeparatedModifiers = {
+    modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
+  }
+}
 
-  def hasMultipleChildren: Boolean = numChildren > 1
+private[outwatch] final case class SeparatedModifiers(
+  properties: SeparatedProperties = SeparatedProperties(),
+  emitters: SeparatedEmitters = SeparatedEmitters(),
+  attributeReceivers: List[AttributeStreamReceiver] = Nil,
+  children: Children = Children.Empty
+) extends SnabbdomModifiers { self =>
+
+  def ::(m: VDomModifier_): SeparatedModifiers = m match {
+    case pr: Property => copy(properties = pr :: properties)
+    case vn: ChildVNode => copy(children = vn :: children)
+    case em: Emitter => copy(emitters = em :: emitters)
+    case rc: AttributeStreamReceiver => copy(attributeReceivers = rc :: attributeReceivers)
+    case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
+    case sm: StringModifier => copy(children = sm :: children)
+    case EmptyModifier => self
+  }
 }
 
 private[outwatch] trait Children {
@@ -67,6 +85,11 @@ object Children {
     }
   }
 
+  private[outwatch] case class StreamStatus(numChild: Int = 0, numChildren: Int = 0) {
+    def hasChildOrChildren: Boolean = (numChild + numChildren) > 0
+
+    def hasMultipleChildren: Boolean = numChildren > 1
+  }
 }
 
 private[outwatch] final case class SeparatedProperties(
@@ -109,38 +132,13 @@ private[outwatch] final case class SeparatedEmitters(
   def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
 }
 
-private[outwatch] final case class SeparatedModifiers(
-  properties: SeparatedProperties = SeparatedProperties(),
-  emitters: SeparatedEmitters = SeparatedEmitters(),
-  attributeReceivers: List[AttributeStreamReceiver] = Nil,
-  children: Children = Children.Empty
-) extends SnabbdomModifiers { self =>
-
-  def ::(m: VDomModifier_): SeparatedModifiers = m match {
-    case pr: Property => copy(properties = pr :: properties)
-    case vn: ChildVNode => copy(children = vn :: children)
-    case em: Emitter => copy(emitters = em :: emitters)
-    case rc: AttributeStreamReceiver => copy(attributeReceivers = rc :: attributeReceivers)
-    case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
-    case sm: StringModifier => copy(children = sm :: children)
-    case EmptyModifier => self
-  }
-}
-
-object SeparatedModifiers {
-  private[outwatch] def separate(modifiers: Seq[VDomModifier_]): SeparatedModifiers = {
-    modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
-  }
-}
-
-
 private[outwatch] final case class Receivers(
   children: Children,
   attributeStreamReceivers: List[AttributeStreamReceiver]
 ) {
   private val (childNodes, childStreamStatus) = children match {
     case Children.VNodes(nodes, streamStatus) => (nodes, streamStatus)
-    case _ => (Nil, StreamStatus())
+    case _ => (Nil, Children.StreamStatus())
   }
 
   lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
@@ -172,5 +170,4 @@ private[outwatch] final case class Receivers(
     attributeStreamReceivers.nonEmpty || childStreamStatus.hasChildOrChildren
   }
 }
-
 

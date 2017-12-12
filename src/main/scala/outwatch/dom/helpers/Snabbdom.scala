@@ -129,9 +129,6 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   }
 }
 
-
-
-
 private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 
   private def emittersToFunction(emitters: Seq[Emitter]): js.Function1[dom.Event, Unit] = {
