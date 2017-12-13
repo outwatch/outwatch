@@ -1,25 +1,11 @@
 package outwatch
 
 import org.scalajs.dom._
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.prop.PropertyChecks
-import rxscalajs.Subject
+import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
+import rxscalajs.Subject
 
-import Deprecated.IgnoreWarnings.initEvent
-
-class DomEventSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
-
-  override def beforeEach(): Unit = {
-    val root = document.createElement("div")
-    root.id = "app"
-    document.body.appendChild(root)
-    ()
-  }
-
-  override def afterEach(): Unit = {
-    document.body.innerHTML = ""
-  }
+class DomEventSpec extends JSDomSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 

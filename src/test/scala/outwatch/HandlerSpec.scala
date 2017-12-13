@@ -1,9 +1,6 @@
 package outwatch
 
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.prop.PropertyChecks
-
-class HandlerSpec extends UnitSpec with BeforeAndAfterEach with PropertyChecks {
+class HandlerSpec extends UnitSpec {
   "Handler" should "lens" in {
     val handler = Handler.create[(String, Int)].unsafeRunSync()
     val lensed = handler.lens[Int](("harals", 0))(_._2)((tuple, num) => (tuple._1, num))
