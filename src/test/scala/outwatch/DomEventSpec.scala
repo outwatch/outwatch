@@ -266,7 +266,7 @@ class DomEventSpec extends JSDomSpec {
 
       div(
         button(id := "click", onClick.transform(transformer) --> stream),
-        span(id := "num", children <-- state.map(nums => nums.map(num => span(num.toString))))
+        span(id := "num", children <-- state.map(nums => nums.map(num => span(num.toString()))))
       )
     }
 
@@ -286,7 +286,7 @@ class DomEventSpec extends JSDomSpec {
     val number = 42
     val node = Handler.create[Int].flatMap { stream =>
       div(
-        button(id := "input", onInputString(number) --> stream),
+        button(id := "input", onInput(number) --> stream),
         span(id:="num",child <-- stream)
       )
     }
@@ -325,7 +325,7 @@ class DomEventSpec extends JSDomSpec {
   }
 
 
-  it should "currectly be transformed from latest in observable" in {
+  it should "correctly be transformed from latest in observable" in {
 
     val node = Handler.create[String].flatMap { submit =>
 
@@ -333,7 +333,7 @@ class DomEventSpec extends JSDomSpec {
 
       Handler.create[String].flatMap { stream =>
         div(
-          input(id := "input", tpe := "text", onInputString --> stream),
+          input(id := "input", tpe := "text", _.onInput.value --> stream),
           button(id := "submit", onClick(stream) --> submit),
           ul( id := "items",
             children <-- state.map(items => items.map(it => li(it)))
@@ -422,4 +422,84 @@ class DomEventSpec extends JSDomSpec {
     docClicked shouldBe true
   }
 
+  "TagWith" should "correctly work on events" in {
+
+    val node = Handler.create[String].flatMap { submit =>
+
+      for {
+        stringStream <- Handler.create[String]
+        doubleStream <- Handler.create[Double]
+        boolStream <- Handler.create[Boolean]
+        eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
+        elem <- div(
+          input(
+            id := "input", tpe := "text",
+            onSearch.target.value --> stringStream,
+            onClick.targetAs[html.Input].value --> stringStream,
+            _.onClick.value --> stringStream,
+            onSearch.target.valueAsNumber --> doubleStream,
+            onClick.targetAs[html.Input].valueAsNumber --> doubleStream,
+            _.onClick.valueAsNumber --> doubleStream,
+            onSearch.target.checked --> boolStream,
+            onClick.targetAs[html.Input].checked --> boolStream,
+            _.onClick.checked --> boolStream,
+
+            onSearch.filter(_ => true).target.value --> stringStream,
+            onClick.filter(_ => true).targetAs[html.Input].value --> stringStream,
+            _.onClick.filter(_ => true).value --> stringStream
+          ),
+          ul(id := "items")
+        )
+      } yield elem
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val element =document.getElementById("input")
+    element should not be null
+  }
+
+  "DomEvents" should "correctly be compiled with currentTarget" in {
+
+    val stringHandler = Handler.create[String].unsafeRunSync()
+    def modifier(ctx: TagContext[html.Input]): VDomModifier = Seq(
+      ctx.onDrag.value --> stringHandler,
+      ctx.onDrag.map(_.currentTarget.value) --> stringHandler
+    )
+    def stringModifier[Elem <: Element : TagWithString](ctx: TagContext[Elem]): VDomModifier = Seq(
+      ctx.onDrag.value --> stringHandler,
+      ctx.onDrag.map(_.currentTarget.value) --> stringHandler
+    )
+
+    val node = Handler.create[String].flatMap { submit =>
+
+      for {
+        stream <- Handler.create[String]
+        eventStream <- Handler.create[MouseEvent with TypedCurrentTargetEvent[html.Input]]
+        elem <- div(
+          input(
+            id := "input", tpe := "text",
+            onSearch.map(_.target.value) --> stream,
+            onSearch.target.value --> stream,
+
+            onClick.map(_.targetAs[html.Input].value) --> stream,
+            onClick.targetAs[html.Input].value --> stream,
+
+            _.onClick.map(_.currentTarget.value) --> stream,
+            _.onClick.value --> stream,
+            _.onClick --> eventStream,
+
+            modifier,
+            stringModifier
+          ),
+          ul(id := "items")
+        )
+      } yield elem
+    }
+
+    OutWatch.render("#app", node).unsafeRunSync()
+
+    val element =document.getElementById("input")
+    element should not be null
+  }
 }

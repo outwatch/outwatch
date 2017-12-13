@@ -63,14 +63,14 @@ object Children {
 
   private[outwatch] case class VNodes(nodes: List[ChildVNode], streamStatus: StreamStatus) extends Children {
 
-    private def ensureVTreeKey(vtree: VTree): VTree = {
+    private def ensureVTreeKey(vtree: VTree_[_]): VTree_[_] = {
       val defaultKey = Key(vtree.hashCode)
       val newModifiers = defaultKey +: vtree.modifiers
       vtree.copy(modifiers = newModifiers)
     }
 
-    private def ensureVNodeKey[N >: VTree](node: N): N = node match {
-      case vtree: VTree => ensureVTreeKey(vtree)
+    private def ensureVNodeKey[N >: VTree_[_]](node: N): N = node match {
+      case vtree: VTree_[_] => ensureVTreeKey(vtree)
       case other => other
     }
 

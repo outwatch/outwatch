@@ -1,6 +1,7 @@
 package outwatch.dom
 
 import outwatch.dom.helpers._
+import org.scalajs.dom
 import cats.effect.IO
 
 /** Trait containing the contents of the `Attributes` module, so they can be
@@ -11,6 +12,7 @@ trait OutwatchAttributes
   extends OutWatchChildAttributes
   with SnabbdomKeyAttributes
   with OutWatchLifeCycleAttributes
+  with EventTargetHelpers
   with TypedInputEventProps
   with AttributeHelpers
 
@@ -62,17 +64,32 @@ trait SnabbdomKeyAttributes {
   lazy val key = KeyBuilder
 }
 
-trait TypedInputEventProps {
+trait EventTargetHelpers {
   import org.scalajs.dom
 
+  implicit class EventWithTargetAs(event: dom.Event) {
+    def targetAs[Elem <: dom.EventTarget]: Elem = event.target.asInstanceOf[Elem]
+  }
+
+  implicit class EventTargetWith[Elem <: dom.EventTarget](elem: Elem) {
+    def value(implicit tag: TagWithString[Elem]): String = tag.value(elem)
+    def valueAsNumber(implicit tag: TagWithNumber[Elem]): Double = tag.valueAsNumber(elem)
+    def checked(implicit tag: TagWithChecked[Elem]): Boolean = tag.checked(elem)
+  }
+}
+
+trait TypedInputEventProps {
   /** The input event is fired when an element gets user input. */
-  lazy val onInputChecked = Events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
+  @deprecated("Use _.onChange.checked, which uses currentTarget. Or resort to onChange.targetAs[dom.html.Input].checked instead", "0.11.0")
+  lazy val onInputChecked = Events.onChange.targetAs[dom.html.Input].checked
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputNumber  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
+  @deprecated("Use _.onInput.valueAsNumber, which uses currentTarget. Or resort to onInput.targetAs[dom.html.Input].valueAsNumber instead", "0.11.0")
+  lazy val onInputNumber = Events.onInput.targetAs[dom.html.Input].valueAsNumber
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputString  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
+  @deprecated("Use _.onInput.value, which uses currentTarget. Or resort to onInput.targetAs[dom.html.Input].value instead", "0.11.0")
+  lazy val onInputString = Events.onInput.targetAs[dom.html.Input].value
 }
 
 trait AttributeHelpers {
@@ -84,5 +101,5 @@ trait AttributeHelpers {
 }
 
 trait TagHelpers {
-  def tag(name: String): VNode= IO.pure(VTree(name, Seq.empty))
+  def tag/*[Elem <: dom.Element]*/(name: String): VTree[dom.Element] = IO.pure(VTree_(name, Seq.empty))
 }
