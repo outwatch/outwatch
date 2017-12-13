@@ -3,7 +3,7 @@ package outwatch
 import cats.effect.IO
 import cats.syntax.apply._
 
-package object dom extends Attributes with Tags with HandlerFactories {
+package object dom extends Attributes with Tags {
 
   type VNode = IO[VTree]
   type VDomModifier = IO[VDomModifier_]

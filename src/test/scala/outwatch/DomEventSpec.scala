@@ -9,10 +9,10 @@ class DomEventSpec extends JSDomSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 
-    val vtree = Handler.mouseEvents.flatMap { observable =>
+    val vtree = Handler.create[MouseEvent].flatMap { observable =>
 
       val buttonDisabled = observable.mapTo(true).startWith(false)
-      
+
       div(id := "click", onClick --> observable,
         button(id := "btn", disabled <-- buttonDisabled)
       )

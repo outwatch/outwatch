@@ -8,10 +8,10 @@ class ScenarioTestSpec extends JSDomSpec {
 
   "A simple counter application" should "work as intended" in {
     val node = for {
-      handlePlus <- Handler.mouseEvents
+      handlePlus <- Handler.create[MouseEvent]
       plusOne = handlePlus.mapTo(1)
 
-      handleMinus <- Handler.mouseEvents
+      handleMinus <- Handler.create[MouseEvent]
       minusOne = handleMinus.mapTo(-1)
 
       count = plusOne.merge(minusOne).scan(0)(_ + _).startWith(0)
@@ -123,8 +123,8 @@ class ScenarioTestSpec extends JSDomSpec {
     def TextFieldComponent(labelText: String, outputStream: Sink[String]) = for {
 
       textFieldStream <- Handler.create[String]
-      clickStream <- Handler.mouseEvents
-      keyStream <- Handler.keyboardEvents
+      clickStream <- Handler.create[MouseEvent]
+      keyStream <- Handler.create[KeyboardEvent]
 
       buttonDisabled = textFieldStream
         .map(_.length < 2)
