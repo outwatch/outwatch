@@ -1,9 +1,11 @@
 package outwatch
 
 import cats.effect.IO
+import monix.execution.Ack.Continue
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom._
 import outwatch.dom._
-import rxscalajs.{Observable, Subject}
 
 import scala.collection.mutable
 
@@ -12,7 +14,10 @@ class LifecycleHookSpec extends JSDomSpec {
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create((_: Element) => IO { switch = true })
+    val sink = Sink.create((_: Element) => IO {
+      switch = true
+      Continue
+    })
 
     val node = div(onInsert --> sink)
 
@@ -26,9 +31,15 @@ class LifecycleHookSpec extends JSDomSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch = false
-    val sink = Sink.create((_: Element) => IO{switch = true})
+    val sink = Sink.create((_: Element) => IO{
+      switch = true
+      Continue
+    })
     var switch2 = false
-    val sink2 = Sink.create((_: Element) => IO{switch2 = true})
+    val sink2 = Sink.create((_: Element) => IO{
+      switch2 = true
+      Continue
+    })
 
     val node = div(onInsert --> sink)(onInsert --> sink2)
 
@@ -46,9 +57,12 @@ class LifecycleHookSpec extends JSDomSpec {
   "Destruction hooks"  should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create((_: Element) => IO { switch = true })
+    val sink = Sink.create((_: Element) => IO {
+      switch = true
+      Continue
+    })
 
-    val node = div(child <-- Observable.of(span(onDestroy --> sink), div("Hasdasd")))
+    val node = div(child <-- Observable(span(onDestroy --> sink), div("Hasdasd")))
 
     switch shouldBe false
 
@@ -61,11 +75,17 @@ class LifecycleHookSpec extends JSDomSpec {
   it should "be called correctly on merged nodes" in {
 
     var switch = false
-    val sink = Sink.create((_: Element) => IO{switch = true})
+    val sink = Sink.create((_: Element) => IO{
+      switch = true
+      Continue
+    })
     var switch2 = false
-    val sink2 = Sink.create((_: Element) => IO{switch2 = true})
+    val sink2 = Sink.create((_: Element) => IO{
+      switch2 = true
+      Continue
+    })
 
-    val node = div(child <-- Observable.of(span(onDestroy --> sink)(onDestroy --> sink2), div("Hasdasd")))
+    val node = div(child <-- Observable(span(onDestroy --> sink)(onDestroy --> sink2), div("Hasdasd")))
 
     switch shouldBe false
     switch2 shouldBe false
@@ -78,18 +98,24 @@ class LifecycleHookSpec extends JSDomSpec {
 
   "Update hooks" should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = Sink.create((_: (Element, Element)) => IO{switch1 = true})
+    val sink1 = Sink.create((_: (Element, Element)) => IO{
+      switch1 = true
+      Continue
+    })
     var switch2 = false
-    val sink2 = Sink.create((_: (Element, Element)) => IO{switch2 = true})
+    val sink2 = Sink.create((_: (Element, Element)) => IO{
+      switch2 = true
+      Continue
+    })
 
-    val message = Subject[String]()
+    val message = PublishSubject[String]
     val node = div(child <-- message, onUpdate --> sink1)(onUpdate --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
     switch2 shouldBe false
 
-    message.next("wursi")
+    message.onNext("wursi")
     switch1 shouldBe true
     switch2 shouldBe true
   }
@@ -98,9 +124,12 @@ class LifecycleHookSpec extends JSDomSpec {
   it should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create((_: (Element, Element)) => IO { switch = true })
+    val sink = Sink.create((_: (Element, Element)) => IO {
+      switch = true
+      Continue
+    })
 
-    val node = div(child <-- Observable.of(span(onUpdate --> sink, "Hello"), span(onUpdate --> sink, "Hey")))
+    val node = div(child <-- Observable(span(onUpdate --> sink, "Hello"), span(onUpdate --> sink, "Hey")))
 
     switch shouldBe false
 
@@ -115,9 +144,10 @@ class LifecycleHookSpec extends JSDomSpec {
     var switch = false
     val sink = Sink.create((_: (Option[Element], Option[Element])) => IO {
       switch = true
+      Continue
     })
 
-    val node = div(child <-- Observable.of(span("Hello")), span(outwatch.dom.key := "1", onPrepatch --> sink, "Hey"))
+    val node = div(child <-- Observable(span("Hello")), span(outwatch.dom.key := "1", onPrepatch --> sink, "Hey"))
 
     switch shouldBe false
 
@@ -130,19 +160,21 @@ class LifecycleHookSpec extends JSDomSpec {
     var switch1 = false
     val sink1 = Sink.create((_: (Option[Element], Option[Element])) => IO {
       switch1 = true
+      Continue
     })
     var switch2 = false
     val sink2 = Sink.create((_: (Option[Element], Option[Element])) => IO {
       switch2 = true
+      Continue
     })
-    val message = Subject[String]()
+    val message = PublishSubject[String]()
     val node = div(child <-- message, onPrepatch --> sink1)(onPrepatch --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
     switch2 shouldBe false
 
-    message.next("wursi")
+    message.onNext("wursi")
 
     switch1 shouldBe true
     switch2 shouldBe true
@@ -153,9 +185,10 @@ class LifecycleHookSpec extends JSDomSpec {
     var switch = false
     val sink = Sink.create((_: (Element, Element)) => IO {
       switch = true
+      Continue
     })
 
-    val node = div(child <-- Observable.of("message"), onPostpatch --> sink, "Hey")
+    val node = div(child <-- Observable("message"), onPostpatch --> sink, "Hey")
 
     switch shouldBe false
 
@@ -169,19 +202,21 @@ class LifecycleHookSpec extends JSDomSpec {
     var switch1 = false
     val sink1 = Sink.create((_: (Element, Element)) => IO {
       switch1 = true
+      Continue
     })
     var switch2 = false
     val sink2 = Sink.create((_: (Element, Element)) => IO {
       switch2 = true
+      Continue
     })
-    val message = Subject[String]()
+    val message = PublishSubject[String]()
     val node = div(child <-- message, onPostpatch --> sink1)(onPostpatch --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
     switch2 shouldBe false
 
-    message.next("wursi")
+    message.onNext("wursi")
 
     switch1 shouldBe true
     switch2 shouldBe true
@@ -193,35 +228,35 @@ class LifecycleHookSpec extends JSDomSpec {
     val insertSink = Sink.create((_: Element) =>
       IO {
         hooks += "insert"
-        ()
+        Continue
       }
     )
     val prepatchSink = Sink.create((_: (Option[Element], Option[Element])) =>
       IO {
         hooks += "prepatch"
-        ()
+        Continue
       }
     )
     val updateSink = Sink.create((_: (Element, Element)) =>
       IO {
         hooks += "update"
-        ()
+        Continue
       }
     )
     val postpatchSink = Sink.create((_: (Element, Element)) =>
       IO {
         hooks += "postpatch"
-        ()
+        Continue
       }
     )
     val destroySink = Sink.create((_: Element) =>
       IO {
         hooks += "destroy"
-        ()
+        Continue
       }
     )
 
-    val message = Subject[String]()
+    val message = PublishSubject[String]()
     val node = div(child <-- message,
       onInsert --> insertSink,
       onPrepatch --> prepatchSink,
@@ -236,7 +271,7 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks.toList shouldBe List("insert")
 
-    message.next("next")
+    message.onNext("next")
 
     hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
   }
@@ -246,17 +281,17 @@ class LifecycleHookSpec extends JSDomSpec {
     val insertSink = Sink.create((_: Element) =>
       IO {
         hooks += "insert"
-        ()
+        Continue
       }
     )
     val updateSink = Sink.create((_: (Element, Element)) =>
       IO {
         hooks += "update"
-        ()
+        Continue
       }
     )
 
-    val messageList = Subject[Seq[String]]()
+    val messageList = PublishSubject[Seq[String]]()
     val node = div("Hello",  children <-- messageList.map(_.map(span(_))),
       onInsert --> insertSink,
       onUpdate --> updateSink
@@ -274,23 +309,23 @@ class LifecycleHookSpec extends JSDomSpec {
     val insertSink = Sink.create((_: Element) =>
       IO {
         hooks += "insert"
-        ()
+        Continue
       }
     )
     val updateSink = Sink.create((_: (Element, Element)) =>
       IO {
         hooks += "update"
-        ()
+        Continue
       }
     )
     val destroySink = Sink.create((_: Element) =>
       IO {
         hooks += "destroy"
-        ()
+        Continue
       }
     )
 
-    val message = Subject[String]()
+    val message = PublishSubject[String]()
     val node = div(span("Hello", onInsert --> insertSink, onUpdate --> updateSink, onDestroy --> destroySink),
       child <-- message.map(span(_))
     )
@@ -299,7 +334,7 @@ class LifecycleHookSpec extends JSDomSpec {
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
-    message.next("next")
+    message.onNext("next")
 
     hooks.contains("destroy") shouldBe false
   }
@@ -309,23 +344,23 @@ class LifecycleHookSpec extends JSDomSpec {
     val insertSink = Sink.create((_: Element) =>
       IO {
         hooks += "insert"
-        ()
+        Continue
       }
     )
     val updateSink = Sink.create((_: (Element, Element)) =>
       IO {
         hooks += "update"
-        ()
+        Continue
       }
     )
     val destroySink = Sink.create((_: Element) =>
       IO {
         hooks += "destroy"
-        ()
+        Continue
       }
     )
 
-    val messageList = Subject[Seq[String]]()
+    val messageList = PublishSubject[Seq[String]]()
     val node = div(children <-- messageList.map(_.map(span(_))),
       span("Hello", onInsert --> insertSink, onUpdate --> updateSink, onDestroy --> destroySink)
     )
@@ -334,9 +369,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
-    messageList.next(Seq("one"))
+    messageList.onNext(Seq("one"))
 
-    messageList.next(Seq("one", "two"))
+    messageList.onNext(Seq("one", "two"))
 
     hooks.count(_ == "insert") shouldBe 1
   }

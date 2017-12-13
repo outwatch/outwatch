@@ -5,7 +5,6 @@ import outwatch.StaticVNodeRender
 
 import scala.language.dynamics
 import outwatch.dom._
-import rxscalajs.Observable
 
 trait ValueBuilder[T, SELF <: Attribute] extends Any {
   protected def attributeName: String

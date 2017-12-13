@@ -1,10 +1,40 @@
 package outwatch.http
 
+import cats.Eval.always
 import cats.effect.IO
-import rxscalajs.Observable
-import rxscalajs.dom.{Request, Response}
+import monix.execution.Scheduler.Implicits.global
+import monix.reactive.Observable
+import org.scalajs.dom.ext.Ajax.InputData
+import org.scalajs.dom.ext.{Ajax, AjaxException}
+import org.scalajs.dom.{Blob, XMLHttpRequest}
+
+import scala.concurrent.Future
+import scala.scalajs.js
+import scala.scalajs.js.typedarray.ArrayBuffer
+import scala.scalajs.js.|
+
 
 object Http {
+  final case class Request(url: String,
+    data: InputData = "",
+    timeout: Int = 0,
+    headers: Map[String, String] = Map.empty,
+    crossDomain: Boolean = false,
+    responseType: String = "",
+    method: String = Get.toString,
+    withCredentials: Boolean = false
+  )
+
+  type BodyType = String | ArrayBuffer | Blob | js.Dynamic | js.Any
+
+  final case class Response(
+    body: BodyType,
+    status: Int,
+    responseType: String,
+    xhr: XMLHttpRequest,
+    response: js.Any
+  )
+
   sealed trait HttpRequestType
   case object Get extends HttpRequestType
   case object Post extends HttpRequestType
@@ -13,23 +43,51 @@ object Http {
   case object Options extends HttpRequestType
   case object Head extends HttpRequestType
 
-  def single(request: Request, method: HttpRequestType): IO[Response] = IO.async { cb =>
-    Observable.ajax(request.copy(method = method.toString))
-      .subscribe(response => cb(Right(response)), err => cb(Left(new Exception(err.toString))))
-  }
-
-  def singleWith[A](a: A, method: HttpRequestType)(f: Observable[A] => Observable[Request]): IO[Response] =
-    IO.async { cb =>
-      f(Observable.just(a))
-        .flatMap(data => Observable.ajax(data.copy(method = method.toString)))
-        .subscribe(response => cb(Right(response)), err => cb(Left(new Exception(err.toString))))
+  private def toResponse(req: XMLHttpRequest): Response = {
+    val body : BodyType = req.responseType match {
+      case "" => req.response.asInstanceOf[String]
+      case "text" => req.responseText
+      case "json" => req.response.asInstanceOf[js.Dynamic]
+      case "arraybuffer" => req.response.asInstanceOf[ArrayBuffer]
+      case "blob" => req.response.asInstanceOf[Blob]
+      case _ => req.response
     }
 
-  private def request(observable: Observable[Request], requestType: HttpRequestType) =
-    observable.switchMap(data => Observable.ajax(data.copy(method = requestType.toString))).share
+    Response(
+      body = body,
+      status = req.status,
+      responseType = req.responseType,
+      xhr = req,
+      response = req.response
+    )
+  }
+
+  private def ajax(request: Request): Future[XMLHttpRequest] = Ajax(
+    method = request.method,
+    url = request.url,
+    data = request.data,
+    timeout = request.timeout,
+    headers = request.headers,
+    withCredentials = request.withCredentials,
+    responseType = request.responseType
+  )
+
+  private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] =
+    observable.switchMap { request =>
+      Observable.fromFuture(
+        ajax(request.copy(method = requestType.toString))
+          .map(toResponse)
+          .recover {
+            case AjaxException(req) => toResponse(req)
+          }
+      )
+    }.share
 
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)
+
+  def single(request: Request, method: HttpRequestType): IO[Response] =
+    IO.fromFuture(always(ajax(request.copy(method = method.toString)))).map(toResponse)
 
   def getWithUrl(urls: Observable[String]) = requestWithUrl(urls, Get)
 
@@ -44,6 +102,5 @@ object Http {
   def options(requests: Observable[Request]) = request(requests, Options)
 
   def head(requests: Observable[Request]) = request(requests, Head)
-
 
 }

@@ -2,7 +2,8 @@ package outwatch
 
 import cats.effect.IO
 import outwatch.Sink.{ObservableSink, SubjectSink}
-import rxscalajs.Observable
+import outwatch.dom.Observable
+
 
 object Pipe {
   private[outwatch] def apply[I, O](sink: Sink[I], source: Observable[O]): Pipe[I, O] =
@@ -18,7 +19,7 @@ object Pipe {
     */
   def create[T](seeds: T*): IO[Pipe[T, T]] = create[T].map { pipe =>
     if (seeds.nonEmpty) {
-      pipe.transformSource(_.startWithMany(seeds: _*))
+      pipe.transformSource(_.startWith(seeds))
     }
     else {
       pipe

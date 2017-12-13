@@ -1,4 +1,4 @@
-import rxscalajs.Observable
+import outwatch.dom.Observable
 
 package object outwatch {
   type Pipe[-I, +O] = Observable[O] with Sink[I]
@@ -43,12 +43,11 @@ package object outwatch {
     def imap[S](read: T => S)(write: S => T): Handler[S] = self.mapPipe(write)(read)
 
     def lens[S](seed: T)(read: T => S)(write: (T, S) => T): Handler[S] = {
-      val redirected = self.redirect[S](_.withLatestFrom(self.startWith(seed)).map { case (a, b) => write(b, a) })
+      val redirected = self.redirect[S](_.withLatestFrom(self.startWith(Seq(seed))){ case (a, b) => write(b, a) })
       Handler(redirected, self.map(read))
     }
 
     def transformHandler[S](read: Observable[T] => Observable[S])(write: Observable[S] => Observable[T]): Handler[S] =
       self.transformPipe(write)(read)
   }
-
 }

@@ -1,12 +1,14 @@
 package outwatch
 
 import cats.effect.IO
-import rxscalajs.facade.SubjectFacade
-import rxscalajs.subscription.Subscription
-import rxscalajs.{Observable, Observer, Subject}
+import monix.execution.Scheduler.Implicits.global
+import monix.execution.{Ack, Cancelable}
+import monix.reactive.observers.Subscriber
+import monix.reactive.subjects.PublishSubject
+import monix.reactive.{Observable, Observer}
 
+import scala.concurrent.Future
 
-import scala.scalajs.js
 
 sealed trait Sink[-T] extends Any {
 
@@ -16,7 +18,7 @@ sealed trait Sink[-T] extends Any {
     * Using this method is inherently impure and can cause memory leaks, if subscription
     * isn't handled correctly. For more guaranteed safety, use Sink.redirect() instead.
     */
-  def <--(observable: Observable[T]): IO[Subscription] = IO {
+  def <--(observable: Observable[T]): IO[Cancelable] = IO {
     observable.subscribe(observer)
   }
 
@@ -48,35 +50,39 @@ sealed trait Sink[-T] extends Any {
 
 object Sink {
 
-  // these classes need to be in this file, because Sink is sealed
-  private[outwatch] case class ObservableSink[-I, +O](
-    sink: Sink[I], source: Observable[O]
-  ) extends Observable[O](source.inner) with Sink[I]{
-    override private[outwatch] def observer = sink.observer
+  private[outwatch] final case class SubjectSink[T]() extends Observable[T] with Sink[T] {
+    private val subject = PublishSubject[T]
+
+    override private[outwatch] def observer = subject
+
+    override def unsafeSubscribeFn(subscriber: Subscriber[T]): Cancelable = subject.unsafeSubscribeFn(subscriber)
   }
 
-  private[outwatch] final case class SubjectSink[T]() extends Subject[T](new SubjectFacade) with Sink[T] {
-    override private[outwatch] def observer = this
+  private[outwatch] final case class ObservableSink[-I, +O](oldSink: Sink[I], stream: Observable[O]) extends Observable[O] with Sink[I] {
+    override private[outwatch] def observer = oldSink.observer
+
+    override def unsafeSubscribeFn(subscriber: Subscriber[O]): Cancelable = stream.unsafeSubscribeFn(subscriber)
   }
 
   /**
     * Creates a new Sink from Scratch.
     * This function takes another function as its parameter that will be executed every time the Sink receives an emitted value.
-    * @param onNext the function to be executed on every emission
-    * @param onError the function to be executed on error
-    * @param onComplete the function to be executed on completion
+    *
+    * @param next the function to be executed on every emission
+    * @param error the function to be executed on error
+    * @param complete the function to be executed on completion
     * @tparam T the type parameter of the consumed elements.
     * @return a Sink that consumes elements of type T.
     */
-  def create[T](onNext: T => IO[Unit],
-    onError: js.Any => IO[Unit] = _ => IO.pure(()),
-    onComplete: () => IO[Unit] = () => IO.pure(())
-  ): Sink[T] = {
+  def create[T](next: T => IO[Future[Ack]],
+                error: Throwable => IO[Unit] = _ => IO.pure(()),
+                complete: () => IO[Unit] = () => IO.pure(())
+               ): Sink[T] = {
     val sink = ObserverSink(
       new Observer[T] {
-        override def next(t: T): Unit = onNext(t).unsafeRunSync()
-        override def error(err: js.Any): Unit = onError(err).unsafeRunSync()
-        override def complete(): Unit = onComplete().unsafeRunSync()
+        override def onNext(t: T): Future[Ack] = next(t).unsafeRunSync()
+        override def onError(ex: Throwable): Unit = error(ex).unsafeRunSync()
+        override def onComplete(): Unit = complete().unsafeRunSync()
       }
     )
     sink

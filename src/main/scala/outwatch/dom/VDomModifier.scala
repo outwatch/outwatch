@@ -1,9 +1,9 @@
 package outwatch.dom
 
 import cats.effect.IO
+import monix.reactive.Observer
 import org.scalajs.dom._
 import outwatch.dom.helpers.SeparatedModifiers
-import rxscalajs.Observer
 import snabbdom.{DataObject, VNodeProxy}
 
 /*

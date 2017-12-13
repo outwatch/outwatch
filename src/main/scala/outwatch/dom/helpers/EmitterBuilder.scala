@@ -3,8 +3,7 @@ package outwatch.dom.helpers
 import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.Sink
-import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, PostPatchHook, PrePatchHook, UpdateHook}
-import rxscalajs.Observable
+import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, Observable, PostPatchHook, PrePatchHook, UpdateHook}
 
 
 trait EmitterBuilder[E <: Event, O] extends Any {
@@ -13,7 +12,7 @@ trait EmitterBuilder[E <: Event, O] extends Any {
 
   def apply[T](value: T): TransformingEmitterBuilder[E, T] = map(_ => value)
 
-  def apply[T](latest: Observable[T]): TransformingEmitterBuilder[E, T] = transform(_.withLatestFromWith(latest)((_, u) => u))
+  def apply[T](latest: Observable[T]): TransformingEmitterBuilder[E, T] = transform(_.withLatestFrom(latest)((_, u) => u))
 
   @deprecated("Deprecated, use '.map' instead", "0.11.0")
   def apply[T](f: O => T): TransformingEmitterBuilder[E, T] = map(f)
@@ -44,7 +43,7 @@ final case class TransformingEmitterBuilder[E <: Event, O] private[helpers] (
 
   def -->(sink: Sink[_ >: O]): IO[Emitter] = {
     val observer = sink.redirect(transformer).observer
-    IO.pure(Emitter(eventType, event => observer.next(event.asInstanceOf[E])))
+    IO.pure(Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
   }
 }
 
@@ -56,7 +55,7 @@ final class SimpleEmitterBuilder[E <: Event] private[helpers](
   private[outwatch] def transform[O](transformer: Observable[E] => Observable[O]) = new TransformingEmitterBuilder[E, O](eventType, transformer)
 
   def -->(sink: Sink[_ >: E]): IO[Emitter] = {
-    IO.pure(Emitter(eventType, event => sink.observer.next(event.asInstanceOf[E])))
+    IO.pure(Emitter(eventType, event => sink.observer.onNext(event.asInstanceOf[E])))
   }
 }
 

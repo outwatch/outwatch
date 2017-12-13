@@ -1,10 +1,11 @@
 package outwatch
 
 import cats.effect.IO
+import monix.execution.Ack.Continue
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{document, html}
 import outwatch.dom.helpers._
 import outwatch.dom.{StringModifier, _}
-import rxscalajs.{Observable, Subject}
 import snabbdom.{DataObject, hFunction}
 
 import scala.collection.immutable.Seq
@@ -16,12 +17,12 @@ class OutWatchDomSpec extends JSDomSpec {
   "Properties" should "be separated correctly" in {
     val properties = Seq(
       Attribute("hidden", "true"),
-      InsertHook(Subject()),
-      UpdateHook(Subject()),
-      InsertHook(Subject()),
-      DestroyHook(Subject()),
-      PrePatchHook(Subject()),
-      PostPatchHook(Subject())
+      InsertHook(PublishSubject()),
+      UpdateHook(PublishSubject()),
+      InsertHook(PublishSubject()),
+      DestroyHook(PublishSubject()),
+      PrePatchHook(PublishSubject()),
+      PostPatchHook(PublishSubject())
     )
 
     val SeparatedProperties(att, hooks, keys) = properties.foldRight(SeparatedProperties())((p, sp) => p :: sp)
@@ -46,11 +47,11 @@ class OutWatchDomSpec extends JSDomSpec {
         Seq(
           div(),
           Attributes.`class` := "blue",
-          Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure(())),
-          Attributes.hidden <-- Observable.of(false)
+          Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure{(); Continue}),
+          Attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
-      AttributeStreamReceiver("hidden",Observable.of())
+      AttributeStreamReceiver("hidden",Observable())
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
@@ -70,8 +71,8 @@ class OutWatchDomSpec extends JSDomSpec {
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
-      AttributeStreamReceiver("hidden",Observable.of()),
-      AttributeStreamReceiver("disabled",Observable.of()),
+      AttributeStreamReceiver("hidden",Observable()),
+      AttributeStreamReceiver("disabled",Observable()),
       Emitter("keyup",  _ => ()),
       StringModifier("text"),
       div().unsafeRunSync()
@@ -95,8 +96,8 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
       Emitter("keyup",  _ => ()),
-      AttributeStreamReceiver("hidden",Observable.of()),
-      AttributeStreamReceiver("disabled",Observable.of()),
+      AttributeStreamReceiver("hidden",Observable()),
+      AttributeStreamReceiver("disabled",Observable()),
       StringModifier("text"),
       StringVNode("text2")
     )
@@ -118,14 +119,14 @@ class OutWatchDomSpec extends JSDomSpec {
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
-      UpdateHook(Subject()),
-      AttributeStreamReceiver("hidden",Observable.of()),
-      AttributeStreamReceiver("disabled",Observable.of()),
-      ChildrenStreamReceiver(Observable.of()),
+      UpdateHook(PublishSubject()),
+      AttributeStreamReceiver("hidden",Observable()),
+      AttributeStreamReceiver("disabled",Observable()),
+      ChildrenStreamReceiver(Observable()),
       Emitter("keyup", _ => ()),
-      InsertHook(Subject()),
-      PrePatchHook(Subject()),
-      PostPatchHook(Subject()),
+      InsertHook(PublishSubject()),
+      PrePatchHook(PublishSubject()),
+      PostPatchHook(PublishSubject()),
       StringModifier("text")
     )
 
@@ -158,20 +159,20 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val vtree = div(
       IO {
-        list += "child1"
-        ChildStreamReceiver(Observable.of())
+        list += "child2"
+        ChildStreamReceiver(Observable())
       },
       IO {
-        list += "child2"
-        ChildStreamReceiver(Observable.of())
+        list += "child1"
+        ChildStreamReceiver(Observable())
       },
       IO {
         list += "children1"
-        ChildrenStreamReceiver(Observable.of())
+        ChildrenStreamReceiver(Observable())
       },
       IO {
         list += "children2"
-        ChildrenStreamReceiver(Observable.of())
+        ChildrenStreamReceiver(Observable())
       },
       div(
         IO {
@@ -201,7 +202,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
   it should "provide unique key for child nodes if stream is present" in {
     val mods = Seq(
-      ChildrenStreamReceiver(Observable.of()),
+      ChildrenStreamReceiver(Observable()),
       div(id := "1").unsafeRunSync(),
       div(id := "2").unsafeRunSync()
       // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
@@ -230,7 +231,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "keep existing key for child nodes" in {
     val mods = Seq(
       Key(1234),
-      ChildrenStreamReceiver(Observable.of()),
+      ChildrenStreamReceiver(Observable()),
       div()(IO.pure(Key(5678))).unsafeRunSync()
     )
 
@@ -296,7 +297,7 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderInto(node, vtree).unsafeRunSync()
     ioCounter shouldBe 1
     handlerCounter shouldBe 0
-    stringHandler.observer.next("pups")
+    stringHandler.observer.onNext("pups")
     ioCounter shouldBe 1
     handlerCounter shouldBe 1
   }
@@ -327,7 +328,7 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderInto(node, vtree).unsafeRunSync()
     ioCounter shouldBe 1
     handlerCounter shouldBe 0
-    stringHandler.observer.next("pups")
+    stringHandler.observer.onNext("pups")
     ioCounter shouldBe 1
     handlerCounter shouldBe 1
   }
@@ -369,7 +370,7 @@ class OutWatchDomSpec extends JSDomSpec {
       )
     }
 
-    val pageHandler =  Subject[Int]
+    val pageHandler = PublishSubject[Int]
 
     val vtree = div(
       div(child <-- pageHandler.map(page))
@@ -380,13 +381,13 @@ class OutWatchDomSpec extends JSDomSpec {
 
     OutWatch.renderInto(node, vtree).unsafeRunSync()
 
-    pageHandler.next(1)
+    pageHandler.onNext(1)
 
     val domNode = document.getElementById("page")
 
     domNode.textContent shouldBe "1"
 
-    pageHandler.next(2)
+    pageHandler.onNext(2)
 
     domNode.textContent shouldBe "2"
 
@@ -464,7 +465,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "change the value of a textfield" in {
-    val messages = Subject[String]
+    val messages = PublishSubject[String]
     val vtree = div(
       input(outwatch.dom.value <-- messages, id := "input")
     )
@@ -479,19 +480,19 @@ class OutWatchDomSpec extends JSDomSpec {
     field.value shouldBe ""
 
     val message = "Hello"
-    messages.next(message)
+    messages.onNext(message)
 
     field.value shouldBe message
 
     val message2 = "World"
-    messages.next(message2)
+    messages.onNext(message2)
 
     field.value shouldBe message2
   }
 
   it should "render child nodes in correct order" in {
-    val messagesA = Subject[String]
-    val messagesB = Subject[String]
+    val messagesA = PublishSubject[String]
+    val messagesB = PublishSubject[String]
     val vNode = div(
       span("A"),
       child <-- messagesA.map(span(_)),
@@ -503,15 +504,15 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    messagesA.next("1")
-    messagesB.next("2")
+    messagesA.onNext("1")
+    messagesB.onNext("2")
 
     node.innerHTML shouldBe "<div><span>A</span><span>1</span><span>B</span><span>2</span></div>"
   }
 
   it should "render child string-nodes in correct order" in {
-    val messagesA = Subject[String]
-    val messagesB = Subject[String]
+    val messagesA = PublishSubject[String]
+    val messagesB = PublishSubject[String]
     val vNode = div(
       "A",
       child <-- messagesA,
@@ -523,16 +524,16 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    messagesA.next("1")
-    messagesB.next("2")
+    messagesA.onNext("1")
+    messagesB.onNext("2")
 
     node.innerHTML shouldBe "<div>A1B2</div>"
   }
 
   it should "render child string-nodes in correct order, mixed with children" in {
-    val messagesA = Subject[String]
-    val messagesB = Subject[String]
-    val messagesC = Subject[Seq[VNode]]
+    val messagesA = PublishSubject[String]
+    val messagesB = PublishSubject[String]
+    val messagesC = PublishSubject[Seq[VNode]]
     val vNode = div(
       "A",
       child <-- messagesA,
@@ -545,53 +546,53 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    messagesA.next("1")
-    messagesB.next("2")
-    messagesC.next(Seq(div("5"), div("7")))
+    messagesA.onNext("1")
+    messagesB.onNext("2")
+    messagesC.onNext(Seq(div("5"), div("7")))
 
     node.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
   }
 
   it should "update merged nodes children correctly" in {
-    val messages = Subject[Seq[VNode]]
-    val otherMessages = Subject[Seq[VNode]]
+    val messages = PublishSubject[Seq[VNode]]
+    val otherMessages = PublishSubject[Seq[VNode]]
     val vNode = div(children <-- messages)(children <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.next(Seq(div("otherMessage")))
+    otherMessages.onNext(Seq(div("otherMessage")))
     node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
 
-    messages.next(Seq(div("message")))
+    messages.onNext(Seq(div("message")))
     node.children(0).innerHTML shouldBe "<div>message</div><div>otherMessage</div>"
 
-    otherMessages.next(Seq(div("genus")))
+    otherMessages.onNext(Seq(div("genus")))
     node.children(0).innerHTML shouldBe "<div>message</div><div>genus</div>"
   }
 
   it should "update merged nodes separate children correctly" in {
-    val messages = Subject[String]
-    val otherMessages = Subject[String]
+    val messages = PublishSubject[String]
+    val otherMessages = PublishSubject[String]
     val vNode = div(child <-- messages)(child <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.next("otherMessage")
+    otherMessages.onNext("otherMessage")
     node.children(0).innerHTML shouldBe ""
 
-    messages.next("message")
+    messages.onNext("message")
     node.children(0).innerHTML shouldBe "messageotherMessage"
 
-    otherMessages.next("genus")
+    otherMessages.onNext("genus")
     node.children(0).innerHTML shouldBe "messagegenus"
   }
 
   it should "update reused vnodes correctly" in {
-    val messages = Subject[String]
+    val messages = PublishSubject[String]
     val vNode = div(data.ralf := true, child <-- messages)
     val container = div(vNode, vNode)
 
@@ -599,18 +600,18 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, container).unsafeRunSync()
 
-    messages.next("message")
+    messages.onNext("message")
     node.children(0).children(0).innerHTML shouldBe "message"
     node.children(0).children(1).innerHTML shouldBe "message"
 
-    messages.next("bumo")
+    messages.onNext("bumo")
     node.children(0).children(0).innerHTML shouldBe "bumo"
     node.children(0).children(1).innerHTML shouldBe "bumo"
   }
 
   it should "update merged nodes correctly (render reuse)" in {
-    val messages = Subject[String]
-    val otherMessages = Subject[String]
+    val messages = PublishSubject[String]
+    val otherMessages = PublishSubject[String]
     val vNodeTemplate = div(child <-- messages)
     val vNode = vNodeTemplate(child <-- otherMessages)
 
@@ -622,74 +623,74 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node2)
     OutWatch.renderInto(node2, vNode).unsafeRunSync()
 
-    messages.next("gurkon")
-    otherMessages.next("otherMessage")
+    messages.onNext("gurkon")
+    otherMessages.onNext("otherMessage")
     node1.children(0).innerHTML shouldBe "gurkon"
     node2.children(0).innerHTML shouldBe "gurkonotherMessage"
 
-    messages.next("message")
+    messages.onNext("message")
     node1.children(0).innerHTML shouldBe "message"
     node2.children(0).innerHTML shouldBe "messageotherMessage"
 
-    otherMessages.next("genus")
+    otherMessages.onNext("genus")
     node1.children(0).innerHTML shouldBe "message"
     node2.children(0).innerHTML shouldBe "messagegenus"
   }
 
   it should "update merged node attributes correctly" in {
-    val messages = Subject[String]
-    val otherMessages = Subject[String]
+    val messages = PublishSubject[String]
+    val otherMessages = PublishSubject[String]
     val vNode = div(data.noise <-- messages)(data.noise <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.next("otherMessage")
+    otherMessages.onNext("otherMessage")
     node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
 
-    messages.next("message") // should be ignored
+    messages.onNext("message") // should be ignored
     node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
 
-    otherMessages.next("genus")
+    otherMessages.onNext("genus")
     node.children(0).getAttribute("data-noise") shouldBe "genus"
   }
 
   it should "update merged node styles written with style() correctly" in {
-    val messages = Subject[String]
-    val otherMessages = Subject[String]
+    val messages = PublishSubject[String]
+    val otherMessages = PublishSubject[String]
     val vNode = div(style("color") <-- messages)(style("color") <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.next("red")
+    otherMessages.onNext("red")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-    messages.next("blue") // should be ignored
+    messages.onNext("blue") // should be ignored
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-    otherMessages.next("green")
+    otherMessages.onNext("green")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
   }
 
   it should "update merged node styles correctly" in {
-    val messages = Subject[String]
-    val otherMessages = Subject[String]
+    val messages = PublishSubject[String]
+    val otherMessages = PublishSubject[String]
     val vNode = div(color <-- messages)(color <-- otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.next("red")
+    otherMessages.onNext("red")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-    messages.next("blue") // should be ignored
+    messages.onNext("blue") // should be ignored
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-    otherMessages.next("green")
+    otherMessages.onNext("green")
     node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
   }
 
@@ -707,14 +708,14 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "render nodes with only attribute receivers properly" in {
-    val classes = Subject[String]
+    val classes = PublishSubject[String]
     val vNode = button( className <-- classes, "Submit")
 
     val node = document.createElement("div")
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    classes.next("active")
+    classes.onNext("active")
 
     node.innerHTML shouldBe """<button class="active">Submit</button>"""
   }

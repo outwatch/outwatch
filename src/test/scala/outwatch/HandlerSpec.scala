@@ -1,6 +1,6 @@
 package outwatch
 
-class HandlerSpec extends UnitSpec {
+class HandlerSpec extends UnitSpec with EasySubscribe {
   "Handler" should "lens" in {
     val handler = Handler.create[(String, Int)].unsafeRunSync()
     val lensed = handler.lens[Int](("harals", 0))(_._2)((tuple, num) => (tuple._1, num))
@@ -11,15 +11,15 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 15
     handlerValue shouldBe (("harals", 15))
 
-    handler.observer.next(("peter", 12))
+    handler.observer.onNext(("peter", 12))
     lensedValue shouldBe 12
     handlerValue shouldBe (("peter", 12))
 
-    lensed.observer.next(-1)
+    lensed.observer.onNext(-1)
     lensedValue shouldBe -1
     handlerValue shouldBe (("peter", -1))
   }
@@ -34,11 +34,11 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 14
     handlerValue shouldBe 15
 
-    handler.observer.next(12)
+    handler.observer.onNext(12)
     lensedValue shouldBe 11
     handlerValue shouldBe 12
   }
@@ -53,11 +53,11 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 14
     handlerValue shouldBe 15
 
-    handler.observer.next(12)
+    handler.observer.onNext(12)
     lensedValue shouldBe 11
     handlerValue shouldBe 12
   }
@@ -72,11 +72,11 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 16
     handlerValue shouldBe 16
 
-    handler.observer.next(12)
+    handler.observer.onNext(12)
     lensedValue shouldBe 12
     handlerValue shouldBe 12
   }
@@ -91,11 +91,11 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 16
     handlerValue shouldBe 16
 
-    handler.observer.next(12)
+    handler.observer.onNext(12)
     lensedValue shouldBe 12
     handlerValue shouldBe 12
   }
@@ -110,11 +110,11 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 15
     handlerValue shouldBe 16
 
-    handler.observer.next(12)
+    handler.observer.onNext(12)
     lensedValue shouldBe 11
     handlerValue shouldBe 12
   }
@@ -129,11 +129,11 @@ class HandlerSpec extends UnitSpec {
     handler(handlerValue = _)
     lensed(lensedValue = _)
 
-    lensed.observer.next(15)
+    lensed.observer.onNext(15)
     lensedValue shouldBe 15
     handlerValue shouldBe 16
 
-    handler.observer.next(12)
+    handler.observer.onNext(12)
     lensedValue shouldBe 11
     handlerValue shouldBe 12
   }

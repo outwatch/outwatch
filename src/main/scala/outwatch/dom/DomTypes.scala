@@ -12,6 +12,10 @@ import com.raquo.domtypes.jsdom.defs.eventProps._
 import cats.effect.IO
 import org.scalajs.dom
 import helpers._
+import monix.execution.{Ack, Cancelable}
+import monix.reactive.OverflowStrategy.Unbounded
+
+import scala.scalajs.js
 
 private[outwatch] object DomTypesBuilder {
   type VNode = IO[VTree]
@@ -36,8 +40,10 @@ private[outwatch] object DomTypesBuilder {
   }
 
   abstract class ObservableEventPropBuilder(target: dom.EventTarget) extends EventPropBuilder[Observable, dom.Event] {
-    override def eventProp[V <: dom.Event](key: String): Observable[V] = Observable.create { obs =>
-      target.addEventListener(key, obs.next _)
+    override def eventProp[V <: dom.Event](key: String): Observable[V] = Observable.create(Unbounded) { obs =>
+      val eventHandler: js.Function1[V, Ack] = obs.onNext _
+      target.addEventListener(key, eventHandler)
+      Cancelable(() => target.removeEventListener(key, eventHandler))
     }
   }
 

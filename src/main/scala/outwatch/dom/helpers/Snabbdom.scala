@@ -1,9 +1,11 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
+import monix.execution.Ack.Continue
+import monix.execution.Scheduler.Implicits.global
+import monix.execution.cancelables.SingleAssignmentCancelable
 import org.scalajs.dom
 import outwatch.dom.{Attr, Attribute, DestroyHook, Emitter, EmptyAttribute, Hook, InsertHook, Key, Prop, StaticVNode, Style}
-import rxscalajs.subscription.Subscription
 import snabbdom._
 
 import scala.scalajs.js.JSConverters._
@@ -52,25 +54,25 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
   private def createHookSingle(hooks: Seq[Hook[dom.Element]]): js.UndefOr[Hooks.HookSingleFn] = {
     Option(hooks).filter(_.nonEmpty).map[Hooks.HookSingleFn](hooks =>
-      (p: VNodeProxy) => for (e <- p.elm) hooks.foreach(_.observer.next(e))
+      (p: VNodeProxy) => for (e <- p.elm) hooks.foreach(_.observer.onNext(e))
     ).orUndefined
   }
 
   private def createHookPair(hooks: Seq[Hook[(dom.Element, dom.Element)]]): js.UndefOr[Hooks.HookPairFn] = {
     Option(hooks).filter(_.nonEmpty).map[Hooks.HookPairFn](hooks =>
-      (old: VNodeProxy, cur: VNodeProxy) => for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.next((o, c)))
+      (old: VNodeProxy, cur: VNodeProxy) => for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.onNext((o, c)))
     ).orUndefined
   }
 
   private def createHookPairOption(hooks: Seq[Hook[(Option[dom.Element], Option[dom.Element])]]
   ): js.UndefOr[Hooks.HookPairFn] = {
     Option(hooks).filter(_.nonEmpty).map[Hooks.HookPairFn](hooks =>
-      (old: VNodeProxy, cur: VNodeProxy) => hooks.foreach(_.observer.next((old.elm.toOption, cur.elm.toOption)))
+      (old: VNodeProxy, cur: VNodeProxy) => hooks.foreach(_.observer.onNext((old.elm.toOption, cur.elm.toOption)))
     ).orUndefined
   }
 
   private def createInsertHook(receivers: Receivers,
-    subscriptionRef: STRef[Subscription],
+    subscriptionCancelable: SingleAssignmentCancelable,
     hooks: Seq[InsertHook]
   ): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
@@ -91,29 +93,32 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
     val subscription = receivers.observable
       .map(toProxy)
-      .startWith(proxy)
-      .pairwise
-      .subscribe({ case (prev, crt) => patch(prev, crt) }, dom.console.error(_))
+      .startWith(Seq(proxy))
+      .bufferSliding(2, 1)
+      .subscribe(
+        { case Seq(old, crt) => patch(old, crt); Continue },
+        error => dom.console.error(error.getMessage)
+      )
 
-    subscriptionRef.put(subscription).unsafeRunSync()
+    subscriptionCancelable := subscription
 
-    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.next(e)))
+    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
   }
 
 
   private def createDestroyHook(
-    subscription: STRef[Subscription],hooks: Seq[DestroyHook]
+    subscription: SingleAssignmentCancelable, hooks: Seq[DestroyHook]
   ): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
-    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.next(e)))
-    subscription.update { s => s.unsubscribe(); s }.unsafeRunSync()
+    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
+    subscription.cancel()
     ()
   }
 
   def toSnabbdom(receivers: Receivers): Hooks = {
     val (insertHook, destroyHook) = if (receivers.nonEmpty) {
-      val subscriptionRef = STRef.empty[Subscription]
-      val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook(receivers, subscriptionRef, insertHooks)
-      val destroyHook: js.UndefOr[Hooks.HookSingleFn] = createDestroyHook(subscriptionRef, destroyHooks)
+      val subscription = SingleAssignmentCancelable()
+      val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook(receivers, subscription, insertHooks)
+      val destroyHook: js.UndefOr[Hooks.HookSingleFn] = createDestroyHook(subscription, destroyHooks)
       (insertHook, destroyHook)
     }
     else {

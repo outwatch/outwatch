@@ -1,9 +1,10 @@
 package outwatch
 
-import org.scalajs.dom._
+import monix.eval.Task
+import monix.reactive.subjects.PublishSubject
+import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
-import rxscalajs.Subject
 
 class DomEventSpec extends JSDomSpec {
 
@@ -11,8 +12,8 @@ class DomEventSpec extends JSDomSpec {
 
     val vtree = Handler.create[MouseEvent].flatMap { observable =>
 
-      val buttonDisabled = observable.mapTo(true).startWith(false)
-
+      val buttonDisabled = observable.map(_ => true).startWith(Seq(false))
+      
       div(id := "click", onClick --> observable,
         button(id := "btn", disabled <-- buttonDisabled)
       )
@@ -71,7 +72,7 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("child").innerHTML shouldBe ""
 
     val firstMessage = "First"
-    messages.observer.next(firstMessage)
+    messages.observer.onNext(firstMessage)
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -85,7 +86,7 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("child").innerHTML shouldBe firstMessage
 
     val secondMessage = "Second"
-    messages.observer.next(secondMessage)
+    messages.observer.onNext(secondMessage)
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -94,7 +95,7 @@ class DomEventSpec extends JSDomSpec {
 
   it should "be able to set the value of a text field" in {
 
-    val values = Subject[String]
+    val values = PublishSubject[String]
 
     val vtree = input(id:= "input", outwatch.dom.value <-- values)
 
@@ -105,21 +106,21 @@ class DomEventSpec extends JSDomSpec {
     patched.value shouldBe ""
 
     val value1 = "Hello"
-    values.next(value1)
+    values.onNext(value1)
 
     patched.value shouldBe value1
 
     val value2 = "World"
-    values.next(value2)
+    values.onNext(value2)
 
     patched.value shouldBe value2
 
-    values.next("")
+    values.onNext("")
 
     patched.value shouldBe ""
   }
   it should "preserve user input after setting defaultValue" in {
-    val defaultValues = Subject[String]
+    val defaultValues = PublishSubject[String]
 
     val vtree = input(id:= "input", outwatch.dom.defaultValue <-- defaultValues)
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
@@ -128,18 +129,18 @@ class DomEventSpec extends JSDomSpec {
     patched.value shouldBe ""
 
     val value1 = "Hello"
-    defaultValues.next(value1)
+    defaultValues.onNext(value1)
     patched.value shouldBe value1
 
     val userInput = "user input"
     patched.value = userInput
 
-    defaultValues.next("GoodByte")
+    defaultValues.onNext("GoodByte")
     patched.value shouldBe userInput
   }
 
   it should "set input value to the same value after user change" in {
-    val values = Subject[String]
+    val values = PublishSubject[String]
 
     val vtree = input(id:= "input", outwatch.dom.value <-- values)
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
@@ -148,18 +149,18 @@ class DomEventSpec extends JSDomSpec {
     patched.value shouldBe ""
 
     val value1 = "Hello"
-    values.next(value1)
+    values.onNext(value1)
     patched.value shouldBe value1
 
     patched.value = "user input"
 
-    values.next("Hello")
+    values.onNext("Hello")
     patched.value shouldBe value1
   }
 
   it should "be bindable to a list of children" in {
 
-    val state = Subject[Seq[VNode]]
+    val state = PublishSubject[Seq[VNode]]
 
 
     val vtree = div(
@@ -174,13 +175,13 @@ class DomEventSpec extends JSDomSpec {
 
     val first = "Test"
 
-    state.next(Seq(span(first)))
+    state.onNext(Seq(span(first)))
 
     list.childElementCount shouldBe 1
     list.innerHTML.contains(first) shouldBe true
 
     val second = "Hello"
-    state.next(Seq(span(first), span(second)))
+    state.onNext(Seq(span(first), span(second)))
 
     list.childElementCount shouldBe 2
     list.innerHTML.contains(first) shouldBe true
@@ -188,14 +189,14 @@ class DomEventSpec extends JSDomSpec {
 
     val third = "World"
 
-    state.next(Seq(span(first), span(second), span(third)))
+    state.onNext(Seq(span(first), span(second), span(third)))
 
     list.childElementCount shouldBe 3
     list.innerHTML.contains(first) shouldBe true
     list.innerHTML.contains(second) shouldBe true
     list.innerHTML.contains(third) shouldBe true
 
-    state.next(Seq(span(first), span(third)))
+    state.onNext(Seq(span(first), span(third)))
 
     list.childElementCount shouldBe 2
     list.innerHTML.contains(first) shouldBe true
@@ -256,7 +257,7 @@ class DomEventSpec extends JSDomSpec {
 
   it should ".transform should work as expected" in {
 
-    val numbers = Observable.of(1, 2)
+    val numbers = Observable(1, 2)
 
     val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
 
@@ -418,8 +419,11 @@ class DomEventSpec extends JSDomSpec {
 
     document.getElementById("input").dispatchEvent(inputEvt)
 
-    winClicked shouldBe true
-    docClicked shouldBe true
+    Task {
+      winClicked shouldBe true
+      docClicked shouldBe true
+    }.executeWithFork.runAsync
+
   }
 
 }

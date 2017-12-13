@@ -1,9 +1,8 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
+import monix.reactive.subjects.BehaviorSubject
 import outwatch.dom._
-import rxscalajs.Observable
-import rxscalajs.subjects.BehaviorSubject
 
 import scala.collection.breakOut
 
@@ -143,27 +142,29 @@ private[outwatch] final case class Receivers(
 
   lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
     val childStreamReceivers = if (childStreamStatus.hasChildOrChildren) {
-      childNodes.foldRight(Observable.of(List.empty[IO[StaticVNode]])) {
-        case (vn: StaticVNode, obs) => obs.combineLatestWith(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
-        case (csr: ChildStreamReceiver, obs) => obs.combineLatestWith(csr.childStream)((nodes, n) => n :: nodes)
+      childNodes.foldRight(Observable(List.empty[IO[StaticVNode]])) {
+        case (vn: StaticVNode, obs) => obs.combineLatestMap(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
+        case (csr: ChildStreamReceiver, obs) => obs.combineLatestMap(csr.childStream)((nodes, n) => n :: nodes)
         case (csr: ChildrenStreamReceiver, obs) =>
-          obs.combineLatestWith(
-            if (childStreamStatus.hasMultipleChildren) csr.childrenStream.startWith(Seq.empty) else csr.childrenStream
+          obs.combineLatestMap(
+            if (childStreamStatus.hasMultipleChildren) csr.childrenStream.startWith(Seq(Seq.empty)) else csr.childrenStream
           )((nodes, n) => n.toList ++ nodes)
       }
     } else {
-      Observable.of(Seq.empty)
+      Observable(Seq.empty)
     }
 
     // only use last encountered observable per attribute
-    val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatest(
+    val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatestList(
       attributeStreamReceivers
         .groupBy(_.attribute)
         .values
-        .map(_.last.attributeStream)(breakOut)
+        .map(_.last.attributeStream)(breakOut): _*
     )
 
-    attributeReceivers.combineLatest(childStreamReceivers)
+    attributeReceivers.startWith(Seq(Seq.empty)).combineLatest(
+      childStreamReceivers.startWith(Seq(Seq.empty))
+    ).dropWhile { case (a, c) => a.isEmpty && c.isEmpty }
   }
 
   lazy val nonEmpty: Boolean = {

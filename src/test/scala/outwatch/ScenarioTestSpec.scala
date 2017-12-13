@@ -1,5 +1,6 @@
 package outwatch
 
+import monix.eval.Task
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
@@ -9,12 +10,12 @@ class ScenarioTestSpec extends JSDomSpec {
   "A simple counter application" should "work as intended" in {
     val node = for {
       handlePlus <- Handler.create[MouseEvent]
-      plusOne = handlePlus.mapTo(1)
+      plusOne = handlePlus.map(_ => 1)
 
       handleMinus <- Handler.create[MouseEvent]
-      minusOne = handleMinus.mapTo(-1)
+      minusOne = handleMinus.map(_ => -1)
 
-      count = plusOne.merge(minusOne).scan(0)(_ + _).startWith(0)
+      count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
 
       div <- div(
         div(
@@ -37,12 +38,18 @@ class ScenarioTestSpec extends JSDomSpec {
 
     document.getElementById("minus").dispatchEvent(event)
 
-    document.getElementById("counter").innerHTML shouldBe (-1).toString
-
-    for (i <- 0 to 10) {
-      document.getElementById("plus").dispatchEvent(event)
-      document.getElementById("counter").innerHTML shouldBe i.toString
-    }
+    Task {
+      document.getElementById("counter").innerHTML shouldBe (-1).toString
+    }.flatMap { _ =>
+      Task.sequence(
+        for (i <- 0 to 10) yield {
+          Task(document.getElementById("plus").dispatchEvent(event))
+            .flatMap { _ =>
+              Task(document.getElementById("counter").innerHTML shouldBe i.toString).executeWithFork
+            }
+        }
+      )
+    }.runAsync.map(_.last)
   }
 
   "A simple name application" should "work as intended" in {
@@ -128,13 +135,13 @@ class ScenarioTestSpec extends JSDomSpec {
 
       buttonDisabled = textFieldStream
         .map(_.length < 2)
-        .startWith(true)
+        .startWith(Seq(true))
 
       enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = enterPressed.merge(clickStream)
-        .withLatestFromWith(textFieldStream)((_, input) => input)
+      confirm = Observable.merge(enterPressed, clickStream)
+        .withLatestFrom(textFieldStream)((_, input) => input)
 
       _ <- (outputStream <-- confirm)
 
@@ -165,7 +172,7 @@ class ScenarioTestSpec extends JSDomSpec {
       deletes = deleteHandler
         .map(removeFromList)
 
-      state = adds.merge(deletes)
+      state = Observable.merge(adds, deletes)
         .scan(Vector[String]())((state, modify) => modify(state))
         .map(_.map(n => TodoComponent(n, deleteHandler)))
       textFieldComponent = TextFieldComponent("Todo: ", inputHandler)
@@ -193,38 +200,61 @@ class ScenarioTestSpec extends JSDomSpec {
 
     list.childElementCount shouldBe 0
 
-    val todo = "fold laundry"
-    inputElement.value = todo
-    inputElement.dispatchEvent(inputEvt)
-    submitButton.dispatchEvent(clickEvt)
+    (for {
 
-    list.childElementCount shouldBe 1
+      todo <- Task {
+        val todo = "fold laundry"
+        inputElement.value = todo
+        inputElement.dispatchEvent(inputEvt)
+        submitButton.dispatchEvent(clickEvt)
+        todo
+      }
+      _ <- Task {
+        list.childElementCount shouldBe 1
+      }.executeWithFork
 
-    val todo2 = "wash dishes"
-    inputElement.value = todo2
-    inputElement.dispatchEvent(inputEvt)
-    submitButton.dispatchEvent(clickEvt)
+      todo2 = "wash dishes"
+      _ <- Task {
+        inputElement.value = todo2
+        inputElement.dispatchEvent(inputEvt)
+        submitButton.dispatchEvent(clickEvt)
+      }
+      _ <- Task {
+        list.childElementCount shouldBe 2
+      }.executeWithFork
 
-    list.childElementCount shouldBe 2
+      todo3 = "clean windows"
+      _ <- Task {
+        inputElement.value = todo3
+        inputElement.dispatchEvent(inputEvt)
+        submitButton.dispatchEvent(clickEvt)
+      }
+      _ <- Task {
+        list.childElementCount shouldBe 3
+      }.executeWithFork
 
-    val todo3 = "clean windows"
-    inputElement.value = todo3
-    inputElement.dispatchEvent(inputEvt)
-    submitButton.dispatchEvent(clickEvt)
+      _ <- Task {
+        document.getElementById(todo2).dispatchEvent(clickEvt)
+      }
+      _ <- Task {
+        list.childElementCount shouldBe 2
+      }.executeWithFork
 
-    list.childElementCount shouldBe 3
+      _ <- Task {
+        document.getElementById(todo3).dispatchEvent(clickEvt)
+      }
+      _ <- Task {
+        list.childElementCount shouldBe 1
+      }.executeWithFork
 
-    document.getElementById(todo2).dispatchEvent(clickEvt)
+      _ <- Task {
+        document.getElementById(todo).dispatchEvent(clickEvt)
+      }
+      assertion <- Task {
+        list.childElementCount shouldBe 0
+      }.executeWithFork
 
-    list.childElementCount shouldBe 2
-
-    document.getElementById(todo3).dispatchEvent(clickEvt)
-
-    list.childElementCount shouldBe 1
-
-    document.getElementById(todo).dispatchEvent(clickEvt)
-
-    list.childElementCount shouldBe 0
+    } yield assertion).runAsync
 
   }
 }
