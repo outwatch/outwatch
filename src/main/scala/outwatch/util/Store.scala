@@ -1,11 +1,15 @@
 package outwatch.util
 
 import cats.effect.IO
-import outwatch.{Pipe, Sink}
+import monix.execution.Scheduler.Implicits.global
+import monix.execution.{Ack, Cancelable}
+import outwatch.{Handler, Pipe, Sink}
 import outwatch.dom._
 import outwatch.dom.helpers.STRef
-import rxscalajs.Observable
-import rxscalajs.subscription.Subscription
+
+import scala.concurrent.Future
+
+
 
 final case class Store[State, Action](initialState: State,
                                            reducer: (State, Action) => (State, Option[IO[Action]]),
@@ -13,21 +17,21 @@ final case class Store[State, Action](initialState: State,
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
     .scan(initialState)(fold)
-    .startWith(initialState)
+    .startWith(Seq(initialState))
     .share
 
   private def fold(state: State, action: Action): State = {
     val (newState, next) = reducer(state, action)
 
     next.foreach(_.unsafeRunAsync {
-      case Left(e) => sink.observer.error(e.toString)
-      case Right(r) => sink.observer.next(r)
+      case Left(e) => sink.observer.onError(e)
+      case Right(r) => sink.observer.onNext(r).asInstanceOf[Unit]
     })
 
     newState
   }
 
-  def subscribe(f: State => IO[Unit]): IO[Subscription] =
+  def subscribe(f: State => IO[Future[Ack]]): IO[Cancelable] =
     IO(source.subscribe(f andThen(_.unsafeRunSync())))
 }
 

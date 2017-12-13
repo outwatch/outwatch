@@ -14,7 +14,8 @@ crossScalaVersions := Seq("2.11.12", "2.12.4")
 
 
 libraryDependencies ++= Seq(
-  "com.github.lukajcb" %%% "rxscala-js" % "0.15.2",
+  "io.monix"        %%% "monix"       % "2.3.0",
+  "org.scala-js"    %%% "scalajs-dom" % "0.9.3",
   "com.raquo" %%% "domtypes" % "0.4.2",
   "org.typelevel" %%% "cats-core" % "1.0.0-RC1",
   "org.typelevel" %%% "cats-effect" % "0.5",
@@ -23,7 +24,6 @@ libraryDependencies ++= Seq(
 )
 
 npmDependencies in Compile ++= Seq(
-  "rxjs" -> "5.4.3",
   "snabbdom" -> "0.7.0"
 )
 

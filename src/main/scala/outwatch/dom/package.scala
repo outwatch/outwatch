@@ -11,8 +11,8 @@ package object dom extends Attributes with Tags {
     val empty = IO.pure(EmptyModifier)
   }
 
-  type Observable[+A] = rxscalajs.Observable[A]
-  val Observable = rxscalajs.Observable
+  type Observable[+A] = monix.reactive.Observable[A]
+  val Observable = monix.reactive.Observable
 
   type Sink[-A] = outwatch.Sink[A]
   val Sink = outwatch.Sink

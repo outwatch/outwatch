@@ -1,8 +1,7 @@
 package outwatch.util
 
 import cats.effect.IO
-import outwatch.dom.{TitledAttribute, AttributeStreamReceiver, EmptyAttribute}
-import rxscalajs.Observable
+import outwatch.dom.{AttributeStreamReceiver, EmptyAttribute, Observable, TitledAttribute}
 
 
 object SyntaxSugar {
