@@ -2,24 +2,12 @@ package outwatch
 
 import cats.effect.IO
 import org.scalajs.dom._
-import org.scalatest.BeforeAndAfterEach
 import outwatch.dom._
 import rxscalajs.{Observable, Subject}
 
 import scala.collection.mutable
 
-class LifecycleHookSpec extends UnitSpec with BeforeAndAfterEach {
-
-  override def beforeEach(): Unit = {
-    val root = document.createElement("div")
-    root.id = "app"
-    document.body.appendChild(root)
-    ()
-  }
-
-  override def afterEach(): Unit = {
-    document.body.innerHTML = ""
-  }
+class LifecycleHookSpec extends JSDomSpec {
 
   "Insertion hooks" should "be called correctly" in {
 

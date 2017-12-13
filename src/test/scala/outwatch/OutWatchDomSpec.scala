@@ -2,7 +2,6 @@ package outwatch
 
 import cats.effect.IO
 import org.scalajs.dom.{document, html}
-import org.scalatest.BeforeAndAfterEach
 import outwatch.dom.helpers._
 import outwatch.dom.{StringModifier, _}
 import rxscalajs.{Observable, Subject}
@@ -12,11 +11,7 @@ import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 
-class OutWatchDomSpec extends UnitSpec with BeforeAndAfterEach {
-
-  override def afterEach(): Unit = {
-    document.body.innerHTML = ""
-  }
+class OutWatchDomSpec extends JSDomSpec {
 
   "Properties" should "be separated correctly" in {
     val properties = Seq(

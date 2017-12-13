@@ -1,23 +1,10 @@
 package outwatch
 
-import org.scalajs.dom._
-import org.scalajs.dom.html
-import org.scalatest.BeforeAndAfterEach
+import org.scalajs.dom.{html, _}
+import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 
-import Deprecated.IgnoreWarnings.initEvent
-
-class ScenarioTestSpec extends UnitSpec with BeforeAndAfterEach {
-  override def afterEach(): Unit = {
-    document.body.innerHTML = ""
-  }
-
-  override def beforeEach(): Unit = {
-    val root = document.createElement("div")
-    root.id = "app"
-    document.body.appendChild(root)
-    ()
-  }
+class ScenarioTestSpec extends JSDomSpec {
 
   "A simple counter application" should "work as intended" in {
     val node = for {

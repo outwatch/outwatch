@@ -1,14 +1,12 @@
 package outwatch
 
+import org.scalajs.dom.{document, html}
+import outwatch.Deprecated.IgnoreWarnings.initEvent
 import snabbdom.{DataObject, hFunction, patch}
 
-import scalajs.js
-import org.scalajs.dom.document
-import org.scalajs.dom.html
+import scala.scalajs.js
 
-import Deprecated.IgnoreWarnings.initEvent
-
-class SnabbdomSpec extends UnitSpec {
+class SnabbdomSpec extends JSDomSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
     val message = "Hello World"
     val vNode = hFunction("span#msg", DataObject(js.Dictionary(), js.Dictionary()), message)
