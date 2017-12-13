@@ -12,5 +12,6 @@ abstract class JSDomSpec extends UnitSpec with BeforeAndAfterEach {
     val root = document.createElement("div")
     root.id = "app"
     document.body.appendChild(root)
+    ()
   }
 }
