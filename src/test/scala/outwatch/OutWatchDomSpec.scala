@@ -40,7 +40,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers = Seq(
       Attribute("class", "red"),
       EmptyModifier,
-      Emitter("click", _ => ()),
+      Emitter("click", _ => Continue),
       new StringModifier("Test"),
       div().unsafeRunSync(),
       CompositeModifier(
@@ -69,11 +69,11 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers: Seq[VDomModifier_] = Seq(
       Attribute("class","red"),
       EmptyModifier,
-      Emitter("click", _ => ()),
-      Emitter("input",  _ => ()),
+      Emitter("click", _ => Continue),
+      Emitter("input",  _ => Continue),
       AttributeStreamReceiver("hidden",Observable()),
       AttributeStreamReceiver("disabled",Observable()),
-      Emitter("keyup",  _ => ()),
+      Emitter("keyup",  _ => Continue),
       StringModifier("text"),
       div().unsafeRunSync()
     )
@@ -93,9 +93,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers: Seq[VDomModifier_] = Seq(
       Attribute("class","red"),
       EmptyModifier,
-      Emitter("click", _ => ()),
-      Emitter("input",  _ => ()),
-      Emitter("keyup",  _ => ()),
+      Emitter("click", _ => Continue),
+      Emitter("input",  _ => Continue),
+      Emitter("keyup",  _ => Continue),
       AttributeStreamReceiver("hidden",Observable()),
       AttributeStreamReceiver("disabled",Observable()),
       StringModifier("text"),
@@ -117,13 +117,13 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyModifier,
-      Emitter("click", _ => ()),
-      Emitter("input", _ => ()),
+      Emitter("click", _ => Continue),
+      Emitter("input", _ => Continue),
       UpdateHook(PublishSubject()),
       AttributeStreamReceiver("hidden",Observable()),
       AttributeStreamReceiver("disabled",Observable()),
       ChildrenStreamReceiver(Observable()),
-      Emitter("keyup", _ => ()),
+      Emitter("keyup", _ => Continue),
       InsertHook(PublishSubject()),
       PrePatchHook(PublishSubject()),
       PostPatchHook(PublishSubject()),

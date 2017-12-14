@@ -1,10 +1,13 @@
 package outwatch.dom
 
 import cats.effect.IO
+import monix.execution.Ack
 import monix.reactive.Observer
 import org.scalajs.dom._
 import outwatch.dom.helpers.SeparatedModifiers
 import snabbdom.{DataObject, VNodeProxy}
+
+import scala.concurrent.Future
 
 /*
 VDomModifier_
@@ -42,7 +45,7 @@ sealed trait VDomModifier_ extends Any
 
 sealed trait Property extends VDomModifier_
 
-final case class Emitter(eventType: String, trigger: Event => Unit) extends VDomModifier_
+final case class Emitter(eventType: String, trigger: Event => Future[Ack]) extends VDomModifier_
 
 private[outwatch] final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute]) extends VDomModifier_
 
