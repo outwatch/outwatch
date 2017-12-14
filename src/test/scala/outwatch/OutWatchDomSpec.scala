@@ -33,7 +33,7 @@ class OutWatchDomSpec extends JSDomSpec {
     hooks.updateHooks.length shouldBe 1
     hooks.postPatchHooks.length shouldBe 1
     hooks.destroyHooks.length shouldBe 1
-    att.attributes.length shouldBe 1
+    att.attrs.length shouldBe 1
     keys.length shouldBe 0
   }
 
@@ -60,7 +60,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     emitters.emitters.length shouldBe 2
     receivers.length shouldBe 2
-    properties.attributes.attributes.length shouldBe 2
+    properties.attributes.attrs.length shouldBe 2
     childNodes.length shouldBe 3
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 0
@@ -84,7 +84,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
-    properties.attributes.attributes.length shouldBe 1
+    properties.attributes.attrs.length shouldBe 1
     childNodes.length shouldBe 2
     streamStatus.numChild shouldBe 0
     streamStatus.numChildren shouldBe 0
@@ -108,7 +108,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
-    properties.attributes.attributes.length shouldBe 1
+    properties.attributes.attrs.length shouldBe 1
     stringMods.map(_.string) should contain theSameElementsAs(List(
       "text", "text2"
     ))
@@ -141,7 +141,7 @@ class OutWatchDomSpec extends JSDomSpec {
     properties.hooks.updateHooks.length shouldBe 1
     properties.hooks.postPatchHooks.length shouldBe 1
     properties.hooks.destroyHooks.length shouldBe 0
-    properties.attributes.attributes.length shouldBe 1
+    properties.attributes.attrs.length shouldBe 1
     receivers.length shouldBe 2
     properties.keys.length shouldBe 0
     childNodes.length shouldBe 2

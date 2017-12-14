@@ -3,6 +3,8 @@ package outwatch
 import outwatch.dom._
 import outwatch.dom.dsl._
 
+import scala.scalajs.js
+
 class AttributeSpec extends JSDomSpec {
 
   "class attributes" should "be accumulated" in {
@@ -175,5 +177,29 @@ class AttributeSpec extends JSDomSpec {
     node.data.style.toList should contain theSameElementsAs List(
       "color" -> "red"
     )
+  }
+
+
+  "extended styles" should "convert correctly" in {
+    val node = div(
+      opacity := 0,
+      opacity.delayed := 1,
+      opacity.remove := 0,
+      opacity.destroy := 0
+    ).map(_.asProxy).unsafeRunSync()
+
+    node.data.style("opacity") shouldBe "0"
+    node.data.style("delayed").asInstanceOf[js.Dictionary[String]].toMap shouldBe Map("opacity" -> "1")
+    node.data.style("remove").asInstanceOf[js.Dictionary[String]].toMap shouldBe Map("opacity" -> "0")
+    node.data.style("destroy").asInstanceOf[js.Dictionary[String]].toMap shouldBe Map("opacity" -> "0")
+  }
+
+  "style accum" should "convert correctly" in {
+    val node = div(
+      transition := "transform .2s ease-in-out",
+      transition.accum(",") := "opacity .2s ease-in-out"
+    ).map(_.asProxy).unsafeRunSync()
+
+    node.data.style.toMap shouldBe Map("transition" -> "transform .2s ease-in-out,opacity .2s ease-in-out")
   }
 }
