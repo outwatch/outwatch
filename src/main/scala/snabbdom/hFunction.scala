@@ -73,7 +73,7 @@ trait DataObject extends js.Object {
 
   val attrs: js.Dictionary[AttrValue]
   val props: js.Dictionary[PropValue]
-  val style: js.Dictionary[String]
+  val style: js.Dictionary[StyleValue]
   val on: js.Dictionary[js.Function1[Event, Unit]]
   val hook: Hooks
   val key: js.UndefOr[KeyValue]
@@ -83,6 +83,7 @@ object DataObject {
 
   type PropValue = Any
   type AttrValue = String | Boolean
+  type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
   def apply(attrs: js.Dictionary[AttrValue],
@@ -93,7 +94,7 @@ object DataObject {
 
   def apply(attrs: js.Dictionary[AttrValue],
             props: js.Dictionary[PropValue],
-            style: js.Dictionary[String],
+            style: js.Dictionary[StyleValue],
             on: js.Dictionary[js.Function1[Event, Unit]],
             hook: Hooks,
             key: js.UndefOr[KeyValue]
@@ -109,7 +110,7 @@ object DataObject {
     new DataObject {
       val attrs: js.Dictionary[AttrValue] = _attrs
       val props: js.Dictionary[PropValue] = _props
-      val style: js.Dictionary[String] = _style
+      val style: js.Dictionary[StyleValue] = _style
       val on: js.Dictionary[js.Function1[Event, Unit]] = _on
       val hook: Hooks = _hook
       val key: UndefOr[KeyValue] = _key

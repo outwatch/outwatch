@@ -5,32 +5,57 @@ import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignmentCancelable
 import org.scalajs.dom
-
 import outwatch.dom._
 import snabbdom._
 
-import scala.scalajs.js.JSConverters._
 import scala.collection.breakOut
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+
+
+private[outwatch] trait SnabbdomStyles { self: SeparatedStyles =>
+  def toSnabbdom: js.Dictionary[Style.Value] = {
+    val styleDict = js.Dictionary[Style.Value]()
+
+    val delayedDict = js.Dictionary[String]()
+    val removeDict = js.Dictionary[String]()
+    val destroyDict = js.Dictionary[String]()
+
+    styles.foreach {
+      case s: BasicStyle => styleDict(s.title) = s.value
+      case s: DelayedStyle => delayedDict(s.title) = s.value
+      case s: RemoveStyle => removeDict(s.title) = s.value
+      case s: DestroyStyle => destroyDict(s.title) = s.value
+      case a: AccumStyle =>
+        styleDict(a.title) = styleDict.get(a.title).map(s =>
+          a.accum(s.asInstanceOf[String], a.value): Style.Value
+        ).getOrElse(a.value)
+
+    }
+
+    if (delayedDict.nonEmpty) styleDict("delayed") = delayedDict : Style.Value
+    if (removeDict.nonEmpty) styleDict("remove") = removeDict : Style.Value
+    if (destroyDict.nonEmpty) styleDict("destroy") = destroyDict : Style.Value
+
+    styleDict
+  }
+}
 
 private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
 
   type jsDict[T] = js.Dictionary[T]
 
-  def toSnabbdom: (jsDict[Attr.Value], jsDict[Prop.Value], jsDict[String]) = {
+  def toSnabbdom: (jsDict[Attr.Value], jsDict[Prop.Value], jsDict[Style.Value]) = {
     val attrsDict = js.Dictionary[Attr.Value]()
     val propsDict = js.Dictionary[Prop.Value]()
-    val styleDict = js.Dictionary[String]()
 
-    attributes.foreach {
+    attrs.foreach {
       case a: BasicAttr => attrsDict(a.title) = a.value
       case a: AccumAttr => attrsDict(a.title) = attrsDict.get(a.title).map(a.accum(_, a.value)).getOrElse(a.value)
-      case p: Prop => propsDict(p.title) = p.value
-      case s: Style => styleDict(s.title) = s.value
-      case EmptyAttribute =>
     }
+    props.foreach { p => propsDict(p.title) = p.value }
 
-    (attrsDict, propsDict, styleDict)
+    (attrsDict, propsDict, styles.toSnabbdom)
   }
 
   private def merge[T](first: js.Dictionary[T], second: js.Dictionary[T]) = {
@@ -80,7 +105,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
     def toProxy(changable: (Seq[Attribute], Seq[IO[StaticVNode]])): VNodeProxy = {
       val (attributes, nodes) = changable
-      val newData = SeparatedAttributes(attributes.toList).updateDataObject(proxy.data)
+      val newData = SeparatedAttributes.from(attributes).updateDataObject(proxy.data)
 
       if (nodes.isEmpty) {
         if (proxy.children.isDefined) {

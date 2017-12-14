@@ -16,11 +16,11 @@ trait ValueBuilder[-T, +SELF <: Attribute] extends Any {
     IO.pure(AttributeStreamReceiver(attributeName, valueStream.map(assign)))
   }
 }
+
 object ValueBuilder {
   implicit def toAttribute(builder: ValueBuilder[Boolean, Attr]): IO[Attribute] = builder := true
   implicit def toProperty(builder: ValueBuilder[Boolean, Prop]): IO[Property] = builder := true
 }
-
 
 trait AccumulateOps[T] { self: ValueBuilder[T, BasicAttr] =>
   def accum(s: String): AccumAttributeBuilder[T] = accum(_ + s + _)
@@ -55,9 +55,39 @@ final class PropertyBuilder[T](val attributeName: String, encode: T => Prop.Valu
   @inline private[outwatch] def assign(value: T) = Prop(attributeName, encode(value))
 }
 
+trait AccumulateStyleOps[T] extends Any { self: ValueBuilder[T, BasicStyle] =>
 
-final class StyleBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T, Style] {
-  @inline private[outwatch] def assign(value: T) = Style(attributeName, value.toString)
+  def accum: AccumStyleBuilder[T] = accum(",")
+  def accum(s: String): AccumStyleBuilder[T] = accum(_ + s + _)
+  def accum(reducer: (String, String) => String) = new AccumStyleBuilder[T](attributeName, reducer)
+}
+
+// Styles
+final class BasicStyleBuilder[T](val attributeName: String) extends AnyVal
+                                                                    with ValueBuilder[T, BasicStyle]
+                                                                    with AccumulateStyleOps[T] {
+  @inline private[outwatch] def assign(value: T) = BasicStyle(attributeName, value.toString)
+
+  def delayed: DelayedStyleBuilder[T] = new DelayedStyleBuilder[T](attributeName)
+  def remove: RemoveStyleBuilder[T] = new RemoveStyleBuilder[T](attributeName)
+  def destroy: DestroyStyleBuilder[T] = new DestroyStyleBuilder[T](attributeName)
+}
+
+final class DelayedStyleBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T, DelayedStyle] {
+  @inline private[outwatch] def assign(value: T) = DelayedStyle(attributeName, value.toString)
+}
+
+final class RemoveStyleBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T, RemoveStyle] {
+  @inline private[outwatch] def assign(value: T) = RemoveStyle(attributeName, value.toString)
+}
+
+final class DestroyStyleBuilder[T](val attributeName: String) extends AnyVal with ValueBuilder[T, DestroyStyle] {
+  @inline private[outwatch] def assign(value: T) = DestroyStyle(attributeName, value.toString)
+}
+
+final class AccumStyleBuilder[T](val attributeName: String, reducer: (String, String) => String)
+  extends ValueBuilder[T, AccumStyle] {
+  @inline private[outwatch] def assign(value: T) = AccumStyle(attributeName, value.toString, reducer)
 }
 
 
@@ -67,13 +97,13 @@ object KeyBuilder {
 
 // TODO: avoid nested IO?
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO.pure (
+  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO.pure(
     ChildStreamReceiver(valueStream.map(r.render))
   )
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = IO.pure (
+  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = IO.pure(
     ChildrenStreamReceiver(childrenStream)
   )
 }

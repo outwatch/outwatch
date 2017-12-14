@@ -88,7 +88,7 @@ trait AttributeHelpers { self: Attributes =>
 
   def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new AttributeBuilder[T](key, convert)
   def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropertyBuilder[T](key, convert)
-  def style[T](key: String) = new StyleBuilder[T](key)
+  def style[T](key: String) = new BasicStyleBuilder[T](key)
 }
 
 trait TagHelpers { self: Tags =>

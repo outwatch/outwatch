@@ -19,6 +19,11 @@ VDomModifier_
           AccumAttr
         Prop
         Style
+          BasicStyle
+          DelayedStyle
+          RemoveStyle
+          DestroyStyle
+          AccumStyle
       EmptyAttribute
     Hook
       InsertHook
@@ -104,7 +109,19 @@ object Prop {
   type Value = DataObject.PropValue
 }
 
-final case class Style(title: String, value: String) extends TitledAttribute
+sealed trait Style extends TitledAttribute {
+  val value: String
+}
+object Style {
+  type Value = DataObject.StyleValue
+}
+
+final case class AccumStyle(title: String, value: String, accum: (String, String) => String) extends Style
+
+final case class BasicStyle(title: String, value: String) extends Style
+final case class DelayedStyle(title: String, value: String) extends Style
+final case class RemoveStyle(title: String, value: String) extends Style
+final case class DestroyStyle(title: String, value: String) extends Style
 
 // Hooks
 
