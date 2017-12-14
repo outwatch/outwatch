@@ -6,6 +6,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom._
 import outwatch.dom._
+import outwatch.dom.dsl._
 
 import scala.collection.mutable
 
@@ -147,7 +148,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     })
 
-    val node = div(child <-- Observable(span("Hello")), span(outwatch.dom.key := "1", onPrepatch --> sink, "Hey"))
+    val node = div(child <-- Observable(span("Hello")), span(attributes.key := "1", onPrepatch --> sink, "Hey"))
 
     switch shouldBe false
 

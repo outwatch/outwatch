@@ -46,15 +46,6 @@ private[outwatch] object DomTypesBuilder {
       Cancelable(() => target.removeEventListener(key, eventHandler))
     }
   }
-
-  trait SimpleStyleBuilder extends StyleBuilders[IO[Style]] {
-
-    implicit def StyleIsBuilder[T](style: keys.Style[T]): StyleBuilder[T] = new StyleBuilder[T](style.cssName)
-
-    override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): IO[Style] = style := value
-    override protected def buildIntStyleSetter(style: keys.Style[Int],value: Int): IO[Style] = style := value
-    override protected def buildStringStyleSetter(style: keys.Style[_],value: String): IO[Style] = new StyleBuilder[Any](style.cssName) := value
-  }
 }
 import DomTypesBuilder._
 
@@ -65,27 +56,31 @@ trait Tags
   with FormTags[GenericVNode, VNode]
   with SectionTags[GenericVNode, VNode]
   with TableTags[GenericVNode, VNode]
-  with TagsCompat
   with VNodeBuilder
   with TagHelpers
+  with TagsCompat
+
+@deprecated("Use dsl.tags instead", "0.11.0")
 object Tags extends Tags
 
 trait TagsExtra
   extends DocumentTags[GenericVNode, VNode]
   with MiscTags[GenericVNode, VNode]
   with VNodeBuilder
-object TagsExtra extends TagsExtra
 
 trait Attributes
   extends Attrs
   with ReflectedAttrs
   with Props
   with Events
-  with Styles
-  with AttributesCompat
+  with AttributeHelpers
   with OutwatchAttributes
+  with AttributesCompat
+
+@deprecated("Use dsl.attributes instead", "0.11.0")
 object Attributes extends Attributes
 
+// Attrs
 trait Attrs
   extends attrs.Attrs[AttributeBuilder]
   with AttrBuilder[AttributeBuilder] {
@@ -93,7 +88,8 @@ trait Attrs
   override protected def attr[V](key: String, codec: Codec[V, String]): AttributeBuilder[V] =
     new AttributeBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
-object Attrs extends Attrs
+
+// Reflected attrs
 
 trait ReflectedAttrs
   extends reflectedAttrs.ReflectedAttrs[CodecBuilder.Attribute]
@@ -108,8 +104,8 @@ trait ReflectedAttrs
     new AttributeBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
     //or: new PropertyBuilder(propKey, propCodec.encode)
 }
-object ReflectedAttrs extends ReflectedAttrs
 
+// Props
 trait Props
   extends props.Props[CodecBuilder.Property]
   with PropBuilder[CodecBuilder.Property] {
@@ -117,7 +113,6 @@ trait Props
   override protected def prop[V, DomV](key: String, codec: Codec[V, DomV]): PropertyBuilder[V] =
     new PropertyBuilder(key, codec.encode)
 }
-object Props extends Props
 
 trait Events
   extends HTMLElementEventProps[SimpleEmitterBuilder]
@@ -125,22 +120,28 @@ trait Events
 
   override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =  EmitterBuilder[V](key)
 }
-object Events extends Events
 
-object WindowEvents
+abstract class WindowEvents
   extends ObservableEventPropBuilder(dom.window)
   with WindowEventProps[Observable]
 
-object DocumentEvents
+abstract class DocumentEvents
   extends ObservableEventPropBuilder(dom.document)
   with DocumentEventProps[Observable]
+
+
+private[outwatch] trait SimpleStyleBuilder extends StyleBuilders[IO[Style]] {
+
+  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): IO[Style] = style := value
+  override protected def buildIntStyleSetter(style: keys.Style[Int],value: Int): IO[Style] = style := value
+  override protected def buildStringStyleSetter(style: keys.Style[_],value: String): IO[Style] = new StyleBuilder[Any](style.cssName) := value
+}
+
 
 trait Styles
   extends styles.Styles[IO[Style]]
   with SimpleStyleBuilder
-object Styles extends Styles
 
 trait StylesExtra
   extends styles.Styles2[IO[Style]]
   with SimpleStyleBuilder
-object StylesExtra extends StylesExtra

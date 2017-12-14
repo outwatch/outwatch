@@ -12,9 +12,6 @@ trait OutwatchAttributes
   with SnabbdomKeyAttributes
   with OutWatchLifeCycleAttributes
   with TypedInputEventProps
-  with AttributeHelpers
-
-object OutwatchAttributes extends OutwatchAttributes
 
 /** OutWatch specific attributes used to asign child nodes to a VNode. */
 trait OutWatchChildAttributes {
@@ -64,18 +61,29 @@ trait SnabbdomKeyAttributes {
 
 trait TypedInputEventProps {
   import org.scalajs.dom
+  import dsl.attributes.events
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputChecked = Events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
+  lazy val onInputChecked = events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputNumber  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
+  lazy val onInputNumber  = events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
 
   /** The input event is fired when an element gets user input. */
-  lazy val onInputString  = Events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
+  lazy val onInputString  = events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
 }
 
-trait AttributeHelpers {
+//trait AttributeExtras { self: Attributes =>
+//  lazy val `class` = className
+//
+//  lazy val `for` = forId
+//}
+
+trait AttributeHelpers { self: Attributes =>
+  lazy val `class` = className
+
+  lazy val `for` = forId
+
   lazy val data = new DynamicAttributeBuilder[Any]("data" :: Nil)
 
   def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new AttributeBuilder[T](key, convert)
@@ -83,6 +91,6 @@ trait AttributeHelpers {
   def style[T](key: String) = new StyleBuilder[T](key)
 }
 
-trait TagHelpers {
+trait TagHelpers { self: Tags =>
   def tag(name: String): VNode= IO.pure(VTree(name, Seq.empty))
 }

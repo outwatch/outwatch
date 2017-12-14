@@ -3,6 +3,7 @@ package outwatch
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
+import outwatch.dom.dsl._
 
 class ScenarioTestSpec extends JSDomSpec {
 

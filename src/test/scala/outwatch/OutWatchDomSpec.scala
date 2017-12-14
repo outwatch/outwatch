@@ -5,7 +5,8 @@ import monix.execution.Ack.Continue
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{document, html}
 import outwatch.dom.helpers._
-import outwatch.dom.{StringModifier, _}
+import outwatch.dom._
+import outwatch.dom.dsl._
 import snabbdom.{DataObject, hFunction}
 
 import scala.collection.immutable.Seq
@@ -46,9 +47,9 @@ class OutWatchDomSpec extends JSDomSpec {
       CompositeModifier(
         Seq(
           div(),
-          Attributes.`class` := "blue",
-          Attributes.onClick(1) --> Sink.create[Int](_ => IO.pure{(); Continue}),
-          Attributes.hidden <-- Observable(false)
+          attributes.`class` := "blue",
+          attributes.onClick(1) --> Sink.create[Int](_ => IO.pure{(); Continue}),
+          attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
       AttributeStreamReceiver("hidden",Observable())
@@ -467,7 +468,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "change the value of a textfield" in {
     val messages = PublishSubject[String]
     val vtree = div(
-      input(outwatch.dom.value <-- messages, id := "input")
+      input(attributes.value <-- messages, id := "input")
     )
 
     val node = document.createElement("div")

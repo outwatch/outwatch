@@ -5,6 +5,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
+import outwatch.dom.dsl._
 
 class DomEventSpec extends JSDomSpec {
 
@@ -97,7 +98,7 @@ class DomEventSpec extends JSDomSpec {
 
     val values = PublishSubject[String]
 
-    val vtree = input(id:= "input", outwatch.dom.value <-- values)
+    val vtree = input(id:= "input", attributes.value <-- values)
 
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
@@ -122,7 +123,7 @@ class DomEventSpec extends JSDomSpec {
   it should "preserve user input after setting defaultValue" in {
     val defaultValues = PublishSubject[String]
 
-    val vtree = input(id:= "input", outwatch.dom.defaultValue <-- defaultValues)
+    val vtree = input(id:= "input", attributes.defaultValue <-- defaultValues)
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
@@ -142,7 +143,7 @@ class DomEventSpec extends JSDomSpec {
   it should "set input value to the same value after user change" in {
     val values = PublishSubject[String]
 
-    val vtree = input(id:= "input", outwatch.dom.value <-- values)
+    val vtree = input(id:= "input", attributes.value <-- values)
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
@@ -406,8 +407,8 @@ class DomEventSpec extends JSDomSpec {
 
     var docClicked = false
     var winClicked = false
-    WindowEvents.onClick(ev => winClicked = true)
-    DocumentEvents.onClick(ev => docClicked = true)
+    events.window.onClick( ev => winClicked = true)
+    events.document.onClick( ev => docClicked = true)
 
     val node =
       div(

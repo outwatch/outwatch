@@ -1,6 +1,7 @@
 package outwatch
 
 import outwatch.dom._
+import outwatch.dom.dsl._
 
 class AttributeSpec extends JSDomSpec {
 
@@ -127,13 +128,14 @@ class AttributeSpec extends JSDomSpec {
   }
 
   it should "correctly merge keys" in {
-    val node = input( dom.key := "bumm")( dom.key := "klapp").map(_.asProxy).unsafeRunSync()
+
+    val node = input( attributes.key := "bumm")( attributes.key := "klapp").map(_.asProxy).unsafeRunSync()
     node.data.key.toList should contain theSameElementsAs List("klapp")
 
-    val node2 = input()( dom.key := "klapp").map(_.asProxy).unsafeRunSync()
+    val node2 = input()( attributes.key := "klapp").map(_.asProxy).unsafeRunSync()
     node2.data.key.toList should contain theSameElementsAs List("klapp")
 
-    val node3 = input( dom.key := "bumm")().map(_.asProxy).unsafeRunSync()
+    val node3 = input( attributes.key := "bumm")().map(_.asProxy).unsafeRunSync()
     node3.data.key.toList should contain theSameElementsAs List("bumm")
   }
 
