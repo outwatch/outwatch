@@ -1,7 +1,6 @@
 package outwatch
 
-import monix.execution.ExecutionModel.SynchronousExecution
-import monix.execution.schedulers.TrampolineScheduler
+
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
@@ -14,7 +13,7 @@ class DomEventSpec extends JSDomSpec {
     val vtree = Handler.create[MouseEvent].flatMap { observable =>
 
       val buttonDisabled = observable.map(_ => true).startWith(Seq(false))
-      
+
       div(id := "click", onClick --> observable,
         button(id := "btn", disabled <-- buttonDisabled)
       )
@@ -403,11 +402,12 @@ class DomEventSpec extends JSDomSpec {
   "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
     import outwatch.dom._
 
+    implicit val scheduler = trampolineScheduler
+
     var docClicked = false
     var winClicked = false
-    val scheduler = TrampolineScheduler(executionContext, SynchronousExecution)
-    WindowEvents.onClick(ev => winClicked = true)(scheduler)
-    DocumentEvents.onClick(ev => docClicked = true)(scheduler)
+    WindowEvents.onClick(ev => winClicked = true)
+    DocumentEvents.onClick(ev => docClicked = true)
 
     val node =
       div(
@@ -423,7 +423,6 @@ class DomEventSpec extends JSDomSpec {
 
     winClicked shouldBe true
     docClicked shouldBe true
-
   }
 
 }

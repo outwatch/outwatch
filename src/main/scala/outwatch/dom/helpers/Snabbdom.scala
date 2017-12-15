@@ -2,7 +2,7 @@ package outwatch.dom.helpers
 
 import cats.effect.IO
 import monix.execution.Ack.Continue
-import monix.execution.Scheduler.Implicits.global
+import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignmentCancelable
 import org.scalajs.dom
 import outwatch.dom.{Attr, Attribute, DestroyHook, Emitter, EmptyAttribute, Hook, InsertHook, Key, Prop, StaticVNode, Style}
@@ -74,7 +74,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   private def createInsertHook(receivers: Receivers,
     subscriptionCancelable: SingleAssignmentCancelable,
     hooks: Seq[InsertHook]
-  ): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
+  )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
     def toProxy(changable: (Seq[Attribute], Seq[IO[StaticVNode]])): VNodeProxy = {
       val (attributes, nodes) = changable
@@ -114,7 +114,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     ()
   }
 
-  def toSnabbdom(receivers: Receivers): Hooks = {
+  def toSnabbdom(receivers: Receivers)(implicit s: Scheduler): Hooks = {
     val (insertHook, destroyHook) = if (receivers.nonEmpty) {
       val subscription = SingleAssignmentCancelable()
       val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook(receivers, subscription, insertHooks)
@@ -150,7 +150,7 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 
 private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
-  private[outwatch] def createDataObject(receivers: Receivers): DataObject = {
+  private[outwatch] def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
 
     val keyOption = properties.keys.lastOption
     val key = if (receivers.nonEmpty) {
@@ -167,7 +167,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     )
   }
 
-  private[outwatch] def toSnabbdom(nodeType: String): VNodeProxy = {
+  private[outwatch] def toSnabbdom(nodeType: String)(implicit s: Scheduler): VNodeProxy = {
 
     // if child streams exists, we want the static children in the same node have keys
     // for efficient patching when the streams change
@@ -176,6 +176,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
     childrenWithKey match {
       case Children.VNodes(vnodes, _) =>
+        implicit val scheduler = s
         val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
         hFunction(nodeType, dataObject, childProxies)
       case Children.StringModifiers(textChildren) =>

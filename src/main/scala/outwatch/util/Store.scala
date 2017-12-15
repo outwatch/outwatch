@@ -1,10 +1,10 @@
 package outwatch.util
 
 import cats.effect.IO
-import monix.execution.Scheduler.Implicits.global
+import monix.execution.Scheduler
 import monix.execution.{Ack, Cancelable}
+import outwatch.dom.{Observable, OutWatch, VNode}
 import outwatch.{Handler, Pipe, Sink}
-import outwatch.dom._
 import outwatch.dom.helpers.STRef
 
 import scala.concurrent.Future
@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 final case class Store[State, Action](initialState: State,
                                            reducer: (State, Action) => (State, Option[IO[Action]]),
-                                           handler: Pipe[Action, Action]) {
+                                           handler: Pipe[Action, Action])(implicit s: Scheduler) {
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
     .scan(initialState)(fold)
@@ -41,7 +41,7 @@ object Store {
 
   private val storeRef = STRef.empty
 
-  def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode): IO[Unit] = for {
+  def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode)(implicit s: Scheduler): IO[Unit] = for {
     handler <- Handler.create[A]
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)

@@ -1,21 +1,14 @@
 package outwatch
 
-import monix.execution.Scheduler
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 
 class ScenarioTestSpec extends JSDomSpec {
 
-  def mergeSync[A](obs1: Observable[A], obs2: Observable[A])(implicit s: Scheduler): Observable[A] = {
-    val merged = PublishSubject[A]
-    obs1.subscribe(a => merged.onNext(a))(s)
-    obs2.subscribe(a => merged.onNext(a))(s)
-    merged
-  }
-
   "A simple counter application" should "work as intended" in {
+    implicit val scheduler = trampolineScheduler
+
     val node = for {
       handlePlus <- Handler.create[MouseEvent]
       plusOne = handlePlus.map(_ => 1)
@@ -23,7 +16,7 @@ class ScenarioTestSpec extends JSDomSpec {
       handleMinus <- Handler.create[MouseEvent]
       minusOne = handleMinus.map(_ => -1)
 
-      count = mergeSync(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
+      count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
 
       div <- div(
         div(
@@ -52,7 +45,6 @@ class ScenarioTestSpec extends JSDomSpec {
       document.getElementById("plus").dispatchEvent(event)
       document.getElementById("counter").innerHTML shouldBe i.toString
     }
-
   }
 
   "A simple name application" should "work as intended" in {
@@ -124,6 +116,8 @@ class ScenarioTestSpec extends JSDomSpec {
 
   "A todo application" should "work with components" in {
 
+    implicit val scheduler = trampolineScheduler
+
     def TodoComponent(title: String, deleteStream: Sink[String]) =
       li(
         span(title),
@@ -143,7 +137,7 @@ class ScenarioTestSpec extends JSDomSpec {
       enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = mergeSync(enterPressed, clickStream)
+      confirm = Observable.merge(enterPressed, clickStream)
         .withLatestFrom(textFieldStream)((_, input) => input)
 
       _ <- (outputStream <-- confirm)
@@ -175,7 +169,7 @@ class ScenarioTestSpec extends JSDomSpec {
       deletes = deleteHandler
         .map(removeFromList)
 
-      state = mergeSync(adds, deletes)
+      state = Observable.merge(adds, deletes)
         .scan(Vector[String]())((state, modify) => modify(state))
         .map(_.map(n => TodoComponent(n, deleteHandler)))
       textFieldComponent = TextFieldComponent("Todo: ", inputHandler)

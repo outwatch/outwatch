@@ -155,16 +155,18 @@ private[outwatch] final case class Receivers(
     }
 
     // only use last encountered observable per attribute
-    val attributeReceivers: Observable[Seq[Attribute]] = Observable.combineLatestList(
-      attributeStreamReceivers
-        .groupBy(_.attribute)
-        .values
-        .map(_.last.attributeStream)(breakOut): _*
-    )
+    val attributeReceivers: Observable[Seq[Attribute]] = if (attributeStreamReceivers.isEmpty) {
+      Observable(Seq.empty)
+    } else {
+      Observable.combineLatestList(
+        attributeStreamReceivers
+          .groupBy(_.attribute)
+          .values
+          .map(_.last.attributeStream)(breakOut): _*
+      )
+    }
 
-    attributeReceivers.startWith(Seq(Seq.empty)).combineLatest(
-      childStreamReceivers.startWith(Seq(Seq.empty))
-    ).dropWhile { case (a, c) => a.isEmpty && c.isEmpty }
+    attributeReceivers.combineLatest(childStreamReceivers)
   }
 
   lazy val nonEmpty: Boolean = {
