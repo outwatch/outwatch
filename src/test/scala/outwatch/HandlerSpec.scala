@@ -1,6 +1,6 @@
 package outwatch
 
-class HandlerSpec extends UnitSpec with EasySubscribe {
+class HandlerSpec extends JSDomSpec {
   "Handler" should "lens" in {
     val handler = Handler.create[(String, Int)].unsafeRunSync()
     val lensed = handler.lens[Int](("harals", 0))(_._2)((tuple, num) => (tuple._1, num))

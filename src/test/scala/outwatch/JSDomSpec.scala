@@ -10,10 +10,9 @@ import org.scalatest.BeforeAndAfterEach
 
 
 trait EasySubscribe {
-  import monix.execution.Scheduler.Implicits.global
 
   implicit class Subscriber[T](obs: Observable[T]) {
-    def apply(next: T => Unit): Cancelable = obs.subscribe { t =>
+    def apply(next: T => Unit)(implicit s: Scheduler): Cancelable = obs.subscribe { t =>
       next(t)
       Continue
     }
@@ -24,7 +23,7 @@ trait EasySubscribe {
 
 abstract class JSDomSpec extends UnitSpec with BeforeAndAfterEach with EasySubscribe {
 
-  override implicit val executionContext: Scheduler =
+  implicit val executionContext: Scheduler =
     Scheduler.Implicits.global.withExecutionModel(ExecutionModel.SynchronousExecution)
 
   override def beforeEach(): Unit = {
