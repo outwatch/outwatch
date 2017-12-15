@@ -50,18 +50,18 @@ sealed trait Sink[-T] extends Any {
 
 object Sink {
 
+  private[outwatch] final case class ObservableSink[-I, +O](oldSink: Sink[I], stream: Observable[O]) extends Observable[O] with Sink[I] {
+    override private[outwatch] def observer = oldSink.observer
+
+    override def unsafeSubscribeFn(subscriber: Subscriber[O]): Cancelable = stream.unsafeSubscribeFn(subscriber)
+  }
+
   private[outwatch] final case class SubjectSink[T]() extends Observable[T] with Sink[T] {
     private val subject = PublishSubject[T]
 
     override private[outwatch] def observer = subject
 
     override def unsafeSubscribeFn(subscriber: Subscriber[T]): Cancelable = subject.unsafeSubscribeFn(subscriber)
-  }
-
-  private[outwatch] final case class ObservableSink[-I, +O](oldSink: Sink[I], stream: Observable[O]) extends Observable[O] with Sink[I] {
-    override private[outwatch] def observer = oldSink.observer
-
-    override def unsafeSubscribeFn(subscriber: Subscriber[O]): Cancelable = stream.unsafeSubscribeFn(subscriber)
   }
 
   /**
