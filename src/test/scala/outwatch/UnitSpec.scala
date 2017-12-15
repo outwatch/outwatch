@@ -1,7 +1,7 @@
 package outwatch
 
 
-import org.scalatest.{AsyncFlatSpec, Matchers}
+import org.scalatest.{FlatSpec, Matchers}
 
 
-abstract class UnitSpec extends AsyncFlatSpec with Matchers
+abstract class UnitSpec extends FlatSpec with Matchers

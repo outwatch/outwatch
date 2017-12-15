@@ -1,6 +1,7 @@
 package outwatch
 
-import monix.eval.Task
+import monix.execution.ExecutionModel.SynchronousExecution
+import monix.execution.schedulers.TrampolineScheduler
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
@@ -404,8 +405,9 @@ class DomEventSpec extends JSDomSpec {
 
     var docClicked = false
     var winClicked = false
-    WindowEvents.onClick( ev => winClicked = true)
-    DocumentEvents.onClick( ev => docClicked = true)
+    val scheduler = TrampolineScheduler(executionContext, SynchronousExecution)
+    WindowEvents.onClick(ev => winClicked = true)(scheduler)
+    DocumentEvents.onClick(ev => docClicked = true)(scheduler)
 
     val node =
       div(
@@ -419,10 +421,8 @@ class DomEventSpec extends JSDomSpec {
 
     document.getElementById("input").dispatchEvent(inputEvt)
 
-    Task {
-      winClicked shouldBe true
-      docClicked shouldBe true
-    }.executeWithFork.runAsync
+    winClicked shouldBe true
+    docClicked shouldBe true
 
   }
 
