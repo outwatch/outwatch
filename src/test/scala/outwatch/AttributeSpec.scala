@@ -2,7 +2,7 @@ package outwatch
 
 import outwatch.dom._
 
-class AttributeSpec extends UnitSpec {
+class AttributeSpec extends JSDomSpec {
 
   "data attribute" should "correctly render only Data" in {
     val node = input(

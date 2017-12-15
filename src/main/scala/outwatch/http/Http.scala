@@ -2,7 +2,7 @@ package outwatch.http
 
 import cats.Eval.always
 import cats.effect.IO
-import monix.execution.Scheduler.Implicits.global
+import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.scalajs.dom.ext.Ajax.InputData
 import org.scalajs.dom.ext.{Ajax, AjaxException}
@@ -72,7 +72,7 @@ object Http {
     responseType = request.responseType
   )
 
-  private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] =
+  private def request(observable: Observable[Request], requestType: HttpRequestType)(implicit s: Scheduler): Observable[Response] =
     observable.switchMap { request =>
       Observable.fromFuture(
         ajax(request.copy(method = requestType.toString))
@@ -83,24 +83,24 @@ object Http {
       )
     }.share
 
-  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) =
+  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType)(implicit s: Scheduler) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)
 
-  def single(request: Request, method: HttpRequestType): IO[Response] =
+  def single(request: Request, method: HttpRequestType)(implicit s: Scheduler): IO[Response] =
     IO.fromFuture(always(ajax(request.copy(method = method.toString)))).map(toResponse)
 
-  def getWithUrl(urls: Observable[String]) = requestWithUrl(urls, Get)
+  def getWithUrl(urls: Observable[String])(implicit s: Scheduler) = requestWithUrl(urls, Get)
 
-  def get(requests: Observable[Request]) = request(requests, Get)
+  def get(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Get)
 
-  def post(requests: Observable[Request]) = request(requests, Post)
+  def post(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Post)
 
-  def delete(requests: Observable[Request]) = request(requests, Delete)
+  def delete(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Delete)
 
-  def put(requests: Observable[Request]) = request(requests, Put)
+  def put(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Put)
 
-  def options(requests: Observable[Request]) = request(requests, Options)
+  def options(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Options)
 
-  def head(requests: Observable[Request]) = request(requests, Head)
+  def head(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Head)
 
 }

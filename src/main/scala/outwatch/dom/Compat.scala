@@ -1,27 +1,28 @@
 package outwatch.dom
 
 import cats.effect.IO
+import monix.execution.Scheduler
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
 
 trait Handlers {
   @deprecated("Use Handler.create[MouseEvent] instead", "0.11.0")
-  def createMouseHandler() = Handler.create[MouseEvent]
+  def createMouseHandler()(implicit s: Scheduler) = Handler.create[MouseEvent]
   @deprecated("Use Handler.create[KeyboardEvent] instead", "0.11.0")
-  def createKeyboardHandler() = Handler.create[KeyboardEvent]
+  def createKeyboardHandler()(implicit s: Scheduler) = Handler.create[KeyboardEvent]
   @deprecated("Use Handler.create[DragEvent] instead", "0.11.0")
-  def createDragHandler() = Handler.create[DragEvent]
+  def createDragHandler()(implicit s: Scheduler) = Handler.create[DragEvent]
   @deprecated("Use Handler.create[ClipboardEvent] instead", "0.11.0")
-  def createClipboardHandler() = Handler.create[ClipboardEvent]
+  def createClipboardHandler()(implicit s: Scheduler) = Handler.create[ClipboardEvent]
 
   @deprecated("Use Handler.create[String] instead", "0.11.0")
-  def createStringHandler(defaultValues: String*) = Handler.create[String](defaultValues: _*)
+  def createStringHandler(defaultValues: String*)(implicit s: Scheduler) = Handler.create[String](defaultValues: _*)
   @deprecated("Use Handler.create[Boolean] instead", "0.11.0")
-  def createBoolHandler(defaultValues: Boolean*) = Handler.create[Boolean](defaultValues: _*)
+  def createBoolHandler(defaultValues: Boolean*)(implicit s: Scheduler) = Handler.create[Boolean](defaultValues: _*)
   @deprecated("Use Handler.create[Double] instead", "0.11.0")
-  def createNumberHandler(defaultValues: Double*) = Handler.create[Double](defaultValues: _*)
+  def createNumberHandler(defaultValues: Double*)(implicit s: Scheduler) = Handler.create[Double](defaultValues: _*)
 
   @deprecated("Use Handler.create[T] instead", "0.11.0")
-  def createHandler[T](defaultValues: T*): IO[Pipe[T, T]] = Handler.create[T](defaultValues: _*)
+  def createHandler[T](defaultValues: T*)(implicit s: Scheduler): IO[Pipe[T, T]] = Handler.create[T](defaultValues: _*)
 }
 
 object Handlers extends Handlers

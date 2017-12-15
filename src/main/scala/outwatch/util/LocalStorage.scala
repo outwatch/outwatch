@@ -2,7 +2,7 @@ package outwatch.util
 
 import cats.effect.IO
 import monix.execution.Ack.Continue
-import monix.execution.Cancelable
+import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import outwatch.Sink
 import org.scalajs.dom.window.localStorage
@@ -19,7 +19,7 @@ object LocalStorageReader {
 }
 
 object LocalStorageWriter {
-  def apply(key: String): Sink[String] = {
+  def apply(key: String)(implicit s: Scheduler): Sink[String] = {
     Sink.create[String](
       data => IO {
         localStorage.setItem(key, data)
