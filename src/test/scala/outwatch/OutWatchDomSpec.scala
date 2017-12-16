@@ -525,9 +525,12 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    messagesA.onNext("1")
-    messagesB.onNext("2")
+    node.innerHTML shouldBe "<div>AB</div>"
 
+    messagesA.onNext("1")
+    node.innerHTML shouldBe "<div>A1B</div>"
+
+    messagesB.onNext("2")
     node.innerHTML shouldBe "<div>A1B2</div>"
   }
 
@@ -547,10 +550,15 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    messagesA.onNext("1")
-    messagesB.onNext("2")
-    messagesC.onNext(Seq(div("5"), div("7")))
+    node.innerHTML shouldBe "<div>AB</div>"
 
+    messagesA.onNext("1")
+    node.innerHTML shouldBe "<div>A1B</div>"
+
+    messagesB.onNext("2")
+    node.innerHTML shouldBe "<div>A1B2</div>"
+
+    messagesC.onNext(Seq(div("5"), div("7")))
     node.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
   }
 
@@ -582,8 +590,10 @@ class OutWatchDomSpec extends JSDomSpec {
     document.body.appendChild(node)
     OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.onNext("otherMessage")
     node.children(0).innerHTML shouldBe ""
+
+    otherMessages.onNext("otherMessage")
+    node.children(0).innerHTML shouldBe "otherMessage"
 
     messages.onNext("message")
     node.children(0).innerHTML shouldBe "messageotherMessage"
