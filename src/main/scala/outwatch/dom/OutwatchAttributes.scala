@@ -11,7 +11,8 @@ trait OutwatchAttributes
   extends OutWatchChildAttributes
   with SnabbdomKeyAttributes
   with OutWatchLifeCycleAttributes
-  with TypedInputEventProps
+
+object OutwatchAttributes extends OutwatchAttributes
 
 /** OutWatch specific attributes used to asign child nodes to a VNode. */
 trait OutWatchChildAttributes {
@@ -58,26 +59,6 @@ trait OutWatchLifeCycleAttributes {
 trait SnabbdomKeyAttributes {
   lazy val key = KeyBuilder
 }
-
-trait TypedInputEventProps {
-  import org.scalajs.dom
-  import dsl.attributes.events
-
-  /** The input event is fired when an element gets user input. */
-  lazy val onInputChecked = events.onChange.map(_.target.asInstanceOf[dom.html.Input].checked)
-
-  /** The input event is fired when an element gets user input. */
-  lazy val onInputNumber  = events.onInput.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
-
-  /** The input event is fired when an element gets user input. */
-  lazy val onInputString  = events.onInput.map(_.target.asInstanceOf[dom.html.Input].value)
-}
-
-//trait AttributeExtras { self: Attributes =>
-//  lazy val `class` = className
-//
-//  lazy val `for` = forId
-//}
 
 trait AttributeHelpers { self: Attributes =>
   lazy val `class` = className
