@@ -74,6 +74,8 @@ object Key {
 sealed trait Attribute extends Property
 object Attribute {
   def apply(title: String, value: Attr.Value): Attribute = BasicAttr(title, value)
+
+  val empty: Attribute = EmptyAttribute
 }
 
 
@@ -83,7 +85,7 @@ sealed trait Hook[T] extends Property {
 
 // Attributes
 
-case object EmptyAttribute extends Attribute
+private[outwatch] case object EmptyAttribute extends Attribute
 
 sealed trait TitledAttribute extends Attribute {
   val title: String

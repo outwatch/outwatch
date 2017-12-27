@@ -602,6 +602,68 @@ class OutWatchDomSpec extends JSDomSpec {
     node.children(0).innerHTML shouldBe "messagegenus"
   }
 
+  it should "partially render component even if parts not present" in {
+    val messagesColor = PublishSubject[String]
+    val messagesBgColor = PublishSubject[String]
+    val childString = PublishSubject[String]
+
+    val vNode = div( id := "inner",
+      color <-- messagesColor,
+      backgroundColor <-- messagesBgColor,
+      child <-- childString
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val inner = document.getElementById("inner").asInstanceOf[html.Div]
+
+    inner.innerHTML shouldBe ""
+    inner.style.color shouldBe ""
+    inner.style.backgroundColor shouldBe ""
+
+    childString.onNext("fish")
+    inner.innerHTML shouldBe "fish"
+    inner.style.color shouldBe ""
+    inner.style.backgroundColor shouldBe ""
+
+    messagesColor.onNext("red")
+    inner.innerHTML shouldBe "fish"
+    inner.style.color shouldBe "red"
+    inner.style.backgroundColor shouldBe ""
+
+    messagesBgColor.onNext("blue")
+    inner.innerHTML shouldBe "fish"
+    inner.style.color shouldBe "red"
+    inner.style.backgroundColor shouldBe "blue"
+  }
+
+  it should "partially render component even if parts not present2" in {
+    val messagesColor = PublishSubject[String]
+    val childString = PublishSubject[String]
+
+    val vNode = div( id := "inner",
+      color <-- messagesColor,
+      child <-- childString
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val inner = document.getElementById("inner").asInstanceOf[html.Div]
+
+    inner.innerHTML shouldBe ""
+    inner.style.color shouldBe ""
+
+    childString.onNext("fish")
+    inner.innerHTML shouldBe "fish"
+    inner.style.color shouldBe ""
+
+    messagesColor.onNext("red")
+    inner.innerHTML shouldBe "fish"
+    inner.style.color shouldBe "red"
+  }
+
   it should "update reused vnodes correctly" in {
     val messages = PublishSubject[String]
     val vNode = div(data.ralf := true, child <-- messages)

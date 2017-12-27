@@ -178,7 +178,7 @@ private[outwatch] final case class Receivers(
         attributeStreamReceivers
           .groupBy(_.attribute)
           .values
-          .map(_.last.attributeStream)(breakOut): _*
+          .map(_.last.attributeStream.startWith(Seq(Attribute.empty)))(breakOut): _*
       )
     }
 
