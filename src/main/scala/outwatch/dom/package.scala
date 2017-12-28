@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 
-package object dom extends Implicits {
+package object dom extends Implicits with ManagedSubscriptions {
 
   type VNode = IO[VTree]
   type VDomModifier = IO[VDomModifier_]
