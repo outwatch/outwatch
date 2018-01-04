@@ -7,7 +7,7 @@ import outwatch.dom.Observable
 
 
 object Pipe {
-  private[outwatch] def apply[I, O](sink: Sink[I], source: Observable[O]): Pipe[I, O] =
+  def apply[I, O](sink: Sink[I], source: Observable[O]): Pipe[I, O] =
     new ObservableSink[I, O](sink, source)
 
   /**
