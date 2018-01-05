@@ -1,6 +1,6 @@
 package outwatch.util
 
-import cats.effect.IO
+import cats.effect.Effect
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
@@ -21,7 +21,7 @@ object LocalStorageReader {
 object LocalStorageWriter {
   def apply(key: String)(implicit s: Scheduler): Sink[String] = {
     Sink.create[String](
-      data => IO {
+      data => Effect[F].delay {
         localStorage.setItem(key, data)
         Continue
       }

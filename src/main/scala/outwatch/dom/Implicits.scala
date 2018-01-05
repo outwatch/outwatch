@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import cats.effect.IO
+import cats.effect.Effect
 import cats.syntax.apply._
 import com.raquo.domtypes.generic.keys
 import outwatch.ValueModifier
@@ -8,7 +8,7 @@ import outwatch.dom.helpers.BasicStyleBuilder
 
 trait Implicits {
 
-  implicit def valueModifier[T](value: T)(implicit mr: ValueModifier[T]): VDomModifier = mr.asModifier(value)
+  implicit def valueModifier[T,F[_]:Effect](value: T)(implicit mr: ValueModifier[T]): VDomModifier = mr.asModifier[F](value)
 
   implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse VDomModifier.empty
 
@@ -23,7 +23,7 @@ trait Implicits {
 
   implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)
 
-  private[outwatch] implicit class SeqIOSequence[T](args: Seq[IO[T]]) {
-    def sequence: IO[Seq[T]] = args.foldRight(IO.pure(List.empty[T]))((a, l) => a.map2(l)(_ :: _))
+  private[outwatch] implicit class SeqIOSequence[T,F[_]:Effect](args: Seq[F[T]]) {
+    def sequence: F[Seq[T]] = args.foldRight(Effect[F].pure(List.empty[T]))((a, l) => a.map2(l)(_ :: _))
   }
 }

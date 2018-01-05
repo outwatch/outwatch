@@ -1,6 +1,6 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.effect.Effect
 import org.scalajs.dom._
 import outwatch.Sink
 import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, Observable, PostPatchHook, PrePatchHook, UpdateHook}
@@ -23,7 +23,7 @@ trait EmitterBuilder[E <: Event, O] extends Any {
 
   def collect[T](f: PartialFunction[O, T]): TransformingEmitterBuilder[E, T] = transform(_.collect(f))
 
-  def -->(sink: Sink[_ >: O]): IO[Emitter]
+  def -->(sink: Sink[_ >: O]): F[Emitter]
 }
 
 object EmitterBuilder extends TargetOps {
@@ -39,9 +39,9 @@ final case class TransformingEmitterBuilder[E <: Event, O] private[helpers] (
     transformer = tr compose transformer
   )
 
-  def -->(sink: Sink[_ >: O]): IO[Emitter] = {
+  def -->(sink: Sink[_ >: O]): F[Emitter] = {
     val observer = sink.redirect(transformer).observer
-    IO.pure(Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
+    Effect[F].pure(Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
   }
 }
 
@@ -52,15 +52,15 @@ final class SimpleEmitterBuilder[E <: Event] private[helpers](
 
   private[outwatch] def transform[O](transformer: Observable[E] => Observable[O]) = new TransformingEmitterBuilder[E, O](eventType, transformer)
 
-  def -->(sink: Sink[_ >: E]): IO[Emitter] = {
-    IO.pure(Emitter(eventType, event => sink.observer.onNext(event.asInstanceOf[E])))
+  def -->(sink: Sink[_ >: E]): F[Emitter] = {
+    Effect[F].pure(Emitter(eventType, event => sink.observer.onNext(event.asInstanceOf[E])))
   }
 }
 
 trait HookBuilder[E, H <: Hook[_]] {
   def hook(sink: Sink[E]): H
 
-  def -->(sink: Sink[E]): IO[H] = IO.pure(hook(sink))
+  def -->(sink: Sink[E]): F[H] = Effect[F].pure(hook(sink))
 }
 
 object InsertHookBuilder extends HookBuilder[Element, InsertHook] {

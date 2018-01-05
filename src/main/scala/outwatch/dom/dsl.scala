@@ -1,6 +1,6 @@
 package outwatch.dom
 
-object dsl extends Attributes with Tags with Styles {
+abstract class dslEffect[F[_]:Effect] extends Attributes with Tags[F] with Styles[F] {
   object tags extends Tags {
     object extra extends TagsExtra
   }
@@ -20,3 +20,5 @@ object dsl extends Attributes with Tags with Styles {
     object document extends DocumentEvents
   }
 }
+
+object dsl extends dslEffect[cats.effect.IO]

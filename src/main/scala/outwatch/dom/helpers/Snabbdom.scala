@@ -1,6 +1,6 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.effect.Effect
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignCancelable
@@ -103,7 +103,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     hooks: Seq[InsertHook]
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
-    def toProxy(changable: (Seq[Attribute], Seq[IO[StaticVNode]])): VNodeProxy = {
+    def toProxy(changable: (Seq[Attribute], Seq[F[StaticVNode]])): VNodeProxy = {
       val (attributes, nodes) = changable
       val newData = SeparatedAttributes.from(attributes).updateDataObject(proxy.data)
 

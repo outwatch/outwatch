@@ -1,24 +1,24 @@
 package outwatch
 
-import cats.effect.IO
+import cats.effect.Effect
 import outwatch.dom.{VDomModifier_, StringModifier}
 
 trait ValueModifier[T] {
-  def asModifier(value: T): IO[VDomModifier_]
+  def asModifier[F[_]:Effect](value: T): F[VDomModifier_]
 }
 
 object ValueModifier {
 
   implicit object StringRenderer extends ValueModifier[String] {
-    def asModifier(value: String): IO[VDomModifier_] = IO.pure(StringModifier(value))
+    def asModifier[F[_]:Effect](value: String): F[VDomModifier_] = Effect[F].pure(StringModifier(value))
   }
 
   implicit object IntRenderer extends ValueModifier[Int] {
-    def asModifier(value: Int): IO[VDomModifier_] = IO.pure(StringModifier(value.toString))
+    def asModifier[F[_]:Effect](value: Int): F[VDomModifier_] = Effect[F].pure(StringModifier(value.toString))
   }
 
   implicit object DoubleRenderer extends ValueModifier[Double] {
-    def asModifier(value: Double): IO[VDomModifier_] = IO.pure(StringModifier(value.toString))
+    def asModifier[F[_]:Effect](value: Double): F[VDomModifier_] = Effect[F].pure(StringModifier(value.toString))
   }
 
 }

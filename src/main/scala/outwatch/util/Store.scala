@@ -1,6 +1,6 @@
 package outwatch.util
 
-import cats.effect.IO
+import cats.effect.Effect
 import monix.execution.Scheduler
 import monix.execution.{Ack, Cancelable}
 import outwatch.dom.{Observable, OutWatch, VNode}
@@ -12,7 +12,7 @@ import scala.concurrent.Future
 
 
 final case class Store[State, Action](initialState: State,
-                                           reducer: (State, Action) => (State, Option[IO[Action]]),
+                                           reducer: (State, Action) => (State, Option[F[Action]]),
                                            handler: Pipe[Action, Action])(implicit s: Scheduler) {
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
@@ -31,7 +31,7 @@ final case class Store[State, Action](initialState: State,
     newState
   }
 
-  def subscribe(f: State => IO[Future[Ack]]): IO[Cancelable] =
+  def subscribe(f: State => F[Future[Ack]]): F[Cancelable] =
     IO(source.subscribe(f andThen(_.unsafeRunSync())))
 }
 
@@ -41,14 +41,14 @@ object Store {
 
   private val storeRef = STRef.empty
 
-  def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[IO[A]]), selector: String, root: VNode)(implicit s: Scheduler): IO[Unit] = for {
+  def renderWithStore[S, A](initialState: S, reducer: (S, A) => (S, Option[F[A]]), selector: String, root: VNode)(implicit s: Scheduler): F[Unit] = for {
     handler <- Handler.create[A]
     store <- IO(Store(initialState, reducer, handler))
     _ <- storeRef.asInstanceOf[STRef[Store[S, A]]].put(store)
     _ <- OutWatch.renderInto(selector, root)
   } yield ()
 
-  def getStore[S, A]: IO[Store[S, A]] =
+  def getStore[S, A]: F[Store[S, A]] =
     storeRef.asInstanceOf[STRef[Store[S, A]]].getOrThrow(NoStoreException)
 
   private object NoStoreException extends

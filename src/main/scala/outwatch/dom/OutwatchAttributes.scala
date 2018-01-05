@@ -1,7 +1,7 @@
 package outwatch.dom
 
 import outwatch.dom.helpers._
-import cats.effect.IO
+import cats.effect.Effect
 
 /** Trait containing the contents of the `Attributes` module, so they can be
   * mixed in to other objects if needed. This should contain "all" attributes
@@ -72,6 +72,6 @@ trait AttributeHelpers { self: Attributes =>
   def style[T](key: String) = new BasicStyleBuilder[T](key)
 }
 
-trait TagHelpers { self: Tags =>
-  def tag(name: String): VNode= IO.pure(VTree(name, Seq.empty))
+trait TagHelpers[F[_]] { self: Tags[F] =>
+  def tag(name: String): VNode= Effect[F].pure(VTree(name, Seq.empty))
 }

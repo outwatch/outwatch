@@ -1,6 +1,6 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.effect.Effect
 import monix.reactive.subjects.BehaviorSubject
 import outwatch.dom._
 
@@ -153,13 +153,13 @@ private[outwatch] final case class Receivers(
     case _ => (Nil, Children.StreamStatus())
   }
 
-  lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
+  lazy val observable: Observable[(Seq[Attribute], Seq[F[StaticVNode]])] = {
     val childStreamReceivers = if (childStreamStatus.hasChildOrChildren) {
-      childNodes.foldRight(Observable(List.empty[IO[StaticVNode]])) {
-        case (vn: StaticVNode, obs) => obs.combineLatestMap(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
+      childNodes.foldRight(Observable(List.empty[F[StaticVNode]])) {
+        case (vn: StaticVNode, obs) => obs.combineLatestMap(BehaviorSubject(Effect[F].pure(vn)))((nodes, n) => n :: nodes)
         case (csr: ChildStreamReceiver, obs) =>
           obs.combineLatestMap(
-            if (childStreamStatus.hasMultipleChildOrChildren) csr.childStream.startWith(Seq(IO.pure(StringVNode("")))) else csr.childStream
+            if (childStreamStatus.hasMultipleChildOrChildren) csr.childStream.startWith(Seq(Effect[F].pure(StringVNode("")))) else csr.childStream
           )((nodes, n) => n :: nodes)
         case (csr: ChildrenStreamReceiver, obs) =>
           obs.combineLatestMap(
