@@ -3,7 +3,7 @@ package outwatch.dom.helpers
 import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
-import monix.execution.cancelables.SingleAssignmentCancelable
+import monix.execution.cancelables.SingleAssignCancelable
 import org.scalajs.dom
 import outwatch.dom._
 import snabbdom._
@@ -99,7 +99,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   }
 
   private def createInsertHook(receivers: Receivers,
-    subscriptionCancelable: SingleAssignmentCancelable,
+    subscriptionCancelable: SingleAssignCancelable,
     hooks: Seq[InsertHook]
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
@@ -134,7 +134,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
 
   private def createDestroyHook(
-    subscription: SingleAssignmentCancelable, hooks: Seq[DestroyHook]
+    subscription: SingleAssignCancelable, hooks: Seq[DestroyHook]
   ): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
     proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
     subscription.cancel()
@@ -143,7 +143,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
   def toSnabbdom(receivers: Receivers)(implicit s: Scheduler): Hooks = {
     val (insertHook, destroyHook) = if (receivers.nonEmpty) {
-      val subscription = SingleAssignmentCancelable()
+      val subscription = SingleAssignCancelable()
       val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook(receivers, subscription, insertHooks)
       val destroyHook: js.UndefOr[Hooks.HookSingleFn] = createDestroyHook(subscription, destroyHooks)
       (insertHook, destroyHook)
