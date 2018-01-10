@@ -1,6 +1,14 @@
 package outwatch
 
 class HandlerSpec extends JSDomSpec {
+  "Sink" should "have unsafeOnNext" in {
+    val handler = Handler.create[Int].unsafeRunSync()
+    var handlerValue: Int = 0
+    handler(handlerValue = _)
+    handler.unsafeOnNext(5)
+    handlerValue shouldBe 5
+  }
+
   "Handler" should "lens" in {
     val handler = Handler.create[(String, Int)].unsafeRunSync()
     val lensed = handler.lens[Int](("harals", 0))(_._2)((tuple, num) => (tuple._1, num))
