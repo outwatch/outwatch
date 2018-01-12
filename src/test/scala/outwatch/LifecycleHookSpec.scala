@@ -148,7 +148,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     })
 
-    val node = div(child <-- Observable(span("Hello")), span(attributes.key := "1", onPrepatch --> sink, "Hey"))
+    val node = div(child <-- Observable(span("Hello")), span(attributes.key := "1", onPrePatch --> sink, "Hey"))
 
     switch shouldBe false
 
@@ -169,7 +169,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     })
     val message = PublishSubject[String]()
-    val node = div(child <-- message, onPrepatch --> sink1)(onPrepatch --> sink2)
+    val node = div(child <-- message, onPrePatch --> sink1)(onPrePatch --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
@@ -189,7 +189,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     })
 
-    val node = div(child <-- Observable("message"), onPostpatch --> sink, "Hey")
+    val node = div(child <-- Observable("message"), onPostPatch --> sink, "Hey")
 
     switch shouldBe false
 
@@ -211,7 +211,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     })
     val message = PublishSubject[String]()
-    val node = div(child <-- message, onPostpatch --> sink1)(onPostpatch --> sink2)
+    val node = div(child <-- message, onPostPatch --> sink1)(onPostPatch --> sink2)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     switch1 shouldBe false
@@ -260,9 +260,9 @@ class LifecycleHookSpec extends JSDomSpec {
     val message = PublishSubject[String]()
     val node = div(child <-- message,
       onInsert --> insertSink,
-      onPrepatch --> prepatchSink,
+      onPrePatch --> prepatchSink,
       onUpdate --> updateSink,
-      onPostpatch --> postpatchSink,
+      onPostPatch --> postpatchSink,
       onDestroy --> destroySink
     )
 
