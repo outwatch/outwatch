@@ -59,13 +59,13 @@ trait AttributesCompat { self: Attributes =>
   lazy val insert = onInsert
 
   @deprecated("Use onPrepatch instead", "0.11.0")
-  lazy val prepatch = onPrepatch
+  lazy val prepatch = onPrePatch
 
   @deprecated("Use onUpdate instead", "0.11.0")
   lazy val update = onUpdate
 
   @deprecated("Use onPostpatch instead", "0.11.0")
-  lazy val postpatch = onPostpatch
+  lazy val postpatch = onPostPatch
 
   @deprecated("Use onDestroy instead", "0.11.0")
   lazy val destroy = onDestroy

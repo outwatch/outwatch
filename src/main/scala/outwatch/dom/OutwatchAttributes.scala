@@ -34,7 +34,7 @@ trait OutWatchLifeCycleAttributes {
   lazy val onInsert   = InsertHookBuilder
 
   /** Lifecycle hook for component prepatch. */
-  lazy val onPrepatch   = PrePatchHookBuilder
+  lazy val onPrePatch   = PrePatchHookBuilder
 
   /** Lifecycle hook for component updates. */
   lazy val onUpdate   = UpdateHookBuilder
@@ -44,7 +44,7 @@ trait OutWatchLifeCycleAttributes {
     *
     *  This hook is invoked every time a node has been patched against an older instance of itself.
     */
-  lazy val onPostpatch   = PostPatchHookBuilder
+  lazy val onPostPatch   = PostPatchHookBuilder
 
   /**
     * Lifecycle hook for component destruction.
