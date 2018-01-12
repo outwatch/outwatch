@@ -3,6 +3,7 @@ package outwatch.dom.helpers
 import cats.effect.IO
 import org.scalajs.dom._
 import outwatch.Sink
+import monix.reactive.Observer
 import outwatch.dom.{DestroyHook, Emitter, Hook, InsertHook, Observable, PostPatchHook, PrePatchHook, UpdateHook}
 
 
@@ -63,22 +64,22 @@ trait HookBuilder[E, H <: Hook[_]] {
   def -->(sink: Sink[E]): IO[H] = IO.pure(hook(sink))
 }
 
-object InsertHookBuilder extends HookBuilder[Element, InsertHook] {
-  def hook(sink: Sink[Element]) = InsertHook(sink.observer)
+object InsertHookBuilder extends HookBuilder[html.Element, InsertHook] {
+  def hook(sink: Sink[html.Element]) = InsertHook(sink.observer.asInstanceOf[Observer[Element]])
 }
 
-object PrePatchHookBuilder extends HookBuilder[(Option[Element], Option[Element]), PrePatchHook] {
-  def hook(sink: Sink[(Option[Element], Option[Element])]) = PrePatchHook(sink.observer)
+object PrePatchHookBuilder extends HookBuilder[(Option[html.Element], Option[html.Element]), PrePatchHook] {
+  def hook(sink: Sink[(Option[html.Element], Option[html.Element])]) = PrePatchHook(sink.observer.asInstanceOf[Observer[(Option[Element],Option[Element])]])
 }
 
-object UpdateHookBuilder extends HookBuilder[(Element, Element), UpdateHook] {
-  def hook(sink: Sink[(Element, Element)]) = UpdateHook(sink.observer)
+object UpdateHookBuilder extends HookBuilder[(html.Element, html.Element), UpdateHook] {
+  def hook(sink: Sink[(html.Element, html.Element)]) = UpdateHook(sink.observer.asInstanceOf[Observer[(Element,Element)]])
 }
 
-object PostPatchHookBuilder extends HookBuilder[(Element, Element), PostPatchHook] {
-  def hook(sink: Sink[(Element, Element)]) = PostPatchHook(sink.observer)
+object PostPatchHookBuilder extends HookBuilder[(html.Element, html.Element), PostPatchHook] {
+  def hook(sink: Sink[(html.Element, html.Element)]) = PostPatchHook(sink.observer.asInstanceOf[Observer[(Element,Element)]])
 }
 
-object DestroyHookBuilder extends HookBuilder[Element, DestroyHook] {
-  def hook(sink: Sink[Element]) = DestroyHook(sink.observer)
+object DestroyHookBuilder extends HookBuilder[html.Element, DestroyHook] {
+  def hook(sink: Sink[html.Element]) = DestroyHook(sink.observer.asInstanceOf[Observer[Element]])
 }
