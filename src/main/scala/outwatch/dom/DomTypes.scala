@@ -9,21 +9,32 @@ import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.jsdom.defs.eventProps._
-import cats.effect.IO
 import org.scalajs.dom
 import helpers._
 import monix.execution.{Ack, Cancelable}
 import monix.reactive.OverflowStrategy.Unbounded
+import cats.effect.Effect
 
 import scala.scalajs.js
 
-private[outwatch] object DomTypesBuilder {
-  type VNode = IO[VTree]
-  type GenericVNode[T] = VNode
 
-  trait VNodeBuilder extends TagBuilder[GenericVNode, VNode] {
+trait Types[F[_]] {
+  implicit val e:Effect[F]
+
+  type VNode = F[VTree]
+  type GenericVNode[_] = VNode
+}
+
+// abstract class Types[F[_]:Effect] {
+//   type VNode = F[VTree]
+//   type GenericVNode[_] = VNode
+// }
+
+private[outwatch] object DomTypesBuilder {
+  trait VNodeBuilder[F[_]] extends TagBuilder[Types[F]#GenericVNode, Types[F]#VNode] {
+    implicit val e:Effect[F]
     // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-    protected override def tag[Ref <: VNode](tagName: String, void: Boolean): VNode = IO.pure(VTree(tagName, Seq.empty))
+    protected override def tag[Ref <: Types[F]#VNode](tagName: String, void: Boolean): Types[F]#VNode = Effect[F].pure(VTree(tagName, Seq.empty))
   }
 
   object CodecBuilder {
@@ -49,24 +60,24 @@ private[outwatch] object DomTypesBuilder {
 }
 import DomTypesBuilder._
 
-trait Tags
-  extends EmbedTags[GenericVNode, VNode]
-  with GroupingTags[GenericVNode, VNode]
-  with TextTags[GenericVNode, VNode]
-  with FormTags[GenericVNode, VNode]
-  with SectionTags[GenericVNode, VNode]
-  with TableTags[GenericVNode, VNode]
-  with VNodeBuilder
-  with TagHelpers
-  with TagsCompat
+trait Tags[F[_]]
+  extends EmbedTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with GroupingTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with TextTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with FormTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with SectionTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with TableTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with VNodeBuilder[F]
+  with TagHelpers[F]
+  with TagsCompat[F]
 
-@deprecated("Use dsl.tags instead", "0.11.0")
-object Tags extends Tags
+// @deprecated("Use dsl.tags instead", "0.11.0")
+// object Tags extends Tags
 
-trait TagsExtra
-  extends DocumentTags[GenericVNode, VNode]
-  with MiscTags[GenericVNode, VNode]
-  with VNodeBuilder
+trait TagsExtra[F[_]]
+  extends DocumentTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with MiscTags[Types[F]#GenericVNode, Types[F]#VNode]
+  with VNodeBuilder[F]
 
 trait Attributes
   extends Attrs
@@ -135,17 +146,18 @@ abstract class DocumentEvents
   with DocumentEventProps[Observable]
 
 
-private[outwatch] trait SimpleStyleBuilder extends StyleBuilders[IO[Style]] {
-  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): IO[Style] = style := value
-  override protected def buildIntStyleSetter(style: keys.Style[Int],value: Int): IO[Style] = style := value
-  override protected def buildStringStyleSetter(style: keys.Style[_],value: String): IO[Style] = new BasicStyleBuilder[Any](style.cssName) := value
+private[outwatch] trait SimpleStyleBuilder[F[+_]] extends StyleBuilders[F[Style]] {
+  implicit val e:Effect[F]
+  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): F[Style] = style.:=[F](value)
+  override protected def buildIntStyleSetter(style: keys.Style[Int],value: Int): F[Style] = style.:=[F](value)
+  override protected def buildStringStyleSetter(style: keys.Style[_],value: String): F[Style] = new BasicStyleBuilder[Any](style.cssName).:=[F](value)
 }
 
 
-trait Styles
-  extends styles.Styles[IO[Style]]
-  with SimpleStyleBuilder
+trait Styles[F[_]]
+  extends styles.Styles[F[Style]]
+  with SimpleStyleBuilder[F]
 
-trait StylesExtra
-  extends styles.Styles2[IO[Style]]
-  with SimpleStyleBuilder
+trait StylesExtra[F[_]]
+  extends styles.Styles2[F[Style]]
+  with SimpleStyleBuilder[F]

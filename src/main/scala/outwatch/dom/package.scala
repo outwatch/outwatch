@@ -1,13 +1,14 @@
 package outwatch
 
-import cats.effect.IO
+import outwatch.dom._
+import cats.effect.Effect
 
-package object dom extends Implicits with ManagedSubscriptions with SideEffects {
+abstract class domEffect[F[_]:Effect] extends Implicits with ManagedSubscriptions with SideEffects {
 
-  type VNode = IO[VTree]
-  type VDomModifier = IO[VDomModifier_]
+  type VNode = F[VTree]
+  type VDomModifier = F[VDomModifier_]
   object VDomModifier {
-    val empty: VDomModifier = IO.pure(EmptyModifier)
+    val empty: VDomModifier = Effect[F].pure(EmptyModifier)
 
     def apply(modifiers: VDomModifier*): VDomModifier = modifiers.sequence.map(CompositeModifier)
   }
@@ -24,3 +25,5 @@ package object dom extends Implicits with ManagedSubscriptions with SideEffects 
   type Handler[T] = outwatch.Handler[T]
   val Handler = outwatch.Handler
 }
+
+package object dom extends domEffect[cats.effect.IO]

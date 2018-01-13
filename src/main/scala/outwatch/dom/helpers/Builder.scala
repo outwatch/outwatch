@@ -1,6 +1,7 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.effect.Effect
+import cats.effect.implicits._
 import outwatch.StaticVNodeRender
 
 import scala.language.dynamics
@@ -10,16 +11,16 @@ trait ValueBuilder[-T, +SELF <: Attribute] extends Any {
   protected def attributeName: String
   private[outwatch] def assign(value: T): SELF
 
-  def :=(value: T): IO[SELF] = IO.pure(assign(value))
+  def :=[F[_]:Effect](value: T): F[SELF] = Effect[F].pure(assign(value))
   def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
-  def <--(valueStream: Observable[T]): IO[AttributeStreamReceiver] = {
-    IO.pure(AttributeStreamReceiver(attributeName, valueStream.map(assign)))
+  def <--[F[_]:Effect](valueStream: Observable[T]): F[AttributeStreamReceiver] = {
+    Effect[F].pure(AttributeStreamReceiver(attributeName, valueStream.map(assign)))
   }
 }
 
 object ValueBuilder {
-  implicit def toAttribute(builder: ValueBuilder[Boolean, Attr]): IO[Attribute] = builder := true
-  implicit def toProperty(builder: ValueBuilder[Boolean, Prop]): IO[Property] = builder := true
+  implicit def toAttribute[F[_]:Effect](builder: ValueBuilder[Boolean, Attr]): F[Attribute] = builder := true
+  implicit def toProperty[F[_]:Effect](builder: ValueBuilder[Boolean, Prop]): F[Property] = builder := true
 }
 
 trait AccumulateOps[T] { self: ValueBuilder[T, BasicAttr] =>
@@ -92,18 +93,18 @@ final class AccumStyleBuilder[T](val attributeName: String, reducer: (String, St
 
 
 object KeyBuilder {
-  def :=(key: Key.Value): IO[Key] = IO.pure(Key(key))
+  def :=[F[_]:Effect](key: Key.Value): F[Key] = Effect[F].pure(Key(key))
 }
 
 // TODO: avoid nested IO?
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO.pure(
+  def <--[T, F[_]:Effect](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): F[ChildStreamReceiver] = Effect[F].pure(
     ChildStreamReceiver(valueStream.map(r.render))
   )
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = IO.pure(
+  def <--[F[_]:Effect](childrenStream: Observable[Seq[VNode]]): F[ChildrenStreamReceiver] = Effect[F].pure(
     ChildrenStreamReceiver(childrenStream)
   )
 }

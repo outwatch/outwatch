@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import cats.effect.IO
+import cats.effect.Effect
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
@@ -139,8 +139,8 @@ sealed trait StaticVNode extends Any with ChildVNode {
   def asProxy(implicit s: Scheduler): VNodeProxy
 }
 
-final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends ChildVNode
-final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends ChildVNode
+final case class ChildStreamReceiver(childStream: Observable[F[StaticVNode]]) extends ChildVNode
+final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[F[StaticVNode]]]) extends ChildVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {

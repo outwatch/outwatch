@@ -1,6 +1,7 @@
 package outwatch.http
 
-import cats.effect.IO
+import cats.Eval.always
+import cats.effect.Effect
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.scalajs.dom.ext.Ajax.InputData
@@ -85,8 +86,8 @@ object Http {
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType)(implicit s: Scheduler) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)
 
-  def single(request: Request, method: HttpRequestType)(implicit s: Scheduler): IO[Response] =
-    IO.fromFuture(IO(ajax(request.copy(method = method.toString)))).map(toResponse)
+  def single(request: Request, method: HttpRequestType)(implicit s: Scheduler): F[Response] =
+    IO.fromFuture(always(ajax(request.copy(method = method.toString)))).map(toResponse)
 
   def getWithUrl(urls: Observable[String])(implicit s: Scheduler) = requestWithUrl(urls, Get)
 
