@@ -821,4 +821,15 @@ class OutWatchDomSpec extends JSDomSpec {
     node.disabled shouldBe true
   }
 
+  "Children stream" should "work for string sequences" in {
+    val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
+    val node = div(id := "strings",
+      children <-- myStrings
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "ab"
+  }
 }
