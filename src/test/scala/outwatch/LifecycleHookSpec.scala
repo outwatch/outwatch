@@ -407,5 +407,10 @@ class LifecycleHookSpec extends JSDomSpec {
     latest shouldBe "first"
   }
 
+  "Hooks" should "accept Sink[html.Element]" in {
+      val node = input(onInsert --> sideEffect(_.focus()))
+      OutWatch.renderInto("#app", node).unsafeRunSync()
+  }
+
 
 }
