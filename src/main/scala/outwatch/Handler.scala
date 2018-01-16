@@ -5,7 +5,7 @@ import monix.execution.Scheduler
 import outwatch.dom.Observable
 
 object Handler {
-  private[outwatch] def apply[T](sink: Sink[T], source: Observable[T]): Handler[T] = Pipe(sink, source)
+  def apply[T](sink: Sink[T], source: Observable[T]): Handler[T] = Pipe(sink, source)
 
   /**
     * This function also allows you to create initial values for your newly created Handler.
