@@ -17,6 +17,12 @@ import monix.reactive.OverflowStrategy.Unbounded
 
 import scala.scalajs.js
 
+private[outwatch] object Builders {
+  type Attribute[T, _] = helpers.ValueBuilder[T, Attr]
+  type Property[T, _] = helpers.PropertyBuilder[T]
+  type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[E, Emitter]
+}
+
 private[outwatch] object DomTypesBuilder {
   type VNode = IO[VTree]
   type GenericVNode[T] = VNode
@@ -27,9 +33,6 @@ private[outwatch] object DomTypesBuilder {
   }
 
   object CodecBuilder {
-    type Attribute[T, _] = ValueBuilder[T, Attr]
-    type Property[T, _] = PropertyBuilder[T]
-
     def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = codec match {
       //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
       //encodes true as "" and false as null, whereas snabbdom needs true/false
@@ -92,8 +95,8 @@ trait Attrs
 // Reflected attrs
 
 trait ReflectedAttrs
-  extends reflectedAttrs.ReflectedAttrs[CodecBuilder.Attribute]
-  with ReflectedAttrBuilder[CodecBuilder.Attribute] {
+  extends reflectedAttrs.ReflectedAttrs[Builders.Attribute]
+  with ReflectedAttrBuilder[Builders.Attribute] {
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
   override lazy val className = new AccumAttributeBuilder[String]("class",
@@ -112,18 +115,18 @@ trait ReflectedAttrs
 
 // Props
 trait Props
-  extends props.Props[CodecBuilder.Property]
-  with PropBuilder[CodecBuilder.Property] {
+  extends props.Props[Builders.Property]
+  with PropBuilder[Builders.Property] {
 
   override protected def prop[V, DomV](key: String, codec: Codec[V, DomV]): PropertyBuilder[V] =
     new PropertyBuilder(key, codec.encode)
 }
 
 trait Events
-  extends HTMLElementEventProps[SimpleEmitterBuilder]
-  with EventPropBuilder[SimpleEmitterBuilder, dom.Event] {
+  extends HTMLElementEventProps[Builders.EventEmitter]
+  with EventPropBuilder[Builders.EventEmitter, dom.Event] {
 
-  override def eventProp[V <: dom.Event](key: String): SimpleEmitterBuilder[V] =  EmitterBuilder[V](key)
+  override def eventProp[V <: dom.Event](key: String): Builders.EventEmitter[V] =  EmitterBuilder[V](key)
 }
 
 abstract class WindowEvents
