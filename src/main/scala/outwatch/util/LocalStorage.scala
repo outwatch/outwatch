@@ -12,6 +12,28 @@ import cats.implicits._
 import outwatch.Handler
 
 object Storage {
+  private def handlerWithTransform(domStorage: dom.Storage, key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
+    val storage = new dom.ext.Storage(domStorage)
+
+    for {
+      h <- Handler.create[Option[String]](storage(key))
+    } yield {
+      // We execute the write-action to the storage
+      // and pass the written value through to the underlying handler h
+      h.transformHandler(o => transform(o).distinctUntilChanged) { input =>
+        input.foreach {
+          case Some(data) => storage.update(key, data)
+          case None => storage.remove(key)
+        }
+        input
+      }
+    }
+  }
+
+  def handlerWithoutEvents(domStorage: dom.Storage)(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+    handlerWithTransform(domStorage, key, identity)
+  }
+
   def handler(domStorage: dom.Storage)(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     // StorageEvents are only fired if the localStorage was changed in another window
     val storageEvents: Observable[Option[String]] = events.window.onStorage
@@ -24,30 +46,23 @@ object Storage {
           // storage.clear() emits an event with key == null
           None
       }
-    val storage = new dom.ext.Storage(domStorage)
 
-    for {
-      h <- Handler.create[Option[String]](storage(key))
-    } yield {
-      // We execute the write-action to the storage
-      // and pass the written value through to the underlying handler h
-      h.transformHandler(Observable.merge(_, storageEvents).distinctUntilChanged) { input =>
-        input.foreach {
-          case Some(data) => storage.update(key, data)
-          case None => storage.remove(key)
-        }
-        input
-      }
-    }
+    handlerWithTransform(domStorage, key, Observable.merge(_, storageEvents))
   }
 }
 
 object LocalStorage {
+  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
+    Storage.handlerWithoutEvents(localStorage)(key)(scheduler)
+
   def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
     Storage.handler(localStorage)(key)(scheduler)
 }
 
 object SessionStorage {
+  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
+    Storage.handlerWithoutEvents(sessionStorage)(key)(scheduler)
+
   def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
     Storage.handler(sessionStorage)(key)(scheduler)
 }
