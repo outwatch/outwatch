@@ -11,8 +11,8 @@ import outwatch.dom.dsl.events
 import cats.implicits._
 import outwatch.Handler
 
-object Storage {
-  private def handlerWithTransform(domStorage: dom.Storage, key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
+class Storage(domStorage: dom.Storage) {
+  private def handlerWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
@@ -30,11 +30,11 @@ object Storage {
     }
   }
 
-  def handlerWithoutEvents(domStorage: dom.Storage)(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
-    handlerWithTransform(domStorage, key, identity)
+  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+    handlerWithTransform(key, identity)
   }
 
-  def handler(domStorage: dom.Storage)(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     // StorageEvents are only fired if the localStorage was changed in another window
     val storageEvents: Observable[Option[String]] = events.window.onStorage
       .collect {
@@ -47,23 +47,9 @@ object Storage {
           None
       }
 
-    handlerWithTransform(domStorage, key, Observable.merge(_, storageEvents))
+    handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
 }
 
-object LocalStorage {
-  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
-    Storage.handlerWithoutEvents(localStorage)(key)(scheduler)
-
-  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
-    Storage.handler(localStorage)(key)(scheduler)
-}
-
-object SessionStorage {
-  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
-    Storage.handlerWithoutEvents(sessionStorage)(key)(scheduler)
-
-  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
-    Storage.handler(sessionStorage)(key)(scheduler)
-}
-
+object LocalStorage extends Storage(localStorage)
+object SessionStorage extends Storage(sessionStorage)
