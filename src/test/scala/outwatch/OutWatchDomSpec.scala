@@ -8,10 +8,13 @@ import outwatch.dom.helpers._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import snabbdom.{DataObject, hFunction}
+import org.scalajs.dom.window.localStorage
 
 import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
+
+import scala.collection.mutable
 
 class OutWatchDomSpec extends JSDomSpec {
 
@@ -831,5 +834,55 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "ab"
+  }
+
+  "LocalStorage" should "provide a handler" in {
+    implicit val scheduler = trampolineScheduler
+
+    val key = "banana"
+    val triggeredHandlerEvents = mutable.ArrayBuffer.empty[Option[String]]
+
+    assert(localStorage.getItem(key) == null)
+
+    val storageHandler = util.LocalStorage.handler(key).unsafeRunSync()
+    storageHandler.foreach{e => triggeredHandlerEvents += e}
+    assert(localStorage.getItem(key) == null)
+    assert(triggeredHandlerEvents.toList == List(None))
+
+    storageHandler.unsafeOnNext(Some("joe"))
+    assert(localStorage.getItem(key) == "joe")
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe")))
+
+    var initialValue:Option[String] = null
+    util.LocalStorage.handler(key).unsafeRunSync().foreach {initialValue = _}
+    assert(initialValue == Some("joe"))
+
+    storageHandler.unsafeOnNext(None)
+    assert(localStorage.getItem(key) == null)
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None))
+
+    // localStorage.setItem(key, "split") from another window
+    dispatchStorageEvent(key, newValue = "split", null)
+    assert(localStorage.getItem(key) == "split")
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split")))
+
+    // localStorage.removeItem(key) from another window
+    dispatchStorageEvent(key, null, "split")
+    assert(localStorage.getItem(key) == null)
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
+
+    // only trigger handler if value changed
+    storageHandler.unsafeOnNext(None)
+    assert(localStorage.getItem(key) == null)
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
+
+    storageHandler.unsafeOnNext(Some("rhabarbar"))
+    assert(localStorage.getItem(key) == "rhabarbar")
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar")))
+
+    // localStorage.clear() from another window
+    dispatchStorageEvent(null, null, null)
+    assert(localStorage.getItem(key) == null)
+    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar"), None))
   }
 }
