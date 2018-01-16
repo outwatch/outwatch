@@ -27,7 +27,7 @@ trait EmitterBuilder[E, O, R] extends Any {
   def -->(sink: Sink[_ >: O]): IO[R]
 }
 
-object EmitterBuilder extends TargetOps {
+object EmitterBuilder extends EmitterOps {
   def apply[E <: Event](eventType: String): SimpleEmitterBuilder[E, Emitter] =
     SimpleEmitterBuilder[E, Emitter](observer => Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
 }
