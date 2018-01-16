@@ -27,28 +27,26 @@ trait LocalStorageMock {
   import scala.scalajs.js
 
 
-  if(js.isUndefined(window.localStorage)) {
-
+  if (js.isUndefined(window.localStorage)) {
     js.Dynamic.global.window.updateDynamic("localStorage")(new js.Object {
-      val map = new mutable.HashMap[String, String]
+      private val map = new mutable.HashMap[String, String]
 
       def getItem(key: String): String = map.getOrElse(key, null)
+
       def setItem(key: String, value: String): Unit = {
-        val oldValue = getItem(key)
         map += key -> value
       }
+
       def removeItem(key: String): Unit = {
-        val oldValue = getItem(key)
         map -= key
       }
-      def clear(): Unit = {
-        map.clear()
-      }
+
+      def clear(): Unit = map.clear()
     })
   }
 
-  def dispatchStorageEvent(key:String, newValue:String, oldValue:String):Unit = {
-    if(key == null) window.localStorage.clear()
+  def dispatchStorageEvent(key: String, newValue: String, oldValue: String): Unit = {
+    if (key == null) window.localStorage.clear()
     else window.localStorage.setItem(key, newValue)
 
     val event = document.createEvent("Events")
@@ -58,6 +56,7 @@ trait LocalStorageMock {
     event.asInstanceOf[js.Dynamic].oldValue = oldValue
     event.asInstanceOf[js.Dynamic].storageArea = window.localStorage
     window.dispatchEvent(event)
+    ()
   }
 }
 

@@ -43,10 +43,12 @@ object Storage {
 }
 
 object LocalStorage {
-  def handler(key: String)(implicit scheduler: Scheduler) = Storage.handler(localStorage)(key)(scheduler)
+  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
+    Storage.handler(localStorage)(key)(scheduler)
 }
 
 object SessionStorage {
-  def handler(key: String)(implicit scheduler: Scheduler) = Storage.handler(sessionStorage)(key)(scheduler)
+  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] =
+    Storage.handler(sessionStorage)(key)(scheduler)
 }
 
