@@ -59,6 +59,7 @@ scalacOptions ++= {
       Nil
     case _             =>
       "-Ywarn-unused" ::
+      "-Xexperimental" ::   // SAM conversion
       Nil
   }
 }

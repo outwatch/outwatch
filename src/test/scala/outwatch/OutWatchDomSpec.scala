@@ -824,6 +824,29 @@ class OutWatchDomSpec extends JSDomSpec {
     node.disabled shouldBe true
   }
 
+  it should "correctly work with AsVDomModifier conversions" in {
+
+    val node = document.createElement("div")
+
+    OutWatch.renderReplace(node, div("one")).unsafeRunSync()
+    node.innerHTML shouldBe "one"
+
+    OutWatch.renderReplace(node, div(1)).unsafeRunSync()
+    node.innerHTML shouldBe "1"
+
+    OutWatch.renderReplace(node, div(1.0)).unsafeRunSync()
+    node.innerHTML shouldBe "1"
+
+    OutWatch.renderReplace(node, div(Seq("one", "two"))).unsafeRunSync()
+    node.innerHTML shouldBe "onetwo"
+
+    OutWatch.renderReplace(node, div(Seq(1, 2))).unsafeRunSync()
+    node.innerHTML shouldBe "12"
+
+    OutWatch.renderReplace(node, div(Seq(1.0, 2.0))).unsafeRunSync()
+    node.innerHTML shouldBe "12"
+  }
+
   "Children stream" should "work for string sequences" in {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
     val node = div(id := "strings",

@@ -3,22 +3,15 @@ package outwatch.dom
 import cats.effect.IO
 import cats.syntax.apply._
 import com.raquo.domtypes.generic.keys
-import outwatch.ValueModifier
+import outwatch.AsVDomModifier
 import outwatch.dom.helpers.BasicStyleBuilder
 
 trait Implicits {
 
-  implicit def valueModifier[T](value: T)(implicit mr: ValueModifier[T]): VDomModifier = mr.asModifier(value)
-
-  implicit def optionIsEmptyModifier(opt: Option[VDomModifier]): VDomModifier = opt getOrElse VDomModifier.empty
-
-  implicit def compositeModifier(modifiers: Seq[VDomModifier]): VDomModifier = VDomModifier.apply(modifiers : _*)
+  implicit def asVDomModifier[T](value: T)(implicit vm: AsVDomModifier[T]): VDomModifier = vm.asVDomModifier(value)
 
   implicit class ioVTreeMerge(vnode: VNode) {
-    def apply(args: VDomModifier*): VNode = for {
-      vnode <- vnode
-      args <- args.sequence
-    } yield vnode(args: _*)
+    def apply(args: VDomModifier*): VNode = vnode.flatMap(_.apply(args: _*))
   }
 
   implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)

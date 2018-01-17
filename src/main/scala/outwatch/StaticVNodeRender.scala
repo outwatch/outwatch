@@ -1,17 +1,13 @@
 package outwatch
 
 import cats.effect.IO
-import outwatch.dom.{StaticVNode, StringVNode, VNode}
+import outwatch.dom.{StaticVNode, StringVNode}
 
-trait StaticVNodeRender[T] {
+trait StaticVNodeRender[-T] {
   def render(value: T): IO[StaticVNode]
 }
 
 object StaticVNodeRender {
-
-  implicit object VNodeRender extends StaticVNodeRender[VNode] {
-    def render(value: VNode): IO[StaticVNode] = value
-  }
 
   implicit object StringRender extends StaticVNodeRender[String] {
     def render(value: String): IO[StaticVNode] = IO.pure(StringVNode(value))
