@@ -831,6 +831,13 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderReplace(node, div("one")).unsafeRunSync()
     node.innerHTML shouldBe "one"
 
+    OutWatch.renderReplace(node, div(Some("one"))).unsafeRunSync()
+    node.innerHTML shouldBe "one"
+
+    val node2 = document.createElement("div")
+    OutWatch.renderReplace(node2, div(None:Option[Int])).unsafeRunSync()
+    node2.innerHTML shouldBe ""
+
     OutWatch.renderReplace(node, div(1)).unsafeRunSync()
     node.innerHTML shouldBe "1"
 
@@ -857,6 +864,36 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "ab"
+  }
+
+  "Child stream" should "work for string options" in {
+    val myOption: Handler[Option[String]] = Handler.create(Option("a")).unsafeRunSync()
+    val node = div(id := "strings",
+      child <-- myOption
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "a"
+
+    myOption.unsafeOnNext(None)
+    element.innerHTML shouldBe ""
+  }
+
+  "Child stream" should "work for vnode options" in {
+    val myOption: Handler[Option[VNode]] = Handler.create(Option(div("a"))).unsafeRunSync()
+    val node = div(id := "strings",
+      child <-- myOption
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "<div>a</div>"
+
+    myOption.unsafeOnNext(None)
+    element.innerHTML shouldBe ""
   }
 
   "LocalStorage" should "provide a handler" in {
