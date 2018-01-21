@@ -14,7 +14,7 @@ object StaticVNodeRender {
   }
 
   implicit def optionRender[T](implicit svnr: StaticVNodeRender[T]): StaticVNodeRender[Option[T]] = {
-    (value: Option[T]) => value.fold(IO.pure(StringVNode(""):StaticVNode))(svnr.render _)
+    (value: Option[T]) => value.fold(IO.pure(StaticVNode.empty))(svnr.render _)
   }
 
   implicit object StringRender extends StaticVNodeRender[String] {
