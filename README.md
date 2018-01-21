@@ -11,6 +11,12 @@ Then add the following line to your `build.sbt`.
 libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.10.2"
 ```
 
+Please test the latest release candidate and report any issues and questions you encounter:
+
+```scala
+libraryDependencies += "io.github.outwatch" %%% "outwatch" % "1.0.0-RC2"
+```
+
 If you are curious and want to try the state of the current `master` branch, add the following instead:
 
 ```scala
