@@ -159,7 +159,7 @@ private[outwatch] final case class Receivers(
         case (vn: StaticVNode, obs) => obs.combineLatestMap(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
         case (csr: ChildStreamReceiver, obs) =>
           obs.combineLatestMap(
-            if (childStreamStatus.hasMultipleChildOrChildren) csr.childStream.startWith(Seq(IO.pure(StringVNode("")))) else csr.childStream
+            if (childStreamStatus.hasMultipleChildOrChildren) csr.childStream.startWith(Seq(IO.pure(StaticVNode.empty))) else csr.childStream
           )((nodes, n) => n :: nodes)
         case (csr: ChildrenStreamReceiver, obs) =>
           obs.combineLatestMap(

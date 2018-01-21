@@ -138,6 +138,9 @@ private[outwatch] final case class DestroyHook(observer: Observer[Element]) exte
 sealed trait StaticVNode extends Any with ChildVNode {
   def asProxy(implicit s: Scheduler): VNodeProxy
 }
+object StaticVNode {
+  val empty: StaticVNode = StringVNode("")
+}
 
 final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends ChildVNode
 final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends ChildVNode
