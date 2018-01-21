@@ -41,7 +41,6 @@ VDomModifier_
   Emitter
   AttributeStreamReceiver
   CompositeModifier
-  StringModifier
   EmptyModifier
  */
 
@@ -60,7 +59,6 @@ private[outwatch] final case class CompositeModifier(modifiers: Seq[VDomModifier
 
 case object EmptyModifier extends VDomModifier_
 
-private[outwatch] final case class StringModifier(string: String) extends VDomModifier_
 
 sealed trait ChildVNode extends Any with VDomModifier_
 

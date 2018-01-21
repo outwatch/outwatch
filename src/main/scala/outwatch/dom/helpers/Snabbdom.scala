@@ -206,8 +206,6 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
         implicit val scheduler = s
         val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
         hFunction(nodeType, dataObject, childProxies)
-      case Children.StringModifiers(textChildren) =>
-        hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)
       case Children.Empty =>
         hFunction(nodeType, dataObject)
     }
