@@ -25,38 +25,21 @@ private[outwatch] final case class SeparatedModifiers(
     case em: Emitter => copy(emitters = em :: emitters)
     case rc: AttributeStreamReceiver => copy(attributeReceivers = rc :: attributeReceivers)
     case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
-    case sm: StringModifier => copy(children = sm :: children)
     case EmptyModifier => self
   }
 }
 
 private[outwatch] trait Children {
-  def ::(mod: StringModifier): Children
-
   def ::(node: ChildVNode): Children
 
   def ensureKey: Children = this
 }
 
 object Children {
-  private def toVNode(mod: StringModifier) = StringVNode(mod.string)
-  private def toModifier(node: StringVNode) = StringModifier(node.string)
-
   private[outwatch] case object Empty extends Children {
-    override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
-
     override def ::(node: ChildVNode): Children = node match {
-      case s: StringVNode => toModifier(s) :: this
+      case s: StringVNode => s :: this
       case n => n :: VNodes(Nil, StreamStatus())
-    }
-  }
-
-  private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
-    override def ::(mod: StringModifier): Children = copy(mod :: modifiers)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StringVNode => toModifier(s) :: this // this should never happen
-      case n => n :: VNodes(modifiers.map(toVNode), StreamStatus())
     }
   }
 
@@ -68,8 +51,6 @@ object Children {
     }
 
     override def ensureKey: Children = if (streamStatus.hasChildOrChildren) copy(nodes = nodes.map(ensureVNodeKey)) else this
-
-    override def ::(mod: StringModifier): Children = copy(toVNode(mod) :: nodes)
 
     override def ::(node: ChildVNode): Children = node match {
       case s: StaticVNode => copy(nodes = s :: nodes)

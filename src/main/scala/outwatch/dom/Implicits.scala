@@ -17,6 +17,7 @@ trait Implicits {
   implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)
 
   private[outwatch] implicit class SeqIOSequence[T](args: Seq[IO[T]]) {
+    //TODO: is it possible to use a cats instance instead?
     def sequence: IO[Seq[T]] = args.foldRight(IO.pure(List.empty[T]))((a, l) => a.map2(l)(_ :: _))
   }
 }

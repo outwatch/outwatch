@@ -9,11 +9,11 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import snabbdom.{DataObject, hFunction}
 import org.scalajs.dom.window.localStorage
+import outwatch.dom.helpers.Children.{StreamStatus, VNodes}
 
 import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
-
 import scala.collection.mutable
 
 class OutWatchDomSpec extends JSDomSpec {
@@ -45,7 +45,7 @@ class OutWatchDomSpec extends JSDomSpec {
       Attribute("class", "red"),
       EmptyModifier,
       Emitter("click", _ => Continue),
-      new StringModifier("Test"),
+      StringVNode("Test"),
       div().unsafeRunSync(),
       CompositeModifier(
         Seq(
@@ -78,7 +78,7 @@ class OutWatchDomSpec extends JSDomSpec {
       AttributeStreamReceiver("hidden",Observable()),
       AttributeStreamReceiver("disabled",Observable()),
       Emitter("keyup",  _ => Continue),
-      StringModifier("text"),
+      StringVNode("text"),
       div().unsafeRunSync()
     )
 
@@ -102,19 +102,22 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("keyup",  _ => Continue),
       AttributeStreamReceiver("hidden",Observable()),
       AttributeStreamReceiver("disabled",Observable()),
-      StringModifier("text"),
-      StringVNode("text2")
+      StringVNode("text")
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.StringModifiers(stringMods)) =
+    case class StringModifiers(modifiers: List[StringVNode]) extends Children {
+      override def ::(node: ChildVNode): Children = node match {
+        case n => n :: Children.VNodes(modifiers, StreamStatus())
+      }
+    }
+
+    val SeparatedModifiers(properties, emitters, receivers, StringModifiers(stringMods)) =
       SeparatedModifiers.separate(modifiers)
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 1
-    stringMods.map(_.string) should contain theSameElementsAs(List(
-      "text", "text2"
-    ))
+    stringMods.map(_.string) should contain theSameElementsAs(List("text"))
   }
 
   it should "be separated correctly with children and properties" in {
@@ -131,7 +134,7 @@ class OutWatchDomSpec extends JSDomSpec {
       InsertHook(PublishSubject()),
       PrePatchHook(PublishSubject()),
       PostPatchHook(PublishSubject()),
-      StringModifier("text")
+      StringVNode("text")
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
@@ -897,6 +900,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   "LocalStorage" should "provide a handler" in {
+
     implicit val scheduler = trampolineScheduler
 
     val key = "banana"
