@@ -1,6 +1,5 @@
 package outwatch.util
 
-import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
@@ -24,12 +23,12 @@ final case class WebSocket private(url: String)(implicit s: Scheduler) {
   })
 
   lazy val sink = Sink.create[String](
-    s => IO {
+    s => {
       ws.send(s)
       Continue
     },
-    _ => IO.pure(()),
-    () => IO(ws.close())
+    _ => (),
+    () => ws.close()
   )
 
 }
