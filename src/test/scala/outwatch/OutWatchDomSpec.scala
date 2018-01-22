@@ -51,7 +51,7 @@ class OutWatchDomSpec extends JSDomSpec {
         Seq(
           div(),
           attributes.`class` := "blue",
-          attributes.onClick(1) --> Sink.create[Int](_ => Continue),
+          attributes.onClick(1) --> Sink.create[Int](_ => Continue).unsafeRunSync(),
           attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
