@@ -10,10 +10,10 @@ trait ManagedSubscriptions {
 
   def managed(subscription: IO[Cancelable])(implicit s: Scheduler): VDomModifier = {
     subscription.flatMap { sub: Cancelable =>
-      lifecycle.onDestroy --> Sink.create(_ => IO {
+      lifecycle.onDestroy --> Sink.create{_ =>
         sub.cancel()
         Continue
-      })
+      }
     }
   }
 
@@ -21,10 +21,10 @@ trait ManagedSubscriptions {
 
     (sub1 :: sub2 :: subscriptions.toList).sequence.flatMap { subs: Seq[Cancelable] =>
       val composite = CompositeCancelable(subs: _*)
-      lifecycle.onDestroy --> Sink.create(_ => IO {
+      lifecycle.onDestroy --> Sink.create{_ =>
         composite.cancel()
         Continue
-      })
+      }
     }
   }
 
