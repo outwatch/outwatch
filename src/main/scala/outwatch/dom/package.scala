@@ -5,7 +5,7 @@ import cats.effect.IO
 package object dom extends Implicits with ManagedSubscriptions with SideEffects {
 
   type VNode = IO[VTree]
-  type VDomModifier = IO[VDomModifier_]
+  type VDomModifier = IO[Modifier]
   object VDomModifier {
     val empty: VDomModifier = IO.pure(EmptyModifier)
 

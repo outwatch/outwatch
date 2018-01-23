@@ -3,10 +3,10 @@ package outwatch.util
 import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
-import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.{CloseEvent, ErrorEvent, MessageEvent}
 import outwatch.Sink
+import outwatch.dom.Observable
 
 object WebSocket {
   implicit def toSink(socket: WebSocket): Sink[String] = socket.sink

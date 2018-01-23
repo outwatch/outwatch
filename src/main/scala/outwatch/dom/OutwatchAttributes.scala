@@ -65,10 +65,10 @@ trait AttributeHelpers { self: Attributes =>
 
   lazy val `for` = forId
 
-  lazy val data = new DynamicAttributeBuilder[Any]("data" :: Nil)
+  lazy val data = new DynamicAttrBuilder[Any]("data" :: Nil)
 
-  def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new AttributeBuilder[T](key, convert)
-  def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropertyBuilder[T](key, convert)
+  def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
+  def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   def style[T](key: String) = new BasicStyleBuilder[T](key)
 }
 
