@@ -58,15 +58,14 @@ class OutWatchDomSpec extends JSDomSpec {
       AttributeStreamReceiver("hidden",Observable())
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 2
     receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 2
-    childNodes.length shouldBe 3
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 0
+    nodes.length shouldBe 3
+    hasStream shouldBe false
   }
 
   it should "be separated correctly with children" in {
@@ -82,15 +81,14 @@ class OutWatchDomSpec extends JSDomSpec {
       div().unsafeRunSync()
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 1
-    childNodes.length shouldBe 2
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 0
+    nodes.length shouldBe 2
+    hasStream shouldBe false
   }
 
   it should "be separated correctly with string children" in {
@@ -134,7 +132,7 @@ class OutWatchDomSpec extends JSDomSpec {
       StringModifier("text")
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
@@ -147,9 +145,8 @@ class OutWatchDomSpec extends JSDomSpec {
     properties.attributes.attrs.length shouldBe 1
     receivers.length shouldBe 2
     properties.keys.length shouldBe 0
-    childNodes.length shouldBe 2
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 1
+    nodes.length shouldBe 2
+    hasStream shouldBe true
   }
 
   val fixture = new {
@@ -163,11 +160,11 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val vtree = div(
       IO {
-        list += "child2"
-        ChildStreamReceiver(Observable())
+        list += "child1"
+        ChildStreamReceiver(Observable(div()))
       },
       IO {
-        list += "child1"
+        list += "child2"
         ChildStreamReceiver(Observable())
       },
       IO {
@@ -213,11 +210,10 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val modifiers =  SeparatedModifiers.from(mods)
-    val Children.VNodes(childNodes, streamStatus) = modifiers.children
+    val Children.VNodes(nodes, hasStream) = modifiers.children
 
-    childNodes.size shouldBe 3
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 1
+    nodes.length shouldBe 3
+    hasStream shouldBe true
 
     val proxy = modifiers.toSnabbdom("div")
     proxy.key.isDefined shouldBe true
@@ -240,11 +236,10 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val modifiers =  SeparatedModifiers.from(mods)
-    val Children.VNodes(childNodes, streamStatus) = modifiers.children
+    val Children.VNodes(nodes, hasStream) = modifiers.children
 
-    childNodes.size shouldBe 2
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 1
+    nodes.length shouldBe 2
+    hasStream shouldBe true
 
     val proxy = modifiers.toSnabbdom("div")
     proxy.key.toOption  shouldBe Some(1234)
@@ -897,7 +892,6 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   "LocalStorage" should "provide a handler" in {
-    implicit val scheduler = trampolineScheduler
 
     val key = "banana"
     val triggeredHandlerEvents = mutable.ArrayBuffer.empty[Option[String]]
