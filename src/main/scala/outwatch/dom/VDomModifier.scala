@@ -33,11 +33,12 @@ Modifier
       DestroyHook
     Key
   ChildVNode
+    StreamVNode
+      ChildStreamReceiver
+      ChildrenStreamReceiver
     StaticVNode
       StringVNode
       VTree
-    ChildStreamReceiver
-    ChildrenStreamReceiver
   Emitter
   AttributeStreamReceiver
   CompositeModifier
@@ -135,15 +136,19 @@ private[outwatch] final case class PostPatchHook(observer: Observer[(Element, El
 private[outwatch] final case class DestroyHook(observer: Observer[Element]) extends Hook[Element]
 
 // Child Nodes
-sealed trait StaticVNode extends Any with ChildVNode {
+
+private[outwatch] sealed trait StreamVNode extends Any with ChildVNode
+
+private[outwatch] sealed trait StaticVNode extends Any with ChildVNode {
   def toSnabbdom(implicit s: Scheduler): VNodeProxy
 }
 object StaticVNode {
   val empty: StaticVNode = StringVNode("")
 }
 
-final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends ChildVNode
-final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends ChildVNode
+private[outwatch] final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends AnyVal with StreamVNode
+
+private[outwatch] final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends AnyVal with StreamVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
@@ -158,8 +163,7 @@ private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifi
   def apply(args: VDomModifier*): VNode = args.sequence.map(args => copy(modifiers = modifiers ++ args))
 
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
-    val separatedModifiers = SeparatedModifiers.from(modifiers)
-    separatedModifiers.toSnabbdom(nodeType)
+    SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)
   }
 }
 

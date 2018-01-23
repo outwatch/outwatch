@@ -62,8 +62,7 @@ trait LocalStorageMock {
 
 abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock {
 
-  implicit val scheduler = Scheduler.global
-  val trampolineScheduler = TrampolineScheduler(scheduler, SynchronousExecution)
+  implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
   override def beforeEach(): Unit = {
 

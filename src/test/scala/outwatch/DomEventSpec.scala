@@ -443,8 +443,6 @@ class DomEventSpec extends JSDomSpec {
   "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
     import outwatch.dom._
 
-    implicit val scheduler = trampolineScheduler
-
     var docClicked = false
     var winClicked = false
     events.window.onClick( ev => winClicked = true)
