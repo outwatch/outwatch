@@ -114,7 +114,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
           hFunction(proxy.sel, newData, proxy.text)
         }
       } else {
-        hFunction(proxy.sel,newData, nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy])
+        hFunction(proxy.sel,newData, nodes.map(_.unsafeRunSync().toSnabbdom)(breakOut): js.Array[VNodeProxy])
       }
     }
 
@@ -204,7 +204,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     childrenWithKey match {
       case Children.VNodes(vnodes, _) =>
         implicit val scheduler = s
-        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
+        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
         hFunction(nodeType, dataObject, childProxies)
       case Children.StringModifiers(textChildren) =>
         hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)

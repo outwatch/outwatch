@@ -24,7 +24,7 @@ sealed trait Sink[-T] extends Any {
 
   private[outwatch] def observer: Subscriber[T]
 
-  def unsafeOnNext(value:T):Future[Ack] = observer.onNext(value)
+  def unsafeOnNext(value: T): Future[Ack] = observer.onNext(value)
 
   /**
     * Creates a new sink. That sink will transform the values it receives and then forward them along to this sink.

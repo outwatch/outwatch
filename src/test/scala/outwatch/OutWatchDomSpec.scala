@@ -59,7 +59,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
-      SeparatedModifiers.separate(modifiers)
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 2
     receivers.length shouldBe 2
@@ -70,7 +70,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "be separated correctly with children" in {
-    val modifiers: Seq[VDomModifier_] = Seq(
+    val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => Continue),
@@ -83,7 +83,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
-      SeparatedModifiers.separate(modifiers)
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
@@ -94,7 +94,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "be separated correctly with string children" in {
-    val modifiers: Seq[VDomModifier_] = Seq(
+    val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => Continue),
@@ -107,7 +107,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.StringModifiers(stringMods)) =
-      SeparatedModifiers.separate(modifiers)
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
@@ -135,7 +135,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
-      SeparatedModifiers.separate(modifiers)
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
     emitters.emitters.length shouldBe 3
@@ -212,7 +212,7 @@ class OutWatchDomSpec extends JSDomSpec {
       // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
     )
 
-    val modifiers =  SeparatedModifiers.separate(mods)
+    val modifiers =  SeparatedModifiers.from(mods)
     val Children.VNodes(childNodes, streamStatus) = modifiers.children
 
     childNodes.size shouldBe 3
@@ -239,7 +239,7 @@ class OutWatchDomSpec extends JSDomSpec {
       div()(IO.pure(Key(5678))).unsafeRunSync()
     )
 
-    val modifiers =  SeparatedModifiers.separate(mods)
+    val modifiers =  SeparatedModifiers.from(mods)
     val Children.VNodes(childNodes, streamStatus) = modifiers.children
 
     childNodes.size shouldBe 2
@@ -261,7 +261,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val proxy = fixture.proxy
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(proxy)
 
   }
 
@@ -271,7 +271,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val child = span(message)
     val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
 
@@ -404,7 +404,7 @@ class OutWatchDomSpec extends JSDomSpec {
       span("Hello")
     )
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
   it should "construct VTrees with optional children properly" in {
@@ -415,15 +415,15 @@ class OutWatchDomSpec extends JSDomSpec {
       Option.empty[VDomModifier]
     )
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
 
   }
 
   it should "construct VTrees with boolean attributes" in {
     import outwatch.dom._
 
-    def boolBuilder(name: String) = new AttributeBuilder[Boolean](name, identity)
-    def stringBuilder(name: String) = new AttributeBuilder[Boolean](name, _.toString)
+    def boolBuilder(name: String) = new BasicAttrBuilder[Boolean](name, identity)
+    def stringBuilder(name: String) = new BasicAttrBuilder[Boolean](name, _.toString)
     val vtree = div(
       boolBuilder("a"),
       boolBuilder("b") := true,
@@ -436,7 +436,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = hFunction("div", DataObject(attrs, js.Dictionary()))
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(expected)
 
   }
 

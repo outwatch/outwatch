@@ -7,7 +7,7 @@ import outwatch.dom._
 import scala.collection.breakOut
 
 object SeparatedModifiers {
-  private[outwatch] def separate(modifiers: Seq[VDomModifier_]): SeparatedModifiers = {
+  private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
     modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
   }
 }
@@ -19,7 +19,7 @@ private[outwatch] final case class SeparatedModifiers(
   children: Children = Children.Empty
 ) extends SnabbdomModifiers { self =>
 
-  def ::(m: VDomModifier_): SeparatedModifiers = m match {
+  def ::(m: Modifier): SeparatedModifiers = m match {
     case pr: Property => copy(properties = pr :: properties)
     case vn: ChildVNode => copy(children = vn :: children)
     case em: Emitter => copy(emitters = em :: emitters)

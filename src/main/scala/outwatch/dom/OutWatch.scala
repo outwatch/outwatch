@@ -14,13 +14,13 @@ object OutWatch {
     _ <- IO {
       val elem = dom.document.createElement("app")
       element.appendChild(elem)
-      patch(elem, node.asProxy)
+      patch(elem, node.toSnabbdom)
     }
   } yield ()
 
   def renderReplace(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
     node <- vNode
-    _ <- IO(patch(element, node.asProxy))
+    _ <- IO(patch(element, node.toSnabbdom))
   } yield ()
 
   def renderInto(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] =
