@@ -22,7 +22,7 @@ class ScenarioTestSpec extends JSDomSpec {
         div(
           button(id := "plus", "+", onClick --> handlePlus),
           button(id := "minus", "-", onClick --> handleMinus),
-          span(id:="counter",child <-- count)
+          span(id:="counter", count)
         )
       )
     } yield div
@@ -55,7 +55,7 @@ class ScenarioTestSpec extends JSDomSpec {
         label("Name:"),
         input(id := "input", tpe := "text", onInput.value --> nameHandler),
         hr(),
-        h1(id := "greeting", greetStart, child <-- nameHandler)
+        h1(id := "greeting", greetStart, nameHandler)
       )
     }
 
@@ -88,7 +88,7 @@ class ScenarioTestSpec extends JSDomSpec {
       Handler.create[String].flatMap { handler =>
         div(
           button(onClick("clicked") --> handler),
-          div(cls := "label", child <-- handler)
+          div(cls := "label", handler)
         )
       }
     }
@@ -174,7 +174,7 @@ class ScenarioTestSpec extends JSDomSpec {
 
       div <- div(
         textFieldComponent,
-        ul(id:= "list", children <-- state)
+        ul(id:= "list", state)
       )
     } yield div
 

@@ -36,7 +36,7 @@ class DomEventSpec extends JSDomSpec {
 
     val vtree = Handler.create[String].flatMap { observable =>
       div(id := "click", onClick(message) --> observable,
-        span(id := "child", child <-- observable)
+        span(id := "child", observable)
       )
     }
 
@@ -54,8 +54,6 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("click").dispatchEvent(event)
 
     document.getElementById("child").innerHTML shouldBe message
-
-
   }
 
   it should "be converted to a generic stream emitter correctly" in {
@@ -64,7 +62,7 @@ class DomEventSpec extends JSDomSpec {
 
     val vtree = Handler.create[String].flatMap { stream =>
       div(id := "click", onClick(messages) --> stream,
-        span(id := "child", child <-- stream)
+        span(id := "child", stream)
       )
     }
 
@@ -165,7 +163,7 @@ class DomEventSpec extends JSDomSpec {
 
 
     val vtree = div(
-      ul(id:= "list", children <-- state)
+      ul(id:= "list", state)
     )
 
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
@@ -214,15 +212,14 @@ class DomEventSpec extends JSDomSpec {
 
     val node = div(
       button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
-      span(id:="first",child <-- first),
-      span(id:="second",child <-- second)
+      span(id:="first", first),
+      span(id:="second", second)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -239,7 +236,7 @@ class DomEventSpec extends JSDomSpec {
     val node = Handler.create[(MouseEvent, Int)].flatMap { stream =>
       div(
         button(id := "click", onClick.map(toTuple) --> stream),
-        span(id := "num", child <-- stream.map(_._2))
+        span(id := "num", stream.map(_._2))
       )
     }
 
@@ -247,7 +244,6 @@ class DomEventSpec extends JSDomSpec {
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -268,7 +264,7 @@ class DomEventSpec extends JSDomSpec {
 
       div(
         button(id := "click", onClick.transform(transformer) --> stream),
-        span(id := "num", children <-- state.map(nums => nums.map(num => span(num.toString))))
+        span(id := "num", state.map(nums => nums.map(num => span(num.toString))))
       )
     }
 
@@ -276,7 +272,6 @@ class DomEventSpec extends JSDomSpec {
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -289,8 +284,8 @@ class DomEventSpec extends JSDomSpec {
     val onInputValue = onInput.value
     val node = Handler.create[Int].flatMap { stream =>
       div(
-        button(id := "input", onInputValue(number) --> stream),
-        span(id:="num",child <-- stream)
+        input(id := "input", onInputValue(number) --> stream),
+        span(id:="num", stream)
       )
     }
 
@@ -298,7 +293,6 @@ class DomEventSpec extends JSDomSpec {
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("input", false, true)
-
 
     document.getElementById("input").dispatchEvent(inputEvt)
 
@@ -319,7 +313,7 @@ class DomEventSpec extends JSDomSpec {
           onClick(1) --> sideEffect(triggeredIntFunction += _),
           onClick --> sideEffect{ triggeredFunction += 1 },
           onUpdate --> sideEffect((old,current) => triggeredFunction2 += 1),
-          child <-- stream
+          stream
         )
       )
     }
@@ -378,7 +372,7 @@ class DomEventSpec extends JSDomSpec {
           input(id := "input", tpe := "text", onInput.value --> stream),
           button(id := "submit", onClick(stream) --> submit),
           ul( id := "items",
-            children <-- state.map(items => items.map(it => li(it)))
+            state.map(items => items.map(it => li(it)))
           )
         )
       }
@@ -501,7 +495,7 @@ class DomEventSpec extends JSDomSpec {
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
-    val element =document.getElementById("input")
+    val element = document.getElementById("input")
     element should not be null
   }
 
@@ -531,7 +525,20 @@ class DomEventSpec extends JSDomSpec {
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
-    val element =document.getElementById("input")
+    val element = document.getElementById("input")
     element should not be null
+  }
+
+
+  "Children stream" should "work for string sequences" in {
+    val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
+    val node = div(id := "strings",
+      myStrings
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "ab"
   }
 }

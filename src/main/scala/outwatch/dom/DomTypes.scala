@@ -77,7 +77,6 @@ trait Attributes
 object Attributes extends Attributes
 
 // Attrs
-
 trait Attrs
   extends attrs.Attrs[BasicAttrBuilder]
   with builders.AttrBuilder[BasicAttrBuilder] {
@@ -87,7 +86,6 @@ trait Attrs
 }
 
 // Reflected attrs
-
 trait ReflectedAttrs
   extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute]
   with builders.ReflectedAttrBuilder[BuilderTypes.Attribute] {

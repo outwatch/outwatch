@@ -123,7 +123,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
       .bufferSliding(2, 1)
       .subscribe(
         { case Seq(old, crt) => patch(old, crt); Continue },
-        error => dom.console.error(error.getMessage)
+        error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
       )
 
     proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))

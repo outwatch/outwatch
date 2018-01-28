@@ -28,5 +28,4 @@ object StaticVNodeRender {
   implicit object DoubleRender extends StaticVNodeRender[Double] {
     def render(value: Double): IO[StaticVNode] = IO.pure(StringVNode(value.toString))
   }
-
 }
