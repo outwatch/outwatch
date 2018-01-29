@@ -35,21 +35,21 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, VNode] {
+private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, VTree] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-  protected override def tag[Ref <: VNode](tagName: String, void: Boolean): VNode = IO.pure(VTree(tagName, Seq.empty))
+  protected override def tag[Ref <: VTree](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
 }
 private[outwatch] object TagBuilder {
-  type Tag[T] = VNode
+  type Tag[T] = VTree
 }
 
 trait Tags
-  extends EmbedTags[TagBuilder.Tag, VNode]
-  with GroupingTags[TagBuilder.Tag, VNode]
-  with TextTags[TagBuilder.Tag, VNode]
-  with FormTags[TagBuilder.Tag, VNode]
-  with SectionTags[TagBuilder.Tag, VNode]
-  with TableTags[TagBuilder.Tag, VNode]
+  extends EmbedTags[TagBuilder.Tag, VTree]
+  with GroupingTags[TagBuilder.Tag, VTree]
+  with TextTags[TagBuilder.Tag, VTree]
+  with FormTags[TagBuilder.Tag, VTree]
+  with SectionTags[TagBuilder.Tag, VTree]
+  with TableTags[TagBuilder.Tag, VTree]
   with TagBuilder
   with TagHelpers
   with TagsCompat
@@ -58,8 +58,8 @@ trait Tags
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[TagBuilder.Tag, VNode]
-  with MiscTags[TagBuilder.Tag, VNode]
+  extends DocumentTags[TagBuilder.Tag, VTree]
+  with MiscTags[TagBuilder.Tag, VTree]
   with TagBuilder
 
 // all Attributes
