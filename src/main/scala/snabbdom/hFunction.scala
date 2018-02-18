@@ -3,7 +3,7 @@ package snabbdom
 import org.scalajs.dom._
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.{JSImport, ScalaJSDefined}
+import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.{UndefOr, |}
 
 @js.native
@@ -32,7 +32,6 @@ object hFunction {
 }
 
 
-@ScalaJSDefined
 trait Hooks extends js.Object {
   val insert: js.UndefOr[Hooks.HookSingleFn]
   val prepatch: js.UndefOr[Hooks.HookPairFn]
@@ -67,7 +66,6 @@ object Hooks {
   }
 }
 
-@ScalaJSDefined
 trait DataObject extends js.Object {
   import DataObject._
 
