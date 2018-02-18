@@ -31,16 +31,20 @@ trait LocalStorageMock {
     js.Dynamic.global.window.updateDynamic("localStorage")(new js.Object {
       private val map = new mutable.HashMap[String, String]
 
+      @SuppressWarnings(Array("unused"))
       def getItem(key: String): String = map.getOrElse(key, null)
 
+      @SuppressWarnings(Array("unused"))
       def setItem(key: String, value: String): Unit = {
         map += key -> value
       }
 
+      @SuppressWarnings(Array("unused"))
       def removeItem(key: String): Unit = {
         map -= key
       }
 
+      @SuppressWarnings(Array("unused"))
       def clear(): Unit = map.clear()
     })
   }
