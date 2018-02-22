@@ -51,26 +51,25 @@ class OutWatchDomSpec extends JSDomSpec {
         Seq(
           div(),
           attributes.`class` := "blue",
-          attributes.onClick(1) --> Sink.create[Int](_ => IO.pure{(); Continue}),
+          attributes.onClick(1) --> Sink.create[Int](_ => Continue).unsafeRunSync(),
           attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
       AttributeStreamReceiver("hidden",Observable())
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
-      SeparatedModifiers.separate(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 2
     receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 2
-    childNodes.length shouldBe 3
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 0
+    nodes.length shouldBe 3
+    hasStream shouldBe false
   }
 
   it should "be separated correctly with children" in {
-    val modifiers: Seq[VDomModifier_] = Seq(
+    val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => Continue),
@@ -82,19 +81,18 @@ class OutWatchDomSpec extends JSDomSpec {
       div().unsafeRunSync()
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
-      SeparatedModifiers.separate(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 1
-    childNodes.length shouldBe 2
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 0
+    nodes.length shouldBe 2
+    hasStream shouldBe false
   }
 
   it should "be separated correctly with string children" in {
-    val modifiers: Seq[VDomModifier_] = Seq(
+    val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => Continue),
@@ -107,7 +105,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val SeparatedModifiers(properties, emitters, receivers, Children.StringModifiers(stringMods)) =
-      SeparatedModifiers.separate(modifiers)
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     receivers.length shouldBe 2
@@ -134,8 +132,8 @@ class OutWatchDomSpec extends JSDomSpec {
       StringModifier("text")
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(childNodes, streamStatus)) =
-      SeparatedModifiers.separate(modifiers)
+    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
+      SeparatedModifiers.from(modifiers)
 
     emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
     emitters.emitters.length shouldBe 3
@@ -147,9 +145,8 @@ class OutWatchDomSpec extends JSDomSpec {
     properties.attributes.attrs.length shouldBe 1
     receivers.length shouldBe 2
     properties.keys.length shouldBe 0
-    childNodes.length shouldBe 2
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 1
+    nodes.length shouldBe 2
+    hasStream shouldBe true
   }
 
   val fixture = new {
@@ -163,11 +160,11 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val vtree = div(
       IO {
-        list += "child2"
-        ChildStreamReceiver(Observable())
+        list += "child1"
+        ChildStreamReceiver(Observable(div()))
       },
       IO {
-        list += "child1"
+        list += "child2"
         ChildStreamReceiver(Observable())
       },
       IO {
@@ -212,12 +209,11 @@ class OutWatchDomSpec extends JSDomSpec {
       // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
     )
 
-    val modifiers =  SeparatedModifiers.separate(mods)
-    val Children.VNodes(childNodes, streamStatus) = modifiers.children
+    val modifiers =  SeparatedModifiers.from(mods)
+    val Children.VNodes(nodes, hasStream) = modifiers.children
 
-    childNodes.size shouldBe 3
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 1
+    nodes.length shouldBe 3
+    hasStream shouldBe true
 
     val proxy = modifiers.toSnabbdom("div")
     proxy.key.isDefined shouldBe true
@@ -239,12 +235,11 @@ class OutWatchDomSpec extends JSDomSpec {
       div()(IO.pure(Key(5678))).unsafeRunSync()
     )
 
-    val modifiers =  SeparatedModifiers.separate(mods)
-    val Children.VNodes(childNodes, streamStatus) = modifiers.children
+    val modifiers =  SeparatedModifiers.from(mods)
+    val Children.VNodes(nodes, hasStream) = modifiers.children
 
-    childNodes.size shouldBe 2
-    streamStatus.numChild shouldBe 0
-    streamStatus.numChildren shouldBe 1
+    nodes.length shouldBe 2
+    hasStream shouldBe true
 
     val proxy = modifiers.toSnabbdom("div")
     proxy.key.toOption  shouldBe Some(1234)
@@ -261,7 +256,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val proxy = fixture.proxy
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(proxy)
 
   }
 
@@ -271,7 +266,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val child = span(message)
     val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
 
@@ -290,7 +285,7 @@ class OutWatchDomSpec extends JSDomSpec {
           Attribute("hans", "")
         }
       ),
-      child <-- stringHandler
+      stringHandler
     )
 
     val node = document.createElement("div")
@@ -321,7 +316,7 @@ class OutWatchDomSpec extends JSDomSpec {
           Attribute("hans", "")
         }
       )),
-      child <-- stringHandler
+      stringHandler
     )
 
     val node = document.createElement("div")
@@ -367,9 +362,9 @@ class OutWatchDomSpec extends JSDomSpec {
       div( id := "page",
         num match {
           case 1 =>
-            div(child <-- pageNum)
+            div(pageNum)
           case 2 =>
-            div(child <-- pageNum)
+            div(pageNum)
         }
       )
     }
@@ -377,7 +372,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val pageHandler = PublishSubject[Int]
 
     val vtree = div(
-      div(child <-- pageHandler.map(page))
+      div(pageHandler.map(page))
     )
 
     val node = document.createElement("div")
@@ -404,7 +399,7 @@ class OutWatchDomSpec extends JSDomSpec {
       span("Hello")
     )
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
   }
 
   it should "construct VTrees with optional children properly" in {
@@ -415,15 +410,15 @@ class OutWatchDomSpec extends JSDomSpec {
       Option.empty[VDomModifier]
     )
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
 
   }
 
   it should "construct VTrees with boolean attributes" in {
     import outwatch.dom._
 
-    def boolBuilder(name: String) = new AttributeBuilder[Boolean](name, identity)
-    def stringBuilder(name: String) = new AttributeBuilder[Boolean](name, _.toString)
+    def boolBuilder(name: String) = new BasicAttrBuilder[Boolean](name, identity)
+    def stringBuilder(name: String) = new BasicAttrBuilder[Boolean](name, _.toString)
     val vtree = div(
       boolBuilder("a"),
       boolBuilder("b") := true,
@@ -436,7 +431,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = hFunction("div", DataObject(attrs, js.Dictionary()))
 
-    JSON.stringify(vtree.map(_.asProxy).unsafeRunSync()) shouldBe JSON.stringify(expected)
+    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(expected)
 
   }
 
@@ -499,9 +494,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val messagesB = PublishSubject[String]
     val vNode = div(
       span("A"),
-      child <-- messagesA.map(span(_)),
+      messagesA.map(span(_)),
       span("B"),
-      child <-- messagesB.map(span(_))
+      messagesB.map(span(_))
     )
 
     val node = document.createElement("div")
@@ -519,9 +514,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val messagesB = PublishSubject[String]
     val vNode = div(
       "A",
-      child <-- messagesA,
+      messagesA,
       "B",
-      child <-- messagesB
+      messagesB
     )
 
     val node = document.createElement("div")
@@ -543,10 +538,10 @@ class OutWatchDomSpec extends JSDomSpec {
     val messagesC = PublishSubject[Seq[VNode]]
     val vNode = div(
       "A",
-      child <-- messagesA,
-      children <-- messagesC,
+      messagesA,
+      messagesC,
       "B",
-      child <-- messagesB
+      messagesB
     )
 
     val node = document.createElement("div")
@@ -568,7 +563,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "update merged nodes children correctly" in {
     val messages = PublishSubject[Seq[VNode]]
     val otherMessages = PublishSubject[Seq[VNode]]
-    val vNode = div(children <-- messages)(children <-- otherMessages)
+    val vNode = div(messages)(otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
@@ -587,7 +582,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "update merged nodes separate children correctly" in {
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
-    val vNode = div(child <-- messages)(child <-- otherMessages)
+    val vNode = div(messages)(otherMessages)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
@@ -613,7 +608,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val vNode = div( id := "inner",
       color <-- messagesColor,
       backgroundColor <-- messagesBgColor,
-      child <-- childString
+      childString
     )
 
     val node = document.createElement("div")
@@ -647,7 +642,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val vNode = div( id := "inner",
       color <-- messagesColor,
-      child <-- childString
+      childString
     )
 
     val node = document.createElement("div")
@@ -669,7 +664,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
   it should "update reused vnodes correctly" in {
     val messages = PublishSubject[String]
-    val vNode = div(data.ralf := true, child <-- messages)
+    val vNode = div(data.ralf := true, messages)
     val container = div(vNode, vNode)
 
     val node = document.createElement("div")
@@ -688,8 +683,8 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "update merged nodes correctly (render reuse)" in {
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
-    val vNodeTemplate = div(child <-- messages)
-    val vNode = vNodeTemplate(child <-- otherMessages)
+    val vNodeTemplate = div(messages)
+    val vNode = vNodeTemplate(otherMessages)
 
     val node1 = document.createElement("div")
     document.body.appendChild(node1)
@@ -831,6 +826,13 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderReplace(node, div("one")).unsafeRunSync()
     node.innerHTML shouldBe "one"
 
+    OutWatch.renderReplace(node, div(Some("one"))).unsafeRunSync()
+    node.innerHTML shouldBe "one"
+
+    val node2 = document.createElement("div")
+    OutWatch.renderReplace(node2, div(None:Option[Int])).unsafeRunSync()
+    node2.innerHTML shouldBe ""
+
     OutWatch.renderReplace(node, div(1)).unsafeRunSync()
     node.innerHTML shouldBe "1"
 
@@ -850,7 +852,7 @@ class OutWatchDomSpec extends JSDomSpec {
   "Children stream" should "work for string sequences" in {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
     val node = div(id := "strings",
-      children <-- myStrings
+      myStrings
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -859,8 +861,37 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe "ab"
   }
 
+  "Child stream" should "work for string options" in {
+    val myOption: Handler[Option[String]] = Handler.create(Option("a")).unsafeRunSync()
+    val node = div(id := "strings",
+      myOption
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "a"
+
+    myOption.unsafeOnNext(None)
+    element.innerHTML shouldBe ""
+  }
+
+  "Child stream" should "work for vnode options" in {
+    val myOption: Handler[Option[VNode]] = Handler.create(Option(div("a"))).unsafeRunSync()
+    val node = div(id := "strings",
+      myOption
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "<div>a</div>"
+
+    myOption.unsafeOnNext(None)
+    element.innerHTML shouldBe ""
+  }
+
   "LocalStorage" should "provide a handler" in {
-    implicit val scheduler = trampolineScheduler
 
     val key = "banana"
     val triggeredHandlerEvents = mutable.ArrayBuffer.empty[Option[String]]

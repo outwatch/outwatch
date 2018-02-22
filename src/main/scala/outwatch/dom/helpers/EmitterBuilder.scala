@@ -11,6 +11,8 @@ trait EmitterBuilder[E, O, R] extends Any {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[E, T, R]
 
+  def -->(sink: Sink[_ >: O]): IO[R]
+
   def apply[T](value: T): EmitterBuilder[E, T, R] = map(_ => value)
 
   def apply[T](latest: Observable[T]): EmitterBuilder[E, T, R] = transform(_.withLatestFrom(latest)((_, u) => u))
@@ -23,8 +25,6 @@ trait EmitterBuilder[E, O, R] extends Any {
   def filter(predicate: O => Boolean): EmitterBuilder[E, O, R] = transform(_.filter(predicate))
 
   def collect[T](f: PartialFunction[O, T]): EmitterBuilder[E, T, R] = transform(_.collect(f))
-
-  def -->(sink: Sink[_ >: O]): IO[R]
 }
 
 object EmitterBuilder extends EmitterOps {

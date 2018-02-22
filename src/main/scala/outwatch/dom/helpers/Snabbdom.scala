@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignCancelable
@@ -99,35 +98,33 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   }
 
   private def createInsertHook(receivers: Receivers,
-    subscriptionCancelable: SingleAssignCancelable,
+    subscription: SingleAssignCancelable,
     hooks: Seq[InsertHook]
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
-    def toProxy(changable: (Seq[Attribute], Seq[IO[StaticVNode]])): VNodeProxy = {
-      val (attributes, nodes) = changable
-      val newData = SeparatedAttributes.from(attributes).updateDataObject(proxy.data)
+    def toProxy(state: VNodeState): VNodeProxy = {
+      val newData = SeparatedAttributes.from(state.attributes.values.toSeq).updateDataObject(proxy.data)
 
-      if (nodes.isEmpty) {
+      if (state.nodes.isEmpty) {
         if (proxy.children.isDefined) {
           hFunction(proxy.sel, newData, proxy.children.get)
         } else {
           hFunction(proxy.sel, newData, proxy.text)
         }
       } else {
-        hFunction(proxy.sel,newData, nodes.map(_.unsafeRunSync().asProxy)(breakOut): js.Array[VNodeProxy])
+        val nodes = state.nodes.reduceLeft(_ ++ _)
+        hFunction(proxy.sel, newData, nodes.map(_.unsafeRunSync().toSnabbdom)(breakOut): js.Array[VNodeProxy])
       }
     }
 
-    val subscription = receivers.observable
+    subscription := receivers.observable
       .map(toProxy)
       .startWith(Seq(proxy))
       .bufferSliding(2, 1)
       .subscribe(
         { case Seq(old, crt) => patch(old, crt); Continue },
-        error => dom.console.error(error.getMessage)
+        error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
       )
-
-    subscriptionCancelable := subscription
 
     proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
   }
@@ -204,7 +201,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     childrenWithKey match {
       case Children.VNodes(vnodes, _) =>
         implicit val scheduler = s
-        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.asProxy }(breakOut)
+        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
         hFunction(nodeType, dataObject, childProxies)
       case Children.StringModifiers(textChildren) =>
         hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)

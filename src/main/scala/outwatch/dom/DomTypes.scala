@@ -1,14 +1,14 @@
 package outwatch.dom
 
-import com.raquo.domtypes.generic.builders._
+import com.raquo.domtypes.generic.builders
 import com.raquo.domtypes.generic.keys
-import com.raquo.domtypes.generic.codecs._
+import com.raquo.domtypes.generic.codecs
 import com.raquo.domtypes.generic.defs.attrs
 import com.raquo.domtypes.generic.defs.reflectedAttrs
 import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
 import com.raquo.domtypes.generic.defs.sameRefTags._
-import com.raquo.domtypes.jsdom.defs.eventProps._
+import com.raquo.domtypes.jsdom.defs.eventProps
 import cats.effect.IO
 import org.scalajs.dom
 import helpers._
@@ -17,49 +17,40 @@ import monix.reactive.OverflowStrategy.Unbounded
 
 import scala.scalajs.js
 
-private[outwatch] object Builders {
-  type Attribute[T, _] = helpers.ValueBuilder[T, Attr]
-  type Property[T, _] = helpers.PropertyBuilder[T]
+private[outwatch] object BuilderTypes {
+  type Attribute[T, _] = helpers.AttributeBuilder[T, Attr]
+  type Property[T, _] = helpers.PropBuilder[T]
   type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[E, Emitter]
 }
 
-private[outwatch] object DomTypesBuilder {
-  type VNode = IO[VTree]
-  type GenericVNode[T] = VNode
-
-  trait VNodeBuilder extends TagBuilder[GenericVNode, VNode] {
-    // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-    protected override def tag[Ref <: VNode](tagName: String, void: Boolean): VNode = IO.pure(VTree(tagName, Seq.empty))
-  }
-
-  object CodecBuilder {
-    def encodeAttribute[V](codec: Codec[V, String]): V => Attr.Value = codec match {
-      //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
-      //encodes true as "" and false as null, whereas snabbdom needs true/false
-      //of type boolean (not string) for toggling the presence of the attribute.
-      case _: BooleanAsAttrPresenceCodec.type => identity
-      case _ => codec.encode
-    }
-  }
-
-  abstract class ObservableEventPropBuilder(target: dom.EventTarget) extends EventPropBuilder[Observable, dom.Event] {
-    override def eventProp[V <: dom.Event](key: String): Observable[V] = Observable.create(Unbounded) { obs =>
-      val eventHandler: js.Function1[V, Ack] = obs.onNext _
-      target.addEventListener(key, eventHandler)
-      Cancelable(() => target.removeEventListener(key, eventHandler))
-    }
+private[outwatch] object CodecBuilder {
+  def encodeAttribute[V](codec: codecs.Codec[V, String]): V => Attr.Value = codec match {
+    //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
+    //encodes true as "" and false as null, whereas snabbdom needs true/false
+    //of type boolean (not string) for toggling the presence of the attribute.
+    case _: codecs.BooleanAsAttrPresenceCodec.type => identity
+    case _ => codec.encode
   }
 }
-import DomTypesBuilder._
+
+// Tags
+
+private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, VTree] {
+  // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
+  protected override def tag[Ref <: VTree](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+}
+private[outwatch] object TagBuilder {
+  type Tag[T] = VTree
+}
 
 trait Tags
-  extends EmbedTags[GenericVNode, VNode]
-  with GroupingTags[GenericVNode, VNode]
-  with TextTags[GenericVNode, VNode]
-  with FormTags[GenericVNode, VNode]
-  with SectionTags[GenericVNode, VNode]
-  with TableTags[GenericVNode, VNode]
-  with VNodeBuilder
+  extends EmbedTags[TagBuilder.Tag, VTree]
+  with GroupingTags[TagBuilder.Tag, VTree]
+  with TextTags[TagBuilder.Tag, VTree]
+  with FormTags[TagBuilder.Tag, VTree]
+  with SectionTags[TagBuilder.Tag, VTree]
+  with TableTags[TagBuilder.Tag, VTree]
+  with TagBuilder
   with TagHelpers
   with TagsCompat
 
@@ -67,9 +58,11 @@ trait Tags
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[GenericVNode, VNode]
-  with MiscTags[GenericVNode, VNode]
-  with VNodeBuilder
+  extends DocumentTags[TagBuilder.Tag, VTree]
+  with MiscTags[TagBuilder.Tag, VTree]
+  with TagBuilder
+
+// all Attributes
 
 trait Attributes
   extends Attrs
@@ -85,21 +78,20 @@ object Attributes extends Attributes
 
 // Attrs
 trait Attrs
-  extends attrs.Attrs[AttributeBuilder]
-  with AttrBuilder[AttributeBuilder] {
+  extends attrs.Attrs[BasicAttrBuilder]
+  with builders.AttrBuilder[BasicAttrBuilder] {
 
-  override protected def attr[V](key: String, codec: Codec[V, String]): AttributeBuilder[V] =
-    new AttributeBuilder(key, CodecBuilder.encodeAttribute(codec))
+  override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
 
 // Reflected attrs
-
 trait ReflectedAttrs
-  extends reflectedAttrs.ReflectedAttrs[Builders.Attribute]
-  with ReflectedAttrBuilder[Builders.Attribute] {
+  extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute]
+  with builders.ReflectedAttrBuilder[BuilderTypes.Attribute] {
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className = new AccumAttributeBuilder[String]("class",
+  override lazy val className = new AccumAttrBuilder[String]("class",
     stringReflectedAttr(attrKey = "class", propKey = "className"),
     _ + " " + _
   )
@@ -107,43 +99,57 @@ trait ReflectedAttrs
   override protected def reflectedAttr[V, DomPropV](
     attrKey: String,
     propKey: String,
-    attrCodec: Codec[V, String],
-    propCodec: Codec[V, DomPropV]
-  ) = new AttributeBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+    attrCodec: codecs.Codec[V, String],
+    propCodec: codecs.Codec[V, DomPropV]
+  ) = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
     //or: new PropertyBuilder(propKey, propCodec.encode)
 }
 
 // Props
 trait Props
-  extends props.Props[Builders.Property]
-  with PropBuilder[Builders.Property] {
+  extends props.Props[BuilderTypes.Property]
+  with builders.PropBuilder[BuilderTypes.Property] {
 
-  override protected def prop[V, DomV](key: String, codec: Codec[V, DomV]): PropertyBuilder[V] =
-    new PropertyBuilder(key, codec.encode)
+  override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
+    new PropBuilder(key, codec.encode)
 }
 
-trait Events
-  extends HTMLElementEventProps[Builders.EventEmitter]
-  with EventPropBuilder[Builders.EventEmitter, dom.Event] {
 
-  override def eventProp[V <: dom.Event](key: String): Builders.EventEmitter[V] =  EmitterBuilder[V](key)
+// Events
+trait Events
+  extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter]
+  with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event] {
+
+  override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] =  EmitterBuilder[V](key)
+}
+
+
+// Window / Document events
+
+private[outwatch] abstract class ObservableEventPropBuilder(target: dom.EventTarget)
+  extends builders.EventPropBuilder[Observable, dom.Event] {
+  override def eventProp[V <: dom.Event](key: String): Observable[V] = Observable.create(Unbounded) { obs =>
+    val eventHandler: js.Function1[V, Ack] = obs.onNext _
+    target.addEventListener(key, eventHandler)
+    Cancelable(() => target.removeEventListener(key, eventHandler))
+  }
 }
 
 abstract class WindowEvents
   extends ObservableEventPropBuilder(dom.window)
-  with WindowEventProps[Observable]
+  with eventProps.WindowEventProps[Observable]
 
 abstract class DocumentEvents
   extends ObservableEventPropBuilder(dom.document)
-  with DocumentEventProps[Observable]
+  with eventProps.DocumentEventProps[Observable]
 
+// Styles
 
-private[outwatch] trait SimpleStyleBuilder extends StyleBuilders[IO[Style]] {
+private[outwatch] trait SimpleStyleBuilder extends builders.StyleBuilders[IO[Style]] {
   override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): IO[Style] = style := value
-  override protected def buildIntStyleSetter(style: keys.Style[Int],value: Int): IO[Style] = style := value
-  override protected def buildStringStyleSetter(style: keys.Style[_],value: String): IO[Style] = new BasicStyleBuilder[Any](style.cssName) := value
+  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): IO[Style] = style := value
+  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): IO[Style] = new BasicStyleBuilder[Any](style.cssName) := value
 }
-
 
 trait Styles
   extends styles.Styles[IO[Style]]

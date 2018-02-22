@@ -3,13 +3,13 @@ package outwatch.util
 import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
-import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.{CloseEvent, ErrorEvent, MessageEvent}
 import outwatch.Sink
+import outwatch.dom.Observable
 
 object WebSocket {
-  implicit def toSink(socket: WebSocket): Sink[String] = socket.sink
+  implicit def toSink(socket: WebSocket): IO[Sink[String]] = socket.sink
   implicit def toSource(socket: WebSocket): Observable[MessageEvent] = socket.source
 }
 
@@ -24,12 +24,12 @@ final case class WebSocket private(url: String)(implicit s: Scheduler) {
   })
 
   lazy val sink = Sink.create[String](
-    s => IO {
+    s => {
       ws.send(s)
       Continue
     },
-    _ => IO.pure(()),
-    () => IO(ws.close())
+    _ => (),
+    () => ws.close()
   )
 
 }

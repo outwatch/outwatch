@@ -24,7 +24,7 @@ sealed trait Sink[-T] extends Any {
 
   private[outwatch] def observer: Subscriber[T]
 
-  def unsafeOnNext(value:T):Future[Ack] = observer.onNext(value)
+  def unsafeOnNext(value: T): Future[Ack] = observer.onNext(value)
 
   /**
     * Creates a new sink. That sink will transform the values it receives and then forward them along to this sink.
@@ -76,18 +76,19 @@ object Sink {
     * @tparam T the type parameter of the consumed elements.
     * @return a Sink that consumes elements of type T.
     */
-  def create[T](next: T => IO[Future[Ack]],
-                error: Throwable => IO[Unit] = _ => IO.pure(()),
-                complete: () => IO[Unit] = () => IO.pure(())
-               )(implicit s: Scheduler): Sink[T] = {
-    val sink = ObserverSink(
-      new Observer[T] {
-        override def onNext(t: T): Future[Ack] = next(t).unsafeRunSync()
-        override def onError(ex: Throwable): Unit = error(ex).unsafeRunSync()
-        override def onComplete(): Unit = complete().unsafeRunSync()
-      }
-    )
-    sink
+  def create[T](next: T => Future[Ack],
+                error: Throwable => Unit = _ => (),
+                complete: () => Unit = () => ()
+               )(implicit s: Scheduler): IO[Sink[T]] = {
+    IO{
+      ObserverSink(
+        new Observer[T] {
+          override def onNext(t: T): Future[Ack] = next(t)
+          override def onError(ex: Throwable): Unit = error(ex)
+          override def onComplete(): Unit = complete()
+        }
+      )
+    }
   }
 
 

@@ -1,13 +1,12 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
-import monix.reactive.subjects.BehaviorSubject
 import outwatch.dom._
 
 import scala.collection.breakOut
 
 object SeparatedModifiers {
-  private[outwatch] def separate(modifiers: Seq[VDomModifier_]): SeparatedModifiers = {
+  private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
     modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
   }
 }
@@ -19,7 +18,7 @@ private[outwatch] final case class SeparatedModifiers(
   children: Children = Children.Empty
 ) extends SnabbdomModifiers { self =>
 
-  def ::(m: VDomModifier_): SeparatedModifiers = m match {
+  def ::(m: Modifier): SeparatedModifiers = m match {
     case pr: Property => copy(properties = pr :: properties)
     case vn: ChildVNode => copy(children = vn :: children)
     case em: Emitter => copy(emitters = em :: emitters)
@@ -47,7 +46,7 @@ object Children {
 
     override def ::(node: ChildVNode): Children = node match {
       case s: StringVNode => toModifier(s) :: this
-      case n => n :: VNodes(Nil, StreamStatus())
+      case n => n :: VNodes(Nil, hasStream = false)
     }
   }
 
@@ -56,32 +55,25 @@ object Children {
 
     override def ::(node: ChildVNode): Children = node match {
       case s: StringVNode => toModifier(s) :: this // this should never happen
-      case n => n :: VNodes(modifiers.map(toVNode), StreamStatus())
+      case n => n :: VNodes(modifiers.map(toVNode), hasStream = false)
     }
   }
 
-  private[outwatch] case class VNodes(nodes: List[ChildVNode], streamStatus: StreamStatus) extends Children {
+  private[outwatch] case class VNodes(nodes: List[ChildVNode], hasStream: Boolean) extends Children {
 
     private def ensureVNodeKey[N >: VTree](node: N): N = node match {
       case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
       case other => other
     }
 
-    override def ensureKey: Children = if (streamStatus.hasChildOrChildren) copy(nodes = nodes.map(ensureVNodeKey)) else this
+    override def ensureKey: Children = if (hasStream) copy(nodes = nodes.map(ensureVNodeKey)) else this
 
     override def ::(mod: StringModifier): Children = copy(toVNode(mod) :: nodes)
 
     override def ::(node: ChildVNode): Children = node match {
       case s: StaticVNode => copy(nodes = s :: nodes)
-      case s: ChildStreamReceiver => copy(s :: nodes, streamStatus.copy(numChild = streamStatus.numChild + 1))
-      case s: ChildrenStreamReceiver => copy(s :: nodes, streamStatus.copy(numChildren = streamStatus.numChildren + 1))
+      case s: StreamVNode => copy(nodes = s :: nodes, hasStream = true)
     }
-  }
-
-  private[outwatch] case class StreamStatus(numChild: Int = 0, numChildren: Int = 0) {
-    def hasChildOrChildren: Boolean = (numChild + numChildren) > 0
-
-    def hasMultipleChildOrChildren: Boolean = (numChild + numChildren) > 1
   }
 }
 
@@ -144,48 +136,48 @@ private[outwatch] final case class SeparatedEmitters(
   def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
 }
 
+
+private[outwatch] case class VNodeState(
+  nodes: Array[Seq[IO[StaticVNode]]],
+  attributes: Map[String, Attribute] = Map.empty
+)
+
+private[outwatch] object VNodeState {
+  def from(nodes: List[ChildVNode]): VNodeState = VNodeState(
+    nodes.map {
+      case n: StaticVNode => List(IO.pure(n))
+      case _ => List.empty
+    }(breakOut)
+  )
+
+  type Updater = VNodeState => VNodeState
+}
+
 private[outwatch] final case class Receivers(
   children: Children,
   attributeStreamReceivers: List[AttributeStreamReceiver]
 ) {
-  private val (childNodes, childStreamStatus) = children match {
-    case Children.VNodes(nodes, streamStatus) => (nodes, streamStatus)
-    case _ => (Nil, Children.StreamStatus())
+  private val (nodes, hasNodeStreams) = children match {
+    case Children.VNodes(nodes, hasStream) => (nodes, hasStream)
+    case _ => (Nil, false)
   }
 
-  lazy val observable: Observable[(Seq[Attribute], Seq[IO[StaticVNode]])] = {
-    val childStreamReceivers = if (childStreamStatus.hasChildOrChildren) {
-      childNodes.foldRight(Observable(List.empty[IO[StaticVNode]])) {
-        case (vn: StaticVNode, obs) => obs.combineLatestMap(BehaviorSubject(IO.pure(vn)))((nodes, n) => n :: nodes)
-        case (csr: ChildStreamReceiver, obs) =>
-          obs.combineLatestMap(
-            if (childStreamStatus.hasMultipleChildOrChildren) csr.childStream.startWith(Seq(IO.pure(StringVNode("")))) else csr.childStream
-          )((nodes, n) => n :: nodes)
-        case (csr: ChildrenStreamReceiver, obs) =>
-          obs.combineLatestMap(
-            if (childStreamStatus.hasMultipleChildOrChildren) csr.childrenStream.startWith(Seq(Seq.empty)) else csr.childrenStream
-          )((nodes, n) => n.toList ++ nodes)
-      }
-    } else {
-      Observable(Seq.empty)
-    }
-
-    // only use last encountered observable per attribute
-    val attributeReceivers: Observable[Seq[Attribute]] = if (attributeStreamReceivers.isEmpty) {
-      Observable(Seq.empty)
-    } else {
-      Observable.combineLatestList(
-        attributeStreamReceivers
-          .groupBy(_.attribute)
-          .values
-          .map(_.last.attributeStream.startWith(Seq(Attribute.empty)))(breakOut): _*
-      )
-    }
-
-    attributeReceivers.combineLatest(childStreamReceivers)
+  private lazy val updaters: Seq[Observable[VNodeState.Updater]] = nodes.zipWithIndex.map {
+    case (_: StaticVNode, _) =>
+      Observable.empty
+    case (csr: ChildStreamReceiver, index) =>
+      csr.childStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n :: Nil)))
+    case (csr: ChildrenStreamReceiver, index) =>
+      csr.childrenStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n)))
+  } ++ attributeStreamReceivers.groupBy(_.attribute).values.map(_.last).map {
+    case AttributeStreamReceiver(name, attributeStream) =>
+      attributeStream.map[VNodeState.Updater](a => s => s.copy(attributes = s.attributes.updated(name, a)))
   }
+
+  lazy val observable: Observable[VNodeState] = Observable.merge(updaters: _*)
+    .scan(VNodeState.from(nodes))((state, updater) => updater(state))
 
   lazy val nonEmpty: Boolean = {
-    attributeStreamReceivers.nonEmpty || childStreamStatus.hasChildOrChildren
+    hasNodeStreams || attributeStreamReceivers.nonEmpty
   }
 }

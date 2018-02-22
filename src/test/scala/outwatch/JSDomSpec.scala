@@ -31,16 +31,20 @@ trait LocalStorageMock {
     js.Dynamic.global.window.updateDynamic("localStorage")(new js.Object {
       private val map = new mutable.HashMap[String, String]
 
+      @SuppressWarnings(Array("unused"))
       def getItem(key: String): String = map.getOrElse(key, null)
 
+      @SuppressWarnings(Array("unused"))
       def setItem(key: String, value: String): Unit = {
         map += key -> value
       }
 
+      @SuppressWarnings(Array("unused"))
       def removeItem(key: String): Unit = {
         map -= key
       }
 
+      @SuppressWarnings(Array("unused"))
       def clear(): Unit = map.clear()
     })
   }
@@ -62,8 +66,7 @@ trait LocalStorageMock {
 
 abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock {
 
-  implicit val scheduler = Scheduler.global
-  val trampolineScheduler = TrampolineScheduler(scheduler, SynchronousExecution)
+  implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
   override def beforeEach(): Unit = {
 
