@@ -37,6 +37,17 @@ sealed trait Sink[-T] extends Any {
   def redirect[R](projection: Observable[R] => Observable[T]): Sink[R] = {
     Sink.redirect(this)(projection)
   }
+
+  /**
+    * Same as redirect, but it doesn't try to ensure that the observable end of the created sink gets closed when the
+    * observable end of this sink is closed
+    * @param projection the operator to use
+    * @tparam R the type of the resulting sink
+    * @return the resulting sink, that will forward the values
+    */
+  def unsafeRedirect[R](projection: Observable[R] => Observable[T]): Sink[R] = {
+    Sink.unsafeRedirect(this)(projection)
+  }
   /**
     * Creates a new sink. That sink will transform each value it receives and then forward it along to the this sink.
     * The transformation is a simple map from one type to another, i.e. a 'map'.
@@ -120,6 +131,26 @@ object Sink {
     completionObservable(sink)
       .fold(project(forward))(completed => project(forward).takeUntil(completed))
       .subscribe(sink.observer)
+
+    forward
+  }
+
+  /**
+    * Same as redirect, but it doesn't try to ensure that the observable end of the created sink gets closed when the
+    * observable end of argument sink is closed.
+    *
+    * @param sink    the Sink to forward values to
+    * @param project the operator to use
+    * @tparam R the type of the resulting sink
+    * @tparam T the type of the original sink
+    * @return the resulting sink, that will forward the values
+    */
+
+  def unsafeRedirect[T,R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
+    implicit val scheduler = sink.observer.scheduler
+    val forward = SubjectSink[R]()
+
+    project(forward).subscribe(sink.observer)
 
     forward
   }

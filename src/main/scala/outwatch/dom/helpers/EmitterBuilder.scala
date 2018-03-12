@@ -42,7 +42,7 @@ final case class TransformingEmitterBuilder[E, O, R] private[helpers](
   )
 
   def -->(sink: Sink[_ >: O]): IO[R] = {
-    val redirected: Sink[E] = sink.redirect[E](transformer)
+    val redirected: Sink[E] = sink.unsafeRedirect[E](transformer)
     IO.pure(create(redirected.observer))
   }
 }
