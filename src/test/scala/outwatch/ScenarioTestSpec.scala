@@ -4,6 +4,7 @@ import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.util.Store
 
 class ScenarioTestSpec extends JSDomSpec {
 
@@ -23,6 +24,52 @@ class ScenarioTestSpec extends JSDomSpec {
           button(id := "plus", "+", onClick --> handlePlus),
           button(id := "minus", "-", onClick --> handleMinus),
           span(id:="counter", count)
+        )
+      )
+    } yield div
+
+    val root = document.createElement("div")
+    document.body.appendChild(root)
+
+    OutWatch.renderInto(root, node).unsafeRunSync()
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+
+    document.getElementById("counter").innerHTML shouldBe 0.toString
+
+    document.getElementById("minus").dispatchEvent(event)
+
+    document.getElementById("counter").innerHTML shouldBe (-1).toString
+
+    for (i <- 0 to 10) {
+      document.getElementById("plus").dispatchEvent(event)
+      document.getElementById("counter").innerHTML shouldBe i.toString
+    }
+  }
+
+
+  "A simple counter application that uses Store" should "work as intended" in {
+
+    sealed trait Action
+    case object Plus extends Action
+    case object Minus extends Action
+
+    type State = Int
+
+    def reduce(state: State, action: Action): State = action match {
+      case Plus => state + 1
+      case Minus => state - 1
+    }
+
+    val node = for {
+      store <- Store.create[State, Action](0, reduce _)
+
+      div <- div(
+        div(
+          button(id := "plus", "+", onClick(Plus) --> store),
+          button(id := "minus", "-", onClick(Minus) --> store),
+          span(id:="counter", store)
         )
       )
     } yield div
