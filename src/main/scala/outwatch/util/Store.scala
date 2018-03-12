@@ -17,8 +17,8 @@ final case class Store[State, Action](initialState: State,
   val sink: Sink[Action] = handler
   val source: Observable[State] = handler
     .scan(initialState)(fold)
-    .startWith(Seq(initialState))
     .share
+    .startWith(Seq(initialState))
 
   private def fold(state: State, action: Action): State = {
     val (newState, next) = reducer(state, action)
