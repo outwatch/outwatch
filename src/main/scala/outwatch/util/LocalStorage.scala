@@ -16,7 +16,7 @@ class Storage(domStorage: dom.Storage) {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
-      h <- Handler.create[Option[String]](storage(key))
+      h <- Handler.create[IO, Option[String]](storage(key))
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying handler h

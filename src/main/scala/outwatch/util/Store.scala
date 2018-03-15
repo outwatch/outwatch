@@ -2,6 +2,11 @@ package outwatch.util
 
 import cats.effect.IO
 import monix.execution.Scheduler
+
+import monix.execution.{Ack, Cancelable}
+import outwatch.dom.{Observable, OutWatch, VNodeF}
+import outwatch.{Handler, Pipe, Sink}
+
 import org.scalajs.dom
 import outwatch.dom.helpers.STRef
 import outwatch.dom.{Observable, OutWatch, VNode}
@@ -34,7 +39,7 @@ object Store {
     reducer: Reducer[State, Action]
   )(implicit s: Scheduler): IO[Pipe[Action, State]] = {
 
-    Handler.create[Action].map { handler =>
+    Handler.create[IO, Action].map { handler =>
 
       val fold: (State, Action) => State = (state, action) => Try { // guard against reducer throwing an exception
         val (newState, effects) = reducer.reducer(state, action)
@@ -58,6 +63,7 @@ object Store {
     }
   }
 
+
   def get[S, A]: IO[Pipe[A, S]] = storeRef.asInstanceOf[STRef[Pipe[A, S]]].getOrThrow(NoStoreException)
 
   def renderWithStore[S, A](
@@ -65,7 +71,7 @@ object Store {
   )(implicit s: Scheduler): IO[Unit] = for {
     store <- Store.create(initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[Pipe[A, S]]].put(store)
-    _ <- OutWatch.renderInto(selector, root)
+    _ <- OutWatch.renderInto[IO](selector, root)
   } yield ()
 
   private object NoStoreException

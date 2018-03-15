@@ -1,6 +1,7 @@
 package outwatch.dom
 
-import cats.effect.IO
+import cats.effect.{Effect, IO, Sync}
+import cats.syntax.all._
 import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom._
@@ -9,31 +10,32 @@ import snabbdom.patch
 
 object OutWatch {
 
-  def renderInto(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
+  def renderInto[F[+_]: Effect](element: dom.Element, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] = for {
     node <- vNode
-    _ <- IO {
+    _ <- Sync[F].delay {
       val elem = dom.document.createElement("app")
       element.appendChild(elem)
       patch(elem, node.toSnabbdom)
     }
   } yield ()
 
-  def renderReplace(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
+  def renderReplace[F[+_]: Effect](element: dom.Element, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] = for {
     node <- vNode
-    _ <- IO(patch(element, node.toSnabbdom))
+    _ <- Sync[F].delay(patch(element, node.toSnabbdom))
   } yield ()
 
-  def renderInto(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] =
-    renderInto(document.querySelector(querySelector), vNode)
+  def renderInto[F[+_]: Effect](querySelector: String, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] =
+    renderInto[F](document.querySelector(querySelector), vNode)
 
-  def renderReplace(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] =
-    renderReplace(document.querySelector(querySelector), vNode)
+  def renderReplace[F[+_]: Effect](querySelector: String, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] =
+    renderReplace[F](document.querySelector(querySelector), vNode)
 
   @deprecated("Use renderInto instead (or renderReplace)", "0.11.0")
-  def render(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] = renderInto(querySelector, vNode)
+  def render(querySelector: String, vNode: VNodeF[IO])(implicit s: Scheduler): IO[Unit] =
+    renderInto(querySelector, vNode)
 
   def renderWithStore[S, A](
-    initialState: S, reducer: Store.Reducer[S, A], querySelector: String, root: VNode
+    initialState: S, reducer: Store.Reducer[S, A], querySelector: String, root: VNodeF[IO]
   )(implicit s: Scheduler): IO[Unit] =
     Store.renderWithStore(initialState, reducer, querySelector, root)
 }

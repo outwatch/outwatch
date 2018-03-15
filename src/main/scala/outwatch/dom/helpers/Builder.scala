@@ -1,6 +1,7 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.Applicative
+import cats.effect.{Effect, IO, Sync}
 import outwatch.StaticVNodeRender
 
 import scala.language.dynamics
@@ -10,16 +11,16 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
   protected def name: String
   private[outwatch] def assign(value: T): A
 
-  def :=(value: T): IO[A] = IO.pure(assign(value))
-  def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
-  def <--(valueStream: Observable[T]): IO[AttributeStreamReceiver] = {
-    IO.pure(AttributeStreamReceiver(name, valueStream.map(assign)))
+  def :=[F[+_]: Applicative](value: T): F[A] = Applicative[F].pure(assign(value))
+  def :=?[F[+_]: Applicative](value: Option[T]): Option[VDomModifierF[F]] = value.map(:=[F])
+  def <--[F[+_]: Effect](valueStream: Observable[T]): F[AttributeStreamReceiver] = {
+    Applicative[F].pure(AttributeStreamReceiver(name, valueStream.map(assign)))
   }
 }
 
 object AttributeBuilder {
-  implicit def toAttribute(builder: AttributeBuilder[Boolean, Attr]): IO[Attribute] = builder := true
-  implicit def toProperty(builder: AttributeBuilder[Boolean, Prop]): IO[Property] = builder := true
+  implicit def toAttribute[F[+_]: Applicative](builder: AttributeBuilder[Boolean, Attr]): F[Attribute] = builder :=[F] true
+  implicit def toProperty[F[+_]: Applicative](builder: AttributeBuilder[Boolean, Prop]): F[Property] = builder :=[F] true
 }
 
 // Attr
@@ -102,21 +103,19 @@ object KeyBuilder {
 // Child / Children
 
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[VNode]): IO[ChildStreamReceiver] = IO.pure(
-    ChildStreamReceiver(valueStream)
+  def <--[F[+_]: Sync, T](valueStream: Observable[VNodeF[F]]): F[ChildStreamReceiver[F]] = Sync[F].pure(
+    ChildStreamReceiver[F](valueStream)
   )
 
-  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO.pure(
-    ChildStreamReceiver(valueStream.map(r.render))
-  )
+  def <--[F[+_]: Effect, T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): F[ChildStreamReceiver[F]] =
+    Sync[F].pure(ChildStreamReceiver(valueStream.map(r.render[F])))
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = IO.pure(
-    ChildrenStreamReceiver(childrenStream)
-  )
+  def <--[F[+_]: Sync](childrenStream: Observable[Seq[VNodeF[F]]]): F[ChildrenStreamReceiver[F]] =
+    Sync[F].pure(ChildrenStreamReceiver[F](childrenStream))
 
-  def <--[T](childrenStream: Observable[Seq[T]])(implicit r: StaticVNodeRender[T]): IO[ChildrenStreamReceiver] = IO.pure(
-    ChildrenStreamReceiver(childrenStream.map(_.map(r.render)))
-  )
+  def <--[F[+_]: Effect, T](childrenStream: Observable[Seq[T]])
+                        (implicit r: StaticVNodeRender[T]): F[ChildrenStreamReceiver[F]] =
+    Sync[F].pure(ChildrenStreamReceiver(childrenStream.map(_.map(r.render[F]))))
 }

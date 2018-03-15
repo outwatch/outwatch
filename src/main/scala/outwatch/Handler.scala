@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.effect.IO
+import cats.effect.Sync
 import monix.execution.Scheduler
 import outwatch.dom.Observable
 
@@ -15,9 +15,9 @@ object Handler {
     * @tparam T the type parameter of the elements
     * @return the newly created Handler.
     */
-  def create[T](seeds: T*)(implicit s: Scheduler): IO[Handler[T]] = Pipe.create[T](seeds: _*)
+  def create[F[+_]: Sync, T](seeds: T*)(implicit s: Scheduler): F[Handler[T]] = Pipe.create[F, T](seeds: _*)
 
-  def create[T](implicit s: Scheduler): IO[Handler[T]] = Pipe.create[T]
+  def create[F[+_]: Sync, T](implicit s: Scheduler): F[Handler[T]] = Pipe.create[F, T]
 
 }
 

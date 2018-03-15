@@ -1,7 +1,7 @@
 package outwatch.dom
 
-import cats.effect.IO
-import monix.execution.Ack.Continue
+import cats.effect.{Effect, Sync}
+import cats.implicits._
 import monix.execution.cancelables.CompositeCancelable
 import monix.execution.{Cancelable, Scheduler}
 import org.scalajs.dom
@@ -9,22 +9,21 @@ import outwatch.dom.dsl.attributes.lifecycle
 
 trait ManagedSubscriptions {
 
-  def managed(subscription: IO[Cancelable])(implicit s: Scheduler): VDomModifier = {
+  def managed[F[+_]: Effect](subscription: F[Cancelable])(implicit s: Scheduler): VDomModifierF[F] = {
     subscription.flatMap { sub: Cancelable =>
-      Sink.create[dom.Element] { _ =>
-        sub.cancel()
-        Continue
-      }.flatMap( sink => lifecycle.onDestroy --> sink)
+      Sink.create[F, dom.Element] { (_: dom.Element) =>
+        Sync[F].delay(sub.cancel())
+      }.flatMap(sink => lifecycle.onDestroy --> sink)
     }
   }
 
-  def managed(sub1: IO[Cancelable], sub2: IO[Cancelable], subscriptions: IO[Cancelable]*)(implicit s: Scheduler): VDomModifier = {
+  def managed[F[+_]: Effect](sub1: F[Cancelable], sub2: F[Cancelable], subscriptions: F[Cancelable]*)
+             (implicit s: Scheduler): VDomModifierF[F] = {
 
-    (sub1 :: sub2 :: subscriptions.toList).sequence.flatMap { subs: Seq[Cancelable] =>
+    (sub1 :: sub2 :: subscriptions.toList).sequence.flatMap { subs: List[Cancelable] =>
       val composite = CompositeCancelable(subs: _*)
-      Sink.create[dom.Element]{ _ =>
-        composite.cancel()
-        Continue
+      Sink.create[F, dom.Element]{ (_: dom.Element) =>
+        Sync[F].delay(composite.cancel())
       }.flatMap(sink => lifecycle.onDestroy --> sink)
     }
   }

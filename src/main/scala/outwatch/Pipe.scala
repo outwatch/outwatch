@@ -1,6 +1,7 @@
 package outwatch
 
-import cats.effect.IO
+import cats.effect._
+import cats.implicits._
 import monix.execution.Scheduler
 import outwatch.Sink.{ObservableSink, SubjectSink}
 import outwatch.dom.Observable
@@ -18,7 +19,7 @@ object Pipe {
     * @tparam T the type parameter of the elements
     * @return the newly created Pipe.
     */
-  def create[T](seeds: T*)(implicit s: Scheduler): IO[Pipe[T, T]] = create[T].map { pipe =>
+  def create[F[+_]: Sync, T](seeds: T*)(implicit s: Scheduler): F[Pipe[T, T]] = create[F, T].map { pipe =>
     if (seeds.nonEmpty) {
       pipe.transformSource(_.startWith(seeds))
     }
@@ -27,7 +28,7 @@ object Pipe {
     }
   }
 
-  def create[T](implicit s: Scheduler): IO[Pipe[T, T]] = IO {
+  def create[F[+_]: Sync, T](implicit s: Scheduler): F[Pipe[T, T]] = Sync[F].delay {
     val subjectSink = SubjectSink[T]()
     Pipe(subjectSink, subjectSink)
   }

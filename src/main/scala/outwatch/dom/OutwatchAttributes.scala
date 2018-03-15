@@ -1,7 +1,8 @@
 package outwatch.dom
 
+import cats.Applicative
 import outwatch.dom.helpers._
-import cats.effect.IO
+import cats.effect.Effect
 
 /** Trait containing the contents of the `Attributes` module, so they can be
   * mixed in to other objects if needed. This should contain "all" attributes
@@ -55,11 +56,12 @@ trait AttributeHelpers { self: Attributes =>
 
   lazy val data = new DynamicAttrBuilder[Any]("data" :: Nil)
 
-  def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
+  def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) =
+    new BasicAttrBuilder[T](key, convert)
   def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   def style[T](key: String) = new BasicStyleBuilder[T](key)
 }
 
-trait TagHelpers { self: Tags =>
-  def tag(name: String): VNode= IO.pure(VTree(name, Seq.empty))
+trait TagHelpers[F[+_]] {
+  def tag(name: String)(implicit F: Effect[F]): VNodeF[F] = Applicative[F].pure(VTree[F](name, Seq.empty))
 }

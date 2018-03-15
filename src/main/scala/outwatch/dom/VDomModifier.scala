@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import cats.effect.IO
+import cats.effect.Effect
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
@@ -146,24 +146,28 @@ object StaticVNode {
   val empty: StaticVNode = StringVNode("")
 }
 
-private[outwatch] final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends AnyVal with StreamVNode
+private[outwatch] final case class ChildStreamReceiver[F[+_]](childStream: Observable[F[StaticVNode]]) extends AnyVal with StreamVNode
 
-private[outwatch] final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends AnyVal with StreamVNode
+private[outwatch] final case class ChildrenStreamReceiver[F[+_]](childrenStream: Observable[Seq[F[StaticVNode]]]) extends AnyVal with StreamVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
+
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
 }
 
 // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
-private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
+private[outwatch] final case class VTree[F[+_]: Effect](nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
 
-  def apply(args: VDomModifier*): VNode = args.sequence.map(args => copy(modifiers = modifiers ++ args))
+  import cats.implicits._
+
+  def apply(args: VDomModifierF[F]*): VNodeF[F] =
+    args.toList.sequence.map(args => copy(modifiers = modifiers ++ args))
 
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
-    SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)
+    SeparatedModifiers.from[F](modifiers).toSnabbdom(nodeType)
   }
 }
 

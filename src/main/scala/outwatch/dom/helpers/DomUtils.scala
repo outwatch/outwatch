@@ -1,24 +1,26 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.Applicative
+import cats.effect.Effect
 import outwatch.dom._
+import outwatch.dom.dsl.attributes
 
 import scala.collection.breakOut
 
 object SeparatedModifiers {
-  private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
-    modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
+  private[outwatch] def from[F[+_]: Effect](modifiers: Seq[Modifier]): SeparatedModifiers[F] = {
+    modifiers.foldRight(SeparatedModifiers[F](children = Children.empty[F]))((m, sm) => m :: sm)
   }
 }
 
-private[outwatch] final case class SeparatedModifiers(
+private[outwatch] final case class SeparatedModifiers[F[+_]: Effect](
   properties: SeparatedProperties = SeparatedProperties(),
   emitters: SeparatedEmitters = SeparatedEmitters(),
   attributeReceivers: List[AttributeStreamReceiver] = Nil,
-  children: Children = Children.Empty
-) extends SnabbdomModifiers { self =>
+  children: Children[F]
+) extends SnabbdomModifiers[F] { self =>
 
-  def ::(m: Modifier): SeparatedModifiers = m match {
+  def ::(m: Modifier): SeparatedModifiers[F] = m match {
     case pr: Property => copy(properties = pr :: properties)
     case vn: ChildVNode => copy(children = vn :: children)
     case em: Emitter => copy(emitters = em :: emitters)
@@ -29,48 +31,50 @@ private[outwatch] final case class SeparatedModifiers(
   }
 }
 
-private[outwatch] trait Children {
-  def ::(mod: StringModifier): Children
+private[outwatch] trait Children[F[+_]] {
+  def ::(mod: StringModifier): Children[F]
 
-  def ::(node: ChildVNode): Children
+  def ::(node: ChildVNode): Children[F]
 
-  def ensureKey: Children = this
+  def ensureKey: Children[F] = this
 }
 
 object Children {
   private def toVNode(mod: StringModifier) = StringVNode(mod.string)
   private def toModifier(node: StringVNode) = StringModifier(node.string)
 
-  private[outwatch] case object Empty extends Children {
-    override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
+  private[outwatch] case class Empty[F[+_]: Effect]() extends Children[F] {
+    override def ::(mod: StringModifier): Children[F] = StringModifiers(mod :: Nil)
 
-    override def ::(node: ChildVNode): Children = node match {
+    override def ::(node: ChildVNode): Children[F] = node match {
       case s: StringVNode => toModifier(s) :: this
-      case n => n :: VNodes(Nil, hasStream = false)
+      case n => n :: VNodes[F](Nil, hasStream = false)
     }
   }
 
-  private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
-    override def ::(mod: StringModifier): Children = copy(mod :: modifiers)
+  def empty[F[+_]: Effect]: Empty[F] = Empty[F]()
 
-    override def ::(node: ChildVNode): Children = node match {
+  private[outwatch] case class StringModifiers[F[+_]: Effect](modifiers: List[StringModifier]) extends Children[F] {
+    override def ::(mod: StringModifier): Children[F] = copy(mod :: modifiers)
+
+    override def ::(node: ChildVNode): Children[F] = node match {
       case s: StringVNode => toModifier(s) :: this // this should never happen
-      case n => n :: VNodes(modifiers.map(toVNode), hasStream = false)
+      case n => n :: VNodes[F](modifiers.map(toVNode), hasStream = false)
     }
   }
 
-  private[outwatch] case class VNodes(nodes: List[ChildVNode], hasStream: Boolean) extends Children {
+  private[outwatch] case class VNodes[F[+_]: Effect](nodes: List[ChildVNode], hasStream: Boolean) extends Children[F] {
 
-    private def ensureVNodeKey[N >: VTree](node: N): N = node match {
-      case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
+    private def ensureVNodeKey[N >: VTree[F]](node: N): N = node match {
+      case vtree: VTree[_] => vtree.copy[F](modifiers = Key(vtree.hashCode) +: vtree.modifiers)
       case other => other
     }
 
-    override def ensureKey: Children = if (hasStream) copy(nodes = nodes.map(ensureVNodeKey)) else this
+    override def ensureKey: Children[F] = if (hasStream) copy(nodes = nodes.map(ensureVNodeKey)) else this
 
-    override def ::(mod: StringModifier): Children = copy(toVNode(mod) :: nodes)
+    override def ::(mod: StringModifier): Children[F] = copy(toVNode(mod) :: nodes)
 
-    override def ::(node: ChildVNode): Children = node match {
+    override def ::(node: ChildVNode): Children[F] = node match {
       case s: StaticVNode => copy(nodes = s :: nodes)
       case s: StreamVNode => copy(nodes = s :: nodes, hasStream = true)
     }
@@ -137,24 +141,24 @@ private[outwatch] final case class SeparatedEmitters(
 }
 
 
-private[outwatch] case class VNodeState(
-  nodes: Array[Seq[IO[StaticVNode]]],
+private[outwatch] case class VNodeState[F[+_]](
+  nodes: Array[Seq[F[StaticVNode]]],
   attributes: Map[String, Attribute] = Map.empty
 )
 
 private[outwatch] object VNodeState {
-  def from(nodes: List[ChildVNode]): VNodeState = VNodeState(
+  def from[F[+_]: Applicative](nodes: List[ChildVNode]): VNodeState[F] = VNodeState[F](
     nodes.map {
-      case n: StaticVNode => List(IO.pure(n))
+      case n: StaticVNode => List(Applicative[F].pure(n))
       case _ => List.empty
     }(breakOut)
   )
 
-  type Updater = VNodeState => VNodeState
+  type Updater[F[+_]] = VNodeState[F] => VNodeState[F]
 }
 
-private[outwatch] final case class Receivers(
-  children: Children,
+private[outwatch] final case class Receivers[F[+_]: Effect](
+  children: Children[F],
   attributeStreamReceivers: List[AttributeStreamReceiver]
 ) {
   private val (nodes, hasNodeStreams) = children match {
@@ -162,20 +166,20 @@ private[outwatch] final case class Receivers(
     case _ => (Nil, false)
   }
 
-  private lazy val updaters: Seq[Observable[VNodeState.Updater]] = nodes.zipWithIndex.map {
+  private def updaters: Seq[Observable[VNodeState.Updater[F]]] = nodes.zipWithIndex.map {
     case (_: StaticVNode, _) =>
       Observable.empty
-    case (csr: ChildStreamReceiver, index) =>
-      csr.childStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n :: Nil)))
-    case (csr: ChildrenStreamReceiver, index) =>
-      csr.childrenStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n)))
+    case (csr: ChildStreamReceiver[F], index) =>
+      csr.childStream.map[VNodeState.Updater[F]](n => s => s.copy(nodes = s.nodes.updated(index, n :: Nil)))
+    case (csr: ChildrenStreamReceiver[F], index) =>
+      csr.childrenStream.map[VNodeState.Updater[F]](n => s => s.copy(nodes = s.nodes.updated(index, n)))
   } ++ attributeStreamReceivers.groupBy(_.attribute).values.map(_.last).map {
     case AttributeStreamReceiver(name, attributeStream) =>
-      attributeStream.map[VNodeState.Updater](a => s => s.copy(attributes = s.attributes.updated(name, a)))
+      attributeStream.map[VNodeState.Updater[F]](a => s => s.copy(attributes = s.attributes.updated(name, a)))
   }
 
-  lazy val observable: Observable[VNodeState] = Observable.merge(updaters: _*)
-    .scan(VNodeState.from(nodes))((state, updater) => updater(state))
+  def observable: Observable[VNodeState[F]] = Observable.merge(updaters: _*)
+    .scan(VNodeState.from[F](nodes))((state, updater) => updater(state))
 
   lazy val nonEmpty: Boolean = {
     hasNodeStreams || attributeStreamReceivers.nonEmpty

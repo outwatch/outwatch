@@ -1,5 +1,6 @@
 package outwatch.dom
 
+import cats.Applicative
 import com.raquo.domtypes.generic.builders
 import com.raquo.domtypes.generic.keys
 import com.raquo.domtypes.generic.codecs
@@ -9,7 +10,7 @@ import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.jsdom.defs.eventProps
-import cats.effect.IO
+import cats.effect.{Effect, IO}
 import org.scalajs.dom
 import helpers._
 import monix.execution.{Ack, Cancelable}
@@ -35,32 +36,33 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, VTree] {
+private[outwatch] trait TagBuilder[F[+_]] extends builders.TagBuilder[TagBuilder.Tag[F, ?], VTree[F]] {
+  implicit def effectF: Effect[F]
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-  protected override def tag[Ref <: VTree](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+  protected override def tag[Ref <: VTree[F]](tagName: String, void: Boolean): VTree[F] = VTree[F](tagName, Seq.empty)
 }
 private[outwatch] object TagBuilder {
-  type Tag[T] = VTree
+  type Tag[F[+_], T] = VTree[F]
 }
 
-trait Tags
-  extends EmbedTags[TagBuilder.Tag, VTree]
-  with GroupingTags[TagBuilder.Tag, VTree]
-  with TextTags[TagBuilder.Tag, VTree]
-  with FormTags[TagBuilder.Tag, VTree]
-  with SectionTags[TagBuilder.Tag, VTree]
-  with TableTags[TagBuilder.Tag, VTree]
-  with TagBuilder
-  with TagHelpers
-  with TagsCompat
+trait Tags[F[+_]]
+  extends TagBuilder[F]
+  with EmbedTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with GroupingTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with TextTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with FormTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with SectionTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with TableTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with TagHelpers[F]
 
 @deprecated("Use dsl.tags instead", "0.11.0")
-object Tags extends Tags
+object Tags extends TagBuilder[IO] with Tags[IO] {
+  implicit val effectF: Effect[IO] = IO.ioEffect
+}
 
-trait TagsExtra
-  extends DocumentTags[TagBuilder.Tag, VTree]
-  with MiscTags[TagBuilder.Tag, VTree]
-  with TagBuilder
+trait TagsExtra[F[+_]]
+  extends MiscTags[TagBuilder.Tag[F, ?], VTree[F]]
+  with DocumentTags[TagBuilder.Tag[F, ?], VTree[F]] { this: TagBuilder[F] =>}
 
 // all Attributes
 
@@ -145,16 +147,21 @@ abstract class DocumentEvents
 
 // Styles
 
-private[outwatch] trait SimpleStyleBuilder extends builders.StyleBuilders[IO[Style]] {
-  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): IO[Style] = style := value
-  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): IO[Style] = style := value
-  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): IO[Style] = new BasicStyleBuilder[Any](style.cssName) := value
+private[outwatch] trait SimpleStyleBuilder[F[+_]] extends builders.StyleBuilders[F[Style]] {
+  implicit def applicativeF: Applicative[F]
+
+  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): F[Style] =
+    style := value
+  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): F[Style] =
+    style := value
+  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): F[Style] =
+    new BasicStyleBuilder[Any](style.cssName) := value
 }
 
-trait Styles
-  extends styles.Styles[IO[Style]]
-  with SimpleStyleBuilder
+trait Styles[F[+_]]
+  extends SimpleStyleBuilder[F]
+  with styles.Styles[F[Style]]
 
-trait StylesExtra
-  extends styles.Styles2[IO[Style]]
-  with SimpleStyleBuilder
+trait StylesExtra[F[+_]]
+  extends SimpleStyleBuilder[F]
+  with styles.Styles2[F[Style]]
