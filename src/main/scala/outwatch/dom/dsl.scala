@@ -3,7 +3,7 @@ package outwatch.dom
 import cats.Applicative
 import cats.effect.{Effect, IO}
 
-trait dsl[F[+_]] extends Styles[F] with Tags[F] with Attributes { thisDsl =>
+trait dsl[F[+_]] extends Styles[F] with Tags[F] with Attributes[F] { thisDsl =>
   implicit def effectF: Effect[F]
   implicit def applicativeF: Applicative[F] = effectF
 
@@ -16,10 +16,10 @@ trait dsl[F[+_]] extends Styles[F] with Tags[F] with Attributes { thisDsl =>
       implicit val effectF: Effect[F] = thisDsl.effectF
     }
   }
-  object attributes extends Attributes {
-    object attrs extends Attrs
-    object reflected extends ReflectedAttrs
-    object props extends Props
+  object attributes extends Attributes[F] {
+    object attrs extends Attrs[F]
+    object reflected extends ReflectedAttrs[F]
+    object props extends Props[F]
     object events extends Events
     object outwatch extends OutwatchAttributes
     object lifecycle extends OutWatchLifeCycleAttributes
@@ -32,12 +32,6 @@ trait dsl[F[+_]] extends Styles[F] with Tags[F] with Attributes { thisDsl =>
 
 
 
-object dsl extends dsl[IO] with TagsCompat {
+object dsl extends dsl[IO] with TagsCompat with AttributesCompat {
   implicit val effectF: Effect[IO] = IO.ioEffect
 }
-
-//TODO:
-//object dslId extends dsl[Id] with TagsCompat {
-//  implicit val effectF: Effect[Id] = Id.
-//  implicit val applicativeF: Applicative[Id] = Applicative.apply
-//}

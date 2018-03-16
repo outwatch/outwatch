@@ -40,7 +40,7 @@ trait OutWatchChildAttributesCompat {
 }
 
 
-trait AttributesCompat extends OutWatchChildAttributesCompat { self: Attributes =>
+trait AttributesCompat extends OutWatchChildAttributesCompat { self: Attributes[IO] =>
 
   @deprecated("Use `type`, tpe or typ instead", "0.11.0")
   lazy val inputType = tpe

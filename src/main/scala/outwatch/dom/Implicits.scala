@@ -15,6 +15,7 @@ trait Implicits {
     def apply(args: VDomModifierF[F]*): VNodeF[F] = vnode.flatMap(_.apply(args: _*))
   }
 
-  implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)
+  implicit def StyleIsBuilder[F[+_], T](style: keys.Style[T]): BasicStyleBuilder[F, T] =
+    new BasicStyleBuilder[F, T](style.cssName)
 
 }

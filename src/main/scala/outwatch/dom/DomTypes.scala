@@ -19,8 +19,8 @@ import monix.reactive.OverflowStrategy.Unbounded
 import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
-  type Attribute[T, _] = helpers.AttributeBuilder[T, Attr]
-  type Property[T, _] = helpers.PropBuilder[T]
+  type Attribute[F[+_], T, _] = helpers.AttributeBuilder[F, T, Attr]
+  type Property[F[+_], T, _] = helpers.PropBuilder[F, T]
   type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[E, Emitter]
 }
 
@@ -66,34 +66,33 @@ trait TagsExtra[F[+_]]
 
 // all Attributes
 
-trait Attributes
-  extends Attrs
-  with ReflectedAttrs
-  with Props
+trait Attributes[F[+_]]
+  extends Attrs[F]
+  with ReflectedAttrs[F]
+  with Props[F]
   with Events
-  with AttributeHelpers
+  with AttributeHelpers[F]
   with OutwatchAttributes
-  with AttributesCompat
 
 @deprecated("Use dsl.attributes instead", "0.11.0")
-object Attributes extends Attributes
+object Attributes extends Attributes[IO]
 
 // Attrs
-trait Attrs
-  extends attrs.Attrs[BasicAttrBuilder]
-  with builders.AttrBuilder[BasicAttrBuilder] {
+trait Attrs[F[+_]]
+  extends attrs.Attrs[BasicAttrBuilder[F, ?]]
+  with builders.AttrBuilder[BasicAttrBuilder[F, ?]] {
 
-  override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+  override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[F, V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
 
 // Reflected attrs
-trait ReflectedAttrs
-  extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute]
-  with builders.ReflectedAttrBuilder[BuilderTypes.Attribute] {
+trait ReflectedAttrs[F[+_]]
+  extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute[F, ?, ?]]
+  with builders.ReflectedAttrBuilder[BuilderTypes.Attribute[F, ?, ?]] {
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className = new AccumAttrBuilder[String]("class",
+  override lazy val className = new AccumAttrBuilder[F, String]("class",
     stringReflectedAttr(attrKey = "class", propKey = "className"),
     _ + " " + _
   )
@@ -103,16 +102,16 @@ trait ReflectedAttrs
     propKey: String,
     attrCodec: codecs.Codec[V, String],
     propCodec: codecs.Codec[V, DomPropV]
-  ) = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+  ): BasicAttrBuilder[F, V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
     //or: new PropertyBuilder(propKey, propCodec.encode)
 }
 
 // Props
-trait Props
-  extends props.Props[BuilderTypes.Property]
-  with builders.PropBuilder[BuilderTypes.Property] {
+trait Props[F[+_]]
+  extends props.Props[BuilderTypes.Property[F, ?, ?]]
+  with builders.PropBuilder[BuilderTypes.Property[F, ?, ?]] {
 
-  override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
+  override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[F, V] =
     new PropBuilder(key, codec.encode)
 }
 
@@ -122,7 +121,7 @@ trait Events
   extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter]
   with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event] {
 
-  override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] =  EmitterBuilder[V](key)
+  override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] = EmitterBuilder[V](key)
 }
 
 
@@ -155,7 +154,7 @@ private[outwatch] trait SimpleStyleBuilder[F[+_]] extends builders.StyleBuilders
   override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): F[Style] =
     style := value
   override protected def buildStringStyleSetter(style: keys.Style[_], value: String): F[Style] =
-    new BasicStyleBuilder[Any](style.cssName) := value
+    new BasicStyleBuilder[F, Any](style.cssName) := value
 }
 
 trait Styles[F[+_]]

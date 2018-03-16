@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
 
@@ -10,8 +11,8 @@ class AttributeSpec extends JSDomSpec {
   "class attributes" should "be accumulated" in {
 
     val node = input(
-      className := "class1",
-      cls := "class2"
+      className :=[IO] "class1",
+      cls :=[IO] "class2"
     ).map(_.toSnabbdom).unsafeRunSync()
 
     node.data.attrs.toList shouldBe List("class" -> "class1 class2")
