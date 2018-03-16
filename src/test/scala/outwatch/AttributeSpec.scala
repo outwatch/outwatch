@@ -11,8 +11,8 @@ class AttributeSpec extends JSDomSpec {
   "class attributes" should "be accumulated" in {
 
     val node = input(
-      className :=[IO] "class1",
-      cls :=[IO] "class2"
+      className := "class1",
+      cls := "class2"
     ).map(_.toSnabbdom).unsafeRunSync()
 
     node.data.attrs.toList shouldBe List("class" -> "class1 class2")

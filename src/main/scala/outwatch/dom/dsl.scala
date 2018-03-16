@@ -1,37 +1,7 @@
 package outwatch.dom
 
-import cats.Applicative
 import cats.effect.{Effect, IO}
 
-trait dsl[F[+_]] extends Styles[F] with Tags[F] with Attributes[F] { thisDsl =>
-  implicit def effectF: Effect[F]
-  implicit def applicativeF: Applicative[F] = effectF
-
-  type VNode = VNodeF[F]
-  type VDomModifier = VDomModifierF[F]
-
-  object tags extends Tags[F] with TagBuilder[F] {
-    implicit val effectF: Effect[F] = thisDsl.effectF
-    object extra extends TagsExtra[F] with TagBuilder[F] {
-      implicit val effectF: Effect[F] = thisDsl.effectF
-    }
-  }
-  object attributes extends Attributes[F] {
-    object attrs extends Attrs[F]
-    object reflected extends ReflectedAttrs[F]
-    object props extends Props[F]
-    object events extends Events
-    object outwatch extends OutwatchAttributes
-    object lifecycle extends OutWatchLifeCycleAttributes
-  }
-  object events {
-    object window extends WindowEvents
-    object document extends DocumentEvents
-  }
-}
-
-
-
-object dsl extends dsl[IO] with TagsCompat with AttributesCompat {
+object dsl extends OutwatchDsl[IO] with TagsCompat with AttributesCompat {
   implicit val effectF: Effect[IO] = IO.ioEffect
 }
