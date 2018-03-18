@@ -30,23 +30,29 @@ class Storage(domStorage: dom.Storage) {
     }
   }
 
+  private def storageEventsForKey(key: String)(implicit scheduler: Scheduler): Observable[Option[String]] =
+    // StorageEvents are only fired if the localStorage was changed in another window
+    events.window.onStorage.collect {
+      case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
+        // newValue is either String or null if removed or cleared
+        // Option() transformes this to Some(string) or None
+        Option(e.newValue)
+      case e: StorageEvent if e.storageArea == domStorage && e.key == null =>
+        // storage.clear() emits an event with key == null
+        None
+    }
+
   def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     handlerWithTransform(key, identity)
   }
 
-  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
-    // StorageEvents are only fired if the localStorage was changed in another window
-    val storageEvents: Observable[Option[String]] = events.window.onStorage
-      .collect {
-        case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
-          // newValue is either String or null if removed or cleared
-          // Option() transformes this to Some(string) or None
-          Option(e.newValue)
-        case e: StorageEvent if e.storageArea == domStorage && e.key == null =>
-          // storage.clear() emits an event with key == null
-          None
-      }
+  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+    val storageEvents = storageEventsForKey(key)
+    handlerWithTransform(key, _ => storageEvents)
+  }
 
+  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+    val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
 }
