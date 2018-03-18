@@ -464,7 +464,7 @@ class DomEventSpec extends JSDomSpec {
 
       for {
         stringStream <- Handler.create[String]
-        intStream <- Handler.create[Int]
+        doubleStream <- Handler.create[Double]
         boolStream <- Handler.create[Boolean]
         htmlElementStream <- Handler.create[html.Element]
         svgElementTupleStream <- Handler.create[(svg.Element, svg.Element)]
@@ -473,14 +473,14 @@ class DomEventSpec extends JSDomSpec {
             id := "input", tpe := "text",
 
             onSearch.target.value --> stringStream,
-            onSearch.target.valueAsNumber --> intStream,
+            onSearch.target.valueAsNumber --> doubleStream,
             onSearch.target.checked --> boolStream,
 
             onClick.target.value --> stringStream,
 
             // uses currentTarget and assumes html.Input type by default
             onClick.value --> stringStream,
-            onClick.valueAsNumber --> intStream,
+            onClick.valueAsNumber --> doubleStream,
             onChange.checked --> boolStream,
 
             onClick.filter(_ => true).value --> stringStream,
