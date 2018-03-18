@@ -41,7 +41,7 @@ class Storage(domStorage: dom.Storage) {
         case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
           // newValue is either String or null if removed or cleared
           // Option() transformes this to Some(string) or None
-          Option(e.newValue.asInstanceOf[String]) //TODO: https://github.com/scala-js/scala-js-dom/pull/308
+          Option(e.newValue)
         case e: StorageEvent if e.storageArea == domStorage && e.key == null =>
           // storage.clear() emits an event with key == null
           None

@@ -4,7 +4,7 @@ import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
-import org.scalajs.dom.{CloseEvent, ErrorEvent, MessageEvent}
+import org.scalajs.dom.{CloseEvent, Event, MessageEvent}
 import outwatch.Sink
 import outwatch.dom.Observable
 
@@ -18,7 +18,7 @@ final case class WebSocket private(url: String)(implicit s: Scheduler) {
 
   lazy val source = Observable.create[MessageEvent](Unbounded)(observer => {
     ws.onmessage = (e: MessageEvent) => observer.onNext(e)
-    ws.onerror = (e: ErrorEvent) => observer.onError(new Exception(e.message))
+    ws.onerror = (e: Event) => observer.onError(new Exception(s"Error in WebSocket: $e"))
     ws.onclose = (e: CloseEvent) => observer.onComplete()
     Cancelable(() => ws.close())
   })
