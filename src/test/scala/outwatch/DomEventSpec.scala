@@ -541,4 +541,46 @@ class DomEventSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "ab"
   }
+
+  "LocalStorage.handler" should "should have proper events" in {
+    var option: Option[Option[String]] = None
+    val handler = util.LocalStorage.handler("hans").unsafeRunSync()
+    handler.foreach { o => option = Some(o) }
+
+    option shouldBe Some(None)
+
+    handler.unsafeOnNext(Some("gisela"))
+    option shouldBe Some(Some("gisela"))
+
+    handler.unsafeOnNext(None)
+    option shouldBe Some(None)
+  }
+
+  "LocalStorage.handlerWithEventsOnly" should "should have proper events" in {
+    var option: Option[Option[String]] = None
+    val handler = util.LocalStorage.handlerWithEventsOnly("hans").unsafeRunSync()
+    handler.foreach { o => option = Some(o) }
+
+    option shouldBe Some(None)
+
+    handler.unsafeOnNext(Some("gisela"))
+    option shouldBe Some(None)
+
+    handler.unsafeOnNext(None)
+    option shouldBe Some(None)
+  }
+
+  "LocalStorage.handlerWithoutEvents" should "should have proper events" in {
+    var option: Option[Option[String]] = None
+    val handler = util.LocalStorage.handlerWithoutEvents("hans").unsafeRunSync()
+    handler.foreach { o => option = Some(o) }
+
+    option shouldBe Some(None)
+
+    handler.unsafeOnNext(Some("gisela"))
+    option shouldBe Some(Some("gisela"))
+
+    handler.unsafeOnNext(None)
+    option shouldBe Some(None)
+  }
 }
