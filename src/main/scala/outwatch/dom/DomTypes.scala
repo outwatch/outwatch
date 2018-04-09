@@ -7,7 +7,7 @@ import com.raquo.domtypes.generic.defs.attrs
 import com.raquo.domtypes.generic.defs.reflectedAttrs
 import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
-import com.raquo.domtypes.generic.defs.sameRefTags._
+import com.raquo.domtypes.jsdom.defs.tags._
 import com.raquo.domtypes.jsdom.defs.eventProps
 import cats.effect.IO
 import org.scalajs.dom
@@ -35,21 +35,22 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, VTree] {
+private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, dom.html.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-  protected override def tag[Ref <: VTree](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+  //TODO: add element type to VTree for typed interface
+  protected override def tag[Ref <: dom.html.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
 }
 private[outwatch] object TagBuilder {
   type Tag[T] = VTree
 }
 
 trait Tags
-  extends EmbedTags[TagBuilder.Tag, VTree]
-  with GroupingTags[TagBuilder.Tag, VTree]
-  with TextTags[TagBuilder.Tag, VTree]
-  with FormTags[TagBuilder.Tag, VTree]
-  with SectionTags[TagBuilder.Tag, VTree]
-  with TableTags[TagBuilder.Tag, VTree]
+  extends EmbedTags[TagBuilder.Tag]
+  with GroupingTags[TagBuilder.Tag]
+  with TextTags[TagBuilder.Tag]
+  with FormTags[TagBuilder.Tag]
+  with SectionTags[TagBuilder.Tag]
+  with TableTags[TagBuilder.Tag]
   with TagBuilder
   with TagHelpers
   with TagsCompat
@@ -58,8 +59,8 @@ trait Tags
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[TagBuilder.Tag, VTree]
-  with MiscTags[TagBuilder.Tag, VTree]
+  extends DocumentTags[TagBuilder.Tag]
+  with MiscTags[TagBuilder.Tag]
   with TagBuilder
 
 // all Attributes
