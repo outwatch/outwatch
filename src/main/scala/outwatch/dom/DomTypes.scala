@@ -35,10 +35,10 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, dom.html.Element] {
+private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, dom.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  protected override def tag[Ref <: dom.html.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+  protected override def tag[Ref <: dom.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
 }
 private[outwatch] object TagBuilder {
   type Tag[T] = VTree
@@ -63,6 +63,10 @@ trait TagsExtra
   with MiscTags[TagBuilder.Tag]
   with TagBuilder
 
+trait TagsSvg
+  extends SvgTags[TagBuilder.Tag]
+  with TagBuilder
+
 // all Attributes
 
 trait Attributes
@@ -80,6 +84,15 @@ object Attributes extends Attributes
 // Attrs
 trait Attrs
   extends attrs.Attrs[BasicAttrBuilder]
+  with builders.AttrBuilder[BasicAttrBuilder] {
+
+  override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
+}
+
+// Svg attributes
+trait AttrsSvg
+  extends attrs.SvgAttrs[BasicAttrBuilder]
   with builders.AttrBuilder[BasicAttrBuilder] {
 
   override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
