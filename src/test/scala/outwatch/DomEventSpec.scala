@@ -466,7 +466,7 @@ class DomEventSpec extends JSDomSpec {
         doubleStream <- Handler.create[Double]
         boolStream <- Handler.create[Boolean]
         htmlElementStream <- Handler.create[html.Element]
-        svgElementTupleStream <- Handler.create[(svg.Element, svg.Element)]
+        svgElementTupleStream <- Handler.create[(Element, Element)]
         elem <- div(
           input(
             id := "input", tpe := "text",
