@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.Applicative
 import cats.effect.Effect
 
 trait OutwatchDsl[F[+_]] extends Styles[F] with Tags[F] with Attributes[F] { thisDsl =>
@@ -26,7 +25,7 @@ trait OutwatchDsl[F[+_]] extends Styles[F] with Tags[F] with Attributes[F] { thi
     object props extends Props[F] {
       implicit val effectF: Effect[F] = thisDsl.effectF
     }
-    object events extends Events {
+    object events extends Events[F] {
       implicit val effectF: Effect[F] = thisDsl.effectF
     }
     object outwatch extends OutwatchAttributes[F] {

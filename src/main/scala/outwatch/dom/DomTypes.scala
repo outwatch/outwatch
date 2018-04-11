@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.Applicative
 import cats.effect.{Effect, IO}
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
@@ -16,7 +15,7 @@ import scala.scalajs.js
 private[outwatch] object BuilderTypes {
   type Attribute[F[+_], T, _] = helpers.AttributeBuilder[F, T, Attr]
   type Property[F[+_], T, _] = helpers.PropBuilder[F, T]
-  type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[E, Emitter]
+  type EventEmitter[F[+_], E <: dom.Event] = SimpleEmitterBuilder[F, E, Emitter]
 }
 
 private[outwatch] object CodecBuilder {
@@ -65,7 +64,7 @@ trait Attributes[F[+_]]
   extends Attrs[F]
   with ReflectedAttrs[F]
   with Props[F]
-  with Events
+  with Events[F]
   with AttributeHelpers[F]
   with OutwatchAttributes[F]
 
@@ -120,11 +119,13 @@ trait Props[F[+_]]
 
 
 // Events
-trait Events
-  extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter]
-  with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event] {
+trait Events[F[+_]]
+  extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter[F, ?]]
+  with builders.EventPropBuilder[BuilderTypes.EventEmitter[F, ?], dom.Event]
+  with EmitterBuilderFactory[F] {
+  implicit val effectF: Effect[F]
 
-  override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] = EmitterBuilder[V](key)
+  override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[F,V] = emitterBuilderFactory[V](key)
 }
 
 

@@ -4,12 +4,11 @@ import cats.Applicative
 import cats.effect.Effect
 import cats.syntax.all._
 import com.raquo.domtypes.generic.keys
-import outwatch.AsVDomModifier
+import outwatch.{AsVDomModifier, AsVDomModifierInstances}
 import outwatch.dom.helpers.BasicStyleBuilder
 
-trait Implicits[F[+_]] {
+trait Implicits[F[+_]] extends AsVDomModifierInstances[F] {
   implicit val effectF: Effect[F]
-  implicit def applicativeF: Applicative[F] = effectF
 
   implicit def asVDomModifier[T](value: T)(implicit vm: AsVDomModifier[F, T]): VDomModifierF[F] =
     vm.asVDomModifier(value)

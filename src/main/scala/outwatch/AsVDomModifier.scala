@@ -2,6 +2,7 @@ package outwatch
 
 import cats.effect.Effect
 import outwatch.dom.{ChildStreamReceiver, ChildrenStreamReceiver, CompositeModifier, Observable, StringModifier, VDomModifierF, VNodeF}
+import cats.implicits._
 
 trait AsVDomModifier[F[+_], -T] {
   def asVDomModifier(value: T): VDomModifierF[F]
@@ -11,7 +12,6 @@ trait AsVDomModifierInstances[F[+_]] {
   implicit val effectF: Effect[F]
 
   implicit def seqModifier[A](implicit vm: AsVDomModifier[F, A]) = new AsVDomModifier[F, Seq[A]] {
-    import cats.implicits._
     override def asVDomModifier(value: Seq[A]): VDomModifierF[F] =
       value.toList.traverse(vm.asVDomModifier).map(CompositeModifier)
   }

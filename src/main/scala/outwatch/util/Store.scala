@@ -30,7 +30,7 @@ object Store {
 
   private val storeRef = STRef.empty
 
-  def create[State, Action, F[+_]: Effect](
+  def create[F[+_]: Effect, State, Action](
     initialState: State,
     reducer: Reducer[State, Action]
   )(implicit s: Scheduler): F[Pipe[Action, State]] = {
@@ -60,9 +60,9 @@ object Store {
   }
 
 
-  def get[S, A, F[+_]: Effect]: F[Pipe[A, S]] = storeRef.asInstanceOf[STRef[Pipe[A, S]]].getOrThrow(NoStoreException)
+  def get[F[+_]: Effect, S, A]: F[Pipe[A, S]] = storeRef.asInstanceOf[STRef[Pipe[A, S]]].getOrThrow(NoStoreException)
 
-  def renderWithStore[S, A, F[+_]: Effect](
+  def renderWithStore[F[+_]: Effect, S, A](
     initialState: S, reducer: Reducer[S, A], selector: String, root: VNodeF[F]
   )(implicit s: Scheduler): F[Unit] = for {
     store <- Store.create(initialState, reducer)
