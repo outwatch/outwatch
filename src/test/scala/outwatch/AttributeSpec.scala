@@ -1,8 +1,8 @@
 package outwatch
 
-import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
+import cats.syntax.all._
 
 import scala.scalajs.js
 
@@ -72,7 +72,7 @@ class AttributeSpec extends JSDomSpec {
 //   }
 
   "attr/prop/style" should "correctly render type" in {
-    val node = tag("input")(
+    val node = customTag("input")(
       attr("foo") := "foo",
       attr[Boolean]("boo", identity) := true,
       attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
@@ -114,17 +114,17 @@ class AttributeSpec extends JSDomSpec {
 
   "apply on vtree" should "correctly merge attributes" in {
     val node = input(
-      data.a := "bar",
-      data.a.gurke := "franz"
+      data.ar := "bar",
+      data.ar.gurke := "franz"
     )(
-      data.a := "buh",
-      data.a.tomate := "gisela"
+      data.ar := "buh",
+      data.ar.tomate := "gisela"
     ).map(_.toSnabbdom).unsafeRunSync()
 
     node.data.attrs.toList should contain theSameElementsAs List(
-      "data-a" -> "buh",
-      "data-a-gurke" -> "franz",
-      "data-a-tomate" -> "gisela"
+      "data-ar" -> "buh",
+      "data-ar-gurke" -> "franz",
+      "data-ar-tomate" -> "gisela"
     )
   }
 

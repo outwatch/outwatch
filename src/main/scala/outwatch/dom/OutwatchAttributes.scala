@@ -8,8 +8,8 @@ import cats.effect.Effect
   * mixed in to other objects if needed. This should contain "all" attributes
   * and mix in other traits (defined above) as needed to get full coverage.
   */
-trait OutwatchAttributes
-  extends SnabbdomKeyAttributes
+trait OutwatchAttributes[F[+_]]
+  extends SnabbdomKeyAttributes[F]
   with OutWatchLifeCycleAttributes
 
 /** Outwatch component life cycle hooks. */
@@ -45,8 +45,11 @@ trait OutWatchLifeCycleAttributes {
 }
 
 /** Snabbdom Key Attribute */
-trait SnabbdomKeyAttributes {
-  lazy val key = KeyBuilder
+trait SnabbdomKeyAttributes[F[+_]] { thisSnabbdomKeyAttributes =>
+  implicit val effectF: Effect[F]
+  lazy val key = new KeyBuilder[F] {
+    implicit val effectF: Effect[F] = thisSnabbdomKeyAttributes.effectF
+  }
 }
 
 trait AttributeHelpers[F[+_]] { self: Attributes[F] =>
@@ -63,5 +66,8 @@ trait AttributeHelpers[F[+_]] { self: Attributes[F] =>
 }
 
 trait TagHelpers[F[+_]] {
-  def tag(name: String)(implicit F: Effect[F]): VNodeF[F] = Applicative[F].pure(VTree[F](name, Seq.empty))
+  implicit def effectF: Effect[F]
+
+  //TODO: rename back to tag. This is currently not possible because of a method in scala-dom-types, which is protected
+  def customTag(name: String): VNodeF[F] = Applicative[F].pure(VTree[F](name, Seq.empty))
 }

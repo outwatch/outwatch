@@ -1,15 +1,11 @@
 package outwatch.util
 
-import cats.effect.IO
+import cats.effect.{Effect, IO}
+import cats.syntax.all._
 import monix.execution.Scheduler
-
-import monix.execution.{Ack, Cancelable}
-import outwatch.dom.{Observable, OutWatch, VNodeF}
-import outwatch.{Handler, Pipe, Sink}
-
 import org.scalajs.dom
+import outwatch.dom.{Observable, OutWatch, VNodeF}
 import outwatch.dom.helpers.STRef
-import outwatch.dom.{Observable, OutWatch, VNode}
 import outwatch.{Handler, Pipe}
 
 import scala.util.Try
@@ -34,12 +30,12 @@ object Store {
 
   private val storeRef = STRef.empty
 
-  def create[State, Action](
+  def create[State, Action, F[+_]: Effect](
     initialState: State,
     reducer: Reducer[State, Action]
-  )(implicit s: Scheduler): IO[Pipe[Action, State]] = {
+  )(implicit s: Scheduler): F[Pipe[Action, State]] = {
 
-    Handler.create[IO, Action].map { handler =>
+    Handler.create[F, Action].map { handler =>
 
       val fold: (State, Action) => State = (state, action) => Try { // guard against reducer throwing an exception
         val (newState, effects) = reducer.reducer(state, action)
@@ -64,14 +60,14 @@ object Store {
   }
 
 
-  def get[S, A]: IO[Pipe[A, S]] = storeRef.asInstanceOf[STRef[Pipe[A, S]]].getOrThrow(NoStoreException)
+  def get[S, A, F[+_]: Effect]: F[Pipe[A, S]] = storeRef.asInstanceOf[STRef[Pipe[A, S]]].getOrThrow(NoStoreException)
 
-  def renderWithStore[S, A](
-    initialState: S, reducer: Reducer[S, A], selector: String, root: VNode
-  )(implicit s: Scheduler): IO[Unit] = for {
+  def renderWithStore[S, A, F[+_]: Effect](
+    initialState: S, reducer: Reducer[S, A], selector: String, root: VNodeF[F]
+  )(implicit s: Scheduler): F[Unit] = for {
     store <- Store.create(initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[Pipe[A, S]]].put(store)
-    _ <- OutWatch.renderInto[IO](selector, root)
+    _ <- OutWatch.renderInto[F](selector, root)
   } yield ()
 
   private object NoStoreException

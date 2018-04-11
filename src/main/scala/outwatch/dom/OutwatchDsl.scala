@@ -21,7 +21,7 @@ trait OutwatchDsl[F[+_]] extends Styles[F] with Tags[F] with Attributes[F] { thi
     object reflected extends ReflectedAttrs[F]
     object props extends Props[F]
     object events extends Events
-    object outwatch extends OutwatchAttributes
+    object outwatch extends OutwatchAttributes[F]
     object lifecycle extends OutWatchLifeCycleAttributes
   }
   object events {

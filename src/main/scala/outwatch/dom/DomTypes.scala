@@ -1,20 +1,15 @@
 package outwatch.dom
 
 import cats.Applicative
-import com.raquo.domtypes.generic.builders
-import com.raquo.domtypes.generic.keys
-import com.raquo.domtypes.generic.codecs
-import com.raquo.domtypes.generic.defs.attrs
-import com.raquo.domtypes.generic.defs.reflectedAttrs
-import com.raquo.domtypes.generic.defs.props
-import com.raquo.domtypes.generic.defs.styles
-import com.raquo.domtypes.generic.defs.sameRefTags._
-import com.raquo.domtypes.jsdom.defs.eventProps
 import cats.effect.{Effect, IO}
-import org.scalajs.dom
-import helpers._
+import com.raquo.domtypes.generic.defs.sameRefTags._
+import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
+import com.raquo.domtypes.generic.{builders, codecs, keys}
+import com.raquo.domtypes.jsdom.defs.eventProps
 import monix.execution.{Ack, Cancelable}
 import monix.reactive.OverflowStrategy.Unbounded
+import org.scalajs.dom
+import outwatch.dom.helpers._
 
 import scala.scalajs.js
 
@@ -57,7 +52,7 @@ trait Tags[F[+_]]
 
 @deprecated("Use dsl.tags instead", "0.11.0")
 object Tags extends TagBuilder[IO] with Tags[IO] {
-  implicit val effectF: Effect[IO] = IO.ioEffect
+  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
 }
 
 trait TagsExtra[F[+_]]
@@ -72,15 +67,20 @@ trait Attributes[F[+_]]
   with Props[F]
   with Events
   with AttributeHelpers[F]
-  with OutwatchAttributes
+  with OutwatchAttributes[F]
 
 @deprecated("Use dsl.attributes instead", "0.11.0")
-object Attributes extends Attributes[IO]
+object Attributes extends Attributes[IO] {
+  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
+}
 
 // Attrs
 trait Attrs[F[+_]]
   extends attrs.Attrs[BasicAttrBuilder[F, ?]]
   with builders.AttrBuilder[BasicAttrBuilder[F, ?]] {
+
+  implicit val effectF: Effect[F]
+  implicit def applicativeF: Applicative[F] = effectF
 
   override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[F, V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
@@ -90,6 +90,9 @@ trait Attrs[F[+_]]
 trait ReflectedAttrs[F[+_]]
   extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute[F, ?, ?]]
   with builders.ReflectedAttrBuilder[BuilderTypes.Attribute[F, ?, ?]] {
+
+  implicit val effectF: Effect[F]
+  implicit def applicativeF: Applicative[F] = effectF
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
   override lazy val className = new AccumAttrBuilder[F, String]("class",
@@ -110,6 +113,9 @@ trait ReflectedAttrs[F[+_]]
 trait Props[F[+_]]
   extends props.Props[BuilderTypes.Property[F, ?, ?]]
   with builders.PropBuilder[BuilderTypes.Property[F, ?, ?]] {
+
+  implicit val effectF: Effect[F]
+  implicit def applicativeF: Applicative[F] = effectF
 
   override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[F, V] =
     new PropBuilder(key, codec.encode)
@@ -147,7 +153,7 @@ abstract class DocumentEvents
 // Styles
 
 private[outwatch] trait SimpleStyleBuilder[F[+_]] extends builders.StyleBuilders[F[Style]] {
-  implicit def applicativeF: Applicative[F]
+  implicit val effectF: Effect[F]
 
   override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): F[Style] =
     style := value

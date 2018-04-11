@@ -1,8 +1,10 @@
 package outwatch
 
 import cats.Applicative
+import cats.effect.{Effect, IO}
 
-package object dom extends Implicits with ManagedSubscriptions {
+package object dom extends Implicits[IO] with ManagedSubscriptions {
+  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
 
   type VNodeF[F[+_]] = F[VTree[F]]
   type VDomModifierF[F[+_]] = F[Modifier]

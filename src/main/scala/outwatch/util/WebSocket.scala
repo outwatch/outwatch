@@ -3,7 +3,7 @@ package outwatch.util
 import cats.effect.Effect
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
-import org.scalajs.dom.{CloseEvent, Event, MessageEvent}
+import org.scalajs.dom._
 import outwatch.Sink
 import outwatch.dom.Observable
 
@@ -17,11 +17,10 @@ final case class WebSocket private(url: String)(implicit s: Scheduler) {
 
   lazy val source = Observable.create[MessageEvent](Unbounded)(observer => {
     ws.onmessage = (e: MessageEvent) => observer.onNext(e)
-    ws.onerror = (e: ErrorEvent) => observer.onError(new Exception(e.message))
+    ws.onerror = (e: Event) => observer.onError(new Exception("WebSocket Error."))
     ws.onclose = (e: CloseEvent) => observer.onComplete()
     Cancelable(() => ws.close())
   })
-==== BASE ====
 
   def sink[F[+_]: Effect]: F[Sink[String]] = Sink.createFull[F, String](
     s => {
