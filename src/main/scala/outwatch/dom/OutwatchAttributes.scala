@@ -66,7 +66,7 @@ trait AttributeHelpers[F[+_]] { self: Attributes[F] =>
 }
 
 trait TagHelpers[F[+_]] {
-  implicit def effectF: Effect[F]
+  implicit val effectF: Effect[F]
 
   //TODO: rename back to tag. This is currently not possible because of a method in scala-dom-types, which is protected
   def customTag(name: String): VNodeF[F] = Applicative[F].pure(VTree[F](name, Seq.empty))

@@ -32,7 +32,7 @@ private[outwatch] object CodecBuilder {
 // Tags
 
 private[outwatch] trait TagBuilder[F[+_]] extends builders.TagBuilder[TagBuilder.Tag[F, ?], VTree[F]] {
-  implicit def effectF: Effect[F]
+  implicit val effectF: Effect[F]
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   protected override def tag[Ref <: VTree[F]](tagName: String, void: Boolean): VTree[F] = VTree[F](tagName, Seq.empty)
 }
@@ -80,7 +80,6 @@ trait Attrs[F[+_]]
   with builders.AttrBuilder[BasicAttrBuilder[F, ?]] {
 
   implicit val effectF: Effect[F]
-  implicit def applicativeF: Applicative[F] = effectF
 
   override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[F, V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
@@ -92,7 +91,6 @@ trait ReflectedAttrs[F[+_]]
   with builders.ReflectedAttrBuilder[BuilderTypes.Attribute[F, ?, ?]] {
 
   implicit val effectF: Effect[F]
-  implicit def applicativeF: Applicative[F] = effectF
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
   override lazy val className = new AccumAttrBuilder[F, String]("class",
@@ -115,7 +113,6 @@ trait Props[F[+_]]
   with builders.PropBuilder[BuilderTypes.Property[F, ?, ?]] {
 
   implicit val effectF: Effect[F]
-  implicit def applicativeF: Applicative[F] = effectF
 
   override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[F, V] =
     new PropBuilder(key, codec.encode)
@@ -156,9 +153,9 @@ private[outwatch] trait SimpleStyleBuilder[F[+_]] extends builders.StyleBuilders
   implicit val effectF: Effect[F]
 
   override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): F[Style] =
-    style := value
+    new BasicStyleBuilder[F, Any](style.cssName) := value
   override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): F[Style] =
-    style := value
+    new BasicStyleBuilder[F, Any](style.cssName) := value
   override protected def buildStringStyleSetter(style: keys.Style[_], value: String): F[Style] =
     new BasicStyleBuilder[F, Any](style.cssName) := value
 }

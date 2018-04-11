@@ -8,7 +8,7 @@ trait AsVDomModifier[F[+_], -T] {
 }
 
 trait AsVDomModifierInstances[F[+_]] {
-  implicit def effectF: Effect[F]
+  implicit val effectF: Effect[F]
 
   implicit def seqModifier[A](implicit vm: AsVDomModifier[F, A]) = new AsVDomModifier[F, Seq[A]] {
     import cats.implicits._
