@@ -1,13 +1,14 @@
 package outwatch
 
 import cats.effect.Effect
+import cats.syntax.all._
 import monix.execution.Scheduler
 import outwatch.dom.VDomModifierFactory
 
 //package object outwatch extends OutwatchOps[IO]{
 //}
 
-trait OutwatchOps[F[+_]] extends VDomModifierFactory[F]  {
+trait OutwatchOps[F[+_]] extends VDomModifierFactory[F] with SinkFactory[F]  {
   implicit val effectF:Effect[F]
 
   object Pipe {

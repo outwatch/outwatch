@@ -4,14 +4,14 @@ import cats.effect.{Effect, Sync}
 import cats.implicits._
 import org.scalajs.dom.svg.A
 
-class STRef[F[+_]: Effect, A](private var unsafeGet: A) {
-  def put(a: A): F[A] = Sync[F].delay { unsafeGet = a; a }
+class STRef[F[+_], A](private var unsafeGet: A)(implicit effectF:Effect[F]) {
+  def put(a: A): F[A] = effectF.delay { unsafeGet = a; a }
 
-  def getOrThrow(t: Throwable): F[A] = Sync[F].delay(unsafeGet)
-    .flatMap(s => if (s == null) Sync[F].raiseError(t) else Sync[F].pure(s)) // scalastyle:ignore
+  def getOrThrow(t: Throwable): F[A] = effectF.delay(unsafeGet)
+    .flatMap(s => if (s == null) effectF.raiseError(t) else effectF.pure(s)) // scalastyle:ignore
 
   def get: F[A] = getOrThrow(new IllegalStateException())
-  def update(f: A => A): F[A] = Sync[F].delay { unsafeGet = f(unsafeGet); unsafeGet }
+  def update(f: A => A): F[A] = effectF.delay { unsafeGet = f(unsafeGet); unsafeGet }
 }
 
 object STRef {

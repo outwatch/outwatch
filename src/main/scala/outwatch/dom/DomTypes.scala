@@ -35,7 +35,6 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
   // Tags
 
   private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, VTree] {
-    implicit val effectF: Effect[F]
 
     // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
     protected override def tag[Ref <: VTree](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
@@ -76,8 +75,6 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
     extends attrs.Attrs[BasicAttrBuilder]
       with builders.AttrBuilder[BasicAttrBuilder] {
 
-    implicit val effectF: Effect[F]
-
     override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
       new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
   }
@@ -87,10 +84,8 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
     extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute]
       with builders.ReflectedAttrBuilder[BuilderTypes.Attribute] {
 
-    implicit val effectF: Effect[F]
-
     // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-    override lazy val className = new AccumAttrBuilder[F, String]("class",
+    override lazy val className = new AccumAttrBuilder[String]("class",
       stringReflectedAttr(attrKey = "class", propKey = "className"),
       _ + " " + _
     )
@@ -100,7 +95,7 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
                                                        propKey: String,
                                                        attrCodec: codecs.Codec[V, String],
                                                        propCodec: codecs.Codec[V, DomPropV]
-                                                     ): BasicAttrBuilder[F, V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+                                                     ): BasicAttrBuilder[V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
 
     //or: new PropertyBuilder(propKey, propCodec.encode)
   }
@@ -110,9 +105,7 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
     extends props.Props[BuilderTypes.Property]
       with builders.PropBuilder[BuilderTypes.Property] {
 
-    implicit val effectF: Effect[F]
-
-    override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[F, V] =
+    override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
       new PropBuilder(key, codec.encode)
   }
 
@@ -121,10 +114,9 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
   trait Events
     extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter]
       with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event]
-      with EmitterBuilderFactory[F] {
-    implicit val effectF: Effect[F]
+      with EmitterBuilderFactory {
 
-    override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] = emitterBuilderFactory[V](key)
+    override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] = emitterBuilderFactory(key)
   }
 
 
@@ -150,7 +142,6 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
   // Styles
 
   private[outwatch] trait SimpleStyleBuilder extends builders.StyleBuilders[F[Style]] {
-    implicit val effectF: Effect[F]
 
     override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): F[Style] =
       new BasicStyleBuilder[Any](style.cssName) := value

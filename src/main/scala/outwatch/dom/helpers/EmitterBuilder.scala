@@ -1,12 +1,10 @@
 package outwatch.dom.helpers
 
 import cats.effect.Effect
-import monix.reactive.Observer
 import org.scalajs.dom.Event
-import outwatch.Sink
-import outwatch.dom.{Emitter, Observable}
+import outwatch.dom.VDomModifierFactory
 
-trait EmitterFactory[F[+_]] {
+trait EmitterFactory[F[+_]] extends VDomModifierFactory[F] with EmitterOps[F] {
   implicit val effectF: Effect[F]
 
   trait EmitterBuilder[E, O, R] {
@@ -29,7 +27,7 @@ trait EmitterFactory[F[+_]] {
     def collect[T](f: PartialFunction[O, T]): EmitterBuilder[E, T, R] = transform(_.collect(f))
   }
 
-  trait EmitterBuilderFactory[F[+_]] extends EmitterOps[F] {
+  trait EmitterBuilderFactory {
     def emitterBuilderFactory[E <: Event](eventType: String): SimpleEmitterBuilder[E, Emitter] =
       SimpleEmitterBuilder[E, Emitter](observer => Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
   }
@@ -37,12 +35,11 @@ trait EmitterFactory[F[+_]] {
   final case class TransformingEmitterBuilder[E, O, R] private[helpers](
     transformer: Observable[E] => Observable[O],
     create: Observer[E] => R
-  )(implicit val effectF: Effect[F]) extends EmitterBuilder[E, O, R] {
+  ) extends EmitterBuilder[E, O, R] {
 
     def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[E, T, R] = copy(
       transformer = tr compose transformer
     )
-
 
     def -->(sink: Sink[_ >: O]): F[R] = {
       val redirected: Sink[E] = sink.unsafeRedirect[E](transformer)
@@ -50,7 +47,7 @@ trait EmitterFactory[F[+_]] {
     }
   }
 
-  final case class SimpleEmitterBuilder[E, R](create: Observer[E] => R)(implicit val effectF: Effect[F]) extends EmitterBuilder[E, E, R] {
+  final case class SimpleEmitterBuilder[E, R](create: Observer[E] => R) extends EmitterBuilder[E, E, R] {
 
     def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[E, T, R] =
       new TransformingEmitterBuilder[E, T, R](tr, create)

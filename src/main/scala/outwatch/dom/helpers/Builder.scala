@@ -1,13 +1,13 @@
 package outwatch.dom.helpers
 
 import cats.Applicative
-import cats.effect.{Effect, Sync}
-import outwatch.StaticVNodeRender
+import cats.effect.Effect
+import outwatch.StaticVNodeRenderFactory
 import outwatch.dom._
 
 import scala.language.dynamics
 
-trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] {
+trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] with StaticVNodeRenderFactory[F] {
   implicit val effectF: Effect[F]
 
   trait AttributeBuilder[-T, +A <: Attribute] {
@@ -15,7 +15,7 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] {
     private[outwatch] def assign(value: T): A
 
     def :=(value: T): F[A] = Applicative[F].pure(assign(value))
-    def :=?(value: Option[T]): Option[VDomModifierF[F]] = value.map(:=)
+    def :=?(value: Option[T]): Option[VDomModifierF] = value.map(:=)
     def <--(valueStream: Observable[T]): F[AttributeStreamReceiver] = {
       Applicative[F].pure(AttributeStreamReceiver(name, valueStream.map(assign)))
     }
@@ -34,16 +34,12 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] {
   }
 
   final class BasicAttrBuilder[T](val name: String, encode: T => Attr.Value)
-                                        (implicit val effectF: Effect[F],
-                                         applicativeF: Applicative[F])
     extends AttributeBuilder[T, BasicAttr]
       with AccumulateAttrOps[T] {
     @inline private[outwatch] def assign(value: T) = BasicAttr(name, encode(value))
   }
 
   final class DynamicAttrBuilder[T](parts: List[String])
-                                          (implicit val effectF: Effect[F],
-                                           applicativeF: Applicative[F])
     extends Dynamic
       with AttributeBuilder[T, BasicAttr]
       with AccumulateAttrOps[T] {
@@ -58,14 +54,13 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] {
                                           val name: String,
                                           builder: AttributeBuilder[T, Attr],
                                           reduce: (Attr.Value, Attr.Value) => Attr.Value
-                                        )(implicit val effectF: Effect[F], applicativeF: Applicative[F]) extends AttributeBuilder[T, AccumAttr] {
+                                        ) extends AttributeBuilder[T, AccumAttr] {
     @inline private[outwatch] def assign(value: T) = AccumAttr(name, builder.assign(value).value, reduce)
   }
 
   // Props
 
   final class PropBuilder[T](val name: String, encode: T => Prop.Value)
-                                   (implicit val effectF: Effect[F], applicativeF: Applicative[F])
     extends AttributeBuilder[T, Prop] {
     @inline private[outwatch] def assign(value: T) = Prop(name, encode(value))
   }
@@ -80,7 +75,6 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] {
   }
 
   final class BasicStyleBuilder[T](val name: String)
-                                         (implicit val effectF: Effect[F], applicativeF: Applicative[F])
     extends AttributeBuilder[T, BasicStyle]
       with AccumulateStyleOps[T] {
     @inline private[outwatch] def assign(value: T) = BasicStyle(name, value.toString)
@@ -91,52 +85,47 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] {
   }
 
   final class DelayedStyleBuilder[T](val name: String)
-                                           (implicit val effectF: Effect[F], applicativeF: Applicative[F])
     extends AttributeBuilder[T, DelayedStyle] {
     @inline private[outwatch] def assign(value: T) = DelayedStyle(name, value.toString)
   }
 
   final class RemoveStyleBuilder[T](val name: String)
-                                          (implicit val effectF: Effect[F], applicativeF: Applicative[F])
     extends AttributeBuilder[T, RemoveStyle] {
     @inline private[outwatch] def assign(value: T) = RemoveStyle(name, value.toString)
   }
 
   final class DestroyStyleBuilder[T](val name: String)
-                                           (implicit val effectF: Effect[F], applicativeF: Applicative[F])
     extends AttributeBuilder[T, DestroyStyle] {
     @inline private[outwatch] def assign(value: T) = DestroyStyle(name, value.toString)
   }
 
   final class AccumStyleBuilder[T](val name: String, reducer: (String, String) => String)
-                                         (implicit val effectF: Effect[F], applicativeF: Applicative[F])
     extends AttributeBuilder[T, AccumStyle] {
     @inline private[outwatch] def assign(value: T) = AccumStyle(name, value.toString, reducer)
   }
 
 
   trait KeyBuilder {
-    implicit val effectF: Effect[F]
     def :=(key: Key.Value): F[Key] = effectF.pure(Key(key))
   }
 
   // Child / Children
 
   object ChildStreamReceiverBuilder {
-    def <--[T](valueStream: Observable[VNodeF[F]]): F[ChildStreamReceiver[F]] = Sync[F].pure(
-      ChildStreamReceiver[F](valueStream)
+    def <--[T](valueStream: Observable[VNodeF]): F[ChildStreamReceiver] = effectF.pure(
+      ChildStreamReceiver(valueStream)
     )
 
-    def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): F[ChildStreamReceiver[F]] =
-      Sync[F].pure(ChildStreamReceiver(valueStream.map(r.render[F])))
+    def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): F[ChildStreamReceiver] =
+      effectF.pure(ChildStreamReceiver(valueStream.map(r.render)))
   }
 
   object ChildrenStreamReceiverBuilder {
-    def <--(childrenStream: Observable[Seq[VNodeF[F]]]): F[ChildrenStreamReceiver[F]] =
-      Sync[F].pure(ChildrenStreamReceiver[F](childrenStream))
+    def <--(childrenStream: Observable[Seq[VNodeF]]): F[ChildrenStreamReceiver] =
+      effectF.pure(ChildrenStreamReceiver(childrenStream))
 
     def <--[T](childrenStream: Observable[Seq[T]])
-                          (implicit r: StaticVNodeRender[T]): F[ChildrenStreamReceiver[F]] =
-      Sync[F].pure(ChildrenStreamReceiver(childrenStream.map(_.map(r.render[F]))))
+                          (implicit r: StaticVNodeRender[T]): F[ChildrenStreamReceiver] =
+      effectF.pure(ChildrenStreamReceiver(childrenStream.map(_.map(r.render))))
   }
 }

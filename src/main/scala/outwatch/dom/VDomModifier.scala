@@ -1,8 +1,9 @@
 package outwatch.dom
 
 import cats.effect.Effect
+import cats.instances.list._
+import cats.syntax.all._
 import monix.execution.{Ack, Scheduler}
-import monix.reactive.Observer
 import org.scalajs.dom._
 import outwatch.ReactiveTypes
 import outwatch.dom.helpers.SeparatedModifiersFactory
@@ -10,7 +11,7 @@ import snabbdom.{DataObject, VNodeProxy}
 
 import scala.concurrent.Future
 
-trait VDomModifierFactory[F[+_]] extends ReactiveTypes[F] {
+trait VDomModifierFactory[F[+_]] extends ReactiveTypes[F] with SeparatedModifiersFactory[F] {
   implicit val effectF:Effect[F]
 
   type VNodeF = F[VTree]
@@ -18,8 +19,6 @@ trait VDomModifierFactory[F[+_]] extends ReactiveTypes[F] {
 
   object VDomModifierF {
 
-    import cats.instances.list._
-    import cats.syntax.all._
 
     def empty: VDomModifierF = effectF.pure(EmptyModifier)
 
@@ -83,7 +82,7 @@ Modifier
 
   private[outwatch] final case class StringModifier(string: String) extends Modifier
 
-  sealed trait ChildVNode extends Any with Modifier
+  sealed trait ChildVNode extends Modifier
 
   // Properties
 
@@ -169,9 +168,9 @@ Modifier
 
   // Child Nodes
 
-  private[outwatch] sealed trait StreamVNode extends Any with ChildVNode
+  private[outwatch] sealed trait StreamVNode extends ChildVNode
 
-  private[outwatch] sealed trait StaticVNode extends Any with ChildVNode {
+  private[outwatch] sealed trait StaticVNode extends ChildVNode {
     def toSnabbdom(implicit s: Scheduler): VNodeProxy
   }
 
@@ -192,9 +191,7 @@ Modifier
   // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
   // Fast concatenation and lastOption operations are important
   // Needs to be benchmarked in the Browser
-  private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode with SeparatedModifiersFactory[F] {
-
-    import cats.implicits._
+  private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
 
     def apply(args: VDomModifierF*): VNodeF =
       args.toList.sequence.map(args => copy(modifiers = modifiers ++ args))

@@ -6,7 +6,7 @@ import outwatch.dom._
 
 import scala.collection.breakOut
 
-trait SeparatedModifiersFactory[F[+_]] {
+trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomModifierFactory[F] =>
   implicit val effectF: Effect[F]
 
   object SeparatedModifiers {
@@ -20,7 +20,7 @@ trait SeparatedModifiersFactory[F[+_]] {
                                                                         emitters: SeparatedEmitters = SeparatedEmitters(),
                                                                         attributeReceivers: List[AttributeStreamReceiver] = Nil,
                                                                         children: Children
-                                                                      ) extends SnabbdomModifiers[F] { self =>
+                                                                      ) extends SnabbdomModifiers { self =>
 
     def ::(m: Modifier): SeparatedModifiers = m match {
       case pr: Property => copy(properties = pr :: properties)
@@ -67,8 +67,8 @@ trait SeparatedModifiersFactory[F[+_]] {
 
     private[outwatch] case class VNodes(nodes: List[ChildVNode], hasStream: Boolean) extends Children {
 
-      private def ensureVNodeKey[N >: VTree[F]](node: N): N = node match {
-        case vtree: VTree[_] => vtree.copy[F](modifiers = Key(vtree.hashCode) +: vtree.modifiers)
+      private def ensureVNodeKey[N >: VTree](node: N): N = node match {
+        case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
         case other => other
       }
 
@@ -97,7 +97,7 @@ trait SeparatedModifiersFactory[F[+_]] {
 
   private[outwatch] final case class SeparatedStyles(
                                                       styles: List[Style] = Nil
-                                                    ) extends SnabbdomStyles[F] {
+                                                    ) extends SnabbdomStyles {
     @inline def ::(s: Style): SeparatedStyles = copy(styles = s :: styles)
   }
 
@@ -106,7 +106,7 @@ trait SeparatedModifiersFactory[F[+_]] {
                                                           attrs: List[Attr] = Nil,
                                                           props: List[Prop] = Nil,
                                                           styles: SeparatedStyles = SeparatedStyles()
-                                                        ) extends SnabbdomAttributes[F] {
+                                                        ) extends SnabbdomAttributes {
     @inline def ::(a: Attribute): SeparatedAttributes = a match {
       case a : Attr => copy(attrs = a :: attrs)
       case p : Prop => copy(props = p :: props)
@@ -126,7 +126,7 @@ trait SeparatedModifiersFactory[F[+_]] {
                                                      updateHooks: List[UpdateHook] = Nil,
                                                      postPatchHooks: List[PostPatchHook] = Nil,
                                                      destroyHooks: List[DestroyHook] = Nil
-                                                   ) extends SnabbdomHooks[F] {
+                                                   ) extends SnabbdomHooks {
     def ::(h: Hook[_]): SeparatedHooks = h match {
       case ih: InsertHook => copy(insertHooks = ih :: insertHooks)
       case pph: PrePatchHook => copy(prePatchHooks = pph :: prePatchHooks)
@@ -138,7 +138,7 @@ trait SeparatedModifiersFactory[F[+_]] {
 
   private[outwatch] final case class SeparatedEmitters(
                                                         emitters: List[Emitter] = Nil
-                                                      ) extends SnabbdomEmitters[F] {
+                                                      ) extends SnabbdomEmitters {
     def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
   }
 
@@ -164,16 +164,16 @@ trait SeparatedModifiersFactory[F[+_]] {
                                                                attributeStreamReceivers: List[AttributeStreamReceiver]
                                                              ) {
     private val (nodes, hasNodeStreams) = children match {
-      case Children.VNodes(nodes, hasStream) => (nodes, hasStream)
+      case Children.VNodes(childNodes, hasStream) => (childNodes, hasStream)
       case _ => (Nil, false)
     }
 
     private def updaters: Seq[Observable[VNodeState.Updater]] = nodes.zipWithIndex.map {
       case (_: StaticVNode, _) =>
         Observable.empty
-      case (csr: ChildStreamReceiver[F], index) =>
+      case (csr: ChildStreamReceiver, index) =>
         csr.childStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n :: Nil)))
-      case (csr: ChildrenStreamReceiver[F], index) =>
+      case (csr: ChildrenStreamReceiver, index) =>
         csr.childrenStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n)))
     } ++ attributeStreamReceivers.groupBy(_.attribute).values.map(_.last).map {
       case AttributeStreamReceiver(name, attributeStream) =>

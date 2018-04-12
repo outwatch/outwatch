@@ -9,73 +9,72 @@ import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
 
 import scala.concurrent.Future
+import scala.sys.process.ProcessBuilder.Sink
 
-
-sealed trait Sink[F[+_], -T] extends SinkFactory[F] {
-  implicit val effectF: Effect[F]
-
-  /**
-    * Use this function with caution!
-    * This function pipes all of the Observable's emissions into this Sink
-    * Using this method is inherently impure and can cause memory leaks, if subscription
-    * isn't handled correctly. For more guaranteed safety, use Sink.redirect() instead.
-    */
-  def <--(observable: Observable[T]): F[Cancelable] = Sync[F].delay {
-    observable.subscribe(observer)
-  }
-
-  private[outwatch] def observer: Subscriber[T]
-
-  def unsafeOnNext(value: T): Future[Ack] = observer.onNext(value)
-
-  /**
-    * Creates a new sink. That sink will transform the values it receives and then forward them along to this sink.
-    * The transformation is described by a function from an Observable to another Observable, i.e. an operator on Observable.
-    * This function applies the operator to the newly created sink and forwards the value to the original sink.
-    * @param projection the operator to use
-    * @tparam R the type of the resulting sink
-    * @return the resulting sink, that will forward the values
-    */
-  def redirect[R](projection: Observable[R] => Observable[T]): Sink[F, R] = {
-    Sink.redirect(this)(projection)
-  }
-
-  /**
-    * Same as redirect, but it doesn't try to ensure that the observable end of the created sink gets closed when the
-    * observable end of this sink is closed
-    * @param projection the operator to use
-    * @tparam R the type of the resulting sink
-    * @return the resulting sink, that will forward the values
-    */
-  def unsafeRedirect[R](projection: Observable[R] => Observable[T]): Sink[F, R] = {
-    Sink.unsafeRedirect(this)(projection)
-  }
-  /**
-    * Creates a new sink. That sink will transform each value it receives and then forward it along to the this sink.
-    * The transformation is a simple map from one type to another, i.e. a 'map'.
-    * This is equivalent to `contramap` on a `Contravariant` functor, since `Sink`s are contravariant in nature.
-    * @param projection the mapping to perform before forwarding
-    * @tparam R the type of the resulting sink
-    * @return the resulting sink, that will forward the values
-    */
-  def redirectMap[R](projection: R => T): Sink[F, R] = {
-    Sink.redirectMap(this)(projection)
-  }
-}
 
 trait SinkFactory[F[+_]] { thisSinkFactory =>
   implicit val effectF:Effect[F]
 
+  sealed trait Sink[-T] {
+
+    /**
+      * Use this function with caution!
+      * This function pipes all of the Observable's emissions into this Sink
+      * Using this method is inherently impure and can cause memory leaks, if subscription
+      * isn't handled correctly. For more guaranteed safety, use Sink.redirect() instead.
+      */
+    def <--(observable: Observable[T]): F[Cancelable] = effectF.delay {
+      observable.subscribe(observer)
+    }
+
+    private[outwatch] def observer: Subscriber[T]
+
+    def unsafeOnNext(value: T): Future[Ack] = observer.onNext(value)
+
+    /**
+      * Creates a new sink. That sink will transform the values it receives and then forward them along to this sink.
+      * The transformation is described by a function from an Observable to another Observable, i.e. an operator on Observable.
+      * This function applies the operator to the newly created sink and forwards the value to the original sink.
+      * @param projection the operator to use
+      * @tparam R the type of the resulting sink
+      * @return the resulting sink, that will forward the values
+      */
+    def redirect[R](projection: Observable[R] => Observable[T]): Sink[R] = {
+      Sink.redirect(this)(projection)
+    }
+
+    /**
+      * Same as redirect, but it doesn't try to ensure that the observable end of the created sink gets closed when the
+      * observable end of this sink is closed
+      * @param projection the operator to use
+      * @tparam R the type of the resulting sink
+      * @return the resulting sink, that will forward the values
+      */
+    def unsafeRedirect[R](projection: Observable[R] => Observable[T]): Sink[R] = {
+      Sink.unsafeRedirect(this)(projection)
+    }
+    /**
+      * Creates a new sink. That sink will transform each value it receives and then forward it along to the this sink.
+      * The transformation is a simple map from one type to another, i.e. a 'map'.
+      * This is equivalent to `contramap` on a `Contravariant` functor, since `Sink`s are contravariant in nature.
+      * @param projection the mapping to perform before forwarding
+      * @tparam R the type of the resulting sink
+      * @return the resulting sink, that will forward the values
+      */
+    def redirectMap[R](projection: R => T): Sink[R] = {
+      Sink.redirectMap(this)(projection)
+    }
+  }
+
   object Sink {
 
-    protected[outwatch] final case class ObservableSink[-I, +O](oldSink: Sink[F,I], stream: Observable[O]) extends Observable[O] with Sink[F,I] {
-      override val effectF = thisSinkFactory.effectF
+    protected[outwatch] final case class ObservableSink[-I, +O](oldSink: Sink[I], stream: Observable[O]) extends Observable[O] with Sink[I] {
       override private[outwatch] def observer = oldSink.observer
 
       override def unsafeSubscribeFn(subscriber: Subscriber[O]): Cancelable = stream.unsafeSubscribeFn(subscriber)
     }
 
-    protected[outwatch] final case class SubjectSink[T]()(implicit val effectF: Effect[F], scheduler: Scheduler) extends Observable[T] with Sink[F,T] {
+    protected[outwatch] final case class SubjectSink[T]()(implicit scheduler: Scheduler) extends Observable[T] with Sink[T] {
       private val subject = PublishSubject[T]
 
       override private[outwatch] def observer = SafeSubscriber(Subscriber(subject, scheduler))
@@ -96,7 +95,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
     def createFull[A](next: A => F[Unit],
                               error: Throwable => F[Unit],
                               complete: F[Unit]
-                             )(implicit effectF: Effect[F], s: Scheduler): F[Sink[F,A]] = {
+                             )(implicit s: Scheduler): F[Sink[A]] = {
       effectF.delay {
         ObserverSink(
           new Observer[A] {
@@ -119,7 +118,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @tparam A the type parameter of the consumed elements.
       * @return a Sink that consumes elements of type T.
       */
-    def create[A](next: A => F[Unit])(implicit s: Scheduler): F[Sink[F,A]] = {
+    def create[A](next: A => F[Unit])(implicit s: Scheduler): F[Sink[A]] = {
       effectF.delay {
         ObserverSink(
           new Observer[A] {
@@ -135,7 +134,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
     }
 
 
-    private def completionObservable[T](sink: Sink[F,T]): Option[Observable[Unit]] = {
+    private def completionObservable[T](sink: Sink[T]): Option[Observable[Unit]] = {
       sink match {
         case subject@SubjectSink() =>
           Some(subject.ignoreElements.defaultIfEmpty(()))
@@ -157,7 +156,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @tparam T the type of the original sink
       * @return the resulting sink, that will forward the values
       */
-    def redirect[T, R](sink: Sink[F,T])(project: Observable[R] => Observable[T])(implicit effectF: Effect[F]): Sink[F,R] = {
+    def redirect[T, R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
       implicit val scheduler = sink.observer.scheduler
       val forward = SubjectSink[R]()
 
@@ -179,7 +178,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @return the resulting sink, that will forward the values
       */
 
-    def unsafeRedirect[T, R](sink: Sink[F, T])(project: Observable[R] => Observable[T])(implicit effectF: Effect[F]): Sink[F, R] = {
+    def unsafeRedirect[T, R](sink: Sink[T])(project: Observable[R] => Observable[T])(implicit effectF: Effect[F]): Sink[R] = {
       implicit val scheduler = sink.observer.scheduler
       val forward = SubjectSink[R]()
 
@@ -201,7 +200,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @tparam T the type of the original sink
       * @return the two resulting sinks, that will forward the values
       */
-    def redirect2[T, U, R](sink: Sink[F,T])(project: (Observable[R], Observable[U]) => Observable[T])(implicit effectF: Effect[F]): (Sink[F, R], Sink[F,U]) = {
+    def redirect2[T, U, R](sink: Sink[T])(project: (Observable[R], Observable[U]) => Observable[T])(implicit effectF: Effect[F]): (Sink[R], Sink[U]) = {
       implicit val scheduler = sink.observer.scheduler
       val r = SubjectSink[R]()
       val u = SubjectSink[U]()
@@ -227,9 +226,9 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @tparam T the type of the original sink
       * @return the two resulting sinks, that will forward the values
       */
-    def redirect3[T, U, V, R](sink: Sink[F,T])
-                             (project: (Observable[R], Observable[U], Observable[V]) => Observable[T])(implicit effectF: Effect[F])
-    : (Sink[F,R], Sink[F,U], Sink[F,V]) = {
+    def redirect3[T, U, V, R](sink: Sink[T])
+                             (project: (Observable[R], Observable[U], Observable[V]) => Observable[T])
+    : (Sink[R], Sink[U], Sink[V]) = {
       implicit val scheduler = sink.observer.scheduler
       val r = SubjectSink[R]()
       val u = SubjectSink[U]()
@@ -253,14 +252,13 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @tparam T the type of the original sink
       * @return the resulting sink, that will forward the values
       */
-    def redirectMap[T, R](sink: Sink[F,T])(f: R => T)(implicit effectF: Effect[F]): Sink[F,R] = {
+    def redirectMap[T, R](sink: Sink[T])(f: R => T): Sink[R] = {
       redirect(sink)(_.map(f))
     }
 
   }
 
-  final case class ObserverSink[-T](obs: Observer[T])(implicit s: Scheduler) extends Sink[F,T] {
-    override val effectF = thisSinkFactory.effectF
+  final case class ObserverSink[-T](obs: Observer[T])(implicit s: Scheduler) extends Sink[T] {
     override val observer = Subscriber(obs, s)
   }
 }

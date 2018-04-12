@@ -1,17 +1,17 @@
 package outwatch.util
 
-import cats.effect.{Effect, IO}
+import cats.effect.Effect
 import cats.syntax.all._
 import monix.execution.Scheduler
 import org.scalajs.dom
-import outwatch.dom.{Observable, OutWatch, VNodeF}
+import outwatch.OutwatchOps
 import outwatch.dom.helpers.STRef
-import outwatch.{Handler, Pipe}
+import outwatch.dom.{OutWatch, VDomModifierFactory}
 
 import scala.util.Try
 import scala.util.control.NonFatal
 
-trait StoreFactory[F[+_]] extends HandlerFactory[F] {
+trait StoreFactory[F[+_]] extends VDomModifierFactory[F] with OutwatchOps[F] {
   implicit val effectF:Effect[F]
 
   object Store {
@@ -35,7 +35,7 @@ trait StoreFactory[F[+_]] extends HandlerFactory[F] {
     def create[State, Action](
                                                 initialState: State,
                                                 reducer: Reducer[State, Action]
-                                              )(implicit s: Scheduler): F[Pipe[F, Action, State]] = {
+                                              )(implicit s: Scheduler): F[Pipe[Action, State]] = {
 
       Handler.create[Action].map { handler =>
 
@@ -62,14 +62,13 @@ trait StoreFactory[F[+_]] extends HandlerFactory[F] {
     }
 
 
-    def get[S, A]: F[Pipe[F, A, S]] = storeRef.asInstanceOf[STRef[F, Pipe[F, A, S]]].getOrThrow(NoStoreException)
+    def get[S, A]: F[Pipe[A, S]] = storeRef.asInstanceOf[STRef[F, Pipe[A, S]]].getOrThrow(NoStoreException)
 
-    def renderWithStore[S, A](
-                                                initialState: S, reducer: Reducer[S, A], selector: String, root: VNodeF[F]
-                                              )(implicit s: Scheduler): F[Unit] = for {
+    def renderWithStore[S, A]( initialState: S, reducer: Reducer[S, A], selector: String, root: VNodeF, renderInto:(String, VNodeF) => F[Unit] )
+                             (implicit s: Scheduler): F[Unit] = for {
       store <- Store.create(initialState, reducer)
-      _ <- storeRef.asInstanceOf[STRef[F, Pipe[F, A, S]]].put(store)
-      _ <- OutWatch.renderInto[F](selector, root)
+      _ <- storeRef.asInstanceOf[STRef[F, Pipe[A, S]]].put(store)
+      _ <- renderInto(selector, root)
     } yield ()
 
     private object NoStoreException

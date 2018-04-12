@@ -3,8 +3,9 @@ package outwatch.dom
 import cats.Applicative
 import outwatch.dom.helpers._
 import cats.effect.Effect
+import com.raquo.domtypes.generic.builders.PropBuilder
 
-trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] {
+trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] with EmitterFactory[F] with BuilderFactory[F] { this:DomTypesFactory[F] =>
   implicit val effectF: Effect[F]
 
   /** Trait containing the contents of the `Attributes` module, so they can be
@@ -13,6 +14,7 @@ trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] {
     */
   trait OutwatchAttributes
     extends SnabbdomKeyAttributes
+    with OutWatchLifeCycleAttributes
 
   /** Outwatch component life cycle hooks. */
   trait OutWatchLifeCycleAttributes {
@@ -47,30 +49,27 @@ trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] {
   }
 
   /** Snabbdom Key Attribute */
-  trait SnabbdomKeyAttributes { thisSnabbdomKeyAttributes =>
-    implicit val effectF: Effect[F]
-    lazy val key = new KeyBuilder[F] {
-      implicit val effectF: Effect[F] = thisSnabbdomKeyAttributes.effectF
+  trait SnabbdomKeyAttributes { this:SnabbdomKeyAttributes =>
+    lazy val key = new KeyBuilder {
     }
   }
 
-  trait AttributeHelpers { self: DomTypesFactory[F]#Attributes =>
+  trait AttributeHelpers { self: Attributes =>
     lazy val `class` = className
 
     lazy val `for` = forId
 
-    lazy val data = new DynamicAttrBuilder[F, Any]("data" :: Nil)
+    lazy val data = new DynamicAttrBuilder[Any]("data" :: Nil)
 
     def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) =
-      new BasicAttrBuilder[F, T](key, convert)
-    def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[F, T](key, convert)
-    def style[T](key: String) = new BasicStyleBuilder[F, T](key)
+      new BasicAttrBuilder[T](key, convert)
+    def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
+    def style[T](key: String) = new BasicStyleBuilder[T](key)
   }
 
   trait TagHelpers {
-    implicit val effectF: Effect[F]
 
     //TODO: rename back to tag. This is currently not possible because of a method in scala-dom-types, which is protected
-    def customTag(name: String): VNodeF[F] = Applicative[F].pure(VTree[F](name, Seq.empty))
+    def customTag(name: String): VNodeF = Applicative[F].pure(VTree(name, Seq.empty))
   }
 }

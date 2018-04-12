@@ -1,17 +1,15 @@
 package outwatch.util
 
-import cats.effect.{Effect, IO}
+import cats.effect.Effect
+import cats.implicits._
 import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
-import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.window.sessionStorage
-import outwatch.dom.Observable
-import outwatch.dom.dsl.events
-import cats.implicits._
-import outwatch.Handler
+import org.scalajs.dom.window.{localStorage, sessionStorage}
+import outwatch.OutwatchOps
+import outwatch.dom.OutwatchDsl
 
-class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) extends HandlerFactory[F] {
+class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) extends OutwatchOps[F] with OutwatchDsl[F] {
   private def handlerWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
     val storage = new dom.ext.Storage(domStorage)
 
@@ -42,16 +40,16 @@ class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) ex
         None
     }
 
-  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): F[Handler[F, Option[String]]] = {
+  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     handlerWithTransform(key, identity)
   }
 
-  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): F[Handler[F, Option[String]]] = {
+  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, _ => storageEvents)
   }
 
-  def handler(key: String)(implicit scheduler: Scheduler): F[Handler[F, Option[String]]] = {
+  def handler(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
