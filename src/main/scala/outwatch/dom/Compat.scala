@@ -4,7 +4,6 @@ import cats.effect.{Effect, IO}
 import monix.execution.Scheduler
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
 import outwatch.OutwatchOps
-import outwatch.dom.helpers.{ChildStreamReceiverBuilder, ChildrenStreamReceiverBuilder}
 
 trait Handlers extends OutwatchOps[IO] {
   implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
@@ -32,15 +31,15 @@ object Handlers extends Handlers
 
 
 /** OutWatch specific attributes used to asign child nodes to a VNode. */
-trait OutWatchChildAttributesCompat {
-  /** A special attribute that takes a stream of single child nodes. */
-  @deprecated("Use the observable directly", "1.0.0")
-  lazy val child    = ChildStreamReceiverBuilder
+// trait OutWatchChildAttributesCompat {
+//   /** A special attribute that takes a stream of single child nodes. */
+//   @deprecated("Use the observable directly", "1.0.0")
+//   lazy val child    = ChildStreamReceiverBuilder
 
-  /** A special attribute that takes a stream of lists of child nodes. */
-  @deprecated("Use the observable directly", "1.0.0")
-  lazy val children = ChildrenStreamReceiverBuilder
-}
+//   /** A special attribute that takes a stream of lists of child nodes. */
+//   @deprecated("Use the observable directly", "1.0.0")
+//   lazy val children = ChildrenStreamReceiverBuilder
+// }
 
 
 //trait AttributesCompat extends OutWatchChildAttributesCompat { self: Attributes[IO] =>

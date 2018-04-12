@@ -13,13 +13,13 @@ import outwatch.dom.helpers._
 
 import scala.scalajs.js
 
-trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] {
+trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[F] with EmitterFactory[F] with AttributesFactory[F] {
   implicit val effectF:Effect[F]
 
   private[outwatch] object BuilderTypes {
-    type Attribute[T, _] = helpers.AttributeBuilder[F, T, Attr]
-    type Property[T, _] = helpers.PropBuilder[F, T]
-    type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[F, E, Emitter]
+    type Attribute[T, _] = AttributeBuilder[T, Attr]
+    type Property[T, _] = PropBuilder[T]
+    type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[E, Emitter]
   }
 
   private[outwatch] object CodecBuilder {
@@ -53,7 +53,7 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] {
       with FormTags[TagBuilder.Tag, VTree]
       with SectionTags[TagBuilder.Tag, VTree]
       with TableTags[TagBuilder.Tag, VTree]
-      with TagHelpers[F]
+      with TagHelpers
 
   trait TagsExtra
     extends MiscTags[TagBuilder.Tag, VTree]
@@ -68,17 +68,17 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] {
       with ReflectedAttrs
       with Props
       with Events
-      with AttributeHelpers[F]
-      with OutwatchAttributes[F]
+      with AttributeHelpers
+      with OutwatchAttributes
 
   // Attrs
   trait Attrs
-    extends attrs.Attrs[BasicAttrBuilder[F, ?]]
-      with builders.AttrBuilder[BasicAttrBuilder[F, ?]] {
+    extends attrs.Attrs[BasicAttrBuilder]
+      with builders.AttrBuilder[BasicAttrBuilder] {
 
     implicit val effectF: Effect[F]
 
-    override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[F, V] =
+    override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
       new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
   }
 
