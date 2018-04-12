@@ -1,9 +1,8 @@
 package outwatch.dom
 
 import cats.Applicative
-import outwatch.dom.helpers._
 import cats.effect.Effect
-import com.raquo.domtypes.generic.builders.PropBuilder
+import outwatch.dom.helpers._
 
 trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] with EmitterFactory[F] with BuilderFactory[F] { this:DomTypesFactory[F] =>
   implicit val effectF: Effect[F]

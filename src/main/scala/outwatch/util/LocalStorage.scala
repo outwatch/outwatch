@@ -30,7 +30,7 @@ class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) ex
 
   private def storageEventsForKey(key: String)(implicit scheduler: Scheduler): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
-    events.window.onStorage.collect {
+    dsl.events.window.onStorage.collect {
       case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
         // newValue is either String or null if removed or cleared
         // Option() transformes this to Some(string) or None

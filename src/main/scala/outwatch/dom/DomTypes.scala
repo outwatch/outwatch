@@ -1,7 +1,6 @@
 package outwatch.dom
 
 import cats.effect.{Effect, IO}
-import com.raquo.domtypes.generic.builders.TagBuilder
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
 import com.raquo.domtypes.generic.{builders, codecs, keys}
@@ -13,7 +12,14 @@ import outwatch.dom.helpers._
 
 import scala.scalajs.js
 
-trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[F] with EmitterFactory[F] with AttributesFactory[F] {
+trait DomTypesFactory[F[+_]]
+  extends VDomModifierFactory[F]
+    with BuilderFactory[F]
+    with EmitterFactory[F]
+    with AttributesFactory[F]
+    with CompatFactory[F]
+{
+
   implicit val effectF:Effect[F]
 
   private[outwatch] object BuilderTypes {
@@ -69,6 +75,7 @@ trait DomTypesFactory[F[+_]] extends VDomModifierFactory[F] with BuilderFactory[
       with Events
       with AttributeHelpers
       with OutwatchAttributes
+      with AttributesCompat
 
   // Attrs
   trait Attrs

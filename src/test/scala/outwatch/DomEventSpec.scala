@@ -338,7 +338,7 @@ class DomEventSpec extends JSDomSpec {
   }
 
   it should "be able to toggle attributes with a boolean observer" in {
-    import outwatch.util.SyntaxSugar._
+    import SyntaxSugar._
 
     val someClass = "some-class"
     val node = Handler.create[Boolean].flatMap { stream =>

@@ -1,9 +1,7 @@
 package outwatch
 
-import cats.data
 import outwatch.dom._
 import outwatch.dom.dsl._
-import cats.syntax.all._
 
 import scala.scalajs.js
 
@@ -32,8 +30,8 @@ class AttributeSpec extends JSDomSpec {
   "data attributes" should "be able to be accumulated" in {
 
     val node = input(
-      cats.data.foo.accum(",") := "foo1",
-      cats.data.foo.accum(",") := "foo2"
+      data.foo.accum(",") := "foo1",
+      data.foo.accum(",") := "foo2"
     ).map(_.toSnabbdom).unsafeRunSync()
 
     node.data.attrs.toList shouldBe List("data-foo" -> "foo1,foo2")
@@ -41,8 +39,8 @@ class AttributeSpec extends JSDomSpec {
 
   "data attribute" should "correctly render only Data" in {
     val node = input(
-      cats.data.geul := "bar",
-      cats.data.geuli.gurk := "barz"
+      data.geul := "bar",
+      data.geuli.gurk := "barz"
     ).map(_.toSnabbdom).unsafeRunSync()
 
     node.data.attrs.toList should contain theSameElementsAs List(

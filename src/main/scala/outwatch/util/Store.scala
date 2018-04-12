@@ -5,8 +5,8 @@ import cats.syntax.all._
 import monix.execution.Scheduler
 import org.scalajs.dom
 import outwatch.OutwatchOps
+import outwatch.dom.VDomModifierFactory
 import outwatch.dom.helpers.STRef
-import outwatch.dom.{OutWatch, VDomModifierFactory}
 
 import scala.util.Try
 import scala.util.control.NonFatal

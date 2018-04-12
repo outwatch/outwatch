@@ -10,7 +10,7 @@ import outwatch.SinkFactory
 trait ManagedSubscriptions[F[+_]] extends SinkFactory[F] with DomTypesFactory[F] with OutwatchDsl[F] {
   implicit val effectF: Effect[F]
 
-  import attributes.lifecycle
+  import dsl.attributes.lifecycle
 
   def managed(subscription: F[Cancelable])(implicit s: Scheduler): VDomModifierF = {
     subscription.flatMap { sub: Cancelable =>
