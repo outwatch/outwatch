@@ -10,10 +10,10 @@ import cats.effect.Effect
   */
 trait OutwatchAttributes[F[+_]]
   extends SnabbdomKeyAttributes[F]
-  with OutWatchLifeCycleAttributes
 
 /** Outwatch component life cycle hooks. */
-trait OutWatchLifeCycleAttributes {
+trait OutWatchLifeCycleAttributes[F[+_]] {
+  implicit val effectF: Effect[F]
   /**
     * Lifecycle hook for component insertion.
     *

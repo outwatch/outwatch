@@ -7,6 +7,8 @@ import outwatch.dom._
 
 import scala.language.dynamics
 
+trait BuilderFactory[F+_]
+
 trait AttributeBuilder[F[+_], -T, +A <: Attribute] {
   implicit val effectF: Effect[F]
   implicit def applicativeF: Applicative[F] = effectF

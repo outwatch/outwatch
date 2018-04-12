@@ -1,6 +1,6 @@
 package outwatch.util
 
-import cats.effect.IO
+import cats.effect.{Effect, IO}
 import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
@@ -11,12 +11,12 @@ import outwatch.dom.dsl.events
 import cats.implicits._
 import outwatch.Handler
 
-class Storage(domStorage: dom.Storage) {
+class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) extends HandlerFactory[F] {
   private def handlerWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
-      h <- Handler.create[IO, Option[String]](storage(key))
+      h <- Handler.create[Option[String]](storage(key))
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying handler h
@@ -42,20 +42,24 @@ class Storage(domStorage: dom.Storage) {
         None
     }
 
-  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): F[Handler[F, Option[String]]] = {
     handlerWithTransform(key, identity)
   }
 
-  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): F[Handler[F, Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, _ => storageEvents)
   }
 
-  def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
+  def handler(key: String)(implicit scheduler: Scheduler): F[Handler[F, Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
 }
 
-object LocalStorage extends Storage(localStorage)
-object SessionStorage extends Storage(sessionStorage)
+trait StorageFactory[F[+_]] {
+  implicit val effectF:Effect[F]
+
+  object LocalStorage extends Storage(localStorage)
+  object SessionStorage extends Storage(sessionStorage)
+}

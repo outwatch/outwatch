@@ -1,5 +1,7 @@
 package outwatch
 
+import outwatch.dom._
+
 class HandlerSpec extends JSDomSpec {
   "Sink" should "have unsafeOnNext" in {
     val handler = Handler.create[Int].unsafeRunSync()

@@ -2,9 +2,9 @@ package outwatch.dom.helpers
 
 import cats.effect.Effect
 import org.scalajs.dom.{Element, Event, html, svg}
-import outwatch.dom.{Emitter, Hook}
+import outwatch.dom.VDomModifierFactory
 
-trait EmitterOps[F[+_]] {
+trait EmitterOps[F[+_]] extends VDomModifierFactory[F] {
   implicit val effectF:Effect[F]
 
   implicit class TargetAsInput[E <: Event, O <: Event](builder: EmitterBuilder[F, E, O, Emitter]) {

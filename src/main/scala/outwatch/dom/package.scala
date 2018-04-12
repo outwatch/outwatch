@@ -1,33 +1,28 @@
 package outwatch
 
-import cats.Applicative
-import cats.effect.{Effect, IO}
+import cats.effect.Effect
+import outwatch.dom.helpers.SeparatedModifiersFactory
+import outwatch.dom.{Implicits, ManagedSubscriptions, OutWatchLifeCycleAttributes, VDomModifierFactory}
 
-package object dom extends Implicits[IO] with ManagedSubscriptions {
-  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
-
-  type VNodeF[F[+_]] = F[VTree[F]]
-  type VDomModifierF[F[+_]] = F[Modifier]
-
-  object VDomModifierF {
-    import cats.instances.list._
-    import cats.syntax.all._
-
-    def empty[F[+_]: Applicative]: VDomModifierF[F] = Applicative[F].pure(EmptyModifier)
-
-    def apply[F[+_]: Applicative](modifiers: VDomModifierF[F]*): VDomModifierF[F] =
-      modifiers.toList.sequence.map(CompositeModifier)
-  }
-
+trait ReactiveTypes[F[+_]] {
   type Observable[+A] = monix.reactive.Observable[A]
   val Observable = monix.reactive.Observable
 
-  type Sink[-A] = outwatch.Sink[A]
-  val Sink = outwatch.Sink
-
-  type Pipe[-I, +O] = outwatch.Pipe[I, O]
-  val Pipe = outwatch.Pipe
-
-  type Handler[T] = outwatch.Handler[T]
-  val Handler = outwatch.Handler
+  type Sink[-A] = outwatch.Sink[F, A]
+  type Pipe[-I, +O] = Observable[O] with Sink[I]
+  type Handler[T] = Pipe[T, T]
 }
+
+trait DomEffect[F[+ _]] extends VDomModifierFactory[F]
+  with Implicits[F]
+  with ManagedSubscriptions[F]
+  with HandlerFactory[F]
+  with OutWatchLifeCycleAttributes[F]
+  with SeparatedModifiersFactory[F] {
+  implicit val effectF: Effect[F]
+
+}
+
+//package object dom extends domEffect[IO] { thisDom =>
+//  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
+//}

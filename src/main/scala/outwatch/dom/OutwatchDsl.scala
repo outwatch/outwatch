@@ -31,9 +31,6 @@ trait OutwatchDsl[F[+_]] extends Styles[F] with Tags[F] with Attributes[F] { thi
     object outwatch extends OutwatchAttributes[F] {
       implicit val effectF: Effect[F] = thisDsl.effectF
     }
-    object lifecycle extends OutWatchLifeCycleAttributes {
-      implicit val effectF: Effect[F] = thisDsl.effectF
-    }
   }
   object events {
     object window extends WindowEvents

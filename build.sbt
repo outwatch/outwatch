@@ -8,9 +8,9 @@ version := "0.11.1-SNAPSHOT"
 
 organization := "io.github.outwatch"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.5"
 
-crossScalaVersions := Seq("2.11.12", "2.12.4")
+crossScalaVersions := Seq("2.11.12", "2.12.5")
 
 
 libraryDependencies ++= Seq(
@@ -39,29 +39,29 @@ scalacOptions ++=
   "-explaintypes" ::
   "-feature" ::
   "-language:_" ::
-  "-Xfuture" ::
-  "-Xlint" ::
-  "-Ypartial-unification" ::
-  "-Yno-adapted-args" ::
-  "-Ywarn-infer-any" ::
-  "-Ywarn-value-discard" ::
-  "-Ywarn-nullary-override" ::
-  "-Ywarn-nullary-unit" ::
+//  "-Xfuture" ::
+//  "-Xlint" ::
+//  "-Ypartial-unification" ::
+//  "-Yno-adapted-args" ::
+//  "-Ywarn-infer-any" ::
+//  "-Ywarn-value-discard" ::
+//  "-Ywarn-nullary-override" ::
+//  "-Ywarn-nullary-unit" ::
   "-P:scalajs:sjsDefinedByDefault" ::
   Nil
 
-scalacOptions ++= {
-  CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 12)) =>
-      "-Ywarn-extra-implicit" ::
-      "-Ywarn-unused:-explicits,-implicits,_" ::
-      Nil
-    case _             =>
-      "-Ywarn-unused" ::
-      "-Xexperimental" ::   // SAM conversion
-      Nil
-  }
-}
+//scalacOptions ++= {
+//  CrossVersion.partialVersion(scalaVersion.value) match {
+//    case Some((2, 12)) =>
+//      "-Ywarn-extra-implicit" ::
+//      "-Ywarn-unused:-explicits,-implicits,_" ::
+//      Nil
+//    case _             =>
+//      "-Ywarn-unused" ::
+//      "-Xexperimental" ::   // SAM conversion
+//      Nil
+//  }
+//}
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
 

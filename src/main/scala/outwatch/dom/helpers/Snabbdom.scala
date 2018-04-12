@@ -2,6 +2,8 @@ package outwatch.dom.helpers
 
 import cats.Applicative
 import cats.effect.{Effect, IO}
+import cats.implicits._
+import cats.effect.implicits._
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignCancelable
@@ -14,7 +16,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 
-private[outwatch] trait SnabbdomStyles { self: SeparatedStyles =>
+private[outwatch] trait SnabbdomStyles[F[+_]] { self: SeparatedModifiersFactory[F]#SeparatedStyles =>
   def toSnabbdom: js.Dictionary[Style.Value] = {
     val styleDict = js.Dictionary[Style.Value]()
 
@@ -42,7 +44,7 @@ private[outwatch] trait SnabbdomStyles { self: SeparatedStyles =>
   }
 }
 
-private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
+private[outwatch] trait SnabbdomAttributes[F[+_]] { self: SeparatedModifiersFactory[F]#SeparatedAttributes =>
 
   type jsDict[T] = js.Dictionary[T]
 
@@ -78,7 +80,8 @@ private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
   }
 }
 
-private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
+private[outwatch] trait SnabbdomHooks[F[+_]] { self: SeparatedModifiersFactory[F]#SeparatedHooks =>
+  implicit val effectF: Effect[F]
 
   private def createHookSingle(hooks: Seq[Hook[dom.Element]]): js.UndefOr[Hooks.HookSingleFn] = {
     Option(hooks).filter(_.nonEmpty).map[Hooks.HookSingleFn](hooks =>
@@ -99,32 +102,29 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     ).orUndefined
   }
 
-  private def createInsertHook[F[+_]: Effect](receivers: Receivers[F],
+  private def createInsertHook(receivers: Receivers,
     subscription: SingleAssignCancelable,
     hooks: Seq[InsertHook]
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
-    import cats.implicits._
-    import cats.effect.implicits._
-
-    def toProxy(state: VNodeState[F]): F[VNodeProxy] = {
+    def toProxy(state: VNodeState): F[VNodeProxy] = {
       val newData = SeparatedAttributes.from(state.attributes.values.toSeq).updateDataObject(proxy.data)
 
       if (state.nodes.isEmpty) {
         if (proxy.children.isDefined) {
-          Applicative[F].pure(hFunction(proxy.sel, newData, proxy.children.get))
+          effectF.pure(hFunction(proxy.sel, newData, proxy.children.get))
         } else {
-          Applicative[F].pure(hFunction(proxy.sel, newData, proxy.text))
+          effectF.pure(hFunction(proxy.sel, newData, proxy.text))
         }
       } else {
-        val nodes = state.nodes.reduceLeft(_ ++ _).toList.sequence
+        val nodes: Nothing[List[Nothing]] = state.nodes.reduceLeft(_ ++ _).toList.sequence
         nodes.map(list => hFunction(proxy.sel, newData, list.map(_.toSnabbdom).toJSArray))
       }
     }
 
     subscription := receivers.observable
       .map(toProxy)
-      .startWith(Seq(Applicative[F].pure(proxy)))
+      .startWith(Seq(effectF.pure(proxy)))
       .bufferSliding(2, 1)
       .subscribe(
         { case Seq(old, crt) => (old, crt).mapN(patch.apply).runAsync(_ => IO.unit).unsafeRunSync(); Continue },
@@ -143,10 +143,10 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     ()
   }
 
-  def toSnabbdom[F[+_]: Effect](receivers: Receivers[F])(implicit s: Scheduler): Hooks = {
+  def toSnabbdom(receivers: Receivers)(implicit s: Scheduler): Hooks = {
     val (insertHook, destroyHook) = if (receivers.nonEmpty) {
       val subscription = SingleAssignCancelable()
-      val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook[F](receivers, subscription, insertHooks)
+      val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook(receivers, subscription, insertHooks)
       val destroyHook: js.UndefOr[Hooks.HookSingleFn] = createDestroyHook(subscription, destroyHooks)
       (insertHook, destroyHook)
     }
@@ -163,7 +163,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   }
 }
 
-private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
+private[outwatch] trait SnabbdomEmitters[F[+_]] { self: SeparatedModifiersFactory[F]#SeparatedEmitters =>
 
   private def emittersToFunction(emitters: Seq[Emitter]): js.Function1[dom.Event, Unit] = {
     (event: dom.Event) => emitters.foreach(_.trigger(event))
@@ -177,9 +177,10 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
   }
 }
 
-private[outwatch] trait SnabbdomModifiers[F[+_]] { self: SeparatedModifiers[F] =>
+private[outwatch] trait SnabbdomModifiers[F[+_]] { self: SeparatedModifiersFactory[F]#SeparatedModifiers =>
+  implicit val effectF: Effect[F]
 
-  private[outwatch] def createDataObject(receivers: Receivers[F])(implicit s: Scheduler, F: Effect[F]): DataObject = {
+  private[outwatch] def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
 
     val keyOption = properties.keys.lastOption
     val key = if (receivers.nonEmpty) {
@@ -191,12 +192,12 @@ private[outwatch] trait SnabbdomModifiers[F[+_]] { self: SeparatedModifiers[F] =
     val (attrs, props, style) = properties.attributes.toSnabbdom
     DataObject(
       attrs, props, style, emitters.toSnabbdom,
-      properties.hooks.toSnabbdom[F](receivers),
+      properties.hooks.toSnabbdom(receivers),
       key
     )
   }
 
-  private[outwatch] def toSnabbdom(nodeType: String)(implicit s: Scheduler, F: Effect[F]): VNodeProxy = {
+  private[outwatch] def toSnabbdom(nodeType: String)(implicit s: Scheduler): VNodeProxy = {
 
     // if child streams exists, we want the static children in the same node have keys
     // for efficient patching when the streams change

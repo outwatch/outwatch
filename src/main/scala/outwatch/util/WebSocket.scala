@@ -4,15 +4,15 @@ import cats.effect.Effect
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom._
-import outwatch.Sink
+import outwatch.{Sink, SinkFactory}
 import outwatch.dom.Observable
 
 object WebSocket {
-  implicit def toSink[F[+_]: Effect](socket: WebSocket): F[Sink[String]] = socket.sink[F]
-  implicit def toSource(socket: WebSocket): Observable[MessageEvent] = socket.source
+  implicit def toSink[F[+_]: Effect](socket: WebSocket[F]): F[Sink[F,String]] = socket.sink
+  implicit def toSource[F[+_]](socket: WebSocket[F]): Observable[MessageEvent] = socket.source
 }
 
-final case class WebSocket private(url: String)(implicit s: Scheduler) {
+final case class WebSocket[F[+_]] private(url: String)(implicit val effectF: Effect[F], s: Scheduler) extends SinkFactory[F] {
   val ws = new org.scalajs.dom.WebSocket(url)
 
   lazy val source = Observable.create[MessageEvent](Unbounded)(observer => {
@@ -22,12 +22,12 @@ final case class WebSocket private(url: String)(implicit s: Scheduler) {
     Cancelable(() => ws.close())
   })
 
-  def sink[F[+_]: Effect]: F[Sink[String]] = Sink.createFull[F, String](
+  def sink: F[Sink[F,String]] = Sink.createFull[String](
     s => {
-      Effect[F].delay(ws.send(s))
+      effectF.delay(ws.send(s))
     },
-    _ => Effect[F].unit,
-    Effect[F].delay(ws.close())
+    _ => effectF.unit,
+    effectF.delay(ws.close())
   )
 
 }

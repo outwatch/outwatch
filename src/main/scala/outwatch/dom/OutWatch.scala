@@ -5,12 +5,13 @@ import cats.syntax.all._
 import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom._
-import outwatch.util.Store
+import outwatch.util.StoreFactory
 import snabbdom.patch
 
-object OutWatch {
+override object OutWatch extends StoreFactory[IO] {
+  override val effectF: Effect[IO] = IO.ioConcurrentEffect
 
-  def renderInto[F[+_]: Effect](element: dom.Element, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] = for {
+  def renderInto[F[+ _] : Effect](element: Element, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] = for {
     node <- vNode
     _ <- Sync[F].delay {
       val elem = dom.document.createElement("app")
@@ -19,15 +20,15 @@ object OutWatch {
     }
   } yield ()
 
-  def renderReplace[F[+_]: Effect](element: dom.Element, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] = for {
+  def renderReplace[F[+ _] : Effect](element: Element, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] = for {
     node <- vNode
     _ <- Sync[F].delay(patch(element, node.toSnabbdom))
   } yield ()
 
-  def renderInto[F[+_]: Effect](querySelector: String, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] =
+  def renderInto[F[+ _] : Effect](querySelector: String, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] =
     renderInto[F](document.querySelector(querySelector), vNode)
 
-  def renderReplace[F[+_]: Effect](querySelector: String, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] =
+  def renderReplace[F[+ _] : Effect](querySelector: String, vNode: VNodeF[F])(implicit s: Scheduler): F[Unit] =
     renderReplace[F](document.querySelector(querySelector), vNode)
 
   @deprecated("Use renderInto instead (or renderReplace)", "0.11.0")
@@ -35,7 +36,7 @@ object OutWatch {
     renderInto(querySelector, vNode)
 
   def renderWithStore[S, A](
-    initialState: S, reducer: Store.Reducer[S, A], querySelector: String, root: VNodeF[IO]
-  )(implicit s: Scheduler): IO[Unit] =
+                             initialState: S, reducer: Store.Reducer[S, A], querySelector: String, root: VNodeF[IO]
+                           )(implicit s: Scheduler): IO[Unit] =
     Store.renderWithStore(initialState, reducer, querySelector, root)
 }

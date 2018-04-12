@@ -1,7 +1,6 @@
 package outwatch
 
 
-import cats.effect.IO
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
@@ -12,7 +11,7 @@ class DomEventSpec extends JSDomSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 
-    val vtree = Handler.create[IO,MouseEvent].flatMap { observable =>
+    val vtree = Handler.create[MouseEvent].flatMap { observable =>
 
       val buttonDisabled = observable.map(_ => true).startWith(Seq(false))
 
@@ -35,9 +34,9 @@ class DomEventSpec extends JSDomSpec {
 
     val message = "ad"
 
-    val vtree = Handler.create[IO,String].flatMap { observable =>
-      div(id := "click", onClick(message) --> observable,
-        span(id := "child", asVDomModifier(observable)) //TODO: problem with implicit resolution
+    val vtree = Handler.create[String].flatMap { handler =>
+      div(id := "click", onClick(message) --> handler,
+        span(id := "child", asVDomModifier(handler)(observableRender[String]))
       )
     }
 
@@ -59,11 +58,11 @@ class DomEventSpec extends JSDomSpec {
 
   it should "be converted to a generic stream emitter correctly" in {
 
-    val messages = Handler.create[IO,String].unsafeRunSync()
+    val messages = Handler.create[String].unsafeRunSync()
 
-    val vtree = Handler.create[IO,String].flatMap { stream =>
+    val vtree = Handler.create[String].flatMap { stream =>
       div(id := "click", onClick(messages) --> stream,
-        span(id := "child", asVDomModifier(stream))
+        span(id := "child", asVDomModifier(stream)(observableRender[String]))
       )
     }
 
@@ -205,16 +204,16 @@ class DomEventSpec extends JSDomSpec {
 
   it should "be able to handle two events of the same type" in {
 
-    val first = Handler.create[IO,String].unsafeRunSync()
+    val first = Handler.create[String].unsafeRunSync()
 
-    val second = Handler.create[IO,String].unsafeRunSync()
+    val second = Handler.create[String].unsafeRunSync()
 
     val messages = ("Hello", "World")
 
     val node = div(
       button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
-      span(id:="first", asVDomModifier(first)),
-      span(id:="second", asVDomModifier(second))
+      span(id:="first", asVDomModifier(first)(observableRender[String])),
+      span(id:="second", asVDomModifier(second)(observableRender[String]))
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -234,10 +233,10 @@ class DomEventSpec extends JSDomSpec {
 
     val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = Handler.create[IO, (MouseEvent, Int)].flatMap { stream =>
+    val node = Handler.create[(MouseEvent, Int)].flatMap { stream =>
       div(
         button(id := "click", onClick.map(toTuple) --> stream),
-        span(id := "num", stream.map(_._2))
+        span(id := "num", asVDomModifier(stream.map(_._2))(observableRender[Int]))
       )
     }
 
@@ -259,7 +258,7 @@ class DomEventSpec extends JSDomSpec {
 
     val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
 
-    val node = Handler.create[IO, Int].flatMap { stream =>
+    val node = Handler.create[Int].flatMap { stream =>
 
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
@@ -283,10 +282,10 @@ class DomEventSpec extends JSDomSpec {
 
     val number = 42
     val onInputValue = onInput.value
-    val node = Handler.create[IO, Int].flatMap { stream =>
+    val node = Handler.create[Int].flatMap { stream =>
       div(
         input(id := "input", onInputValue(number) --> stream),
-        span(id:="num", stream)
+        span(id:="num", asVDomModifier(stream)(observableRender[Int]))
       )
     }
 
@@ -310,12 +309,11 @@ class DomEventSpec extends JSDomSpec {
     val node = {
       div(
         button(id := "button",
-          onClick --> sideEffect(_ => triggeredEventFunction += 1),
-          onClick(1) --> sideEffect(triggeredIntFunction += _),
-          onClick --> sideEffect{ triggeredFunction += 1 },
-          onUpdate --> sideEffect((old,current) => triggeredFunction2 += 1),
-          stream
-        )
+//          onClick --> sideEffect(_ => triggeredEventFunction += 1),
+//          onClick(1) --> sideEffect(triggeredIntFunction += _),
+//          onClick --> sideEffect{ triggeredFunction += 1 },
+//          onUpdate --> sideEffect((old,current) => triggeredFunction2 += 1),
+          asVDomModifier(stream)(observableRender[String]))
       )
     }
 
@@ -343,7 +341,7 @@ class DomEventSpec extends JSDomSpec {
     import outwatch.util.SyntaxSugar._
 
     val someClass = "some-class"
-    val node = Handler.create[IO, Boolean].flatMap { stream =>
+    val node = Handler.create[Boolean].flatMap { stream =>
       div(
         button(id := "input", tpe := "checkbox", onClick(true) --> stream),
         span(id := "toggled", stream ?= (className := someClass))
@@ -364,11 +362,11 @@ class DomEventSpec extends JSDomSpec {
 
   it should "currectly be transformed from latest in observable" in {
 
-    val node = Handler.create[IO, String].flatMap { submit =>
+    val node = Handler.create[String].flatMap { submit =>
 
       val state = submit.scan(List.empty[String])((l, s) => l :+ s)
 
-      Handler.create[IO, String].flatMap { stream =>
+      Handler.create[String].flatMap { stream =>
         div(
           input(id := "input", tpe := "text", onInput.value --> stream),
           button(id := "submit", onClick(stream) --> submit),
@@ -407,7 +405,7 @@ class DomEventSpec extends JSDomSpec {
 
   "Boolean Props" should "be handled corectly" in {
 
-    val node = Handler.create[IO, Boolean].flatMap { checkValue =>
+    val node = Handler.create[Boolean].flatMap { checkValue =>
       div(
         input(id := "checkbox", `type` := "Checkbox", checked <-- checkValue),
         button(id := "on_button", onClick(true) --> checkValue, "On"),
@@ -461,14 +459,14 @@ class DomEventSpec extends JSDomSpec {
 
   "EmitterOps" should "correctly work on events" in {
 
-    val node = Handler.create[IO, String].flatMap { submit =>
+    val node = Handler.create[String].flatMap { submit =>
 
       for {
-        stringStream <- Handler.create[IO, String]
-        doubleStream <- Handler.create[IO, Double]
-        boolStream <- Handler.create[IO, Boolean]
-        htmlElementStream <- Handler.create[IO, html.Element]
-        svgElementTupleStream <- Handler.create[IO, (svg.Element, svg.Element)]
+        stringStream <- Handler.create[String]
+        doubleStream <- Handler.create[Double]
+        boolStream <- Handler.create[Boolean]
+        htmlElementStream <- Handler.create[html.Element]
+        svgElementTupleStream <- Handler.create[(svg.Element, svg.Element)]
         elem <- div(
           input(
             id := "input", tpe := "text",
@@ -502,14 +500,14 @@ class DomEventSpec extends JSDomSpec {
 
   it should "correctly be compiled with currentTarget" in {
 
-    val stringHandler = Handler.create[IO, String].unsafeRunSync()
+    val stringHandler = Handler.create[String].unsafeRunSync()
     def modifier: VDomModifier = onDrag.value --> stringHandler
 
-    val node = Handler.create[IO, String].flatMap { submit =>
+    val node = Handler.create[String].flatMap { submit =>
 
       for {
-        stream <- Handler.create[IO, String]
-        eventStream <- Handler.create[IO, MouseEvent]
+        stream <- Handler.create[String]
+        eventStream <- Handler.create[MouseEvent]
         elem <- div(
           input(
             id := "input", tpe := "text",
@@ -534,8 +532,7 @@ class DomEventSpec extends JSDomSpec {
   "Children stream" should "work for string sequences" in {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
     val node = div(id := "strings",
-      myStrings
-    )
+      asVDomModifier(myStrings)(observableSeqRender[String]))
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 

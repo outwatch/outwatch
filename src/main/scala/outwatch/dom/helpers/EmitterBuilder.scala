@@ -12,7 +12,7 @@ trait EmitterBuilder[F[+_], E, O, R] {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[F, E, T, R]
 
-  def -->(sink: Sink[_ >: O]): F[R]
+  def -->(sink: Sink[F, _ >: O]): F[R]
 
   def apply[T](value: T): EmitterBuilder[F, E, T, R] = map(_ => value)
 
@@ -44,9 +44,9 @@ final case class TransformingEmitterBuilder[F[+_], E, O, R] private[helpers](
   )
 
 
-  def -->(sink: Sink[_ >: O]): F[R] = {
-    val redirected: Sink[E] = sink.unsafeRedirect[E](transformer)
-    Effect[F].pure(create(redirected.observer))
+  def -->(sink: Sink[F, _ >: O]): F[R] = {
+    val redirected: Sink[F, E] = sink.unsafeRedirect[E](transformer)
+    effectF.pure(create(redirected.observer))
   }
 }
 
@@ -55,5 +55,5 @@ final case class SimpleEmitterBuilder[F[+_], E, R](create: Observer[E] => R)(imp
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[F, E, T, R] =
     new TransformingEmitterBuilder[F, E, T, R](tr, create)
 
-  def -->(sink: Sink[_ >: E]): F[R] = Effect[F].pure(create(sink.observer))
+  def -->(sink: Sink[F, _ >: E]): F[R] = effectF.pure(create(sink.observer))
 }
