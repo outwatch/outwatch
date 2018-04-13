@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.Applicative
 import cats.effect.Effect
 import outwatch.StaticVNodeRenderFactory
 import outwatch.dom._
@@ -14,10 +13,10 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] with StaticVNodeRende
     protected def name: String
     private[outwatch] def assign(value: T): A
 
-    def :=(value: T): F[A] = Applicative[F].pure(assign(value))
+    def :=(value: T): F[A] = effectF.pure(assign(value))
     def :=?(value: Option[T]): Option[VDomModifierF] = value.map(:=)
     def <--(valueStream: Observable[T]): F[AttributeStreamReceiver] = {
-      Applicative[F].pure(AttributeStreamReceiver(name, valueStream.map(assign)))
+      effectF.pure(AttributeStreamReceiver(name, valueStream.map(assign)))
     }
   }
 

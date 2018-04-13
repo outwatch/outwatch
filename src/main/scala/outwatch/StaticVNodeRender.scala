@@ -1,6 +1,5 @@
 package outwatch
 
-import cats.Applicative
 import cats.effect.Effect
 import outwatch.dom.VDomModifierFactory
 

@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.Applicative
 import cats.effect.Effect
 import outwatch.dom.helpers._
 
@@ -69,6 +68,6 @@ trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] with EmitterFactor
   trait TagHelpers {
 
     //TODO: rename back to tag. This is currently not possible because of a method in scala-dom-types, which is protected
-    def customTag(name: String): VNodeF = Applicative[F].pure(VTree(name, Seq.empty))
+    def customTag(name: String): VNodeF = effectF.pure(VTree(name, Seq.empty))
   }
 }

@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.Applicative
 import cats.effect.Effect
 import outwatch.dom._
 
