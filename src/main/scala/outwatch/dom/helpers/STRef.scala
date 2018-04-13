@@ -1,8 +1,7 @@
 package outwatch.dom.helpers
 
-import cats.effect.{Effect, Sync}
+import cats.effect.Effect
 import cats.implicits._
-import org.scalajs.dom.svg.A
 
 class STRef[F[+_], A](private var unsafeGet: A)(implicit effectF:Effect[F]) {
   def put(a: A): F[A] = effectF.delay { unsafeGet = a; a }

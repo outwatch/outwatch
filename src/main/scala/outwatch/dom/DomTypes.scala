@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import cats.effect.{Effect, IO}
+import cats.effect.Effect
 import com.raquo.domtypes.generic.defs.sameRefTags._
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
 import com.raquo.domtypes.generic.{builders, codecs, keys}
@@ -51,20 +51,24 @@ trait DomTypesFactory[F[+_]]
   }
 
   trait Tags
-    extends TagBuilder
-      with EmbedTags[TagBuilder.Tag, VTree]
+      extends EmbedTags[TagBuilder.Tag, VTree]
       with GroupingTags[TagBuilder.Tag, VTree]
       with TextTags[TagBuilder.Tag, VTree]
       with FormTags[TagBuilder.Tag, VTree]
       with SectionTags[TagBuilder.Tag, VTree]
       with TableTags[TagBuilder.Tag, VTree]
+      with TagBuilder
       with TagHelpers
+      with TagsCompat
+
+
+  @deprecated("Use dsl.tags instead", "0.11.0")
+  object Tags extends Tags
 
   trait TagsExtra
-    extends MiscTags[TagBuilder.Tag, VTree]
-      with DocumentTags[TagBuilder.Tag, VTree] {
-    this: TagBuilder =>
-  }
+    extends DocumentTags[TagBuilder.Tag, VTree]
+    with MiscTags[TagBuilder.Tag, VTree]
+    with TagBuilder
 
   // all Attributes
 
@@ -76,6 +80,9 @@ trait DomTypesFactory[F[+_]]
       with AttributeHelpers
       with OutwatchAttributes
       with AttributesCompat
+
+  @deprecated("Use dsl.attributes instead", "0.11.0")
+  object Attributes extends Attributes
 
   // Attrs
   trait Attrs
@@ -120,10 +127,9 @@ trait DomTypesFactory[F[+_]]
   // Events
   trait Events
     extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter]
-      with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event]
-      with EmitterBuilderFactory {
+      with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event] {
 
-    override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] = emitterBuilderFactory(key)
+    override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] = EmitterBuilder(key)
   }
 
 
@@ -161,22 +167,13 @@ trait DomTypesFactory[F[+_]]
   }
 
   trait Styles
-    extends SimpleStyleBuilder
-      with styles.Styles[F[Style]]
+    extends styles.Styles[F[Style]]
+    with SimpleStyleBuilder
 
   trait StylesExtra
-    extends SimpleStyleBuilder
-      with styles.Styles2[F[Style]]
+    extends styles.Styles2[F[Style]]
+    with SimpleStyleBuilder
 
 }
 
-@deprecated("Use dsl.tags instead", "0.11.0")
-object Tags extends DomTypesFactory[IO] {
-  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
-}
-
-@deprecated("Use dsl.attributes instead", "0.11.0")
-object Attributes extends DomTypesFactory[IO] {
-  implicit val effectF: Effect[IO] = IO.ioConcurrentEffect
-}
 

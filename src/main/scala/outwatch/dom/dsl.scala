@@ -3,15 +3,11 @@ package outwatch.dom
 import cats.effect.Effect
 
 trait OutwatchDsl[F[+_]] extends DomTypesFactory[F] {
-  thisDsl =>
   implicit val effectF: Effect[F]
 
-  type VNode = VNodeF
-  type VDomModifier = VDomModifierF
-
   object dsl extends Attributes with Tags with Styles {
-    object tags extends Tags with TagBuilder {
-      object extra extends TagsExtra with TagBuilder
+    object tags extends Tags {
+      object extra extends TagsExtra
     }
     object attributes extends Attributes {
       object attrs extends Attrs

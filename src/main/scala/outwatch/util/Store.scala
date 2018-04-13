@@ -64,7 +64,7 @@ trait StoreFactory[F[+_]] extends VDomModifierFactory[F] with OutwatchOps[F] {
 
     def get[S, A]: F[Pipe[A, S]] = storeRef.asInstanceOf[STRef[F, Pipe[A, S]]].getOrThrow(NoStoreException)
 
-    def renderWithStore[S, A]( initialState: S, reducer: Reducer[S, A], selector: String, root: VNodeF, renderInto:(String, VNodeF) => F[Unit] )
+    def renderWithStore[S, A](initialState: S, reducer: Reducer[S, A], selector: String, root: VNode, renderInto:(String, VNode) => F[Unit] )
                              (implicit s: Scheduler): F[Unit] = for {
       store <- Store.create(initialState, reducer)
       _ <- storeRef.asInstanceOf[STRef[F, Pipe[A, S]]].put(store)

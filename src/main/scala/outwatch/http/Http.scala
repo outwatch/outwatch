@@ -18,7 +18,7 @@ trait HttpFactory[F[+_]] extends VDomModifierFactory[F] {
 
   object Http {
 
-    final case class Request(url: String,
+    sealed case class Request(url: String,
                              data: InputData = "",
                              timeout: Int = 0,
                              headers: Map[String, String] = Map.empty,
@@ -30,7 +30,7 @@ trait HttpFactory[F[+_]] extends VDomModifierFactory[F] {
 
     type BodyType = String | ArrayBuffer | Blob | js.Dynamic | js.Any
 
-    final case class Response(
+    sealed case class Response(
                                body: BodyType,
                                status: Int,
                                responseType: String,

@@ -27,12 +27,12 @@ trait EmitterFactory[F[+_]] extends VDomModifierFactory[F] with EmitterOps[F] {
     def collect[T](f: PartialFunction[O, T]): EmitterBuilder[E, T, R] = transform(_.collect(f))
   }
 
-  trait EmitterBuilderFactory {
-    def emitterBuilderFactory[E <: Event](eventType: String): SimpleEmitterBuilder[E, Emitter] =
+  object EmitterBuilder {
+    def apply[E <: Event](eventType: String): SimpleEmitterBuilder[E, Emitter] =
       SimpleEmitterBuilder[E, Emitter](observer => Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
   }
 
-  final case class TransformingEmitterBuilder[E, O, R] private[helpers](
+  sealed case class TransformingEmitterBuilder[E, O, R] private[helpers](
     transformer: Observable[E] => Observable[O],
     create: Observer[E] => R
   ) extends EmitterBuilder[E, O, R] {
@@ -47,7 +47,7 @@ trait EmitterFactory[F[+_]] extends VDomModifierFactory[F] with EmitterOps[F] {
     }
   }
 
-  final case class SimpleEmitterBuilder[E, R](create: Observer[E] => R) extends EmitterBuilder[E, E, R] {
+  sealed case class SimpleEmitterBuilder[E, R](create: Observer[E] => R) extends EmitterBuilder[E, E, R] {
 
     def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[E, T, R] =
       new TransformingEmitterBuilder[E, T, R](tr, create)

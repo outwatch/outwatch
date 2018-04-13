@@ -10,11 +10,11 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
 
   object SeparatedModifiers {
     private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
-      modifiers.foldRight(SeparatedModifiers(children = Children.empty))((m, sm) => m :: sm)
+      modifiers.foldRight(SeparatedModifiers(children = Children.Empty))((m, sm) => m :: sm)
     }
   }
 
-  private[outwatch] final case class SeparatedModifiers(
+  private[outwatch] sealed case class SeparatedModifiers(
                                                                         properties: SeparatedProperties = SeparatedProperties(),
                                                                         emitters: SeparatedEmitters = SeparatedEmitters(),
                                                                         attributeReceivers: List[AttributeStreamReceiver] = Nil,
@@ -44,7 +44,7 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
     private def toVNode(mod: StringModifier) = StringVNode(mod.string)
     private def toModifier(node: StringVNode) = StringModifier(node.string)
 
-    private[outwatch] case class Empty() extends Children {
+    private[outwatch] case object Empty extends Children {
       override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
 
       override def ::(node: ChildVNode): Children = node match {
@@ -52,8 +52,6 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
         case n => n :: VNodes(Nil, hasStream = false)
       }
     }
-
-    def empty: Empty = Empty()
 
     private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
       override def ::(mod: StringModifier): Children = copy(mod :: modifiers)
@@ -82,7 +80,7 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
     }
   }
 
-  private[outwatch] final case class SeparatedProperties(
+  private[outwatch] sealed case class SeparatedProperties(
                                                           attributes: SeparatedAttributes = SeparatedAttributes(),
                                                           hooks: SeparatedHooks = SeparatedHooks(),
                                                           keys: List[Key] = Nil
@@ -94,14 +92,14 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
     }
   }
 
-  private[outwatch] final case class SeparatedStyles(
+  private[outwatch] sealed case class SeparatedStyles(
                                                       styles: List[Style] = Nil
                                                     ) extends SnabbdomStyles {
     @inline def ::(s: Style): SeparatedStyles = copy(styles = s :: styles)
   }
 
 
-  private[outwatch] final case class SeparatedAttributes(
+  private[outwatch] sealed case class SeparatedAttributes(
                                                           attrs: List[Attr] = Nil,
                                                           props: List[Prop] = Nil,
                                                           styles: SeparatedStyles = SeparatedStyles()
@@ -119,7 +117,7 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
     }
   }
 
-  private[outwatch] final case class SeparatedHooks(
+  private[outwatch] sealed case class SeparatedHooks(
                                                      insertHooks: List[InsertHook] = Nil,
                                                      prePatchHooks: List[PrePatchHook] = Nil,
                                                      updateHooks: List[UpdateHook] = Nil,
@@ -135,7 +133,7 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
     }
   }
 
-  private[outwatch] final case class SeparatedEmitters(
+  private[outwatch] sealed case class SeparatedEmitters(
                                                         emitters: List[Emitter] = Nil
                                                       ) extends SnabbdomEmitters {
     def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
@@ -158,7 +156,7 @@ trait SeparatedModifiersFactory[F[+_]] extends SnabbdomFactory[F] { this:VDomMod
     type Updater = VNodeState => VNodeState
   }
 
-  private[outwatch] final case class Receivers(
+  private[outwatch] sealed case class Receivers(
                                                                children: Children,
                                                                attributeStreamReceivers: List[AttributeStreamReceiver]
                                                              ) {

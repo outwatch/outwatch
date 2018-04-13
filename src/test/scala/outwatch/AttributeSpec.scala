@@ -113,17 +113,17 @@ class AttributeSpec extends JSDomSpec {
 
   "apply on vtree" should "correctly merge attributes" in {
     val node = input(
-      data.ar := "bar",
-      data.ar.gurke := "franz"
+      data.a := "bar",
+      data.a.gurke := "franz"
     )(
-      data.ar := "buh",
-      data.ar.tomate := "gisela"
+      data.a := "buh",
+      data.a.tomate := "gisela"
     ).map(_.toSnabbdom).unsafeRunSync()
 
     node.data.attrs.toList should contain theSameElementsAs List(
-      "data-ar" -> "buh",
-      "data-ar-gurke" -> "franz",
-      "data-ar-tomate" -> "gisela"
+      "data-a" -> "buh",
+      "data-a-gurke" -> "franz",
+      "data-a-tomate" -> "gisela"
     )
   }
 

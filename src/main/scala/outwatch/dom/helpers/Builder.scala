@@ -4,8 +4,6 @@ import cats.effect.Effect
 import outwatch.StaticVNodeRenderFactory
 import outwatch.dom._
 
-import scala.language.dynamics
-
 trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] with StaticVNodeRenderFactory[F] {
   implicit val effectF: Effect[F]
 
@@ -14,7 +12,7 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] with StaticVNodeRende
     private[outwatch] def assign(value: T): A
 
     def :=(value: T): F[A] = effectF.pure(assign(value))
-    def :=?(value: Option[T]): Option[VDomModifierF] = value.map(:=)
+    def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
     def <--(valueStream: Observable[T]): F[AttributeStreamReceiver] = {
       effectF.pure(AttributeStreamReceiver(name, valueStream.map(assign)))
     }
@@ -104,14 +102,14 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] with StaticVNodeRende
   }
 
 
-  trait KeyBuilder {
+  object KeyBuilder {
     def :=(key: Key.Value): F[Key] = effectF.pure(Key(key))
   }
 
   // Child / Children
 
   object ChildStreamReceiverBuilder {
-    def <--[T](valueStream: Observable[VNodeF]): F[ChildStreamReceiver] = effectF.pure(
+    def <--[T](valueStream: Observable[VNode]): F[ChildStreamReceiver] = effectF.pure(
       ChildStreamReceiver(valueStream)
     )
 
@@ -120,7 +118,7 @@ trait BuilderFactory[F[+_]] extends VDomModifierFactory[F] with StaticVNodeRende
   }
 
   object ChildrenStreamReceiverBuilder {
-    def <--(childrenStream: Observable[Seq[VNodeF]]): F[ChildrenStreamReceiver] =
+    def <--(childrenStream: Observable[Seq[VNode]]): F[ChildrenStreamReceiver] =
       effectF.pure(ChildrenStreamReceiver(childrenStream))
 
     def <--[T](childrenStream: Observable[Seq[T]])

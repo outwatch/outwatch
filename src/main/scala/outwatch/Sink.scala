@@ -2,14 +2,12 @@ package outwatch
 
 import cats.effect._
 import monix.execution.Ack.Continue
-import monix.execution.Scheduler
-import monix.execution.{Ack, Cancelable}
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.observers.{SafeSubscriber, Subscriber}
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
 
 import scala.concurrent.Future
-import scala.sys.process.ProcessBuilder.Sink
 
 
 trait SinkFactory[F[+_]] { thisSinkFactory =>
@@ -68,13 +66,13 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
 
   object Sink {
 
-    protected[outwatch] final case class ObservableSink[-I, +O](oldSink: Sink[I], stream: Observable[O]) extends Observable[O] with Sink[I] {
+    private[outwatch] sealed case class ObservableSink[-I, +O](oldSink: Sink[I], stream: Observable[O]) extends Observable[O] with Sink[I] {
       override private[outwatch] def observer = oldSink.observer
 
       override def unsafeSubscribeFn(subscriber: Subscriber[O]): Cancelable = stream.unsafeSubscribeFn(subscriber)
     }
 
-    protected[outwatch] final case class SubjectSink[T]()(implicit scheduler: Scheduler) extends Observable[T] with Sink[T] {
+    private[outwatch] sealed case class SubjectSink[T]()(implicit scheduler: Scheduler) extends Observable[T] with Sink[T] {
       private val subject = PublishSubject[T]
 
       override private[outwatch] def observer = SafeSubscriber(Subscriber(subject, scheduler))
@@ -178,7 +176,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @return the resulting sink, that will forward the values
       */
 
-    def unsafeRedirect[T, R](sink: Sink[T])(project: Observable[R] => Observable[T])(implicit effectF: Effect[F]): Sink[R] = {
+    def unsafeRedirect[T, R](sink: Sink[T])(project: Observable[R] => Observable[T]): Sink[R] = {
       implicit val scheduler = sink.observer.scheduler
       val forward = SubjectSink[R]()
 
@@ -200,7 +198,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
       * @tparam T the type of the original sink
       * @return the two resulting sinks, that will forward the values
       */
-    def redirect2[T, U, R](sink: Sink[T])(project: (Observable[R], Observable[U]) => Observable[T])(implicit effectF: Effect[F]): (Sink[R], Sink[U]) = {
+    def redirect2[T, U, R](sink: Sink[T])(project: (Observable[R], Observable[U]) => Observable[T]): (Sink[R], Sink[U]) = {
       implicit val scheduler = sink.observer.scheduler
       val r = SubjectSink[R]()
       val u = SubjectSink[U]()
@@ -258,7 +256,7 @@ trait SinkFactory[F[+_]] { thisSinkFactory =>
 
   }
 
-  final case class ObserverSink[-T](obs: Observer[T])(implicit s: Scheduler) extends Sink[T] {
+  sealed case class ObserverSink[-T](obs: Observer[T])(implicit s: Scheduler) extends Sink[T] {
     override val observer = Subscriber(obs, s)
   }
 }

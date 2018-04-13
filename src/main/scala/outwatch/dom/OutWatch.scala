@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import cats.effect.{Effect, IO, Sync}
+import cats.effect.Effect
 import cats.syntax.all._
 import monix.execution.Scheduler
 import org.scalajs.dom
@@ -13,7 +13,7 @@ trait RenderFactory[F[+_]] extends VDomModifierFactory[F] with StoreFactory[F] {
 
   object OutWatch {
 
-    def renderInto(element: Element, vNode: VNodeF)(implicit s: Scheduler): F[Unit] = for {
+    def renderInto(element: dom.Element, vNode: VNode)(implicit s: Scheduler): F[Unit] = for {
       node <- vNode
       _ <- effectF.delay {
         val elem = dom.document.createElement("app")
@@ -22,23 +22,23 @@ trait RenderFactory[F[+_]] extends VDomModifierFactory[F] with StoreFactory[F] {
       }
     } yield ()
 
-    def renderReplace(element: Element, vNode: VNodeF)(implicit s: Scheduler): F[Unit] = for {
+    def renderReplace(element: dom.Element, vNode: VNode)(implicit s: Scheduler): F[Unit] = for {
       node <- vNode
       _ <- effectF.delay(patch(element, node.toSnabbdom))
     } yield ()
 
-    def renderInto(querySelector: String, vNode: VNodeF)(implicit s: Scheduler): F[Unit] =
+    def renderInto(querySelector: String, vNode: VNode)(implicit s: Scheduler): F[Unit] =
       renderInto(document.querySelector(querySelector), vNode)
 
-    def renderReplace(querySelector: String, vNode: VNodeF)(implicit s: Scheduler): F[Unit] =
+    def renderReplace(querySelector: String, vNode: VNode)(implicit s: Scheduler): F[Unit] =
       renderReplace(document.querySelector(querySelector), vNode)
 
     @deprecated("Use renderInto instead (or renderReplace)", "0.11.0")
-    def render(querySelector: String, vNode: VNodeF)(implicit s: Scheduler): F[Unit] =
+    def render(querySelector: String, vNode: VNode)(implicit s: Scheduler): F[Unit] =
       renderInto(querySelector, vNode)
 
     def renderWithStore[S, A](
-                               initialState: S, reducer: Store.Reducer[S, A], querySelector: String, root: VNodeF
+                               initialState: S, reducer: Store.Reducer[S, A], querySelector: String, root: VNode
                              )(implicit s: Scheduler): F[Unit] =
       Store.renderWithStore(initialState, reducer, querySelector, root, renderInto)
   }

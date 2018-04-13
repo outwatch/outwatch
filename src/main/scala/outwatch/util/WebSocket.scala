@@ -5,7 +5,6 @@ import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom._
 import outwatch.dom.VDomModifierFactory
-import outwatch.SinkFactory
 
 trait WebSocketFactory[F[+_]] extends VDomModifierFactory[F] {
   implicit val effectF: Effect[F]
@@ -16,7 +15,7 @@ trait WebSocketFactory[F[+_]] extends VDomModifierFactory[F] {
     implicit def toSource(socket: WebSocket): Observable[MessageEvent] = socket.source
   }
 
-  final case class WebSocket private(url: String)(implicit s: Scheduler) {
+  sealed case class WebSocket private(url: String)(implicit s: Scheduler) {
     val ws = new org.scalajs.dom.WebSocket(url)
 
     lazy val source = Observable.create[MessageEvent](Unbounded)(observer => {

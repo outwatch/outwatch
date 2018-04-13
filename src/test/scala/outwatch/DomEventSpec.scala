@@ -36,7 +36,7 @@ class DomEventSpec extends JSDomSpec {
 
     val vtree = Handler.create[String].flatMap { handler =>
       div(id := "click", onClick(message) --> handler,
-        span(id := "child", asVDomModifier(handler)(observableRender[String]))
+        span(id := "child", handler)
       )
     }
 
@@ -59,12 +59,10 @@ class DomEventSpec extends JSDomSpec {
   it should "be converted to a generic stream emitter correctly" in {
 
     val messages = Handler.create[String].unsafeRunSync()
-
-    val vtree = Handler.create[String].flatMap { stream =>
-      div(id := "click", onClick(messages) --> stream,
-        span(id := "child", asVDomModifier(stream)(observableRender[String]))
-      )
-    }
+    val stream = Handler.create[String].unsafeRunSync()
+    val vtree = div(id := "click", onClick(messages) --> stream,
+      span(id := "child", stream)
+    )
 
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
@@ -163,7 +161,7 @@ class DomEventSpec extends JSDomSpec {
 
 
     val vtree = div(
-      ul(id:= "list", asVDomModifier(state))
+      ul(id:= "list", state)
     )
 
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
@@ -212,8 +210,8 @@ class DomEventSpec extends JSDomSpec {
 
     val node = div(
       button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
-      span(id:="first", asVDomModifier(first)(observableRender[String])),
-      span(id:="second", asVDomModifier(second)(observableRender[String]))
+      span(id:="first", first),
+      span(id:="second", second)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -236,7 +234,7 @@ class DomEventSpec extends JSDomSpec {
     val node = Handler.create[(MouseEvent, Int)].flatMap { stream =>
       div(
         button(id := "click", onClick.map(toTuple) --> stream),
-        span(id := "num", asVDomModifier(stream.map(_._2))(observableRender[Int]))
+        span(id := "num", stream.map(_._2))
       )
     }
 
@@ -285,7 +283,7 @@ class DomEventSpec extends JSDomSpec {
     val node = Handler.create[Int].flatMap { stream =>
       div(
         input(id := "input", onInputValue(number) --> stream),
-        span(id:="num", asVDomModifier(stream)(observableRender[Int]))
+        span(id:="num", stream)
       )
     }
 
@@ -313,7 +311,7 @@ class DomEventSpec extends JSDomSpec {
 //          onClick(1) --> sideEffect(triggeredIntFunction += _),
 //          onClick --> sideEffect{ triggeredFunction += 1 },
 //          onUpdate --> sideEffect((old,current) => triggeredFunction2 += 1),
-          asVDomModifier(stream)(observableRender[String]))
+          stream)
       )
     }
 
@@ -532,7 +530,7 @@ class DomEventSpec extends JSDomSpec {
   "Children stream" should "work for string sequences" in {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
     val node = div(id := "strings",
-      asVDomModifier(myStrings)(observableSeqRender[String]))
+      myStrings)
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 

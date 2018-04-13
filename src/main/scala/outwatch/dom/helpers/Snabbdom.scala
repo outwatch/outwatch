@@ -209,7 +209,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
           hFunction(nodeType, dataObject, childProxies)
         case Children.StringModifiers(textChildren) =>
           hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)
-        case Children.Empty() =>
+        case Children.Empty =>
           hFunction(nodeType, dataObject)
       }
     }

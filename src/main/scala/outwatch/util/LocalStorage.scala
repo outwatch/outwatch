@@ -9,6 +9,13 @@ import org.scalajs.dom.window.{localStorage, sessionStorage}
 import outwatch.OutwatchOps
 import outwatch.dom.OutwatchDsl
 
+trait StorageFactory[F[+_]] {
+  implicit val effectF:Effect[F]
+
+  object LocalStorage extends Storage(localStorage)
+  object SessionStorage extends Storage(sessionStorage)
+}
+
 class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) extends OutwatchOps[F] with OutwatchDsl[F] {
   private def handlerWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
     val storage = new dom.ext.Storage(domStorage)
@@ -53,11 +60,4 @@ class Storage[F[+_]](domStorage: dom.Storage)(implicit val effectF:Effect[F]) ex
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
-}
-
-trait StorageFactory[F[+_]] {
-  implicit val effectF:Effect[F]
-
-  object LocalStorage extends Storage(localStorage)
-  object SessionStorage extends Storage(sessionStorage)
 }

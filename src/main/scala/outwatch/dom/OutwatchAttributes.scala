@@ -47,9 +47,8 @@ trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] with EmitterFactor
   }
 
   /** Snabbdom Key Attribute */
-  trait SnabbdomKeyAttributes { this:SnabbdomKeyAttributes =>
-    lazy val key = new KeyBuilder {
-    }
+  trait SnabbdomKeyAttributes {
+    lazy val key = KeyBuilder
   }
 
   trait AttributeHelpers { self: Attributes =>
@@ -65,9 +64,7 @@ trait AttributesFactory[F[+_]] extends VDomModifierFactory[F] with EmitterFactor
     def style[T](key: String) = new BasicStyleBuilder[T](key)
   }
 
-  trait TagHelpers {
-
-    //TODO: rename back to tag. This is currently not possible because of a method in scala-dom-types, which is protected
-    def customTag(name: String): VNodeF = effectF.pure(VTree(name, Seq.empty))
+  trait TagHelpers { self: Tags =>
+    def customTag(name: String): VNode = effectF.pure(VTree(name, Seq.empty))
   }
 }

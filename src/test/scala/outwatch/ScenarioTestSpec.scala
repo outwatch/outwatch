@@ -5,17 +5,16 @@ import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.util.Store
 
 class ScenarioTestSpec extends JSDomSpec {
 
   "A simple counter application" should "work as intended" in {
 
     val node = for {
-      handlePlus <- Handler.create[IO, MouseEvent]
+      handlePlus <- Handler.create[MouseEvent]
       plusOne = handlePlus.map(_ => 1)
 
-      handleMinus <- Handler.create[IO, MouseEvent]
+      handleMinus <- Handler.create[MouseEvent]
       minusOne = handleMinus.map(_ => -1)
 
       count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
