@@ -876,20 +876,20 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe ""
   }
 
-//  "Child stream" should "work for vnode options" in {
-//    val myOption: Handler[Option[VNode]] = Handler.create(Option(div("a"))).unsafeRunSync()
-//    val node = div(id := "strings",
-//      myOption
-//    )
-//
-//    OutWatch.renderInto("#app", node).unsafeRunSync()
-//
-//    val element = document.getElementById("strings")
-//    element.innerHTML shouldBe "<div>a</div>"
-//
-//    myOption.unsafeOnNext(None)
-//    element.innerHTML shouldBe ""
-//  }
+  "Child stream" should "work for vnode options" in {
+    val myOption: Handler[Option[VNode]] = Handler.create(Option(div("a"))).unsafeRunSync()
+    val node = div(id := "strings",
+      myOption
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "<div>a</div>"
+
+    myOption.unsafeOnNext(None)
+    element.innerHTML shouldBe ""
+  }
 
   "LocalStorage" should "provide a handler" in {
 
