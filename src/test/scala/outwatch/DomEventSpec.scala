@@ -6,6 +6,7 @@ import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
+import org.scalajs.dom
 
 class DomEventSpec extends JSDomSpec {
 
@@ -466,7 +467,7 @@ class DomEventSpec extends JSDomSpec {
         doubleStream <- Handler.create[Double]
         boolStream <- Handler.create[Boolean]
         htmlElementStream <- Handler.create[html.Element]
-        svgElementTupleStream <- Handler.create[(Element, Element)]
+        svgElementTupleStream <- Handler.create[(org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]
         elem <- div(
           input(
             id := "input", tpe := "text",
