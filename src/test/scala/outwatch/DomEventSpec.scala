@@ -11,11 +11,11 @@ class DomEventSpec extends JSDomSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 
-    val vtree = Handler.create[MouseEvent].flatMap { observable =>
+    val vtree = Handler.create[MouseEvent].flatMap { handler =>
 
-      val buttonDisabled = observable.map(_ => true).startWith(Seq(false))
+      val buttonDisabled = handler.map(_ => true).startWith(Seq(false))
 
-      div(id := "click", onClick --> observable,
+      div(id := "click", onClick --> handler,
         button(id := "btn", disabled <-- buttonDisabled)
       )
     }
@@ -34,9 +34,9 @@ class DomEventSpec extends JSDomSpec {
 
     val message = "ad"
 
-    val vtree = Handler.create[String].flatMap { observable =>
-      div(id := "click", onClick(message) --> observable,
-        span(id := "child", observable)
+    val vtree = Handler.create[String].flatMap { handler =>
+      div(id := "click", onClick(message) --> handler,
+        span(id := "child", handler)
       )
     }
 
@@ -96,7 +96,7 @@ class DomEventSpec extends JSDomSpec {
 
     val values = PublishSubject[String]
 
-    val vtree = input(id:= "input", attributes.value <-- values)
+    val vtree = input(id := "input", attributes.value <-- values)
 
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
@@ -121,7 +121,7 @@ class DomEventSpec extends JSDomSpec {
   it should "preserve user input after setting defaultValue" in {
     val defaultValues = PublishSubject[String]
 
-    val vtree = input(id:= "input", attributes.defaultValue <-- defaultValues)
+    val vtree = input(id := "input", attributes.defaultValue <-- defaultValues)
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
@@ -141,7 +141,7 @@ class DomEventSpec extends JSDomSpec {
   it should "set input value to the same value after user change" in {
     val values = PublishSubject[String]
 
-    val vtree = input(id:= "input", attributes.value <-- values)
+    val vtree = input(id := "input", attributes.value <-- values)
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
 
     val patched = document.getElementById("input").asInstanceOf[html.Input]
@@ -163,7 +163,7 @@ class DomEventSpec extends JSDomSpec {
 
 
     val vtree = div(
-      ul(id:= "list", state)
+      ul(id := "list", state)
     )
 
     OutWatch.renderInto("#app", vtree).unsafeRunSync()
@@ -212,8 +212,8 @@ class DomEventSpec extends JSDomSpec {
 
     val node = div(
       button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
-      span(id:="first", first),
-      span(id:="second", second)
+      span(id := "first", first),
+      span(id := "second", second)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -251,7 +251,6 @@ class DomEventSpec extends JSDomSpec {
   }
 
 
-
   it should ".transform should work as expected" in {
 
     val numbers = Observable(1, 2)
@@ -285,7 +284,7 @@ class DomEventSpec extends JSDomSpec {
     val node = Handler.create[Int].flatMap { stream =>
       div(
         input(id := "input", onInputValue(number) --> stream),
-        span(id:="num", stream)
+        span(id := "num", stream)
       )
     }
 
@@ -311,8 +310,8 @@ class DomEventSpec extends JSDomSpec {
         button(id := "button",
           onClick --> sideEffect(_ => triggeredEventFunction += 1),
           onClick(1) --> sideEffect(triggeredIntFunction += _),
-          onClick --> sideEffect{ triggeredFunction += 1 },
-          onUpdate --> sideEffect((old,current) => triggeredFunction2 += 1),
+          onClick --> sideEffect { triggeredFunction += 1 },
+          onUpdate --> sideEffect((old, current) => triggeredFunction2 += 1),
           stream
         )
       )
@@ -361,7 +360,7 @@ class DomEventSpec extends JSDomSpec {
   }
 
 
-  it should "currectly be transformed from latest in observable" in {
+  it should "correctly be transformed from latest in observable" in {
 
     val node = Handler.create[String].flatMap { submit =>
 
@@ -371,7 +370,7 @@ class DomEventSpec extends JSDomSpec {
         div(
           input(id := "input", tpe := "text", onInput.value --> stream),
           button(id := "submit", onClick(stream) --> submit),
-          ul( id := "items",
+          ul(id := "items",
             state.map(items => items.map(it => li(it)))
           )
         )
@@ -439,8 +438,8 @@ class DomEventSpec extends JSDomSpec {
 
     var docClicked = false
     var winClicked = false
-    events.window.onClick( ev => winClicked = true)
-    events.document.onClick( ev => docClicked = true)
+    events.window.onClick(ev => winClicked = true)
+    events.document.onClick(ev => docClicked = true)
 
     val node =
       div(
@@ -502,6 +501,7 @@ class DomEventSpec extends JSDomSpec {
   it should "correctly be compiled with currentTarget" in {
 
     val stringHandler = Handler.create[String].unsafeRunSync()
+
     def modifier: VDomModifier = onDrag.value --> stringHandler
 
     val node = Handler.create[String].flatMap { submit =>
