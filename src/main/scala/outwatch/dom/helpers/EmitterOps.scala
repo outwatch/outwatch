@@ -5,6 +5,12 @@ import outwatch.dom.{Emitter, Hook}
 
 trait EmitterOps {
 
+  implicit class EventActions[E <: Event, O <: Event, R](builder: EmitterBuilder[E, O, R]) {
+    def preventDefault: EmitterBuilder[E, O, R] = builder.map { e => e.preventDefault; e }
+    def stopPropagation: EmitterBuilder[E, O, R] = builder.map { e => e.stopPropagation; e }
+    def stopImmediatePropagation: EmitterBuilder[E, O, R] = builder.map { e => e.stopImmediatePropagation; e }
+  }
+
   implicit class TargetAsInput[E <: Event, O <: Event](builder: EmitterBuilder[E, O, Emitter]) {
 
     object target {
