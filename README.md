@@ -12,6 +12,7 @@ libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.10.2"
 ```
 
 Please test the latest release candidate and report any issues and questions you encounter:
+There is a PR with a corresponding changelog: https://github.com/OutWatch/outwatch/blob/changelog/CHANGELOG.md
 
 ```scala
 libraryDependencies += "io.github.outwatch" %%% "outwatch" % "1.0.0-RC2"
