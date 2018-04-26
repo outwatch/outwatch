@@ -30,6 +30,48 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("btn").getAttribute("disabled") shouldBe ""
   }
 
+  "EventStreams" should "events should not bubble into triggered rendering" in {
+    // the first click event writes false into the handler.
+    // this triggers the second div to be rendered in place of the first one. Note that the second div is one tag level higher than the first div. After rendering, the event continues to bubble up and triggers the second click handler immediately. Which in turn writes true into the handler.
+    // ev.stopPropagation in the handlers prevents this behavior.
+    // patching should not happen synchronously inside the handlers.
+
+    val vtree = for {
+      handler <- Handler.create(true)
+      elem <- {
+        handler.foreach{v => println(s"handler changed: $v")}
+        div(
+          id := "parent",
+          disabled <-- handler,
+          handler.map { HandlerValue =>
+            if(HandlerValue) {
+              println("rendered first")
+              div(
+                div(
+                  div(id := "woo", onClick --> sideEffect{ev => println("clicked first"); handler.unsafeOnNext(false)}) // ; ev.stopPropagation()
+                )
+              )
+            } else {
+              println("rendered second")
+              div(onClick --> sideEffect{_ => println("clicked second"); handler.unsafeOnNext(true)})
+            }
+          }
+        )
+      }
+    } yield elem
+
+
+    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    document.getElementById("parent").hasAttribute("disabled") shouldBe true
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    println("dispatching click event on first rendering...")
+    document.getElementById("woo").dispatchEvent(event)
+
+    document.getElementById("parent").hasAttribute("disabled") shouldBe false
+  }
+
   it should "be converted to a generic emitter correctly" in {
 
     val message = "ad"
