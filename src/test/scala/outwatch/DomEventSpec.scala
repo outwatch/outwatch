@@ -584,4 +584,62 @@ class DomEventSpec extends JSDomSpec {
     handler.unsafeOnNext(None)
     option shouldBe Some(None)
   }
+
+  "Emitterbuilder" should "preventDefault (compile only)" in {
+    val node = div(
+      id := "click",
+      onClick.filter(_ => true).preventDefault.map(_ => 4) --> sideEffect{()},
+      onClick.preventDefault.map(_ => 3) --> sideEffect{()}
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    document.getElementById("click").dispatchEvent(event)
+  }
+
+  "Emitterbuilder" should "stopPropagation" in {
+    var triggeredFirst = false
+    var triggeredSecond = false
+    val node = div(
+      onClick --> sideEffect{triggeredSecond = true},
+      div(
+        id := "click",
+        onClick.stopPropagation --> sideEffect{triggeredFirst = true}
+      )
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    document.getElementById("click").dispatchEvent(event)
+
+    triggeredFirst shouldBe true
+    triggeredSecond shouldBe false
+  }
+
+  "Emitterbuilder" should "stopImmediatePropagation" in {
+    // stopImmediatePropagation is supported in jsdom since version 9.12
+    // https://github.com/jsdom/jsdom/blob/master/Changelog.md#9120
+    pending
+
+    var triggeredFirst = false
+    var triggeredSecond = false
+    val node = div(
+      id := "click",
+      onClick.stopImmediatePropagation --> sideEffect{triggeredFirst = true},
+      onClick --> sideEffect{triggeredSecond = true}
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    document.getElementById("click").dispatchEvent(event)
+
+    triggeredFirst shouldBe true
+    triggeredSecond shouldBe false
+  }
 }
