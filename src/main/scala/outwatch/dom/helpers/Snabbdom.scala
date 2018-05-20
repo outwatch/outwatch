@@ -20,7 +20,7 @@ object SnabbdomOps {
   private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
     DataObject(
       modifiers.attrs, modifiers.props, modifiers.styles, modifiers.emitters,
-      Hooks(modifiers.insertHook, modifiers.prePatchHook, modifiers.updateHook, modifiers.postPatchHook, modifiers.destroyHook),
+      Hooks(js.undefined, modifiers.insertHook, modifiers.prePatchHook, modifiers.updateHook, modifiers.postPatchHook, modifiers.destroyHook),
       modifiers.keyOption, vNodeNS)
 
   private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int, vNodeNS: js.UndefOr[String])(implicit scheduler: Scheduler): VNodeProxy = {
@@ -34,6 +34,10 @@ object SnabbdomOps {
       outwatchId = vNodeId,
       outwatchDomUnmountHook = modifiers.domUnmountHook
     )
+  }
+
+  private[outwatch] def toSnabbdom(thunkNode: ThunkVNode[_])(implicit scheduler: Scheduler): VNodeProxy = {
+    thunk(thunkNode.node.nodeType, thunkNode.renderFn, js.Array(thunkNode.argument))
   }
 
   private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = {

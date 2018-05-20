@@ -1684,7 +1684,7 @@ class OutWatchDomSpec extends JSDomSpec {
     incCounter shouldBe 4 //3
   }
 
-  "ThunkStreamReceiver" should "work for vnode" in {
+  "Thunk" should "work" in {
     val myString: Handler[String] = Handler.create.unsafeRunSync()
 
     var renderFnCounter = 0
@@ -1694,33 +1694,44 @@ class OutWatchDomSpec extends JSDomSpec {
     }
     val node = div(
       id := "strings",
-//      b(id := "bla").thunk(renderFn, myString),
+      myString.map { myString =>
+        b(id := "bla").thunk(myString)(renderFn)
+      },
       b("something else")
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
-    document.getElementById("strings").innerHTML shouldBe "<b>something else</b>"
+    val element = document.getElementById("strings")
+
     renderFnCounter shouldBe 0
+    element.innerHTML shouldBe "<b>something else</b>"
 
-    myString.unsafeOnNext("wal?")
+    myString.onNext("wal?")
+    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
     renderFnCounter shouldBe 1
-    document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-    myString.unsafeOnNext("wal?")
+    myString.onNext("wal?")
     renderFnCounter shouldBe 1
-    document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-    myString.unsafeOnNext("hai!")
+    myString.onNext("hai!")
     renderFnCounter shouldBe 2
-    document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+    element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
   }
 
-  //TODO: does not work: https://github.com/snabbdom/snabbdom/issues/143
-  it should "work for vnode with case class equality" in {
-    pending
-
-    case class Wrap(s: String)
+  it should "work with equals" in {
     val myString: Handler[String] = Handler.create.unsafeRunSync()
+
+    var equalsCounter = 0
+    class Wrap(val s: String) {
+      override def equals(other: Any) = {
+        equalsCounter += 1
+        other match {
+          case w: Wrap => s == w.s
+          case _ => false
+        }
+      }
+    }
 
     var renderFnCounter = 0
     val renderFn: Wrap => VDomModifier = { str =>
@@ -1729,24 +1740,32 @@ class OutWatchDomSpec extends JSDomSpec {
     }
     val node = div(
       id := "strings",
-//      b(id := "bla").thunk(renderFn, myString.map(Wrap(_))),
+      myString.map { myString =>
+        b(id := "bla").thunk(new Wrap(myString))(renderFn)
+      },
       b("something else")
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
-    document.getElementById("strings").innerHTML shouldBe "<b>something else</b>"
+    val element = document.getElementById("strings")
+
     renderFnCounter shouldBe 0
+    equalsCounter shouldBe 0
+    element.innerHTML shouldBe "<b>something else</b>"
 
-    myString.unsafeOnNext("wal?")
+    myString.onNext("wal?")
     renderFnCounter shouldBe 1
-    document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+    equalsCounter shouldBe 0
+    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-    myString.unsafeOnNext("wal?")
+    myString.onNext("wal?")
     renderFnCounter shouldBe 1
-    document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+    equalsCounter shouldBe 1
+    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-    myString.unsafeOnNext("hai!")
+    myString.onNext("hai!")
     renderFnCounter shouldBe 2
-    document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+    equalsCounter shouldBe 2
+    element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
   }
 }

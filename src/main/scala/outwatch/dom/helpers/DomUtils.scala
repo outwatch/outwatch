@@ -228,14 +228,9 @@ private[outwatch] object NativeModifiers {
       case c: CompositeModifier => c.modifiers.foreach(inner)
       case mod: StaticVDomModifier => appendModifier(mod)
       case child: VNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
+      case thunk: ThunkVNode[_]  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(thunk)))
       case child: StringVNode  => appendModifier(VNodeProxyNode(VNodeProxy.fromString(child.text)))
       case m: ModifierStreamReceiver => appendStream(flattenModifierStream(m.stream))
-      case m: ThunkStreamReceiver[_] =>
-        appendStream(
-//          m.argumentStream.map(arg => ThunkVNode(m.selector, m.hashCode.toString, tsr.renderFn, arg)) :: Nil)
-          ???
-        )
-
       case m: EffectModifier => inner(m.effect.unsafeRunSync())
       case m: SchedulerAction => inner(m.action(scheduler))
     }
