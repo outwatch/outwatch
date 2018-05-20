@@ -126,9 +126,9 @@ object patch {
     SnabbdomStyle.default
   ))
 
-  def apply(firstNode: VNodeProxy, vNode: VNodeProxy): Unit = p(firstNode,vNode)
+  def apply(firstNode: VNodeProxy, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 
-  def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): Unit = p(firstNode,vNode)
+  def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 }
 
 @js.native
@@ -149,7 +149,7 @@ object VNodeProxy {
 @js.native
 @JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
 object Snabbdom extends js.Object {
-  def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, Unit] = js.native
+  def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
 
 }
 
