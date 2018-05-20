@@ -119,10 +119,9 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
     subscription := receivers.observable
       .map(toProxy)
-      .startWith(Seq(proxy))
-      .bufferSliding(2, 1)
+      .scan(proxy) { case (old, crt) => patch(old, crt) }
       .subscribe(
-        { case Seq(old, crt) => patch(old, crt); Continue },
+        _ => Continue,
         error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
       )
 
