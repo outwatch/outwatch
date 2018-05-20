@@ -71,7 +71,7 @@ private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
       attrs = merge(obj.attrs, attrs),
       props = merge(obj.props, props),
       style = merge(obj.style, style),
-      on = obj.on, hook = obj.hook, key = obj.key
+      on = obj.on, hook = obj.hook, key = obj.key, args = obj.args, fn = obj.fn
     )
   }
 }
@@ -152,8 +152,9 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     val prePatchHook = createHookPairOption(prePatchHooks)
     val updateHook = createHookPair(updateHooks)
     val postPatchHook = createHookPair(postPatchHooks)
+    val initHook = js.undefined
 
-    Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook)
+    Hooks(initHook, insertHook, prePatchHook, updateHook, postPatchHook, destroyHook)
   }
 }
 
@@ -186,7 +187,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     DataObject(
       attrs, props, style, emitters.toSnabbdom,
       properties.hooks.toSnabbdom(receivers),
-      key
+      key, js.undefined, js.undefined
     )
   }
 

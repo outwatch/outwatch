@@ -33,6 +33,7 @@ object hFunction {
 
 
 trait Hooks extends js.Object {
+  val init: js.UndefOr[Hooks.HookSingleFn]
   val insert: js.UndefOr[Hooks.HookSingleFn]
   val prepatch: js.UndefOr[Hooks.HookPairFn]
   val update: js.UndefOr[Hooks.HookPairFn]
@@ -45,18 +46,21 @@ object Hooks {
   type HookPairFn = js.Function2[VNodeProxy, VNodeProxy, Unit]
 
   def apply(
+    init: js.UndefOr[HookSingleFn] = js.undefined,
     insert: js.UndefOr[HookSingleFn] = js.undefined,
     prepatch: js.UndefOr[HookPairFn] = js.undefined,
     update: js.UndefOr[HookPairFn] = js.undefined,
     postpatch: js.UndefOr[HookPairFn] = js.undefined,
     destroy: js.UndefOr[HookSingleFn] = js.undefined
   ): Hooks = {
+    val _init = init
     val _insert = insert
     val _prepatch = prepatch
     val _update = update
     val _postpatch = postpatch
     val _destroy = destroy
     new Hooks {
+      val init = _init
       val insert = _insert
       val prepatch = _prepatch
       val update = _update
@@ -75,6 +79,8 @@ trait DataObject extends js.Object {
   val on: js.Dictionary[js.Function1[Event, Unit]]
   val hook: Hooks
   val key: js.UndefOr[KeyValue]
+  val args: js.UndefOr[js.Array[Any]]
+  val fn: js.UndefOr[js.Function]
 }
 
 object DataObject {
@@ -84,18 +90,15 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def apply(attrs: js.Dictionary[AttrValue],
-            on: js.Dictionary[js.Function1[Event, Unit]],
-            hooks : Hooks = Hooks()
-           ): DataObject = apply(attrs, js.Dictionary.empty, js.Dictionary.empty, on, hooks, js.undefined)
 
-
-  def apply(attrs: js.Dictionary[AttrValue],
-            props: js.Dictionary[PropValue],
-            style: js.Dictionary[StyleValue],
-            on: js.Dictionary[js.Function1[Event, Unit]],
-            hook: Hooks,
-            key: js.UndefOr[KeyValue]
+  def apply(attrs: js.Dictionary[AttrValue] = js.Dictionary.empty,
+            props: js.Dictionary[PropValue] = js.Dictionary.empty,
+            style: js.Dictionary[StyleValue] = js.Dictionary.empty,
+            on: js.Dictionary[js.Function1[Event, Unit]] = js.Dictionary.empty,
+            hook: Hooks = Hooks(),
+            key: js.UndefOr[KeyValue] = js.undefined,
+            args: js.UndefOr[js.Array[Any]] = js.undefined,
+            fn: js.UndefOr[js.Function] = js.undefined
            ): DataObject = {
 
     val _attrs = attrs
@@ -104,6 +107,8 @@ object DataObject {
     val _on = on
     val _hook = hook
     val _key = key
+    val _args = args
+    val _fn = fn
 
     new DataObject {
       val attrs: js.Dictionary[AttrValue] = _attrs
@@ -112,28 +117,61 @@ object DataObject {
       val on: js.Dictionary[js.Function1[Event, Unit]] = _on
       val hook: Hooks = _hook
       val key: UndefOr[KeyValue] = _key
+      val args: UndefOr[js.Array[Any]] = _args
+      val fn: UndefOr[js.Function] = _fn
     }
   }
 }
 
-@js.native
-@JSImport("snabbdom/thunk", JSImport.Namespace, globalFallback = "thunk")
-object thunkProvider extends js.Object {
-  val default: thunkFunction = js.native
-}
+//TODO: does not respect equality: https://github.com/snabbdom/snabbdom/issues/143
+// @js.native
+// @JSImport("snabbdom/thunk", JSImport.Namespace, globalFallback = "thunk")
+// object thunkProvider extends js.Object {
+//   val default: thunkFunction = js.native
+// }
 
-@js.native
-trait thunkFunction extends js.Any {
-  def apply(selector: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
-  def apply(selector: String, key: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
-}
-
+// @js.native
+// trait thunkFunction extends js.Any {
+//   def apply(selector: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
+//   def apply(selector: String, key: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
+// }
 object thunk {
-  def apply[T](selector: String, renderFn: js.Function1[T, VNodeProxy], argument: T): VNodeProxy =
-    thunkProvider.default(selector, renderFn, js.Array(argument))
+  // own implementation of https://github.com/snabbdom/snabbdom/blob/master/src/thunk.ts
 
-  def apply[T](selector: String, key: String, renderFn: js.Function1[T, VNodeProxy], argument: T): VNodeProxy =
-    thunkProvider.default(selector, key, renderFn, js.Array(argument))
+  private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
+    val vnodedataw = vnode.data.asInstanceOf[js.Dynamic]
+    val thunkw = thunk.asInstanceOf[js.Dynamic]
+
+    vnodedataw.fn = thunk.data.fn
+    vnodedataw.args = thunk.data.args
+    thunkw.data = vnode.data
+    thunkw.children = vnode.children
+    thunkw.text = vnode.text
+    thunkw.elm = vnode.elm
+  }
+
+  private def init(thunk: VNodeProxy): Unit =
+    for {
+      fn <- thunk.data.fn
+      newArgs <- thunk.data.args
+    } copyToThunk(fn.call(null, newArgs.map(_.asInstanceOf[js.Any]): _*).asInstanceOf[VNodeProxy], thunk)
+
+  private def prepatch(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
+    for {
+      fn <- thunk.data.fn
+      newArgs <- thunk.data.args
+    } oldVNode.data.args.toOption match {
+      case Some(oldArgs) if oldArgs.length == newArgs.length && (oldArgs zip newArgs).forall { case (o,n) => o == n } =>
+        copyToThunk(oldVNode, thunk)
+      case _ =>
+        copyToThunk(fn.call(null, newArgs.map(_.asInstanceOf[js.Any]): _*).asInstanceOf[VNodeProxy], thunk)
+    }
+
+  def apply(selector: String, renderFn: js.Function, args: js.Array[Any]): VNodeProxy =
+    hFunction(selector, DataObject(hook = Hooks(init = (init _): Hooks.HookSingleFn, prepatch = (prepatch _): Hooks.HookPairFn), fn = renderFn, args = args))
+
+  def apply(selector: String, key: String, renderFn: js.Function, args: js.Array[Any]): VNodeProxy =
+    hFunction(selector, DataObject(key = key, hook = Hooks(init = (init _): Hooks.HookSingleFn, prepatch = (prepatch _): Hooks.HookPairFn), fn = renderFn, args = args))
 }
 
 object patch {

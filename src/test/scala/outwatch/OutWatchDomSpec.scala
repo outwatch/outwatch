@@ -1002,12 +1002,19 @@ class OutWatchDomSpec extends JSDomSpec {
     document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
   }
 
-  //TODO: does not work: https://github.com/snabbdom/snabbdom/issues/143
   it should "work for vnode with case class equality" in {
-    pending
-
-    case class Wrap(s: String)
     val myString: Handler[String] = Handler.create().unsafeRunSync()
+
+    var equalsCounter = 0
+    class Wrap(val s: String) {
+      override def equals(other: Any) = {
+        equalsCounter += 1
+        other match {
+          case w: Wrap => s == w.s
+          case _ => false
+        }
+      }
+    }
 
     var renderFnCounter = 0
     val renderFn: Wrap => VDomModifier = { str =>
@@ -1016,24 +1023,28 @@ class OutWatchDomSpec extends JSDomSpec {
     }
     val node = div(
       id := "strings",
-      b(id := "bla").thunk(renderFn, myString.map(Wrap(_))),
+      b(id := "bla").thunk(renderFn, myString.map(new Wrap(_))),
       b("something else")
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
     document.getElementById("strings").innerHTML shouldBe "<b>something else</b>"
     renderFnCounter shouldBe 0
+    equalsCounter shouldBe 0
 
     myString.unsafeOnNext("wal?")
     renderFnCounter shouldBe 1
+    equalsCounter shouldBe 0
     document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
     myString.unsafeOnNext("wal?")
     renderFnCounter shouldBe 1
+    equalsCounter shouldBe 1
     document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
     myString.unsafeOnNext("hai!")
     renderFnCounter shouldBe 2
+    equalsCounter shouldBe 2
     document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
   }
 }

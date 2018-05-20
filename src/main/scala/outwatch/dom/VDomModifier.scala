@@ -164,7 +164,7 @@ private[outwatch] final case class ChildrenStreamReceiver(childrenStream: Observ
 // Static Nodes
 
 private[outwatch] final case class ThunkVNode[T](selector: String, key: String, renderFn: js.Function1[T, VNodeProxy], argument: T) extends StaticVNode {
-  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = thunk(selector, key, renderFn, argument)
+  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = thunk(selector, key, renderFn, js.Array(argument))
 }
 
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
