@@ -4,7 +4,9 @@ import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom._
 import outwatch.AsVDomModifier
+import outwatch.dom.helpers.SnabbdomOps
 import snabbdom.{DataObject, VNodeProxy}
+import snabbdom.{DataObject, VNodeProxy, thunk}
 
 import scala.scalajs.js
 
@@ -84,4 +86,14 @@ final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) 
 }
 final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
+}
+
+// we use js.Function here, because we need equality on the function as well as on the args to make thunk work.
+final case class ThunkStreamReceiver[T] private(selector: String, renderFn: js.Function1[T, VNodeProxy], argumentStream: ValueObservable[T]) extends VDomModifier
+object ThunkStreamReceiver {
+  def apply[T](initial: VNode, renderFn: T => VDomModifier, argumentStream: ValueObservable[T])(implicit scheduler: Scheduler) = IO {
+    val proxy = SnabbdomOps.toSnabbdom(initial)
+    val render = renderFn.andThen(mod => SnabbdomOps.toSnabbdom(initial(mod)))
+    new ThunkStreamReceiver[T](proxy.sel.getOrElse(""), render, argumentStream)
+  }
 }

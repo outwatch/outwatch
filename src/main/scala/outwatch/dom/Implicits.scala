@@ -4,6 +4,8 @@ import com.raquo.domtypes.generic.keys
 import monix.reactive.Observer
 import outwatch.AsVDomModifier
 import outwatch.dom.helpers.BasicStyleBuilder
+import monix.reactive.Observable
+import monix.execution.Scheduler
 
 trait Implicits {
 

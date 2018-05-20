@@ -1,8 +1,8 @@
 package outwatch
 
-import org.scalajs.dom.{document, html}
+import org.scalajs.dom.{document, html, console}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import snabbdom.{DataObject, hFunction, patch}
+import snabbdom.{DataObject, hFunction, patch, thunk, VNodeProxy}
 
 import scala.scalajs.js
 
@@ -104,5 +104,43 @@ class SnabbdomSpec extends JSDomSpec {
 
     val expected = s"""<span id="msg" bool1="" string1="true" string0="false">$message</span>"""
     document.getElementById("msg").outerHTML shouldBe expected
+  }
+
+  it should "correctly use thunks for updating" in {
+    var renderFnCounter = 0
+
+    val renderFn: js.Function1[String, VNodeProxy] = { message =>
+      renderFnCounter += 1
+      hFunction("span#msg", createDataObject(), message)
+    }
+
+    val message = "Hello World"
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    renderFnCounter shouldBe 0
+
+    val vNode1 = thunk("span#msg", renderFn, message)
+    val p1 = patch(node, vNode1)
+
+
+    renderFnCounter shouldBe 1
+    document.getElementById("msg").innerHTML shouldBe message
+
+
+    val vNode2 = thunk("span#msg", renderFn, message)
+    val p2 = patch(p1, vNode2)
+
+    renderFnCounter shouldBe 1
+    document.getElementById("msg").innerHTML shouldBe message
+
+
+    val newMessage = "Hello Snabbdom!"
+    val vNode3 = thunk("span#msg", renderFn, newMessage)
+    val p3 = patch(p2, vNode3)
+
+    renderFnCounter shouldBe 2
+    document.getElementById("msg").innerHTML shouldBe newMessage
   }
 }

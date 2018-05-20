@@ -1683,4 +1683,35 @@ class OutWatchDomSpec extends JSDomSpec {
     clicks.onNext(4)
     incCounter shouldBe 4 //3
   }
+
+  // "ThunkStreamReceiver" should "work for vnode" in {
+  //   val myString: Handler[String] = Handler.create().unsafeRunSync()
+
+  //   var renderFnCounter = 0
+  //   val renderFn: String => VDomModifier = { str =>
+  //     renderFnCounter += 1
+  //     Seq[VDomModifier](cls := "b", str)
+  //   }
+  //   val node = div(
+  //     id := "strings",
+  //     b(id := "bla").thunk(renderFn, myString),
+  //     b("something else")
+  //   )
+
+  //   OutWatch.renderInto("#app", node).unsafeRunSync()
+  //   document.getElementById("strings").innerHTML shouldBe "<b>something else</b>"
+  //   renderFnCounter shouldBe 0
+
+  //   myString.unsafeOnNext("wal?")
+  //   renderFnCounter shouldBe 1
+  //   document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+
+  //   myString.unsafeOnNext("wal?")
+  //   renderFnCounter shouldBe 1
+  //   document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+
+  //   myString.unsafeOnNext("hai!")
+  //   renderFnCounter shouldBe 2
+  //   document.getElementById("strings").innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+  // }
 }
