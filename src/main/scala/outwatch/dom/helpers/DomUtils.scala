@@ -169,6 +169,9 @@ private[outwatch] final case class Receivers(
       csr.childStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n :: Nil)))
     case (csr: ChildrenStreamReceiver, index) =>
       csr.childrenStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n)))
+    case (tsr: ThunkStreamReceiver[_], index) =>
+      tsr.argumentStream.map[VNodeState.Updater](arg => s => s.copy(nodes = s.nodes.updated(index, IO.pure(ThunkVNode(tsr.selector, tsr.hashCode.toString, tsr.renderFn, arg)) :: Nil)))
+
   } ++ attributeStreamReceivers.groupBy(_.attribute).values.map(_.last).map {
     case AttributeStreamReceiver(name, attributeStream) =>
       attributeStream.map[VNodeState.Updater](a => s => s.copy(attributes = s.attributes.updated(name, a)))

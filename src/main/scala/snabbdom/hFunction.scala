@@ -116,6 +116,26 @@ object DataObject {
   }
 }
 
+@js.native
+@JSImport("snabbdom/thunk", JSImport.Namespace, globalFallback = "thunk")
+object thunkProvider extends js.Object {
+  val default: thunkFunction = js.native
+}
+
+@js.native
+trait thunkFunction extends js.Any {
+  def apply(selector: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
+  def apply(selector: String, key: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
+}
+
+object thunk {
+  def apply[T](selector: String, renderFn: js.Function1[T, VNodeProxy], argument: T): VNodeProxy =
+    thunkProvider.default(selector, renderFn, js.Array(argument))
+
+  def apply[T](selector: String, key: String, renderFn: js.Function1[T, VNodeProxy], argument: T): VNodeProxy =
+    thunkProvider.default(selector, key, renderFn, js.Array(argument))
+}
+
 object patch {
 
   private lazy val p = Snabbdom.init(js.Array(
