@@ -1,7 +1,7 @@
 package outwatch
 
 import cats.effect.IO
-import outwatch.dom.{ChildStreamReceiver, ChildrenStreamReceiver, CompositeModifier, Observable, StringModifier, VDomModifier, VNode}
+import outwatch.dom.{CompositeModifier, ModifierStreamReceiver, Observable, StringModifier, VDomModifier}
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
@@ -31,20 +31,20 @@ object AsVDomModifier {
     def asVDomModifier(value: Double): VDomModifier = IO.pure(StringModifier(value.toString))
   }
 
-  implicit object ObservableRender extends AsVDomModifier[Observable[VNode]] {
-    def asVDomModifier(valueStream: Observable[VNode]): VDomModifier = IO.pure(ChildStreamReceiver(valueStream))
+  implicit object ObservableRender extends AsVDomModifier[Observable[VDomModifier]] {
+    def asVDomModifier(valueStream: Observable[VDomModifier]): VDomModifier = IO.pure(ModifierStreamReceiver(valueStream))
   }
 
-  implicit def observableRender[T : StaticVNodeRender]: AsVDomModifier[Observable[T]] = (valueStream: Observable[T]) => IO.pure(
-    ChildStreamReceiver(valueStream.map(implicitly[StaticVNodeRender[T]].render))
+  implicit def observableRender[T : AsVDomModifier]: AsVDomModifier[Observable[T]] = (valueStream: Observable[T]) => IO.pure(
+    ModifierStreamReceiver(valueStream.map(implicitly[AsVDomModifier[T]].asVDomModifier))
   )
 
-  implicit object ObservableSeqRender extends AsVDomModifier[Observable[Seq[VNode]]] {
-    def asVDomModifier(seqStream: Observable[Seq[VNode]]): VDomModifier = IO.pure(ChildrenStreamReceiver(seqStream))
+  implicit object ObservableSeqRender extends AsVDomModifier[Observable[Seq[VDomModifier]]] {
+    def asVDomModifier(seqStream: Observable[Seq[VDomModifier]]): VDomModifier = IO.pure(ModifierStreamReceiver(seqStream.map[VDomModifier](x => x)))
   }
 
-  implicit def observableSeqRender[T : StaticVNodeRender]: AsVDomModifier[Observable[Seq[T]]] = (seqStream: Observable[Seq[T]]) => IO.pure(
-    ChildrenStreamReceiver(seqStream.map(_.map(implicitly[StaticVNodeRender[T]].render)))
+  implicit def observableSeqRender[T : AsVDomModifier]: AsVDomModifier[Observable[Seq[T]]] = (seqStream: Observable[Seq[T]]) => IO.pure(
+    ModifierStreamReceiver(seqStream.map[VDomModifier](_.map(implicitly[AsVDomModifier[T]].asVDomModifier)))
   )
 
 }

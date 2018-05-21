@@ -11,6 +11,14 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
+private[outwatch] object DictionaryOps {
+  def merge[T](first: js.Dictionary[T], second: js.Dictionary[T]) = {
+    val result = js.Dictionary.empty[T]
+    first.foreach { case (key, value) => result(key) = value }
+    second.foreach { case (key, value) => result(key) = value }
+    result
+  }
+}
 
 private[outwatch] trait SnabbdomStyles { self: SeparatedStyles =>
   def toSnabbdom: js.Dictionary[Style.Value] = {
@@ -56,24 +64,6 @@ private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
 
     (attrsDict, propsDict, styles.toSnabbdom)
   }
-
-  private def merge[T](first: js.Dictionary[T], second: js.Dictionary[T]) = {
-    val result = js.Dictionary.empty[T]
-    first.foreach { case (key, value) => result(key) = value }
-    second.foreach { case (key, value) => result(key) = value }
-    result
-  }
-
-  def updateDataObject(obj: DataObject): DataObject = {
-
-    val (attrs, props, style) = toSnabbdom
-    DataObject(
-      attrs = merge(obj.attrs, attrs),
-      props = merge(obj.props, props),
-      style = merge(obj.style, style),
-      on = obj.on, hook = obj.hook, key = obj.key
-    )
-  }
 }
 
 private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
@@ -102,19 +92,9 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     hooks: Seq[InsertHook]
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
-    def toProxy(state: VNodeState): VNodeProxy = {
-      val newData = SeparatedAttributes.from(state.attributes.values.toSeq).updateDataObject(proxy.data)
 
-      if (state.nodes.isEmpty) {
-        if (proxy.children.isDefined) {
-          hFunction(proxy.sel, newData, proxy.children.get)
-        } else {
-          hFunction(proxy.sel, newData, proxy.text)
-        }
-      } else {
-        val nodes = state.nodes.reduceLeft(_ ++ _)
-        hFunction(proxy.sel, newData, nodes.map(_.unsafeRunSync().toSnabbdom)(breakOut): js.Array[VNodeProxy])
-      }
+    def toProxy(state: VNodeState): VNodeProxy = {
+      SeparatedModifiers.from(state.modifiers ++ state.attributes).updateSnabbdom(proxy)
     }
 
     subscription := receivers.observable
@@ -173,8 +153,7 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 
 private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
-  private[outwatch] def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
-
+  private def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
     val keyOption = properties.keys.lastOption
     val key = if (receivers.nonEmpty) {
       keyOption.fold[Key.Value](receivers.hashCode)(_.value): js.UndefOr[Key.Value]
@@ -182,30 +161,57 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
       keyOption.map(_.value).orUndefined
     }
 
+    val hooks = properties.hooks.toSnabbdom(receivers)
+
     val (attrs, props, style) = properties.attributes.toSnabbdom
     DataObject(
-      attrs, props, style, emitters.toSnabbdom,
-      properties.hooks.toSnabbdom(receivers),
-      key
+      attrs, props, style, emitters.toSnabbdom, hooks, key
     )
   }
 
-  private[outwatch] def toSnabbdom(nodeType: String)(implicit s: Scheduler): VNodeProxy = {
+  private def updateDataObject(obj: DataObject, receivers: Receivers)(implicit scheduler: Scheduler): DataObject = {
+    val (attrs, props, style) = properties.attributes.toSnabbdom
+    val hooks = properties.hooks.toSnabbdom(receivers)
+    DataObject(
+      attrs = DictionaryOps.merge(obj.attrs, attrs),
+      props = DictionaryOps.merge(obj.props, props),
+      style = DictionaryOps.merge(obj.style, style),
+      on = DictionaryOps.merge(obj.on, emitters.toSnabbdom),
+      hook = Hooks(
+        hooks.insert.orElse(obj.hook.insert),
+        hooks.prepatch.orElse(obj.hook.prepatch),
+        hooks.update.orElse(obj.hook.update),
+        hooks.postpatch.orElse(obj.hook.postpatch),
+        hooks.destroy.orElse(obj.hook.destroy)
+      ),
+      //TODO: it should not be possible to stream keys!
+      key = obj.key
+    )
+  }
+
+  private def toProxy(nodeType: String, previousProxy: Option[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
 
     // if child streams exists, we want the static children in the same node have keys
     // for efficient patching when the streams change
     val childrenWithKey = children.ensureKey
-    val dataObject = createDataObject(Receivers(childrenWithKey, attributeReceivers))
+    val receivers = Receivers(childrenWithKey, attributeReceivers)
+    val dataObject = previousProxy.fold(createDataObject(receivers))(p => updateDataObject(p.data, receivers))
 
     childrenWithKey match {
       case Children.VNodes(vnodes, _) =>
-        implicit val scheduler = s
         val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
         hFunction(nodeType, dataObject, childProxies)
       case Children.StringModifiers(textChildren) =>
         hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)
       case Children.Empty =>
-        hFunction(nodeType, dataObject)
+        previousProxy match {
+          case Some(proxy) if proxy.children.isDefined => hFunction(nodeType, dataObject, proxy.children.get)
+          case Some(proxy) if proxy.text.isDefined => hFunction(nodeType, dataObject, proxy.text)
+          case _ => hFunction(nodeType, dataObject)
+        }
     }
   }
+
+  private[outwatch] def updateSnabbdom(proxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = toProxy(proxy.sel, Some(proxy))
+  private[outwatch] def toSnabbdom(nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = toProxy(nodeType, None)
 }

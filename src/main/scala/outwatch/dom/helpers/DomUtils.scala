@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
 import outwatch.dom._
 
 import scala.collection.breakOut
@@ -137,17 +136,14 @@ private[outwatch] final case class SeparatedEmitters(
 }
 
 
-private[outwatch] case class VNodeState(
-  nodes: Array[Seq[IO[StaticVNode]]],
-  attributes: Map[String, Attribute] = Map.empty
-)
+private[outwatch] case class VNodeState(modifiers: Array[Modifier], attributes: Array[Attribute]) // TODO: one array!
 
 private[outwatch] object VNodeState {
-  def from(nodes: List[ChildVNode]): VNodeState = VNodeState(
+  def from(nodes: List[ChildVNode], attributes: Array[Attribute]): VNodeState = VNodeState(
     nodes.map {
-      case n: StaticVNode => List(IO.pure(n))
-      case _ => List.empty
-    }(breakOut)
+      case n: StaticVNode => n
+      case _ => EmptyModifier
+    }(breakOut), attributes
   )
 
   type Updater = VNodeState => VNodeState
@@ -162,22 +158,38 @@ private[outwatch] final case class Receivers(
     case _ => (Nil, false)
   }
 
+  private val uniqueAttributeReceivers: List[AttributeStreamReceiver] = attributeStreamReceivers
+    .groupBy(_.attribute).values.map(_.last)(breakOut)
+
   private lazy val updaters: Seq[Observable[VNodeState.Updater]] = nodes.zipWithIndex.map {
     case (_: StaticVNode, _) =>
       Observable.empty
-    case (csr: ChildStreamReceiver, index) =>
-      csr.childStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n :: Nil)))
-    case (csr: ChildrenStreamReceiver, index) =>
-      csr.childrenStream.map[VNodeState.Updater](n => s => s.copy(nodes = s.nodes.updated(index, n)))
-  } ++ attributeStreamReceivers.groupBy(_.attribute).values.map(_.last).map {
-    case AttributeStreamReceiver(name, attributeStream) =>
-      attributeStream.map[VNodeState.Updater](a => s => s.copy(attributes = s.attributes.updated(name, a)))
+    case (msr: ModifierStreamReceiver, index) =>
+      msr.stream.switchMap[VNodeState.Updater] { vdomMod =>
+        val mod = vdomMod.unsafeRunSync
+        mod match {
+          case _: AttributeStreamReceiver | _: ModifierStreamReceiver | _: CompositeModifier => //TODO: have trait for streaming nodes?
+            // TODO can we do this better? we need to get nested streams inside this modifier
+            // we are calculating separated modifiers here just to get the observable and do not reuse the result
+            // at least we could remove streamchildren from the next VNodeState.Updater
+            val seps = SeparatedModifiers.from(List(mod))
+            val receivers = Receivers(seps.children.ensureKey, seps.attributeReceivers)
+            val initialUpdate: VNodeState.Updater = s => s.copy(modifiers = s.modifiers.updated(index, mod))
+            if (receivers.nonEmpty) receivers.observable.map[VNodeState.Updater] { innerState =>
+              s => s.copy(modifiers = s.modifiers.updated(index, CompositeModifier(mod +: (innerState.modifiers ++ innerState.attributes))))
+            }.startWith(Seq(initialUpdate)) else Observable(initialUpdate)
+          case _ => Observable(s => s.copy(modifiers = s.modifiers.updated(index, mod)))
+        }
+      }
+  } ++ uniqueAttributeReceivers.zipWithIndex.map {
+    case (AttributeStreamReceiver(_, attributeStream), index) =>
+      attributeStream.map[VNodeState.Updater](a => s => s.copy(attributes = s.attributes.updated(index, a)))
   }
 
   lazy val observable: Observable[VNodeState] = Observable.merge(updaters: _*)
-    .scan(VNodeState.from(nodes))((state, updater) => updater(state))
+    .scan(VNodeState.from(nodes, Array.fill(uniqueAttributeReceivers.size)(Attribute.empty)))((state, updater) => updater(state))
 
   lazy val nonEmpty: Boolean = {
-    hasNodeStreams || attributeStreamReceivers.nonEmpty
+    hasNodeStreams || uniqueAttributeReceivers.nonEmpty
   }
 }
