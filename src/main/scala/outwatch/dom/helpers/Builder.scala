@@ -1,7 +1,7 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
-import outwatch.StaticVNodeRender
+import outwatch.AsVDomModifier
 
 import scala.language.dynamics
 import outwatch.dom._
@@ -102,21 +102,21 @@ object KeyBuilder {
 // Child / Children
 
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[VNode]): IO[ChildStreamReceiver] = IO.pure(
-    ChildStreamReceiver(valueStream)
+  def <--[T](valueStream: Observable[VDomModifier]): IO[ModifierStreamReceiver] = IO.pure(
+    ModifierStreamReceiver(valueStream)
   )
 
-  def <--[T](valueStream: Observable[T])(implicit r: StaticVNodeRender[T]): IO[ChildStreamReceiver] = IO.pure(
-    ChildStreamReceiver(valueStream.map(r.render))
+  def <--[T](valueStream: Observable[T])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
+    ModifierStreamReceiver(valueStream.map(r.asVDomModifier))
   )
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VNode]]): IO[ChildrenStreamReceiver] = IO.pure(
-    ChildrenStreamReceiver(childrenStream)
+  def <--(childrenStream: Observable[Seq[VDomModifier]]): IO[ModifierStreamReceiver] = IO.pure(
+    ModifierStreamReceiver(childrenStream.map[VDomModifier](x => x))
   )
 
-  def <--[T](childrenStream: Observable[Seq[T]])(implicit r: StaticVNodeRender[T]): IO[ChildrenStreamReceiver] = IO.pure(
-    ChildrenStreamReceiver(childrenStream.map(_.map(r.render)))
+  def <--[T](childrenStream: Observable[Seq[T]])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
+    ModifierStreamReceiver(childrenStream.map(_.map(r.asVDomModifier)))
   )
 }

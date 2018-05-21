@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.effect.IO
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
@@ -146,9 +145,7 @@ object StaticVNode {
   val empty: StaticVNode = StringVNode("")
 }
 
-private[outwatch] final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends AnyVal with StreamVNode
-
-private[outwatch] final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends AnyVal with StreamVNode
+private[outwatch] final case class ModifierStreamReceiver(stream: Observable[VDomModifier]) extends AnyVal with StreamVNode
 
 // Static Nodes
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
