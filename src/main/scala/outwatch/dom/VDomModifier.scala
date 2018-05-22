@@ -5,7 +5,8 @@ import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
 import outwatch.dom.helpers.SeparatedModifiers
-import snabbdom.{DataObject, VNodeProxy}
+import snabbdom.{DataObject, VNodeProxy, thunk}
+import scala.scalajs.js
 
 import scala.concurrent.Future
 
@@ -146,11 +147,26 @@ object StaticVNode {
   val empty: StaticVNode = StringVNode("")
 }
 
+// we use js.Function here, because we need equality on the function as well as on the args to make thunk work.
+private[outwatch] final case class ThunkStreamReceiver[T] private(selector: String, renderFn: js.Function1[T, VNodeProxy], argumentStream: Observable[T]) extends StreamVNode
+private[outwatch] object ThunkStreamReceiver {
+  def apply[T](initial: VTree, renderFn: T => VDomModifier, argumentStream: Observable[T])(implicit scheduler: Scheduler) = IO {
+    val proxy = initial.toSnabbdom
+    val render = renderFn.andThen(mod => initial(mod).unsafeRunSync.toSnabbdom)
+    new ThunkStreamReceiver[T](proxy.sel, render, argumentStream)
+  }
+}
+
 private[outwatch] final case class ChildStreamReceiver(childStream: Observable[IO[StaticVNode]]) extends AnyVal with StreamVNode
 
 private[outwatch] final case class ChildrenStreamReceiver(childrenStream: Observable[Seq[IO[StaticVNode]]]) extends AnyVal with StreamVNode
 
 // Static Nodes
+
+private[outwatch] final case class ThunkVNode[T](selector: String, key: String, renderFn: js.Function1[T, VNodeProxy], argument: T) extends StaticVNode {
+  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = thunk(selector, key, renderFn, js.Array(argument))
+}
+
 private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
 }
@@ -161,6 +177,9 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
 
   def apply(args: VDomModifier*): VNode = args.sequence.map(args => copy(modifiers = modifiers ++ args))
+
+  def thunk[T](renderFn: T => VDomModifier, argumentStream: Observable[T])(implicit scheduler: Scheduler): VDomModifier =
+    ThunkStreamReceiver(this, renderFn, argumentStream)
 
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
     SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)
