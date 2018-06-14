@@ -55,7 +55,7 @@ To configure hot reloading with webpack devserver, check out [build.sbt](https:/
 ### Documentation
 There is a PR with a corresponding changelog which also serves as documentation with examples: https://github.com/OutWatch/outwatch/blob/changelog/CHANGELOG.md
 
-There is also the slightly outdated but conceptually still correct [documentation](https://outwatch.github.io/) -  [https://github.com/OutWatch/outwatch.github.io](contributions welcome).
+There is also the slightly outdated but conceptually still correct [documentation](https://outwatch.github.io/) -  [contributions welcome](https://github.com/OutWatch/outwatch.github.io).
 
 ## Three main goals of OutWatch
 
