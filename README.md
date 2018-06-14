@@ -6,7 +6,7 @@
 ### g8 template
 For a quick start, install `java`, `sbt`, `nodejs` and `yarn` and use the following g8 template:
 ```bash
-sbt new outwatch/seed.g8 -b update
+sbt new outwatch/seed.g8
 ```
 
 In your newly created project folder, run:
@@ -43,7 +43,7 @@ libraryDependencies += "com.github.outwatch" % "outwatch" % "master-SNAPSHOT"
 And you're done, you can now start building your own OutWatch app!
 Please check out the [documentation](https://outwatch.github.io/) on how to proceed.
 
-To configure hot reloading with webpack devserver, check out [build.sbt](https://github.com/OutWatch/seed.g8/blob/update/src/main/g8/build.sbt) and [webpack.config.dev.js](https://github.com/OutWatch/seed.g8/blob/update/src/main/g8/webpack.config.dev.js) from the [g8 template](https://github.com/OutWatch/seed.g8/tree/update).
+To configure hot reloading with webpack devserver, check out [build.sbt](https://github.com/OutWatch/seed.g8/blob/master/src/main/g8/build.sbt) and [webpack.config.dev.js](https://github.com/OutWatch/seed.g8/blob/master/src/main/g8/webpack.config.dev.js) from the [g8 template](https://github.com/OutWatch/seed.g8).
 
 ## Three main goals of OutWatch
 
