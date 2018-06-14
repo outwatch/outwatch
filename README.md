@@ -3,20 +3,35 @@
 
 ## Getting started
 
-First you will need to install Java and SBT if you haven't already.
-Create a new SBT project and add the ScalaJS plugin to your `plugins.sbt`.
-Then add the following line to your `build.sbt`.
-
-```scala
-libraryDependencies += "io.github.outwatch" %%% "outwatch" % "0.10.2"
+### g8 template
+For a quick start, use the following g8 template:
+```bash
+sbt new outwatch/seed.g8 -b update
 ```
 
-Please test the latest release candidate and report any issues and questions you encounter:
-There is a PR with a corresponding changelog: https://github.com/OutWatch/outwatch/blob/changelog/CHANGELOG.md
+In your newly created project folder, run:
+```bash
+sbt dev
+```
+
+and point your browser to http://localhost:8080.
+
+Changes to the code will trigger a recompile and automatically refresh the page in the browser.
+
+### manually
+First you will need to install Java and SBT if you haven't already.
+Create a new SBT project and add the ScalaJS and Scala-js-bundler plugin to your `plugins.sbt`:
+```scala
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.23")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.13.0")
+```
+Then add the following line to your `build.sbt`.
 
 ```scala
 libraryDependencies += "io.github.outwatch" %%% "outwatch" % "1.0.0-RC2"
 ```
+There is a PR with a corresponding changelog which also serves as documentation with examples: https://github.com/OutWatch/outwatch/blob/changelog/CHANGELOG.md
+
 
 If you are curious and want to try the state of the current `master` branch, add the following instead:
 
@@ -28,13 +43,13 @@ libraryDependencies += "com.github.outwatch" % "outwatch" % "master-SNAPSHOT"
 And you're done, you can now start building your own OutWatch app!
 Please check out the [documentation](https://outwatch.github.io/) on how to proceed.
 
+To configure hot reloading with webpack devserver, check out [build.sbt](https://github.com/OutWatch/seed.g8/blob/update/src/main/g8/build.sbt) and [webpack.config.dev.js](https://github.com/OutWatch/seed.g8/blob/update/src/main/g8/webpack.config.dev.js) from the [g8 template](https://github.com/OutWatch/seed.g8/tree/update).
 
 ## Three main goals of OutWatch
 
 1. Updating DOM efficiently without sacrificing abstraction => Virtual DOM
 2. Handling subscriptions automatically
 3. Removing or restricting the need for Higher Order Observables
-
 
 
 ## Bugs and Feedback
