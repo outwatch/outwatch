@@ -4,7 +4,7 @@
 ## Getting started
 
 ### g8 template
-For a quick start, use the following g8 template:
+For a quick start, install `java`, `sbt`, `nodejs` and `yarn` and use the following g8 template:
 ```bash
 sbt new outwatch/seed.g8 -b update
 ```
