@@ -35,11 +35,13 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.TagBuilder[TagBuilder.Tag, dom.Element] {
+private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[TagBuilder.Tag, dom.html.Element] with builders.SvgTagBuilder[TagBuilder.Tag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  protected override def tag[Ref <: dom.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
+  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
 }
+
 private[outwatch] object TagBuilder {
   type Tag[T] = VTree
 }
@@ -68,9 +70,8 @@ trait TagsSvg
   with TagBuilder
 
 // all Attributes
-
 trait Attributes
-  extends Attrs
+  extends HtmlAttrs
   with ReflectedAttrs
   with Props
   with Events
@@ -81,21 +82,21 @@ trait Attributes
 @deprecated("Use dsl.attributes instead", "0.11.0")
 object Attributes extends Attributes
 
-// Attrs
-trait Attrs
+// Html Attrs
+trait HtmlAttrs
   extends attrs.Attrs[BasicAttrBuilder]
-  with builders.AttrBuilder[BasicAttrBuilder] {
+  with builders.HtmlAttrBuilder[BasicAttrBuilder] {
 
-  override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+  override protected def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
 
-// Svg attributes
-trait AttrsSvg
+// Svg Attrs
+trait SvgAttrs
   extends attrs.SvgAttrs[BasicAttrBuilder]
-  with builders.AttrBuilder[BasicAttrBuilder] {
+  with builders.SvgAttrBuilder[BasicAttrBuilder] {
 
-  override protected def attr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+  override protected def svgAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
 

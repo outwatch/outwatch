@@ -6,15 +6,15 @@ object dsl extends Attributes with Tags with Styles {
     object svg extends TagsSvg
   }
   object attributes extends Attributes {
-    object attrs extends Attrs
+    object attrs extends HtmlAttrs
     object reflected extends ReflectedAttrs
     object props extends Props
     object events extends Events
     object outwatch extends OutwatchAttributes
     object lifecycle extends OutWatchLifeCycleAttributes
-    object svg extends AttrsSvg
+    object svg extends SvgAttrs
   }
-  object svg extends AttrsSvg with TagsSvg
+  object svg extends SvgAttrs with TagsSvg
   object styles extends Styles {
     object extra extends StylesExtra
   }
