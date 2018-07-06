@@ -2,7 +2,10 @@ package outwatch
 
 import cats.effect.IO
 
-package object dom extends Implicits with ManagedSubscriptions with SideEffects {
+package object dom extends Implicits with ManagedSubscriptions with SideEffects with MonixOps {
+
+  val Sink = outwatch.Sink
+  val Handler = outwatch.Handler
 
   type VNode = IO[VTree]
   type VDomModifier = IO[Modifier]
@@ -13,16 +16,4 @@ package object dom extends Implicits with ManagedSubscriptions with SideEffects 
       (Seq(modifier, modifier2) ++ modifiers).sequence.map(CompositeModifier)
     def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
   }
-
-  type Observable[+A] = monix.reactive.Observable[A]
-  val Observable = monix.reactive.Observable
-
-  type Sink[-A] = outwatch.Sink[A]
-  val Sink = outwatch.Sink
-
-  type Pipe[-I, +O] = outwatch.Pipe[I, O]
-  val Pipe = outwatch.Pipe
-
-  type Handler[T] = outwatch.Handler[T]
-  val Handler = outwatch.Handler
 }

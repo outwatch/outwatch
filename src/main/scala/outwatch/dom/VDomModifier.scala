@@ -1,7 +1,7 @@
 package outwatch.dom
 
 import monix.execution.{Ack, Scheduler}
-import monix.reactive.Observer
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom._
 import outwatch.dom.helpers.SeparatedModifiers
 import snabbdom.{DataObject, VNodeProxy}

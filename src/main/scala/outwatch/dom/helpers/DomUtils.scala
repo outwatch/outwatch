@@ -1,5 +1,6 @@
 package outwatch.dom.helpers
 
+import monix.reactive.Observable
 import outwatch.dom._
 
 import scala.collection.breakOut

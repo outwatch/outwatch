@@ -1,32 +1,31 @@
 package outwatch.util
 
 import cats.effect.IO
+import cats.implicits._
 import monix.execution.Scheduler
+import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
-import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.window.sessionStorage
-import outwatch.dom.Observable
+import org.scalajs.dom.window.{localStorage, sessionStorage}
+import outwatch._
 import outwatch.dom.dsl.events
-import cats.implicits._
-import outwatch.Handler
 
 class Storage(domStorage: dom.Storage) {
-  private def handlerWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler) = {
+  private def subjectWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler):IO[Handler[Option[String]]] = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
       h <- Handler.create[Option[String]](storage(key))
     } yield {
       // We execute the write-action to the storage
-      // and pass the written value through to the underlying handler h
-      h.transformHandler(o => transform(o).distinctUntilChanged) { input =>
+      // and pass the written value through to the underlying subject h
+      h.transformHandler { input =>
         input.foreach {
           case Some(data) => storage.update(key, data)
           case None => storage.remove(key)
         }
         input
-      }
+      }(o => transform(o).distinctUntilChanged)
     }
   }
 
@@ -43,17 +42,17 @@ class Storage(domStorage: dom.Storage) {
     }
 
   def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
-    handlerWithTransform(key, identity)
+    subjectWithTransform(key, identity)
   }
 
   def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    handlerWithTransform(key, o => Observable.merge(o.take(1), storageEvents))
+    subjectWithTransform(key, o => storageEvents)
   }
 
   def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    handlerWithTransform(key, Observable.merge(_, storageEvents))
+    subjectWithTransform(key, Observable.merge(_, storageEvents))
   }
 }
 

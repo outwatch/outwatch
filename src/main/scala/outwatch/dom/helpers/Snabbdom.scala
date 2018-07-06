@@ -4,6 +4,7 @@ import monix.reactive.subjects.PublishSubject
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignCancelable
+import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
 import snabbdom._
