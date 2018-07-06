@@ -1,6 +1,7 @@
 package outwatch
 
 import org.scalajs.dom.{html, _}
+import monix.reactive.Observable
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._

@@ -1,17 +1,18 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
-import monix.reactive.Observer
+import monix.execution.Scheduler
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom.Event
-import outwatch.Sink
-import outwatch.dom.{Emitter, Observable}
+import outwatch.dom.Emitter
+import outwatch.RichObserver
 
 
 trait EmitterBuilder[E, O, R] extends Any {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[E, T, R]
 
-  def -->(sink: Sink[_ >: O]): IO[R]
+  def -->(observer: Observer[_ >: O])(implicit scheduler:Scheduler): IO[R]
 
   def apply[T](value: T): EmitterBuilder[E, T, R] = map(_ => value)
 
@@ -34,26 +35,26 @@ object EmitterBuilder extends EmitterOps {
 
 final case class TransformingEmitterBuilder[E, O, R] private[helpers](
   transformer: Observable[E] => Observable[O],
-  create: Sink[E] => IO[R]
+  create: Observer[E] => IO[R]
 ) extends EmitterBuilder[E, O, R] {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[E, T, R] = copy(
     transformer = tr compose transformer
   )
 
-  def -->(sink: Sink[_ >: O]): IO[R] = {
-    val redirected: Sink[E] = sink.unsafeRedirect[E](transformer)
+  def -->(observer: Observer[_ >: O])(implicit scheduler:Scheduler): IO[R] = {
+    val redirected: Observer[E] = observer.redirect[E](transformer)
     create(redirected)
   }
 }
 
-final case class CustomEmitterBuilder[E, R](create: Sink[E] => IO[R]) extends AnyVal with EmitterBuilder[E, E, R] {
+final case class CustomEmitterBuilder[E, R](create: Observer[E] => IO[R]) extends AnyVal with EmitterBuilder[E, E, R] {
 
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[E, T, R] =
     new TransformingEmitterBuilder[E, T, R](tr, create)
 
-  def -->(sink: Sink[_ >: E]): IO[R] = create(sink)
+  def -->(observer: Observer[_ >: E])(implicit scheduler:Scheduler): IO[R] = create(observer)
 }
 object SimpleEmitterBuilder {
-  def apply[E, R](create: Observer[E] => R) = CustomEmitterBuilder[E, R](sink => IO.pure(create(sink.observer)))
+  def apply[E, R](create: Observer[E] => R) = CustomEmitterBuilder[E, R](observer => IO.pure(create(observer)))
 }

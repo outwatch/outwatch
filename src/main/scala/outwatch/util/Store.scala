@@ -2,10 +2,12 @@ package outwatch.util
 
 import cats.effect.IO
 import monix.execution.Scheduler
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
+import outwatch._
 import outwatch.dom.helpers.STRef
-import outwatch.dom.{Observable, OutWatch, VNode}
-import outwatch.{Handler, Pipe}
+import outwatch.dom.{OutWatch, VNode}
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -32,16 +34,16 @@ object Store {
   def create[State, Action](
     initialState: State,
     reducer: Reducer[State, Action]
-  )(implicit s: Scheduler): IO[Pipe[Action, State]] = {
+  )(implicit s: Scheduler): IO[ProHandler[Action, State]] = IO {
 
-    Handler.create[Action].map { handler =>
+      val subject = PublishSubject[Action]
 
       val fold: (State, Action) => State = (state, action) => Try { // guard against reducer throwing an exception
         val (newState, effects) = reducer.reducer(state, action)
 
         effects.subscribe(
-          e => handler.observer.feed(e :: Nil),
-          e => dom.console.error(e.getMessage) // just log the error, don't push it into the handler's observable, because it would stop the scan "loop"
+          e => subject.feed(e :: Nil),
+          e => dom.console.error(e.getMessage) // just log the error, don't push it into the subject's observable, because it would stop the scan "loop"
         )
         newState
       }.recover { case NonFatal(e) =>
@@ -49,22 +51,21 @@ object Store {
         state
       }.get
 
-      handler.transformSource(source =>
+      subject.transformObservable(source =>
         source
           .scan(initialState)(fold)
           .share
           .startWith(Seq(initialState))
       )
-    }
   }
 
-  def get[S, A]: IO[Pipe[A, S]] = storeRef.asInstanceOf[STRef[Pipe[A, S]]].getOrThrow(NoStoreException)
+  def get[S, A]: IO[ProHandler[A, S]] = storeRef.asInstanceOf[STRef[ProHandler[A, S]]].getOrThrow(NoStoreException)
 
   def renderWithStore[S, A](
     initialState: S, reducer: Reducer[S, A], selector: String, root: VNode
   )(implicit s: Scheduler): IO[Unit] = for {
     store <- Store.create(initialState, reducer)
-    _ <- storeRef.asInstanceOf[STRef[Pipe[A, S]]].put(store)
+    _ <- storeRef.asInstanceOf[STRef[ProHandler[A, S]]].put(store)
     _ <- OutWatch.renderInto(selector, root)
   } yield ()
 

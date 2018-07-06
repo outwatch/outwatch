@@ -13,6 +13,7 @@ import cats.effect.IO
 import org.scalajs.dom
 import helpers._
 import monix.execution.{Ack, Cancelable}
+import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 
 import scala.scalajs.js

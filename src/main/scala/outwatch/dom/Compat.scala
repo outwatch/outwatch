@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
 import outwatch.dom.helpers.{ChildStreamReceiverBuilder, ChildrenStreamReceiverBuilder}
@@ -16,14 +15,14 @@ trait Handlers {
   def createClipboardHandler()(implicit s: Scheduler) = Handler.create[ClipboardEvent]
 
   @deprecated("Use Handler.create[String] instead", "0.11.0")
-  def createStringHandler(defaultValues: String*)(implicit s: Scheduler) = Handler.create[String](defaultValues: _*)
+  def createStringHandler(defaultValues: String)(implicit s: Scheduler) = Handler.create[String](defaultValues)
   @deprecated("Use Handler.create[Boolean] instead", "0.11.0")
-  def createBoolHandler(defaultValues: Boolean*)(implicit s: Scheduler) = Handler.create[Boolean](defaultValues: _*)
+  def createBoolHandler(defaultValues: Boolean)(implicit s: Scheduler) = Handler.create[Boolean](defaultValues)
   @deprecated("Use Handler.create[Double] instead", "0.11.0")
-  def createNumberHandler(defaultValues: Double*)(implicit s: Scheduler) = Handler.create[Double](defaultValues: _*)
+  def createNumberHandler(defaultValues: Double)(implicit s: Scheduler) = Handler.create[Double](defaultValues)
 
   @deprecated("Use Handler.create[T] instead", "0.11.0")
-  def createHandler[T](defaultValues: T*)(implicit s: Scheduler): IO[Pipe[T, T]] = Handler.create[T](defaultValues: _*)
+  def createHandler[T](defaultValues: T)(implicit s: Scheduler) = Handler.create[T](defaultValues)
 }
 object Handlers extends Handlers
 
