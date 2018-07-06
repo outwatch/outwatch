@@ -6,7 +6,6 @@ import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import org.scalajs.dom
 
 class DomEventSpec extends JSDomSpec {
 

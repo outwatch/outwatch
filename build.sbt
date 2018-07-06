@@ -8,17 +8,17 @@ version := "0.11.1-SNAPSHOT"
 
 organization := "io.github.outwatch"
 
-scalaVersion := "2.12.5"
+scalaVersion := "2.12.6"
 
-crossScalaVersions := Seq("2.11.12", "2.12.5")
+crossScalaVersions := Seq("2.11.12", "2.12.6")
 
 
 libraryDependencies ++= Seq(
   "io.monix"        %%% "monix"       % "3.0.0-M3",
-  "org.scala-js"    %%% "scalajs-dom" % "0.9.5",
-  "com.raquo"       %%% "domtypes" % "0.6",
+  "org.scala-js"    %%% "scalajs-dom" % "0.9.6",
+  "com.raquo"       %%% "domtypes" % "0.7",
   "org.typelevel" %%% "cats-core" % "1.1.0",
-  "org.typelevel" %%% "cats-effect" % "0.10",
+  "org.typelevel" %%% "cats-effect" % "0.10.1",
   "org.scalatest" %%% "scalatest" % "3.0.5" % Test
 )
 
