@@ -185,7 +185,7 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 
 private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
-  private def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
+  def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
     val keyOption = properties.keys.lastOption
     val key = if (receivers.nonEmpty) {
       keyOption.fold[Key.Value](receivers.hashCode)(_.value): js.UndefOr[Key.Value]
@@ -218,7 +218,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     }.orElse(newHook)
   }
 
-  private def updateDataObject(previousData: DataObject)(implicit scheduler: Scheduler): DataObject = {
+   def updateDataObject(previousData: DataObject)(implicit scheduler: Scheduler): DataObject = {
     val (attrs, props, style) = properties.attributes.toSnabbdom
     val hooks = properties.hooks.toSnabbdomWithoutReceivers
 
@@ -253,26 +253,29 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     // if child streams exist, we want the static children in the same node to have keys
     // for efficient patching when the streams change
     val childrenWithKey = children.ensureKey
-    val dataObject = previousProxy.fold(createDataObject(Receivers(childrenWithKey, attributeReceivers)))(p => updateDataObject(p.data))
 
-    childrenWithKey match {
+    // we only need receivers in this is the first call to toProxy. Updates
+    // never contain streamable content and therefore we do not need to handle
+    // them with Receivers.
+    val (receivers, dataObject) = previousProxy.fold {
+      val receivers = Receivers(childrenWithKey, attributeReceivers)
+      (Option(receivers), createDataObject(receivers))
+    } { p =>
+      (None, updateDataObject(p.data))
+    }
+
+    val initialProxy = childrenWithKey match {
       case Children.VNodes(vnodes, _) =>
         val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
         hFunction(nodeType, dataObject, childProxies)
       case Children.StringModifiers(textChildren) =>
         hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)
       case Children.Empty =>
-        previousProxy match {
-          //This is necessary for a vnode that has only static nodes but
-          //attribute stream receivers. Then Receivers has no nodes but only
-          //attributes from the attribute streams in its Observable[Array[Modifier]].
-          //So, if the previous proxy has children but the new children are empty,
-          //then we have exactly this case and keep the previous children.
-          case Some(proxy) if proxy.children.isDefined => hFunction(nodeType, dataObject, proxy.children.get)
-          case Some(proxy) if proxy.text.isDefined => hFunction(nodeType, dataObject, proxy.text)
-          case _ => hFunction(nodeType, dataObject)
-        }
+        hFunction(nodeType, dataObject)
     }
+
+    // we directly update this dataobject with default values from the receivers
+    receivers.fold(initialProxy)(r => if (r.nonEmpty) SeparatedModifiers.from(r.initialState).updateSnabbdom(initialProxy) else initialProxy)
   }
 
   private[outwatch] def updateSnabbdom(previousProxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = toProxy(previousProxy.sel, Some(previousProxy))

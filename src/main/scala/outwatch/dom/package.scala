@@ -1,6 +1,7 @@
 package outwatch
 
 import cats.effect.IO
+import monix.reactive.Observable
 
 package object dom extends Implicits with ManagedSubscriptions with SideEffects with MonixOps {
 

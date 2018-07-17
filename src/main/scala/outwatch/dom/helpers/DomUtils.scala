@@ -140,7 +140,7 @@ private[outwatch] final case class SeparatedEmitters(
 
 private[outwatch] sealed trait ContentKind
 private[outwatch] object ContentKind {
-  case class Dynamic(observable: Observable[Modifier]) extends ContentKind
+  case class Dynamic(observable: Observable[Modifier], defaultValue: Modifier) extends ContentKind
   case class Static(modifier: Modifier) extends ContentKind
 }
 
@@ -151,35 +151,38 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
   private val handleStreamedModifier: Modifier => ContentKind = {
-    case ModifierStreamReceiver(modStream) =>
+    case ModifierStreamReceiver(modStream, defaultValue) =>
       val observable = modStream.switchMap[Modifier] { mod =>
         handleStreamedModifier(mod.unsafeRunSync) match {
           //TODO: why is startWith different and leaks a subscription? stream.startWith(EmptyModifier :: Nil)
-          case ContentKind.Dynamic(stream) => Observable.concat(Observable.now(EmptyModifier), stream)
+          case ContentKind.Dynamic(stream) => Observable.concat(Observable.now(defaultValue), stream)
           case ContentKind.Static(mod) => Observable.now(mod)
         }
       }
 
-      ContentKind.Dynamic(observable)
-    case AttributeStreamReceiver(_, attributeStream) =>
-      ContentKind.Dynamic(attributeStream)
+      val value = handleStreamedModifier(defaultValue) match {
+        case ContentKind.Dynamic(_, defaultValue) => defaultValue
+        case ContentKind.Static(mod) => mod
+      }
+
+      ContentKind.Dynamic(observable, value)
+    case AttributeStreamReceiver(_, attributeStream, defaultValue) =>
+      ContentKind.Dynamic(attributeStream, defaultValue)
     case CompositeModifier(modifiers) if (modifiers.nonEmpty) =>
       val streamableModifiers = new StreamableModifiers(modifiers)
       if (streamableModifiers.updaterObservables.isEmpty) {
         ContentKind.Static(CompositeModifier(modifiers))
       } else {
-        val hasStaticContent = streamableModifiers.updaterObservables.size < streamableModifiers.initialModifiers.size
-        val startingModifiers = if (hasStaticContent) CompositeModifier(streamableModifiers.initialModifiers) :: Nil else Nil
-
         ContentKind.Dynamic(
           streamableModifiers.observable
-            .map(CompositeModifier(_))
-            .startWith(startingModifiers))
+            .map(CompositeModifier(_)),
+          CompositeModifier(streamableModifiers.initialModifiers))
       }
 
 
     case mod => ContentKind.Static(mod)
   }
+
 
   // the nodes array has a fixed size - each static child node is one element
   // and the dynamic nodes can place one element on each update and start with
@@ -198,8 +201,8 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
     while (i < modifiers.size) {
       val index = i
       handleStreamedModifier(modifiers(index)) match {
-        case ContentKind.Dynamic(stream) =>
-          initialModifiers(index) = EmptyModifier
+        case ContentKind.Dynamic(stream, defaultValue) =>
+          initialModifiers(index) = defaultValue
           updaterObservables += stream.map { mod =>
             (array: Array[Modifier]) => array.updated(index, mod)
           }
@@ -223,15 +226,27 @@ private[outwatch] final case class Receivers(
   attributeStreamReceivers: List[AttributeStreamReceiver]
 ) {
 
-  private val childNodes = children match {
-    case Children.VNodes(nodes, /*hasStream =*/ true) => nodes // only interested if there are dynamic nodes
-    case _ => Nil
-  }
-
   private val uniqueAttributeReceivers: List[AttributeStreamReceiver] = attributeStreamReceivers
     .groupBy(_.attribute).values.map(_.last)(breakOut)
 
+  private val childNodes = {
+  // only interested if there is dynamic content
+    if (uniqueAttributeReceivers.isEmpty) {
+      children match {
+        case Children.VNodes(nodes, /*hasStream =*/ true) => nodes
+        case _ => Nil
+      }
+    } else {
+      children match {
+        case Children.VNodes(nodes, _) => nodes
+        case Children.StringModifiers(modifiers) => modifiers
+        case Children.Empty => Nil
+      }
+    }
+  }
+
   private lazy val streamableModifiers = new StreamableModifiers(childNodes ++ uniqueAttributeReceivers)
+  def initialState: Array[Modifier] = streamableModifiers.initialModifiers
   def observable: Observable[Array[Modifier]] = streamableModifiers.observable
 
   // it is empty if there is no dynamic modifier, i.e., no observables.
