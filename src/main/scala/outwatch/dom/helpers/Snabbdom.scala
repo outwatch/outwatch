@@ -126,6 +126,15 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     ()
   }
 
+  def toSnabbdomWithoutReceivers(implicit s: Scheduler): Hooks = {
+    val insertHook = createHookSingle(insertHooks)
+    val destroyHook = createHookSingle(destroyHooks)
+    val prePatchHook = createHookPairOption(prePatchHooks)
+    val updateHook = createHookPair(updateHooks)
+    val postPatchHook = createHookPair(postPatchHooks)
+
+    Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook)
+  }
   def toSnabbdom(receivers: Receivers)(implicit s: Scheduler): Hooks = {
     val (insertHook, destroyHook) = if (receivers.nonEmpty) {
       val subscription = SingleAssignCancelable()
@@ -178,9 +187,9 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     )
   }
 
-  private def updateDataObject(previousData: DataObject, receivers: Receivers)(implicit scheduler: Scheduler): DataObject = {
+  private def updateDataObject(previousData: DataObject)(implicit scheduler: Scheduler): DataObject = {
     val (attrs, props, style) = properties.attributes.toSnabbdom
-    val hooks = properties.hooks.toSnabbdom(receivers)
+    val hooks = properties.hooks.toSnabbdomWithoutReceivers
     DataObject(
       attrs = DictionaryOps.merge(previousData.attrs, attrs),
       props = DictionaryOps.merge(previousData.props, props),
@@ -207,8 +216,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     // if child streams exist, we want the static children in the same node to have keys
     // for efficient patching when the streams change
     val childrenWithKey = children.ensureKey
-    val receivers = Receivers(childrenWithKey, attributeReceivers)
-    val dataObject = previousProxy.fold(createDataObject(receivers))(p => updateDataObject(p.data, receivers))
+    val dataObject = previousProxy.fold(createDataObject(Receivers(childrenWithKey, attributeReceivers)))(p => updateDataObject(p.data))
 
     childrenWithKey match {
       case Children.VNodes(vnodes, _) =>
@@ -218,6 +226,11 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
         hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)
       case Children.Empty =>
         previousProxy match {
+          //This is necessary for a vnode that has only static nodes but
+          //attribute stream receivers. Then Receivers has no nodes but only
+          //attributes from the attribute streams in its Observable[Array[Modifier]].
+          //So, if the previous proxy has children but the new children are empty,
+          //then we have exactly this case and keep the previous children.
           case Some(proxy) if proxy.children.isDefined => hFunction(nodeType, dataObject, proxy.children.get)
           case Some(proxy) if proxy.text.isDefined => hFunction(nodeType, dataObject, proxy.text)
           case _ => hFunction(nodeType, dataObject)
