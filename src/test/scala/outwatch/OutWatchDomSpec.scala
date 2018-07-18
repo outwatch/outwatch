@@ -46,7 +46,7 @@ class OutWatchDomSpec extends JSDomSpec {
       Attribute("class", "red"),
       EmptyModifier,
       Emitter("click", _ => Continue),
-      new StringModifier("Test"),
+      new StringVNode("Test"),
       div().unsafeRunSync(),
       CompositeModifier(
         Seq(
@@ -59,13 +59,14 @@ class OutWatchDomSpec extends JSDomSpec {
       ModifierStreamReceiver(Observable())
     )
 
-    val SeparatedModifiers(properties, emitters, Children.VNodes(nodes, hasStream)) =
+    val SeparatedModifiers(properties, emitters, children) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 2
     properties.attributes.attrs.length shouldBe 2
-    nodes.length shouldBe 4
-    hasStream shouldBe true
+    children.nodes.length shouldBe 5
+    children.hasStream shouldBe true
+    children.hasVTree shouldBe true
   }
 
   it should "be separated correctly with children" in {
@@ -77,17 +78,18 @@ class OutWatchDomSpec extends JSDomSpec {
       ModifierStreamReceiver(Observable()),
       ModifierStreamReceiver(Observable()),
       Emitter("keyup",  _ => Continue),
-      StringModifier("text"),
+      StringVNode("text"),
       div().unsafeRunSync()
     )
 
-    val SeparatedModifiers(properties, emitters, Children.VNodes(nodes, hasStream)) =
+    val SeparatedModifiers(properties, emitters, children) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     properties.attributes.attrs.length shouldBe 1
-    nodes.length shouldBe 4
-    hasStream shouldBe true
+    children.nodes.length shouldBe 4
+    children.hasStream shouldBe true
+    children.hasVTree shouldBe true
   }
 
   it should "be separated correctly with string children" in {
@@ -99,18 +101,18 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("keyup",  _ => Continue),
       ModifierStreamReceiver(Observable()),
       ModifierStreamReceiver(Observable()),
-      StringModifier("text"),
+      StringVNode("text"),
       StringVNode("text2")
     )
 
-    val SeparatedModifiers(properties, emitters, Children.StringModifiers(stringMods)) =
+    val SeparatedModifiers(properties, emitters, children) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
     properties.attributes.attrs.length shouldBe 1
-    stringMods.map(_.string) should contain theSameElementsAs(List(
-      "text", "text2"
-    ))
+    children.nodes.length shouldBe 4
+    children.hasStream shouldBe true
+    children.hasVTree shouldBe false
   }
 
   it should "be separated correctly with children and properties" in {
@@ -127,10 +129,10 @@ class OutWatchDomSpec extends JSDomSpec {
       InsertHook(PublishSubject()),
       PrePatchHook(PublishSubject()),
       PostPatchHook(PublishSubject()),
-      StringModifier("text")
+      StringVNode("text")
     )
 
-    val SeparatedModifiers(properties, emitters, Children.VNodes(nodes, hasStream)) =
+    val SeparatedModifiers(properties, emitters, children) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
@@ -142,8 +144,9 @@ class OutWatchDomSpec extends JSDomSpec {
     properties.hooks.destroyHooks.length shouldBe 0
     properties.attributes.attrs.length shouldBe 1
     properties.keys.length shouldBe 0
-    nodes.length shouldBe 5
-    hasStream shouldBe true
+    children.nodes.length shouldBe 4
+    children.hasStream shouldBe true
+    children.hasVTree shouldBe false
   }
 
   val fixture = new {
@@ -207,10 +210,11 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val modifiers =  SeparatedModifiers.from(mods)
-    val Children.VNodes(nodes, hasStream) = modifiers.children
+    val children = modifiers.children
 
-    nodes.length shouldBe 3
-    hasStream shouldBe true
+    children.nodes.length shouldBe 3
+    children.hasStream shouldBe true
+    children.hasVTree shouldBe true
 
     val proxy = modifiers.toSnabbdom("div")
     proxy.key.isDefined shouldBe true
@@ -233,10 +237,11 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val modifiers =  SeparatedModifiers.from(mods)
-    val Children.VNodes(nodes, hasStream) = modifiers.children
+    val children = modifiers.children
 
-    nodes.length shouldBe 2
-    hasStream shouldBe true
+    children.nodes.length shouldBe 2
+    children.hasStream shouldBe true
+    children.hasVTree shouldBe true
 
     val proxy = modifiers.toSnabbdom("div")
     proxy.key.toOption  shouldBe Some(1234)
@@ -984,7 +989,7 @@ class OutWatchDomSpec extends JSDomSpec {
     myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(innerHandler2) :: Nil)))
     element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringModifier("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.unsafeOnNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
 
     innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
@@ -1033,7 +1038,7 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div>initial4</div>"""
     numPatches shouldBe 4
 
-    myHandler.unsafeOnNext(IO.pure(CompositeModifier(StringModifier("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.unsafeOnNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
     numPatches shouldBe 5
 
@@ -1086,7 +1091,7 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div>initial4</div>"""
     numPatches shouldBe 8
 
-    myHandler.unsafeOnNext(IO.pure(CompositeModifier(StringModifier("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.unsafeOnNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
     numPatches shouldBe 9
 

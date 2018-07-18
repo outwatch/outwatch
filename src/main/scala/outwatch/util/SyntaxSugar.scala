@@ -2,7 +2,7 @@ package outwatch.util
 
 import cats.effect.IO
 import monix.reactive.Observable
-import outwatch.dom.{Attribute, AttributeStreamReceiver, EmptyModifier}
+import outwatch.dom.{Attribute, ModifierStreamReceiver, EmptyModifier}
 
 
 object SyntaxSugar {

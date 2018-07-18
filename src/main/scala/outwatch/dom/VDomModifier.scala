@@ -36,7 +36,6 @@ Modifier
       VTree
   Emitter
   CompositeModifier
-  StringModifier
   EmptyModifier
  */
 
@@ -52,8 +51,6 @@ final case class Emitter(eventType: String, trigger: Event => Future[Ack]) exten
 private[outwatch] final case class CompositeModifier(modifiers: Seq[Modifier]) extends Modifier
 
 case object EmptyModifier extends Modifier
-
-private[outwatch] final case class StringModifier(string: String) extends Modifier
 
 sealed trait ChildVNode extends Any with Modifier
 

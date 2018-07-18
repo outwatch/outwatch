@@ -264,14 +264,16 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
       (None, updateDataObject(p.data))
     }
 
-    val initialProxy = childrenWithKey match {
-      case Children.VNodes(vnodes, _) =>
-        val childProxies: js.Array[VNodeProxy] = vnodes.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
-        hFunction(nodeType, dataObject, childProxies)
-      case Children.StringModifiers(textChildren) =>
-        hFunction(nodeType, dataObject, textChildren.map(_.string).mkString)
-      case Children.Empty =>
+    val initialProxy = {
+      if (childrenWithKey.nodes.isEmpty) {
         hFunction(nodeType, dataObject)
+      } else if (childrenWithKey.hasVTree) {
+        val childProxies: js.Array[VNodeProxy] = childrenWithKey.nodes.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
+        hFunction(nodeType, dataObject, childProxies)
+      } else {
+        val textChildren: js.Array[String] = childrenWithKey.nodes.collect { case s: StringVNode => s.string }(breakOut)
+        hFunction(nodeType, dataObject, textChildren.mkString)
+      }
     }
 
     // we directly update this dataobject with default values from the receivers

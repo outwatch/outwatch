@@ -14,7 +14,7 @@ object SeparatedModifiers {
 private[outwatch] final case class SeparatedModifiers(
   properties: SeparatedProperties = SeparatedProperties(),
   emitters: SeparatedEmitters = SeparatedEmitters(),
-  children: Children = Children.Empty
+  children: Children = Children.empty
 ) extends SnabbdomModifiers { self =>
 
   def ::(m: Modifier): SeparatedModifiers = m match {
@@ -22,59 +22,28 @@ private[outwatch] final case class SeparatedModifiers(
     case vn: ChildVNode => copy(children = vn :: children)
     case em: Emitter => copy(emitters = em :: emitters)
     case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
-    case sm: StringModifier => copy(children = sm :: children)
     case EmptyModifier => self
   }
 }
 
-private[outwatch] trait Children {
-  def ::(mod: StringModifier): Children
-
-  def ::(node: ChildVNode): Children
-
-  def ensureKey: Children = this
-}
-
 //TODO: Children is not a good name, as these can be stringmodifiers or vnodes or modifier streams.
 // So this is not neccessarily a child node.
+private[outwatch] case class Children(nodes: List[ChildVNode], hasStream: Boolean, hasVTree: Boolean) {
+  private def ensureVNodeKey[N >: VTree](node: N): N = node match {
+    case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
+    case other => other
+  }
+
+  def ensureKey: Children = if (hasStream && hasVTree) copy(nodes = nodes.map(ensureVNodeKey)) else this
+
+  def ::(node: ChildVNode): Children = node match {
+    case s: StringVNode => copy(nodes = s :: nodes)
+    case s: VTree => copy(nodes = s :: nodes, hasVTree = true)
+    case s: ModifierStreamReceiver => copy(nodes = s :: nodes, hasStream = true)
+  }
+}
 object Children {
-  private def toVNode(mod: StringModifier) = StringVNode(mod.string)
-  private def toModifier(node: StringVNode) = StringModifier(node.string)
-
-  private[outwatch] case object Empty extends Children {
-    override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StringVNode => toModifier(s) :: this
-      case n => n :: VNodes(Nil, hasStream = false)
-    }
-  }
-
-  private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
-    override def ::(mod: StringModifier): Children = copy(mod :: modifiers)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StringVNode => toModifier(s) :: this // this should never happen
-      case n => n :: VNodes(modifiers.map(toVNode), hasStream = false)
-    }
-  }
-
-  private[outwatch] case class VNodes(nodes: List[ChildVNode], hasStream: Boolean) extends Children {
-
-    private def ensureVNodeKey[N >: VTree](node: N): N = node match {
-      case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
-      case other => other
-    }
-
-    override def ensureKey: Children = if (hasStream) copy(nodes = nodes.map(ensureVNodeKey)) else this
-
-    override def ::(mod: StringModifier): Children = copy(toVNode(mod) :: nodes)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StaticVNode => copy(nodes = s :: nodes)
-      case s: ModifierStreamReceiver => copy(nodes = s :: nodes, hasStream = true)
-    }
-  }
+  def empty = Children(Nil, hasStream = false, hasVTree = false)
 }
 
 private[outwatch] final case class SeparatedProperties(
@@ -218,9 +187,9 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
 private[outwatch] final case class Receivers(children: Children) {
-  private val childNodes = children match {
-    case Children.VNodes(nodes, /*hasStream =*/ true) => nodes // only interested if there is dynamic content
-    case _ => Nil
+  private val childNodes = {
+    if (children.hasStream) children.nodes // only interested if there is dynamic content
+    else Nil
   }
 
   private lazy val streamableModifiers = new StreamableModifiers(childNodes)
