@@ -12,18 +12,16 @@ import scala.concurrent.Future
 Modifier
   Property
     Attribute
-      TitledAttribute
-        Attr
-          BasicAttr
-          AccumAttr
-        Prop
-        Style
-          BasicStyle
-          DelayedStyle
-          RemoveStyle
-          DestroyStyle
-          AccumStyle
-      EmptyAttribute
+      Attr
+        BasicAttr
+        AccumAttr
+      Prop
+      Style
+        BasicStyle
+        DelayedStyle
+        RemoveStyle
+        DestroyStyle
+        AccumStyle
     Hook
       InsertHook
       PrePatchHook
@@ -37,7 +35,6 @@ Modifier
       StringVNode
       VTree
   Emitter
-  AttributeStreamReceiver
   CompositeModifier
   StringModifier
   EmptyModifier
@@ -51,9 +48,6 @@ sealed trait Modifier extends Any
 sealed trait Property extends Modifier
 
 final case class Emitter(eventType: String, trigger: Event => Future[Ack]) extends Modifier
-
-//TODO: the only difference to a ModifierStreamReceiver: it can be grouped by its attribute name and the only the last stream is taken into account. Is this a benefit or can we remove it?
-private[outwatch] final case class AttributeStreamReceiver(attribute: String, attributeStream: Observable[Attribute], defaultValue: Modifier = EmptyModifier) extends Modifier
 
 private[outwatch] final case class CompositeModifier(modifiers: Seq[Modifier]) extends Modifier
 
@@ -70,11 +64,11 @@ object Key {
   type Value = DataObject.KeyValue
 }
 
-sealed trait Attribute extends Property
+sealed trait Attribute extends Property {
+  val title: String
+}
 object Attribute {
   def apply(title: String, value: Attr.Value): Attribute = BasicAttr(title, value)
-
-  val empty: Attribute = EmptyAttribute
 }
 
 
@@ -84,14 +78,7 @@ sealed trait Hook[T] extends Property {
 
 // Attributes
 
-private[outwatch] case object EmptyAttribute extends Attribute
-
-sealed trait TitledAttribute extends Attribute {
-  val title: String
-}
-
-
-sealed trait Attr extends TitledAttribute {
+sealed trait Attr extends Attribute {
   val value: Attr.Value
 }
 object Attr {
@@ -105,12 +92,12 @@ final case class BasicAttr(title: String, value: Attr.Value) extends Attr
   */
 final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value)=> Attr.Value) extends Attr
 
-final case class Prop(title: String, value: Prop.Value) extends TitledAttribute
+final case class Prop(title: String, value: Prop.Value) extends Attribute
 object Prop {
   type Value = DataObject.PropValue
 }
 
-sealed trait Style extends TitledAttribute {
+sealed trait Style extends Attribute {
   val value: String
 }
 object Style {

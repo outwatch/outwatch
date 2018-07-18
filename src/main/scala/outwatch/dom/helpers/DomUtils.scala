@@ -14,7 +14,6 @@ object SeparatedModifiers {
 private[outwatch] final case class SeparatedModifiers(
   properties: SeparatedProperties = SeparatedProperties(),
   emitters: SeparatedEmitters = SeparatedEmitters(),
-  attributeReceivers: List[AttributeStreamReceiver] = Nil,
   children: Children = Children.Empty
 ) extends SnabbdomModifiers { self =>
 
@@ -22,7 +21,6 @@ private[outwatch] final case class SeparatedModifiers(
     case pr: Property => copy(properties = pr :: properties)
     case vn: ChildVNode => copy(children = vn :: children)
     case em: Emitter => copy(emitters = em :: emitters)
-    case rc: AttributeStreamReceiver => copy(attributeReceivers = rc :: attributeReceivers)
     case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
     case sm: StringModifier => copy(children = sm :: children)
     case EmptyModifier => self
@@ -107,7 +105,6 @@ private[outwatch] final case class SeparatedAttributes(
     case a : Attr => copy(attrs = a :: attrs)
     case p : Prop => copy(props = p :: props)
     case s : Style => copy(styles= s :: styles)
-    case EmptyAttribute => this
   }
 }
 object SeparatedAttributes {
@@ -166,8 +163,7 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
       }
 
       ContentKind.Dynamic(observable, value)
-    case AttributeStreamReceiver(_, attributeStream, defaultValue) =>
-      ContentKind.Dynamic(attributeStream, defaultValue)
+
     case CompositeModifier(modifiers) if (modifiers.nonEmpty) =>
       val streamableModifiers = new StreamableModifiers(modifiers)
       if (streamableModifiers.updaterObservables.isEmpty) {
@@ -221,34 +217,16 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
 // attribute streams. it is about capturing the dynamic content of a node.
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
-private[outwatch] final case class Receivers(
-  children: Children,
-  attributeStreamReceivers: List[AttributeStreamReceiver]
-) {
-
-  private val uniqueAttributeReceivers: List[AttributeStreamReceiver] = attributeStreamReceivers
-    .groupBy(_.attribute).values.map(_.last)(breakOut)
-
-  private val childNodes = {
-  // only interested if there is dynamic content
-    if (uniqueAttributeReceivers.isEmpty) {
-      children match {
-        case Children.VNodes(nodes, /*hasStream =*/ true) => nodes
-        case _ => Nil
-      }
-    } else {
-      children match {
-        case Children.VNodes(nodes, _) => nodes
-        case Children.StringModifiers(modifiers) => modifiers
-        case Children.Empty => Nil
-      }
-    }
+private[outwatch] final case class Receivers(children: Children) {
+  private val childNodes = children match {
+    case Children.VNodes(nodes, /*hasStream =*/ true) => nodes // only interested if there is dynamic content
+    case _ => Nil
   }
 
-  private lazy val streamableModifiers = new StreamableModifiers(childNodes ++ uniqueAttributeReceivers)
+  private lazy val streamableModifiers = new StreamableModifiers(childNodes)
   def initialState: Array[Modifier] = streamableModifiers.initialModifiers
   def observable: Observable[Array[Modifier]] = streamableModifiers.observable
 
   // it is empty if there is no dynamic modifier, i.e., no observables.
-  def nonEmpty: Boolean = childNodes.nonEmpty || uniqueAttributeReceivers.nonEmpty
+  def nonEmpty: Boolean = childNodes.nonEmpty
 }

@@ -13,11 +13,11 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
 
   def :=(value: T): IO[A] = IO.pure(assign(value))
   def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
-  def <--(valueStream: Observable[T]): IO[AttributeStreamReceiver] = {
-    IO.pure(AttributeStreamReceiver(name, valueStream.map(assign)))
+  def <--(valueStream: Observable[T]): IO[ModifierStreamReceiver] = {
+    IO.pure(ModifierStreamReceiver(valueStream.map(v => IO.pure(assign(v)))))
   }
-  def <--(valueStream: Observable[T], defaultValue: T): IO[AttributeStreamReceiver] = {
-    IO.pure(AttributeStreamReceiver(name, valueStream.map(assign), assign(defaultValue)))
+  def <--(valueStream: Observable[T], defaultValue: T): IO[ModifierStreamReceiver] = {
+    IO.pure(ModifierStreamReceiver(valueStream.map(v => IO.pure(assign(v))), assign(defaultValue)))
   }
 }
 

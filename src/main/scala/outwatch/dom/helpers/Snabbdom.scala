@@ -258,7 +258,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     // never contain streamable content and therefore we do not need to handle
     // them with Receivers.
     val (receivers, dataObject) = previousProxy.fold {
-      val receivers = Receivers(childrenWithKey, attributeReceivers)
+      val receivers = Receivers(childrenWithKey)
       (Option(receivers), createDataObject(receivers))
     } { p =>
       (None, updateDataObject(p.data))

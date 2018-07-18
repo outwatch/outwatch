@@ -56,17 +56,16 @@ class OutWatchDomSpec extends JSDomSpec {
           attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
-      AttributeStreamReceiver("hidden",Observable())
+      ModifierStreamReceiver(Observable())
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
+    val SeparatedModifiers(properties, emitters, Children.VNodes(nodes, hasStream)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 2
-    receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 2
-    nodes.length shouldBe 3
-    hasStream shouldBe false
+    nodes.length shouldBe 4
+    hasStream shouldBe true
   }
 
   it should "be separated correctly with children" in {
@@ -75,21 +74,20 @@ class OutWatchDomSpec extends JSDomSpec {
       EmptyModifier,
       Emitter("click", _ => Continue),
       Emitter("input",  _ => Continue),
-      AttributeStreamReceiver("hidden",Observable()),
-      AttributeStreamReceiver("disabled",Observable()),
+      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(Observable()),
       Emitter("keyup",  _ => Continue),
       StringModifier("text"),
       div().unsafeRunSync()
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
+    val SeparatedModifiers(properties, emitters, Children.VNodes(nodes, hasStream)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
-    receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 1
-    nodes.length shouldBe 2
-    hasStream shouldBe false
+    nodes.length shouldBe 4
+    hasStream shouldBe true
   }
 
   it should "be separated correctly with string children" in {
@@ -99,17 +97,16 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("click", _ => Continue),
       Emitter("input",  _ => Continue),
       Emitter("keyup",  _ => Continue),
-      AttributeStreamReceiver("hidden",Observable()),
-      AttributeStreamReceiver("disabled",Observable()),
+      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(Observable()),
       StringModifier("text"),
       StringVNode("text2")
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.StringModifiers(stringMods)) =
+    val SeparatedModifiers(properties, emitters, Children.StringModifiers(stringMods)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.length shouldBe 3
-    receivers.length shouldBe 2
     properties.attributes.attrs.length shouldBe 1
     stringMods.map(_.string) should contain theSameElementsAs(List(
       "text", "text2"
@@ -123,8 +120,8 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("click", _ => Continue),
       Emitter("input", _ => Continue),
       UpdateHook(PublishSubject()),
-      AttributeStreamReceiver("hidden",Observable()),
-      AttributeStreamReceiver("disabled",Observable()),
+      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(Observable()),
       ModifierStreamReceiver(Observable()),
       Emitter("keyup", _ => Continue),
       InsertHook(PublishSubject()),
@@ -133,7 +130,7 @@ class OutWatchDomSpec extends JSDomSpec {
       StringModifier("text")
     )
 
-    val SeparatedModifiers(properties, emitters, receivers, Children.VNodes(nodes, hasStream)) =
+    val SeparatedModifiers(properties, emitters, Children.VNodes(nodes, hasStream)) =
       SeparatedModifiers.from(modifiers)
 
     emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
@@ -144,9 +141,8 @@ class OutWatchDomSpec extends JSDomSpec {
     properties.hooks.postPatchHooks.length shouldBe 1
     properties.hooks.destroyHooks.length shouldBe 0
     properties.attributes.attrs.length shouldBe 1
-    receivers.length shouldBe 2
     properties.keys.length shouldBe 0
-    nodes.length shouldBe 2
+    nodes.length shouldBe 5
     hasStream shouldBe true
   }
 
@@ -1019,12 +1015,12 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe "<div>initial</div>"
     numPatches shouldBe 0
 
-    val innerHandler = Handler.create[Attribute].unsafeRunSync()
-    myHandler.unsafeOnNext(IO.pure(AttributeStreamReceiver("attr", innerHandler, Attribute("initial", "2"))))
+    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
+    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(innerHandler, Attribute("initial", "2"))))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     numPatches shouldBe 1
 
-    innerHandler.unsafeOnNext(Attribute("attr", "3"))
+    innerHandler.unsafeOnNext(IO.pure(Attribute("attr", "3")))
     element.innerHTML shouldBe """<div attr="3"></div>"""
     numPatches shouldBe 2
 
@@ -1045,7 +1041,7 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div id="dieter">peter</div>"""
     numPatches shouldBe 6
 
-    innerHandler.unsafeOnNext(Attribute("me", "?"))
+    innerHandler.unsafeOnNext("me?")
     element.innerHTML shouldBe """<div id="dieter">peter</div>"""
     numPatches shouldBe 6
 
@@ -1072,12 +1068,12 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe "<div>initial</div>"
     numPatches shouldBe 1
 
-    val innerHandler = Handler.create[Attribute].unsafeRunSync()
-    myHandler.unsafeOnNext(IO.pure(AttributeStreamReceiver("attr", innerHandler.startWith(Attribute("initial", "2") :: Nil))))
+    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
+    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(innerHandler.startWith(IO.pure(Attribute("initial", "2")) :: Nil))))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     numPatches shouldBe 3
 
-    innerHandler.unsafeOnNext(Attribute("attr", "3"))
+    innerHandler.unsafeOnNext(IO.pure(Attribute("attr", "3")))
     element.innerHTML shouldBe """<div attr="3"></div>"""
     numPatches shouldBe 4
 
@@ -1098,7 +1094,7 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div id="dieter">peter</div>"""
     numPatches shouldBe 10
 
-    innerHandler.unsafeOnNext(Attribute("me", "?"))
+    innerHandler.unsafeOnNext("me?")
     element.innerHTML shouldBe """<div id="dieter">peter</div>"""
     numPatches shouldBe 10
 
