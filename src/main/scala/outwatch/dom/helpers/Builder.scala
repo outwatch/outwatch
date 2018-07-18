@@ -16,6 +16,9 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
   def <--(valueStream: Observable[T]): IO[AttributeStreamReceiver] = {
     IO.pure(AttributeStreamReceiver(name, valueStream.map(assign)))
   }
+  def <--(valueStream: Observable[T], defaultValue: T): IO[AttributeStreamReceiver] = {
+    IO.pure(AttributeStreamReceiver(name, valueStream.map(assign), assign(defaultValue)))
+  }
 }
 
 object AttributeBuilder {
