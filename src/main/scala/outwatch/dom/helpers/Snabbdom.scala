@@ -3,8 +3,8 @@ package outwatch.dom.helpers
 import monix.reactive.subjects.PublishSubject
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
-import monix.execution.cancelables.SingleAssignCancelable
 import monix.reactive.Observable
+import monix.execution.cancelables.StackedCancelable
 import org.scalajs.dom
 import outwatch.dom._
 import snabbdom._
@@ -108,7 +108,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   }
 
   def createInsertHook(receivers: Receivers,
-    subscription: SingleAssignCancelable,
+    subscription: StackedCancelable,
     hooks: Seq[Hooks.HookSingleFn],
     initialProxy: VNodeProxy
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
@@ -118,23 +118,25 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
       SeparatedModifiers.from(modifiers).updateSnabbdom(initialProxy)
     }
 
-    subscription := receivers.observable
-      .map(toProxy)
-      .scan(proxy) { case (old, crt) =>
-        OutwatchTracing.patchSubject.onNext((old, crt))
-        val next = patch(old, crt)
-        proxy.sel = next.sel
-        proxy.data = next.data
-        proxy.children = next.children
-        proxy.elm = next.elm
-        proxy.text = next.text
-        proxy.key = next.key
-        next
-      }
-      .subscribe(
-        _ => Continue,
-        error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
-      )
+    subscription.push(
+      receivers.observable
+        .map(toProxy)
+        .scan(proxy) { case (old, crt) =>
+          OutwatchTracing.patchSubject.onNext((old, crt))
+          val next = patch(old, crt)
+          proxy.sel = next.sel
+          proxy.data = next.data
+          proxy.children = next.children
+          proxy.elm = next.elm
+          proxy.text = next.text
+          proxy.key = next.key
+          next
+        }
+        .subscribe(
+          _ => Continue,
+          error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
+        )
+    )
 
 //    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
     hooks.foreach(_(proxy))
@@ -142,10 +144,10 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
 
   private def createDestroyHook(
-    subscription: SingleAssignCancelable, hooks: Seq[DestroyHook]
+    subscription: StackedCancelable, hooks: Seq[DestroyHook]
   ): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
     proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
-    subscription.cancel()
+    subscription.pop().cancel()
     ()
   }
 
@@ -158,7 +160,7 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
     Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook)
   }
-  def toSnabbdom(receivers: Receivers, subscription: SingleAssignCancelable)(implicit s: Scheduler): Hooks = {
+  def toSnabbdom(receivers: Receivers, subscription: StackedCancelable)(implicit s: Scheduler): Hooks = {
     val insertHook = createHookSingle(insertHooks)
     val destroyHook = if (receivers.nonEmpty) {
       val destroyHook: js.UndefOr[Hooks.HookSingleFn] = createDestroyHook(subscription, destroyHooks)
@@ -192,7 +194,7 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 
 private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
-  def createDataObject(receivers: Receivers, subscription: SingleAssignCancelable)(implicit s: Scheduler): DataObject = {
+  def createDataObject(receivers: Receivers, subscription: StackedCancelable)(implicit s: Scheduler): DataObject = {
     val keyOption = properties.keys.lastOption
     val key = if (receivers.nonEmpty) {
       keyOption.fold[Key.Value](receivers.hashCode)(_.value): js.UndefOr[Key.Value]
@@ -264,7 +266,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     // we only need receivers if this is the first call to toProxy. Updates
     // never contain streamable content and therefore we do not need to handle
     // them with Receivers.
-    val subscription = SingleAssignCancelable()
+    val subscription = StackedCancelable()
     val (receivers, dataObject) = previousProxy.fold {
       val receivers = Receivers(childrenWithKey)
       (Option(receivers), createDataObject(receivers, subscription))
