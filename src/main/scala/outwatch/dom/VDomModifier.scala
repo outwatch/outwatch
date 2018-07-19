@@ -141,13 +141,11 @@ private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifi
 
   def apply(args: VDomModifier*): VNode = args.sequence.map(args => copy(modifiers = modifiers ++ args))
 
+  private var proxy: VNodeProxy = null
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
-    SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)
+    if (proxy == null) {
+      proxy = SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)
+    }
+    proxy
   }
 }
-
-
-
-
-
-
