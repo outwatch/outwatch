@@ -107,28 +107,37 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     ).orUndefined
   }
 
-  private def createInsertHook(receivers: Receivers,
+  def createInsertHook(receivers: Receivers,
     subscription: SingleAssignCancelable,
-    hooks: Seq[InsertHook]
+    hooks: Seq[Hooks.HookSingleFn],
+    initialProxy: VNodeProxy
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
 
     def toProxy(modifiers: Array[Modifier]): VNodeProxy = {
-      SeparatedModifiers.from(modifiers).updateSnabbdom(proxy)
+      SeparatedModifiers.from(modifiers).updateSnabbdom(initialProxy)
     }
 
     subscription := receivers.observable
       .map(toProxy)
       .scan(proxy) { case (old, crt) =>
         OutwatchTracing.patchSubject.onNext((old, crt))
-        patch(old, crt)
+        val next = patch(old, crt)
+        proxy.sel = next.sel
+        proxy.data = next.data
+        proxy.children = next.children
+        proxy.elm = next.elm
+        proxy.text = next.text
+        proxy.key = next.key
+        next
       }
       .subscribe(
         _ => Continue,
         error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
       )
 
-    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
+//    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
+    hooks.foreach(_(proxy))
   }
 
 
@@ -149,17 +158,15 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
     Hooks(insertHook, prePatchHook, updateHook, postPatchHook, destroyHook)
   }
-  def toSnabbdom(receivers: Receivers)(implicit s: Scheduler): Hooks = {
-    val (insertHook, destroyHook) = if (receivers.nonEmpty) {
-      val subscription = SingleAssignCancelable()
-      val insertHook: js.UndefOr[Hooks.HookSingleFn] = createInsertHook(receivers, subscription, insertHooks)
+  def toSnabbdom(receivers: Receivers, subscription: SingleAssignCancelable)(implicit s: Scheduler): Hooks = {
+    val insertHook = createHookSingle(insertHooks)
+    val destroyHook = if (receivers.nonEmpty) {
       val destroyHook: js.UndefOr[Hooks.HookSingleFn] = createDestroyHook(subscription, destroyHooks)
-      (insertHook, destroyHook)
+      destroyHook
     }
     else {
-      val insertHook = createHookSingle(insertHooks)
       val destroyHook = createHookSingle(destroyHooks)
-      (insertHook, destroyHook)
+      destroyHook
     }
     val prePatchHook = createHookPairOption(prePatchHooks)
     val updateHook = createHookPair(updateHooks)
@@ -185,7 +192,7 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 
 private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
-  def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
+  def createDataObject(receivers: Receivers, subscription: SingleAssignCancelable)(implicit s: Scheduler): DataObject = {
     val keyOption = properties.keys.lastOption
     val key = if (receivers.nonEmpty) {
       keyOption.fold[Key.Value](receivers.hashCode)(_.value): js.UndefOr[Key.Value]
@@ -193,7 +200,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
       keyOption.map(_.value).orUndefined
     }
 
-    val hooks = properties.hooks.toSnabbdom(receivers)
+    val hooks = properties.hooks.toSnabbdom(receivers, subscription)
 
     val (attrs, props, style) = properties.attributes.toSnabbdom
     DataObject(
@@ -254,12 +261,13 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     // for efficient patching when the streams change
     val childrenWithKey = children.ensureKey
 
-    // we only need receivers in this is the first call to toProxy. Updates
+    // we only need receivers if this is the first call to toProxy. Updates
     // never contain streamable content and therefore we do not need to handle
     // them with Receivers.
+    val subscription = SingleAssignCancelable()
     val (receivers, dataObject) = previousProxy.fold {
       val receivers = Receivers(childrenWithKey)
-      (Option(receivers), createDataObject(receivers))
+      (Option(receivers), createDataObject(receivers, subscription))
     } { p =>
       (None, updateDataObject(p.data))
     }
@@ -277,7 +285,13 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     }
 
     // we directly update this dataobject with default values from the receivers
-    receivers.fold(initialProxy)(r => if (r.nonEmpty) SeparatedModifiers.from(r.initialState).updateSnabbdom(initialProxy) else initialProxy)
+    receivers.fold(initialProxy){ receivers =>
+      if (receivers.nonEmpty) {
+        initialProxy.data.hook.insert = properties.hooks.createInsertHook(receivers, subscription, initialProxy.data.hook.insert.toList, initialProxy)
+        SeparatedModifiers.from(receivers.initialState).updateSnabbdom(initialProxy)
+      }
+      else initialProxy
+  }
   }
 
   private[outwatch] def updateSnabbdom(previousProxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = toProxy(previousProxy.sel, Some(previousProxy))

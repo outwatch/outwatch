@@ -33,7 +33,7 @@ object hFunction {
 
 
 trait Hooks extends js.Object {
-  val insert: js.UndefOr[Hooks.HookSingleFn]
+  var insert: js.UndefOr[Hooks.HookSingleFn] //TODO
   val prepatch: js.UndefOr[Hooks.HookPairFn]
   val update: js.UndefOr[Hooks.HookPairFn]
   val postpatch: js.UndefOr[Hooks.HookPairFn]
@@ -57,7 +57,7 @@ object Hooks {
     val _postpatch = postpatch
     val _destroy = destroy
     new Hooks {
-      val insert = _insert
+      var insert = _insert
       val prepatch = _prepatch
       val update = _update
       val postpatch = _postpatch
@@ -133,12 +133,12 @@ object patch {
 
 @js.native
 trait VNodeProxy extends js.Object {
-  val sel: String
-  val data: DataObject
-  val children: js.UndefOr[js.Array[VNodeProxy]]
-  val elm: js.UndefOr[Element]
-  val text: js.UndefOr[String]
-  val key: js.UndefOr[DataObject.KeyValue]
+  var sel: String
+  var data: DataObject
+  var children: js.UndefOr[js.Array[VNodeProxy]]
+  var elm: js.UndefOr[Element]
+  var text: js.UndefOr[String]
+  var key: js.UndefOr[DataObject.KeyValue]
 }
 
 object VNodeProxy {
