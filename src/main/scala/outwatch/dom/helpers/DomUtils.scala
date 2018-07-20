@@ -106,7 +106,7 @@ private[outwatch] final case class SeparatedEmitters(
 
 private[outwatch] sealed trait ContentKind
 private[outwatch] object ContentKind {
-  case class Dynamic(observable: Observable[Modifier], defaultValue: Modifier) extends ContentKind
+  case class Dynamic(observable: Observable[Modifier], initialValue: Modifier) extends ContentKind
   case class Static(modifier: Modifier) extends ContentKind
 }
 
@@ -117,17 +117,17 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
   private val handleStreamedModifier: Modifier => ContentKind = {
-    case ModifierStreamReceiver(modStream, defaultValue) =>
+    case ModifierStreamReceiver(modStream, initialValue) =>
       val observable = modStream.switchMap[Modifier] { mod =>
         handleStreamedModifier(mod.unsafeRunSync) match {
           //TODO: why is startWith different and leaks a subscription? stream.startWith(EmptyModifier :: Nil)
-          case ContentKind.Dynamic(stream) => Observable.concat(Observable.now(defaultValue), stream)
+          case ContentKind.Dynamic(stream, defaultValue) => Observable.concat(Observable.now(defaultValue), stream)
           case ContentKind.Static(mod) => Observable.now(mod)
         }
       }
 
-      val value = handleStreamedModifier(defaultValue) match {
-        case ContentKind.Dynamic(_, defaultValue) => defaultValue
+      val value = handleStreamedModifier(initialValue) match {
+        case ContentKind.Dynamic(_, initialValue) => initialValue
         case ContentKind.Static(mod) => mod
       }
 
@@ -166,8 +166,8 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
     while (i < modifiers.size) {
       val index = i
       handleStreamedModifier(modifiers(index)) match {
-        case ContentKind.Dynamic(stream, defaultValue) =>
-          initialModifiers(index) = defaultValue
+        case ContentKind.Dynamic(stream, initialValue) =>
+          initialModifiers(index) = initialValue
           updaterObservables += stream.map { mod =>
             (array: Array[Modifier]) => array.updated(index, mod)
           }
