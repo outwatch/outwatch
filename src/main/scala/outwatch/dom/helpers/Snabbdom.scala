@@ -24,6 +24,19 @@ private[outwatch] object DictionaryOps {
     second.foreach { case (key, value) => result(key) = value }
     result
   }
+
+  def mergeWithAccum[T](first: js.Dictionary[T], second: js.Dictionary[T], keys: Set[String], accum: (T,T) => T) = {
+    val result = js.Dictionary.empty[T]
+    first.foreach { case (key, value) => result(key) = value }
+    second.foreach {
+      case (key, value) if keys(key) => first.get(key) match {
+        case Some(prev) => result(key) = accum(prev, value)
+        case None => result(key) = value
+      }
+      case (key, value) => result(key) = value
+    }
+    result
+  }
 }
 
 private[outwatch] trait SnabbdomStyles { self: SeparatedStyles =>
@@ -209,7 +222,12 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     val hooks = properties.hooks.toSnabbdomWithoutReceivers
 
     DataObject(
-      attrs = DictionaryOps.merge(previousData.attrs, attrs),
+      //TODO this is a workaround for streaming accum attributes. the fix only
+      //handles "class"-attributes, because it is the only default accum
+      //attribute.  But this should for work for all accum attributes.
+      //Therefore we need to have all accum keys for initial attrs and styles
+      //whith their accum function here.
+      attrs = DictionaryOps.mergeWithAccum(previousData.attrs, attrs, Set("class"), (p,n) => p.toString + " " + n.toString),
       props = DictionaryOps.merge(previousData.props, props),
       style = DictionaryOps.merge(previousData.style, style),
       on = DictionaryOps.merge(previousData.on, emitters.toSnabbdom),
