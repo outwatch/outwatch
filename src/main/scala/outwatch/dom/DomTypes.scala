@@ -20,7 +20,7 @@ import scala.scalajs.js
 private[outwatch] object BuilderTypes {
   type Attribute[T, _] = helpers.AttributeBuilder[T, Attr]
   type Property[T, _] = helpers.PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = SimpleEmitterBuilder[E, Emitter]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder[E, E, Emitter]
 }
 
 private[outwatch] object CodecBuilder {
