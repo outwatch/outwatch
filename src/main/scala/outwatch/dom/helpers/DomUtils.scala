@@ -126,12 +126,12 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
         }
       }
 
-      val value = handleStreamedModifier(initialValue) match {
-        case ContentKind.Dynamic(_, initialValue) => initialValue
-        case ContentKind.Static(mod) => mod
+      handleStreamedModifier(initialValue) match {
+        case ContentKind.Dynamic(initialObservable, mod) =>
+          ContentKind.Dynamic(Observable.merge(initialObservable.takeUntil(observable), observable), mod)
+        case ContentKind.Static(mod) =>
+          ContentKind.Dynamic(observable, mod)
       }
-
-      ContentKind.Dynamic(observable, value)
 
     case CompositeModifier(modifiers) if (modifiers.nonEmpty) =>
       val streamableModifiers = new StreamableModifiers(modifiers)
