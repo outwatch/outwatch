@@ -1,5 +1,6 @@
 package outwatch.dom.helpers
 
+import monix.reactive.subjects.PublishSubject
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
 import monix.execution.cancelables.SingleAssignCancelable
@@ -10,6 +11,11 @@ import snabbdom._
 import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+
+object OutwatchTracing {
+  private[outwatch] val patchSubject = PublishSubject[(VNodeProxy, VNodeProxy)]()
+  def patch: Observable[(VNodeProxy, VNodeProxy)] = patchSubject
+}
 
 private[outwatch] object DictionaryOps {
   def merge[T](first: js.Dictionary[T], second: js.Dictionary[T]) = {
@@ -99,7 +105,10 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
     subscription := receivers.observable
       .map(toProxy)
-      .scan(proxy) { case (old, crt) => patch(old, crt) }
+      .scan(proxy) { case (old, crt) =>
+        OutwatchTracing.patchSubject.onNext((old, crt))
+        patch(old, crt)
+      }
       .subscribe(
         _ => Continue,
         error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))

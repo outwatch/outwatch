@@ -11,7 +11,7 @@ OutWatch.renderInto("#app", h1("Hello World")).unsafeRunSync()
 
 Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/) combined with Observables from [Monix](https://monix.io/).
 
-You can find more examples and features in the changelog: https://github.com/OutWatch/outwatch/blob/changelog/CHANGELOG.md
+You can find more examples and features in the changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ## Getting started
 
