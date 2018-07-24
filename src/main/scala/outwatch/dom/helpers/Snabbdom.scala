@@ -99,8 +99,8 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
 
 
-    def toProxy(state: VNodeState): VNodeProxy = {
-      SeparatedModifiers.from(state.modifiers ++ state.attributes).updateSnabbdom(proxy)
+    def toProxy(modifiers: Array[Modifier]): VNodeProxy = {
+      SeparatedModifiers.from(modifiers).updateSnabbdom(proxy)
     }
 
     subscription := receivers.observable
@@ -178,29 +178,33 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     )
   }
 
-  private def updateDataObject(obj: DataObject, receivers: Receivers)(implicit scheduler: Scheduler): DataObject = {
+  private def updateDataObject(previousData: DataObject, receivers: Receivers)(implicit scheduler: Scheduler): DataObject = {
     val (attrs, props, style) = properties.attributes.toSnabbdom
     val hooks = properties.hooks.toSnabbdom(receivers)
     DataObject(
-      attrs = DictionaryOps.merge(obj.attrs, attrs),
-      props = DictionaryOps.merge(obj.props, props),
-      style = DictionaryOps.merge(obj.style, style),
-      on = DictionaryOps.merge(obj.on, emitters.toSnabbdom),
+      attrs = DictionaryOps.merge(previousData.attrs, attrs),
+      props = DictionaryOps.merge(previousData.props, props),
+      style = DictionaryOps.merge(previousData.style, style),
+      on = DictionaryOps.merge(previousData.on, emitters.toSnabbdom),
       hook = Hooks(
-        hooks.insert.orElse(obj.hook.insert),
-        hooks.prepatch.orElse(obj.hook.prepatch),
-        hooks.update.orElse(obj.hook.update),
-        hooks.postpatch.orElse(obj.hook.postpatch),
-        hooks.destroy.orElse(obj.hook.destroy)
+        hooks.insert.orElse(previousData.hook.insert),
+        hooks.prepatch.orElse(previousData.hook.prepatch),
+        hooks.update.orElse(previousData.hook.update),
+        hooks.postpatch.orElse(previousData.hook.postpatch),
+        hooks.destroy.orElse(previousData.hook.destroy)
       ),
       //TODO: it should not be possible to stream keys!
-      key = obj.key
+      key = previousData.key
     )
   }
 
+  // This is called initially once the VNode is constructed. Every time a
+  // dynamic modifier of this node yields a new VNodeState, this new state with
+  // new modifiers and attributes needs to be applied to the current
+  // VNodeProxy.
   private def toProxy(nodeType: String, previousProxy: Option[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
 
-    // if child streams exists, we want the static children in the same node have keys
+    // if child streams exist, we want the static children in the same node to have keys
     // for efficient patching when the streams change
     val childrenWithKey = children.ensureKey
     val receivers = Receivers(childrenWithKey, attributeReceivers)
@@ -221,6 +225,6 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     }
   }
 
-  private[outwatch] def updateSnabbdom(proxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = toProxy(proxy.sel, Some(proxy))
+  private[outwatch] def updateSnabbdom(previousProxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = toProxy(previousProxy.sel, Some(previousProxy))
   private[outwatch] def toSnabbdom(nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = toProxy(nodeType, None)
 }

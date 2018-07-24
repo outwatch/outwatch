@@ -36,6 +36,8 @@ private[outwatch] trait Children {
   def ensureKey: Children = this
 }
 
+//TODO: Children is not a good name, as these can be stringmodifiers or vnodes or modifier streams.
+// So this is not neccessarily a child node.
 object Children {
   private def toVNode(mod: StringModifier) = StringVNode(mod.string)
   private def toModifier(node: StringVNode) = StringModifier(node.string)
@@ -71,7 +73,7 @@ object Children {
 
     override def ::(node: ChildVNode): Children = node match {
       case s: StaticVNode => copy(nodes = s :: nodes)
-      case s: StreamVNode => copy(nodes = s :: nodes, hasStream = true)
+      case s: ModifierStreamReceiver => copy(nodes = s :: nodes, hasStream = true)
     }
   }
 }
@@ -135,61 +137,102 @@ private[outwatch] final case class SeparatedEmitters(
   def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
 }
 
-
-private[outwatch] case class VNodeState(modifiers: Array[Modifier], attributes: Array[Attribute]) // TODO: one array!
-
-private[outwatch] object VNodeState {
-  def from(nodes: List[ChildVNode], attributes: Array[Attribute]): VNodeState = VNodeState(
-    nodes.map {
-      case n: StaticVNode => n
-      case _ => EmptyModifier
-    }(breakOut), attributes
-  )
-
-  type Updater = VNodeState => VNodeState
+private[outwatch] sealed trait ContentKind
+private[outwatch] object ContentKind {
+  case class Dynamic(observable: Observable[Modifier]) extends ContentKind
+  case class Static(modifier: Modifier) extends ContentKind
 }
 
+// StreamableModifiers takes a list of modifiers. It constructs an Observable
+// of updates from dynamic modifiers in this list.
+private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
+
+  //TODO: hidden signature of this method (we need StaticModifier as a type)
+  //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
+  private val handleStreamedModifier: Modifier => ContentKind = {
+    case ModifierStreamReceiver(modStream) =>
+      val observable = modStream.switchMap[Modifier] { mod =>
+        handleStreamedModifier(mod.unsafeRunSync) match {
+          //TODO: why is startWith different and leaks a subscription? stream.startWith(EmptyModifier :: Nil)
+          case ContentKind.Dynamic(stream) => Observable.concat(Observable.now(EmptyModifier), stream)
+          case ContentKind.Static(mod) => Observable.now(mod)
+        }
+      }
+
+      ContentKind.Dynamic(observable)
+    case AttributeStreamReceiver(_, attributeStream) =>
+      ContentKind.Dynamic(attributeStream)
+    case CompositeModifier(modifiers) if (modifiers.nonEmpty) =>
+      val streamableModifiers = new StreamableModifiers(modifiers)
+      if (streamableModifiers.updaterObservables.isEmpty) {
+        ContentKind.Static(CompositeModifier(modifiers))
+      } else {
+        val hasStaticContent = streamableModifiers.updaterObservables.size < streamableModifiers.initialModifiers.size
+        val startingModifiers = if (hasStaticContent) CompositeModifier(streamableModifiers.initialModifiers) :: Nil else Nil
+
+        ContentKind.Dynamic(
+          streamableModifiers.observable
+            .map(CompositeModifier(_))
+            .startWith(startingModifiers))
+      }
+
+
+    case mod => ContentKind.Static(mod)
+  }
+
+  // the nodes array has a fixed size - each static child node is one element
+  // and the dynamic nodes can place one element on each update and start with
+  // EmptyModifier, and we reserve an array element for each attribute
+  // receiver.
+  val initialModifiers = new Array[Modifier](modifiers.size)
+
+  // for each node which might be dynamic, we have an Observable of Modifier updates
+  val updaterObservables = new collection.mutable.ArrayBuffer[Observable[Array[Modifier] => Array[Modifier]]]
+
+  // an observable representing the current state of this VNode. We take all
+  // state update functions we have from dynamic modifiers and then scan over
+  // them starting with the initial state.
+  val observable = {
+    var i = 0;
+    while (i < modifiers.size) {
+      val index = i
+      handleStreamedModifier(modifiers(index)) match {
+        case ContentKind.Dynamic(stream) =>
+          initialModifiers(index) = EmptyModifier
+          updaterObservables += stream.map { mod =>
+            (array: Array[Modifier]) => array.updated(index, mod)
+          }
+        case ContentKind.Static(mod) =>
+          initialModifiers(index) = mod
+      }
+      i += 1
+    }
+
+    Observable.merge(updaterObservables: _*)
+      .scan(initialModifiers)((modifiers, update) => update(modifiers))
+  }
+}
+
+// Receivers represent a VNode with its static/streamable children and its
+// attribute streams. it is about capturing the dynamic content of a node.
+// it is considered "empty" if it is only static. Otherwise it provides an
+// Observable to stream the current modifiers of this node.
 private[outwatch] final case class Receivers(
   children: Children,
   attributeStreamReceivers: List[AttributeStreamReceiver]
 ) {
-  private val (nodes, hasNodeStreams) = children match {
-    case Children.VNodes(nodes, hasStream) => (nodes, hasStream)
-    case _ => (Nil, false)
+
+  private val childNodes = children match {
+    case Children.VNodes(nodes, /*hasStream =*/ true) => nodes // only interested if there are dynamic nodes
+    case _ => Nil
   }
 
   private val uniqueAttributeReceivers: List[AttributeStreamReceiver] = attributeStreamReceivers
     .groupBy(_.attribute).values.map(_.last)(breakOut)
 
-  private lazy val updaters: Seq[Observable[VNodeState.Updater]] = nodes.zipWithIndex.map {
-    case (_: StaticVNode, _) =>
-      Observable.empty
-    case (msr: ModifierStreamReceiver, index) =>
-      msr.stream.switchMap[VNodeState.Updater] { vdomMod =>
-        val mod = vdomMod.unsafeRunSync
-        mod match {
-          case _: AttributeStreamReceiver | _: ModifierStreamReceiver | _: CompositeModifier => //TODO: have trait for streaming nodes?
-            // TODO can we do this better? we need to get nested streams inside this modifier
-            // we are calculating separated modifiers here just to get the observable and do not reuse the result
-            // at least we could remove streamchildren from the next VNodeState.Updater
-            val seps = SeparatedModifiers.from(List(mod))
-            val receivers = Receivers(seps.children.ensureKey, seps.attributeReceivers)
-            val initialUpdate: VNodeState.Updater = s => s.copy(modifiers = s.modifiers.updated(index, mod))
-            if (receivers.nonEmpty) receivers.observable.map[VNodeState.Updater] { innerState =>
-              s => s.copy(modifiers = s.modifiers.updated(index, CompositeModifier(mod +: (innerState.modifiers ++ innerState.attributes))))
-            }.startWith(Seq(initialUpdate)) else Observable(initialUpdate)
-          case _ => Observable(s => s.copy(modifiers = s.modifiers.updated(index, mod)))
-        }
-      }
-  } ++ uniqueAttributeReceivers.zipWithIndex.map {
-    case (AttributeStreamReceiver(_, attributeStream), index) =>
-      attributeStream.map[VNodeState.Updater](a => s => s.copy(attributes = s.attributes.updated(index, a)))
-  }
+  private lazy val streamableModifiers = new StreamableModifiers(childNodes ++ uniqueAttributeReceivers)
+  def observable: Observable[Array[Modifier]] = streamableModifiers.observable
 
-  lazy val observable: Observable[VNodeState] = Observable.merge(updaters: _*)
-    .scan(VNodeState.from(nodes, Array.fill(uniqueAttributeReceivers.size)(Attribute.empty)))((state, updater) => updater(state))
-
-  lazy val nonEmpty: Boolean = {
-    hasNodeStreams || uniqueAttributeReceivers.nonEmpty
-  }
+  // it is empty if there is no dynamic modifier, i.e., no observables.
+  def nonEmpty: Boolean = childNodes.nonEmpty || uniqueAttributeReceivers.nonEmpty
 }
