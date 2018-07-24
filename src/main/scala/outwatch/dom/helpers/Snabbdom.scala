@@ -187,20 +187,38 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     )
   }
 
+  private def mergeHooksSingle[T](prevHook: js.UndefOr[Hooks.HookSingleFn], newHook: js.UndefOr[Hooks.HookSingleFn]): js.UndefOr[Hooks.HookSingleFn] = {
+    prevHook.map { prevHook =>
+      newHook.fold[Hooks.HookSingleFn](prevHook) { newHook => e =>
+        prevHook(e)
+        newHook(e)
+      }
+    }.orElse(newHook)
+  }
+  private def mergeHooksPair[T](prevHook: js.UndefOr[Hooks.HookPairFn], newHook: js.UndefOr[Hooks.HookPairFn]): js.UndefOr[Hooks.HookPairFn] = {
+    prevHook.map { prevHook =>
+      newHook.fold[Hooks.HookPairFn](prevHook) { newHook => (e1, e2) =>
+        prevHook(e1, e2)
+        newHook(e1, e2)
+      }
+    }.orElse(newHook)
+  }
+
   private def updateDataObject(previousData: DataObject)(implicit scheduler: Scheduler): DataObject = {
     val (attrs, props, style) = properties.attributes.toSnabbdom
     val hooks = properties.hooks.toSnabbdomWithoutReceivers
+
     DataObject(
       attrs = DictionaryOps.merge(previousData.attrs, attrs),
       props = DictionaryOps.merge(previousData.props, props),
       style = DictionaryOps.merge(previousData.style, style),
       on = DictionaryOps.merge(previousData.on, emitters.toSnabbdom),
       hook = Hooks(
-        hooks.insert.orElse(previousData.hook.insert),
-        hooks.prepatch.orElse(previousData.hook.prepatch),
-        hooks.update.orElse(previousData.hook.update),
-        hooks.postpatch.orElse(previousData.hook.postpatch),
-        hooks.destroy.orElse(previousData.hook.destroy)
+        mergeHooksSingle(previousData.hook.insert, hooks.insert),
+        mergeHooksPair(previousData.hook.prepatch, hooks.prepatch),
+        mergeHooksPair(previousData.hook.update, hooks.update),
+        mergeHooksPair(previousData.hook.postpatch, hooks.postpatch),
+        mergeHooksSingle(previousData.hook.destroy, hooks.destroy)
       ),
       //TODO: it should not be possible to stream keys!
       key = previousData.key
