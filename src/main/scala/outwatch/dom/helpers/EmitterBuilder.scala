@@ -28,13 +28,13 @@ trait EmitterBuilder[E, O, R] extends Any {
 }
 
 object EmitterBuilder extends EmitterOps {
-  def apply[E <: Event](eventType: String): SimpleEmitterBuilder[E, Emitter] =
+  def apply[E <: Event](eventType: String): EmitterBuilder[E, E, Emitter] =
     SimpleEmitterBuilder[E, Emitter](observer => Emitter(eventType, event => observer.onNext(event.asInstanceOf[E])))
 }
 
 final case class TransformingEmitterBuilder[E, O, R] private[helpers](
   transformer: Observable[E] => Observable[O],
-  create: Observer[E] => R
+  create: Sink[E] => IO[R]
 ) extends EmitterBuilder[E, O, R] {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[E, T, R] = copy(
@@ -43,14 +43,17 @@ final case class TransformingEmitterBuilder[E, O, R] private[helpers](
 
   def -->(sink: Sink[_ >: O]): IO[R] = {
     val redirected: Sink[E] = sink.unsafeRedirect[E](transformer)
-    IO.pure(create(redirected.observer))
+    create(redirected)
   }
 }
 
-final case class SimpleEmitterBuilder[E, R](create: Observer[E] => R) extends AnyVal with EmitterBuilder[E, E, R] {
+final case class CustomEmitterBuilder[E, R](create: Sink[E] => IO[R]) extends AnyVal with EmitterBuilder[E, E, R] {
 
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[E, T, R] =
     new TransformingEmitterBuilder[E, T, R](tr, create)
 
-  def -->(sink: Sink[_ >: E]): IO[R] = IO.pure(create(sink.observer))
+  def -->(sink: Sink[_ >: E]): IO[R] = create(sink)
+}
+object SimpleEmitterBuilder {
+  def apply[E, R](create: Observer[E] => R) = CustomEmitterBuilder[E, R](sink => IO.pure(create(sink.observer)))
 }
