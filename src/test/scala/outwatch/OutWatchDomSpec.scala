@@ -862,6 +862,17 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe "ab"
   }
 
+  "Children stream" should "work for double/boolean/long/int" in {
+    val node = div(id := "strings",
+      1.1, true, 133L, 7
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "1.1true1337"
+  }
+
   "Child stream" should "work for string options" in {
     val myOption: Handler[Option[String]] = Handler.create(Option("a")).unsafeRunSync()
     val node = div(id := "strings",
