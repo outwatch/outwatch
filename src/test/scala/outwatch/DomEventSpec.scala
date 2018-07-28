@@ -39,21 +39,18 @@ class DomEventSpec extends JSDomSpec {
     val vtree = for {
       handler <- Handler.create(true)
       elem <- {
-        handler.foreach{v => println(s"handler changed: $v")}
         div(
           id := "parent",
           disabled <-- handler,
           handler.map { HandlerValue =>
             if(HandlerValue) {
-              println("rendered first")
               div(
                 div(
-                  div(id := "woo", onClick --> sideEffect{ev => println("clicked first"); handler.unsafeOnNext(false)}) // ; ev.stopPropagation()
+                  div(id := "woo", onClick(false) --> handler) // ; ev.stopPropagation()
                 )
               )
             } else {
-              println("rendered second")
-              div(onClick --> sideEffect{_ => println("clicked second"); handler.unsafeOnNext(true)})
+              div(onClick(true) --> handler)
             }
           }
         )
@@ -66,7 +63,6 @@ class DomEventSpec extends JSDomSpec {
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    println("dispatching click event on first rendering...")
     document.getElementById("woo").dispatchEvent(event)
 
     document.getElementById("parent").hasAttribute("disabled") shouldBe false

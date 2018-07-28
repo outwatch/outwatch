@@ -129,12 +129,16 @@ private[outwatch] final case class SeparatedHooks(
     case pph: PostPatchHook => copy(postPatchHooks = pph :: postPatchHooks)
     case dh: DestroyHook => copy(destroyHooks = dh :: destroyHooks)
   }
+
+  def nonEmpty = insertHooks.nonEmpty || prePatchHooks.nonEmpty || updateHooks.nonEmpty || postPatchHooks.nonEmpty || destroyHooks.nonEmpty
 }
 
 private[outwatch] final case class SeparatedEmitters(
   emitters: List[Emitter] = Nil
 ) extends SnabbdomEmitters {
   def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
+
+  def nonEmpty = emitters.nonEmpty
 }
 
 private[outwatch] sealed trait ContentKind

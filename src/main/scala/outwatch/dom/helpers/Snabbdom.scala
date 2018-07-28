@@ -185,12 +185,16 @@ private[outwatch] trait SnabbdomEmitters { self: SeparatedEmitters =>
 private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
 
   private def createDataObject(receivers: Receivers)(implicit s: Scheduler): DataObject = {
-    val keyOption = properties.keys.lastOption
-    val key = if (receivers.nonEmpty) {
-      keyOption.fold[Key.Value](receivers.hashCode)(_.value): js.UndefOr[Key.Value]
-    } else {
-      keyOption.map(_.value).orUndefined
-    }
+    val keyOption:Option[Key.Value] = properties.keys.lastOption.map(_.value)
+    val key:js.UndefOr[Key.Value] = keyOption.orElse {
+      if (receivers.nonEmpty) {
+        Some(receivers.hashCode:Key.Value)
+      } else if (properties.hooks.nonEmpty || emitters.nonEmpty) {
+        Some((properties.hooks, emitters).hashCode:Key.Value)
+      } else {
+        None
+      }
+    }.orUndefined
 
     val hooks = properties.hooks.toSnabbdom(receivers)
 
@@ -250,7 +254,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
   private def toProxy(nodeType: String, previousProxy: Option[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
 
     // if child streams exist, we want the static children in the same node to have keys
-    // for efficient patching when the streams change
+    // for efficient patching when the streams changes
     val childrenWithKey = children.ensureKey
     val dataObject = previousProxy.fold(createDataObject(Receivers(childrenWithKey, attributeReceivers)))(p => updateDataObject(p.data))
 

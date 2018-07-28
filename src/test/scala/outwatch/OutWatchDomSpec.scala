@@ -389,7 +389,8 @@ class OutWatchDomSpec extends JSDomSpec {
 
     pageHandler.onNext(2)
 
-    domNode.textContent shouldBe "2"
+    val domNode2 = document.getElementById("page")
+    domNode2.textContent shouldBe "2"
 
   }
 

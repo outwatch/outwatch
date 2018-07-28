@@ -459,4 +459,61 @@ class LifecycleHookSpec extends JSDomSpec {
 
   }
 
+  it should "fire for the correct dom node" in {
+
+    val otherDiv = Handler.create[VNode].unsafeRunSync()
+    var insertedFirst = 0
+    var insertedSecond = 0
+
+    val node = div(
+      otherDiv.map(_(onInsert --> sideEffect{insertedFirst += 1})),
+      div( onInsert --> sideEffect{insertedSecond += 1} )
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    insertedFirst shouldBe 0
+    insertedSecond shouldBe 1
+
+    otherDiv.unsafeOnNext(div())
+
+    insertedFirst shouldBe 1
+    insertedSecond shouldBe 1
+
+    otherDiv.unsafeOnNext(div("hallo"))
+
+    insertedFirst shouldBe 1
+    insertedSecond shouldBe 1
+  }
+
+
+  it should "fire for the correct dom node 2" in {
+    // in this case, without keys, snabbdom patches the second node
+
+    val otherDiv = Handler.create[Option[VNode]](None).unsafeRunSync()
+    var insertedFirst = 0
+    var insertedSecond = 0
+
+    val node = div(
+      otherDiv.map(otherDiv => div(
+        otherDiv.map(_(onInsert --> sideEffect{insertedFirst += 1})),
+        div( onInsert --> sideEffect{insertedSecond += 1} )
+      ))
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    insertedFirst shouldBe 0
+    insertedSecond shouldBe 1
+
+    otherDiv.unsafeOnNext(Some(div()))
+
+    insertedFirst shouldBe 1
+    insertedSecond shouldBe 1
+
+    otherDiv.unsafeOnNext(Some(div("hallo")))
+
+    insertedFirst shouldBe 1
+    insertedSecond shouldBe 1
+  }
 }
