@@ -1,7 +1,7 @@
 package outwatch
 
 import org.scalajs.dom.{html, _}
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -164,13 +164,13 @@ class ScenarioTestSpec extends JSDomSpec {
 
   "A todo application" should "work with components" in {
 
-    def TodoComponent(title: String, deleteStream: Sink[String]) =
+    def TodoComponent(title: String, deleteStream: Observer[String]) =
       li(
         span(title),
         button(id:= title, onClick(title) --> deleteStream, "Delete")
       )
 
-    def TextFieldComponent(labelText: String, outputStream: Sink[String]) = for {
+    def TextFieldComponent(labelText: String, outputStream: Observer[String]) = for {
 
       textFieldStream <- Handler.create[String]
       clickStream <- Handler.create[MouseEvent]
@@ -186,9 +186,8 @@ class ScenarioTestSpec extends JSDomSpec {
       confirm = Observable.merge(enterPressed, clickStream)
         .withLatestFrom(textFieldStream)((_, input) => input)
 
-      _ <- (outputStream <-- confirm)
-
       div <- div(
+        managed(outputStream <-- confirm),
         label(labelText),
         input(id:= "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
         button(id := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")

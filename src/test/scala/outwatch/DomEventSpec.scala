@@ -72,7 +72,7 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("child").innerHTML shouldBe ""
 
     val firstMessage = "First"
-    messages.observer.onNext(firstMessage)
+    messages.onNext(firstMessage)
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -86,7 +86,7 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("child").innerHTML shouldBe firstMessage
 
     val secondMessage = "Second"
-    messages.observer.onNext(secondMessage)
+    messages.onNext(secondMessage)
 
     document.getElementById("click").dispatchEvent(event)
 
@@ -550,10 +550,10 @@ class DomEventSpec extends JSDomSpec {
 
     option shouldBe Some(None)
 
-    handler.unsafeOnNext(Some("gisela"))
+    handler.onNext(Some("gisela"))
     option shouldBe Some(Some("gisela"))
 
-    handler.unsafeOnNext(None)
+    handler.onNext(None)
     option shouldBe Some(None)
   }
 
@@ -564,10 +564,10 @@ class DomEventSpec extends JSDomSpec {
 
     option shouldBe Some(None)
 
-    handler.unsafeOnNext(Some("gisela"))
+    handler.onNext(Some("gisela"))
     option shouldBe Some(None)
 
-    handler.unsafeOnNext(None)
+    handler.onNext(None)
     option shouldBe Some(None)
   }
 
@@ -589,10 +589,10 @@ class DomEventSpec extends JSDomSpec {
 
     option shouldBe Some(None)
 
-    handler.unsafeOnNext(Some("gisela"))
+    handler.onNext(Some("gisela"))
     option shouldBe Some(Some("gisela"))
 
-    handler.unsafeOnNext(None)
+    handler.onNext(None)
     option shouldBe Some(None)
   }
 

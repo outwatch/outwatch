@@ -15,7 +15,6 @@ import org.scalajs.dom.window.localStorage
 import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
-
 import scala.collection.mutable
 
 class OutWatchDomSpec extends JSDomSpec {
@@ -53,7 +52,7 @@ class OutWatchDomSpec extends JSDomSpec {
         Seq(
           div(),
           attributes.`class` := "blue",
-          attributes.onClick(1) --> Sink.create[Int](_ => Continue).unsafeRunSync(),
+          attributes.onClick(1) --> sideEffect{},
           attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
@@ -298,7 +297,7 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderInto(node, vtree).unsafeRunSync()
     ioCounter shouldBe 1
     handlerCounter shouldBe 0
-    stringHandler.observer.onNext("pups")
+    stringHandler.onNext("pups")
     ioCounter shouldBe 1
     handlerCounter shouldBe 1
   }
@@ -329,7 +328,7 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderInto(node, vtree).unsafeRunSync()
     ioCounter shouldBe 1
     handlerCounter shouldBe 0
-    stringHandler.observer.onNext("pups")
+    stringHandler.onNext("pups")
     ioCounter shouldBe 1
     handlerCounter shouldBe 1
   }
@@ -874,7 +873,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "a"
 
-    myOption.unsafeOnNext(None)
+    myOption.onNext(None)
     element.innerHTML shouldBe ""
   }
 
@@ -889,7 +888,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div>a</div>"
 
-    myOption.unsafeOnNext(None)
+    myOption.onNext(None)
     element.innerHTML shouldBe ""
   }
 
@@ -904,7 +903,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe """<div class="hans"><b>stark</b></div>"""
 
-    myHandler.unsafeOnNext(Option(id := "fair"))
+    myHandler.onNext(Option(id := "fair"))
     element.innerHTML shouldBe """<div id="fair"></div>"""
   }
 
@@ -919,11 +918,11 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div>bla</div>"
 
-    myHandler.unsafeOnNext(cls := "hans")
+    myHandler.onNext(cls := "hans")
     element.innerHTML shouldBe """<div class="hans">bla</div>"""
 
     val innerHandler = Handler.create[VDomModifier]().unsafeRunSync()
-    myHandler.unsafeOnNext(div(
+    myHandler.onNext(div(
       IO.pure(ModifierStreamReceiver(innerHandler)),
       cls := "no?",
       "yes?"
@@ -931,10 +930,10 @@ class OutWatchDomSpec extends JSDomSpec {
 
     element.innerHTML shouldBe """<div><div class="no?">yes?</div>bla</div>"""
 
-    innerHandler.unsafeOnNext(Seq(span("question:"), id := "heidi"))
+    innerHandler.onNext(Seq(span("question:"), id := "heidi"))
     element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?</div>bla</div>"""
 
-    myHandler.unsafeOnNext(div(
+    myHandler.onNext(div(
       IO.pure(ModifierStreamReceiver(innerHandler)),
       cls := "no?",
       "yes?",
@@ -943,13 +942,13 @@ class OutWatchDomSpec extends JSDomSpec {
 
     element.innerHTML shouldBe """<div><div class="no?">yes?<b>go!</b></div>bla</div>"""
 
-    innerHandler.unsafeOnNext(Seq(span("question and answer:"), id := "heidi"))
+    innerHandler.onNext(Seq(span("question and answer:"), id := "heidi"))
     element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question and answer:</span>yes?<b>go!</b></div>bla</div>"""
 
-    myHandler.unsafeOnNext(Seq(span("nope")))
+    myHandler.onNext(Seq(span("nope")))
     element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
 
-    innerHandler.unsafeOnNext(b("me?"))
+    innerHandler.onNext(b("me?"))
     element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
   }
 
@@ -965,29 +964,29 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe "<div></div>"
 
     val innerHandler = Handler.create[VDomModifier]().unsafeRunSync()
-    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(innerHandler)))
+    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler)))
     element.innerHTML shouldBe """<div></div>"""
 
-    innerHandler.unsafeOnNext(VDomModifier(cls := "hans", "1"))
+    innerHandler.onNext(VDomModifier(cls := "hans", "1"))
     element.innerHTML shouldBe """<div class="hans">1</div>"""
 
     val innerHandler2 = Handler.create[VDomModifier]().unsafeRunSync()
-    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(innerHandler2)))
+    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler2)))
     element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.unsafeOnNext(IO.pure(CompositeModifier(ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(innerHandler2) :: Nil)))
     element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.unsafeOnNext(IO.pure(CompositeModifier(StringModifier("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(StringModifier("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
 
-    innerHandler2.unsafeOnNext(VDomModifier(id := "dieter", "r"))
+    innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
     element.innerHTML shouldBe """<div id="dieter">peter</div>"""
 
-    innerHandler.unsafeOnNext(b("me?"))
+    innerHandler.onNext(b("me?"))
     element.innerHTML shouldBe """<div id="dieter">peter</div>"""
 
-    myHandler.unsafeOnNext(span("the end"))
+    myHandler.onNext(span("the end"))
     element.innerHTML shouldBe """<div><span>the end</span></div>"""
   }
 
@@ -1004,10 +1003,10 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.outerHTML shouldBe """<div id="strings" data-test="v">ab</div>"""
 
-    innerHandler.unsafeOnNext("c")
+    innerHandler.onNext("c")
     element.outerHTML shouldBe """<div id="strings" data-test="v">ac</div>"""
 
-    outerHandler.unsafeOnNext(Seq[VDomModifier]("meh"))
+    outerHandler.onNext(Seq[VDomModifier]("meh"))
     element.outerHTML shouldBe """<div id="strings">meh</div>"""
   }
 
@@ -1024,13 +1023,13 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.outerHTML shouldBe """<div id="strings" data-test="v">a</div>"""
 
-    innerHandler.unsafeOnNext("c")
+    innerHandler.onNext("c")
     element.outerHTML shouldBe """<div id="strings" data-test="v" href="c">a</div>"""
 
-    innerHandler.unsafeOnNext("d")
+    innerHandler.onNext("d")
     element.outerHTML shouldBe """<div id="strings" data-test="v" href="d">a</div>"""
 
-    outerHandler.unsafeOnNext(Seq[VDomModifier]("meh"))
+    outerHandler.onNext(Seq[VDomModifier]("meh"))
     element.outerHTML shouldBe """<div id="strings">meh</div>"""
   }
 
@@ -1045,7 +1044,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable[VDomModifier](cls := "hans")))))))
+    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable[VDomModifier](cls := "hans")))))))
     element.innerHTML shouldBe """<div class="hans"></div>"""
   }
 
@@ -1060,7 +1059,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable(cls := "hans"))))))))))
+    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable(cls := "hans"))))))))))
     element.innerHTML shouldBe """<div class="hans"></div>"""
   }
 
@@ -1075,7 +1074,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.unsafeOnNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](VDomModifier(IO.pure(ModifierStreamReceiver(Observable[VDomModifier]("a"))), IO.pure(ModifierStreamReceiver(Observable(span("b")))))))))
+    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](VDomModifier(IO.pure(ModifierStreamReceiver(Observable[VDomModifier]("a"))), IO.pure(ModifierStreamReceiver(Observable(span("b")))))))))
     element.innerHTML shouldBe """<div>a<span>b</span></div>"""
   }
 
@@ -1090,7 +1089,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.unsafeOnNext(cls <-- Observable("hans"))
+    myHandler.onNext(cls <-- Observable("hans"))
     element.innerHTML shouldBe """<div class="hans"></div>"""
   }
 
@@ -1106,7 +1105,7 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div id="click"></div>"""
 
     var clickCounter = 0
-    myHandler.unsafeOnNext(onClick --> sideEffect(_ => clickCounter += 1))
+    myHandler.onNext(onClick --> sideEffect(_ => clickCounter += 1))
     element.innerHTML shouldBe """<div id="click"></div>"""
 
     clickCounter shouldBe 0
@@ -1136,13 +1135,13 @@ class OutWatchDomSpec extends JSDomSpec {
 
     element.innerHTML shouldBe """<div class="first second"></div>"""
 
-    myClasses2.unsafeOnNext("third")
+    myClasses2.onNext("third")
     element.innerHTML shouldBe """<div class="first second third"></div>"""
 
-    myClasses2.unsafeOnNext("more")
+    myClasses2.onNext("more")
     element.innerHTML shouldBe """<div class="first second more"></div>"""
 
-    myClasses.unsafeOnNext("yeah")
+    myClasses.onNext("yeah")
     element.innerHTML shouldBe """<div class="first yeah more"></div>"""
   }
 
@@ -1158,7 +1157,7 @@ class OutWatchDomSpec extends JSDomSpec {
     assert(localStorage.getItem(key) == null)
     assert(triggeredHandlerEvents.toList == List(None))
 
-    storageHandler.unsafeOnNext(Some("joe"))
+    storageHandler.onNext(Some("joe"))
     assert(localStorage.getItem(key) == "joe")
     assert(triggeredHandlerEvents.toList == List(None, Some("joe")))
 
@@ -1166,7 +1165,7 @@ class OutWatchDomSpec extends JSDomSpec {
     util.LocalStorage.handler(key).unsafeRunSync().foreach {initialValue = _}
     assert(initialValue == Some("joe"))
 
-    storageHandler.unsafeOnNext(None)
+    storageHandler.onNext(None)
     assert(localStorage.getItem(key) == null)
     assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None))
 
@@ -1181,11 +1180,11 @@ class OutWatchDomSpec extends JSDomSpec {
     assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
 
     // only trigger handler if value changed
-    storageHandler.unsafeOnNext(None)
+    storageHandler.onNext(None)
     assert(localStorage.getItem(key) == null)
     assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
 
-    storageHandler.unsafeOnNext(Some("rhabarbar"))
+    storageHandler.onNext(Some("rhabarbar"))
     assert(localStorage.getItem(key) == "rhabarbar")
     assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar")))
 
