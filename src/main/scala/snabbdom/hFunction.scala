@@ -36,7 +36,7 @@ trait Hooks extends js.Object {
   var insert: js.UndefOr[Hooks.HookSingleFn] //TODO
   val prepatch: js.UndefOr[Hooks.HookPairFn]
   val update: js.UndefOr[Hooks.HookPairFn]
-  val postpatch: js.UndefOr[Hooks.HookPairFn]
+  var postpatch: js.UndefOr[Hooks.HookPairFn]
   val destroy: js.UndefOr[Hooks.HookSingleFn]
 }
 
@@ -60,7 +60,7 @@ object Hooks {
       var insert = _insert
       val prepatch = _prepatch
       val update = _update
-      val postpatch = _postpatch
+      var postpatch = _postpatch
       val destroy = _destroy
     }
   }

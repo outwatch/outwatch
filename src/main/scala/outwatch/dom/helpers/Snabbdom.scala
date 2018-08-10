@@ -1,10 +1,10 @@
 package outwatch.dom.helpers
 
-import monix.reactive.subjects.PublishSubject
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
-import monix.reactive.Observable
 import monix.execution.cancelables.StackedCancelable
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import snabbdom._
@@ -107,41 +107,21 @@ private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
     ).orUndefined
   }
 
-  def createInsertHook(receivers: Receivers,
-    subscription: StackedCancelable,
-    hooks: Seq[Hooks.HookSingleFn],
-    initialProxy: VNodeProxy
+  def createInsertHook(
+   subscribe: VNodeProxy => Unit,
+   hooks: Seq[Hooks.HookSingleFn]
   )(implicit s: Scheduler): Hooks.HookSingleFn = (proxy: VNodeProxy) => {
-
-
-    def toProxy(modifiers: Array[Modifier]): VNodeProxy = {
-      SeparatedModifiers.from(modifiers).updateSnabbdom(initialProxy)
-    }
-
-    subscription.push(
-      receivers.observable
-        .map(toProxy)
-        .scan(proxy) { case (old, crt) =>
-          OutwatchTracing.patchSubject.onNext((old, crt))
-          val next = patch(old, crt)
-          proxy.sel = next.sel
-          proxy.data = next.data
-          proxy.children = next.children
-          proxy.elm = next.elm
-          proxy.text = next.text
-          proxy.key = next.key
-          next
-        }
-        .subscribe(
-          _ => Continue,
-          error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
-        )
-    )
-
-//    proxy.elm.foreach((e: dom.Element) => hooks.foreach(_.observer.onNext(e)))
+    subscribe(proxy)
     hooks.foreach(_(proxy))
   }
 
+  def createPostPatchHook(
+   subscribe: VNodeProxy => Unit,
+   hooks: Seq[Hooks.HookPairFn]
+  )(implicit s: Scheduler): Hooks.HookPairFn = (oldProxy: VNodeProxy, proxy: VNodeProxy) => {
+    subscribe(proxy)
+    hooks.foreach(_(oldProxy, proxy))
+  }
 
   private def createDestroyHook(
     subscription: StackedCancelable, hooks: Seq[DestroyHook]
@@ -257,7 +237,7 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  private def toProxy(nodeType: String, previousProxy: Option[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
+  def toProxy(nodeType: String, previousProxy: Option[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
 
     // if child streams exist, we want the static children in the same node to have keys
     // for efficient patching when the streams change
@@ -287,13 +267,43 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     }
 
     // we directly update this dataobject with default values from the receivers
-    receivers.fold(initialProxy){ receivers =>
+    val proxy = receivers.fold(initialProxy){ receivers =>
       if (receivers.nonEmpty) {
-        initialProxy.data.hook.insert = properties.hooks.createInsertHook(receivers, subscription, initialProxy.data.hook.insert.toList, initialProxy)
+        def toProxy(modifiers: Array[Modifier]): VNodeProxy = {
+          SeparatedModifiers.from(modifiers).updateSnabbdom(initialProxy)
+        }
+
+        var wasSubscribed = false
+        def subscribe(proxy: VNodeProxy): Unit = if (!wasSubscribed) {
+          wasSubscribed = true
+          subscription.push(
+            receivers.observable
+              .map(toProxy)
+              .scan(proxy) { case (old, crt) =>
+                OutwatchTracing.patchSubject.onNext((old, crt))
+                val next = patch(old, crt)
+                proxy.sel = next.sel
+                proxy.data = next.data
+                proxy.children = next.children
+                proxy.elm = next.elm
+                proxy.text = next.text
+                proxy.key = next.key
+                next
+              }.subscribe(
+              _ => Continue,
+              error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
+            )
+          )
+        }
+
+        initialProxy.data.hook.insert = properties.hooks.createInsertHook(subscribe, initialProxy.data.hook.insert.toList)
+        initialProxy.data.hook.postpatch = properties.hooks.createPostPatchHook(subscribe, initialProxy.data.hook.postpatch.toList)
         SeparatedModifiers.from(receivers.initialState).updateSnabbdom(initialProxy)
       }
       else initialProxy
-  }
+    }
+
+    proxy
   }
 
   private[outwatch] def updateSnabbdom(previousProxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = toProxy(previousProxy.sel, Some(previousProxy))

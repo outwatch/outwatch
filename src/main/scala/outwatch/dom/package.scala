@@ -16,7 +16,7 @@ package object dom extends Implicits with ManagedSubscriptions with SideEffects 
     def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
       (Seq(modifier, modifier2) ++ modifiers).sequence.map(CompositeModifier)
     def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
-    def stream[T](stream: => Observable[VDomModifier], initialValue: => VDomModifier = IO.pure(EmptyModifier)) = IO.suspend {
+    def stream[T](stream: Observable[VDomModifier], initialValue: VDomModifier = IO.pure(EmptyModifier)) = IO.suspend {
       initialValue.map(ModifierStreamReceiver(stream, _))
     }
   }
