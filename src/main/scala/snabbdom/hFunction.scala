@@ -33,10 +33,10 @@ object hFunction {
 
 
 trait Hooks extends js.Object {
-  var insert: js.UndefOr[Hooks.HookSingleFn] //TODO
+  var insert: js.UndefOr[Hooks.HookSingleFn] //TODO: can we get rid of this var?
   val prepatch: js.UndefOr[Hooks.HookPairFn]
   val update: js.UndefOr[Hooks.HookPairFn]
-  var postpatch: js.UndefOr[Hooks.HookPairFn]
+  var postpatch: js.UndefOr[Hooks.HookPairFn] //TODO: can we get rid of this var?
   val destroy: js.UndefOr[Hooks.HookSingleFn]
 }
 
