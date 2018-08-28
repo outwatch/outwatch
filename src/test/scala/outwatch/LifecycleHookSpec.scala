@@ -23,7 +23,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     }
 
     val node = sink.flatMap { sink =>
-      div(onSnabbdomInsert --> sink)
+      div(dsl.key := "something-unique", onSnabbdomInsert --> sink)
     }
 
     switch shouldBe false
@@ -49,7 +49,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val node = for {
       sink <- sink
       sink2 <- sink2
-      node <- div(onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
+      node <- div(dsl.key := "something-unique", onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
     } yield node
 
     switch shouldBe false
@@ -495,7 +495,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val divTagName = onSnabbdomInsert.map(_.tagName.toLowerCase).filter(_ == "div")
 
     val node = sink.flatMap { sink =>
-      div(onSnabbdomInsert("insert") --> sink,
+      div(dsl.key := "outer", onSnabbdomInsert("insert") --> sink,
         div(divTagName --> sink),
         span(divTagName --> sink)
       )
