@@ -1,6 +1,7 @@
 package outwatch.dom.helpers
 
 import cats.effect.IO
+import cats.syntax.functor._
 import monix.reactive.Observable
 import outwatch.AsVDomModifier
 
@@ -13,11 +14,9 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
 
   def :=(value: T): IO[A] = IO.pure(assign(value))
   def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
-  def <--(valueStream: Observable[T]): IO[ModifierStreamReceiver] = {
-    IO.pure(ModifierStreamReceiver(valueStream.map(v => IO.pure(assign(v)))))
-  }
-  def <--(valueStream: => Observable[T], initialValue: => T): IO[ModifierStreamReceiver] = IO {
-    ModifierStreamReceiver(valueStream.map(v => IO.pure(assign(v))), assign(initialValue))
+  def <--(valueStream: Observable[T]): IO[ModifierStreamReceiver] = <--[Observable](valueStream)
+  def <--[F[+_] : AsValueObservable](valueStream: F[T]): IO[ModifierStreamReceiver] = {
+    IO.pure(ModifierStreamReceiver(ValueObservable(valueStream).map(v => IO.pure(assign(v)))))
   }
 }
 
@@ -107,20 +106,21 @@ object KeyBuilder {
 
 object ChildStreamReceiverBuilder {
   def <--[T](valueStream: Observable[VDomModifier]): IO[ModifierStreamReceiver] = IO.pure(
-    ModifierStreamReceiver(valueStream)
+    ModifierStreamReceiver(AsValueObservable.observable.as(valueStream))
   )
 
   def <--[T](valueStream: Observable[T])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
-    ModifierStreamReceiver(valueStream.map(r.asVDomModifier))
+    ModifierStreamReceiver(AsValueObservable.observable.as(valueStream.map(r.asVDomModifier)))
   )
 }
 
 object ChildrenStreamReceiverBuilder {
   def <--(childrenStream: Observable[Seq[VDomModifier]]): IO[ModifierStreamReceiver] = IO.pure(
-    ModifierStreamReceiver(childrenStream.map[VDomModifier](x => x))
+    ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map[VDomModifier](x => x)))
   )
 
   def <--[T](childrenStream: Observable[Seq[T]])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
-    ModifierStreamReceiver(childrenStream.map(_.map(r.asVDomModifier)))
+//    ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map(_.map(r.asVDomModifier))))
+    ???
   )
 }

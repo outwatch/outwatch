@@ -1,8 +1,9 @@
 package outwatch
 
 import cats.effect.IO
+import cats.syntax.functor._
 import monix.reactive.Observable
-import outwatch.dom.{CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier}
+import outwatch.dom.{AsValueObservable, CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
@@ -40,20 +41,11 @@ object AsVDomModifier {
     def asVDomModifier(value: Boolean): VDomModifier = IO.pure(StringVNode(value.toString))
   }
 
-  implicit object ObservableRender extends AsVDomModifier[Observable[VDomModifier]] {
-    def asVDomModifier(valueStream: Observable[VDomModifier]): VDomModifier = IO.pure(ModifierStreamReceiver(valueStream))
-  }
-
   implicit def observableRender[T : AsVDomModifier]: AsVDomModifier[Observable[T]] = (valueStream: Observable[T]) => IO.pure(
-    ModifierStreamReceiver(valueStream.map(implicitly[AsVDomModifier[T]].asVDomModifier))
+    ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
   )
 
-  implicit object ObservableSeqRender extends AsVDomModifier[Observable[Seq[VDomModifier]]] {
-    def asVDomModifier(seqStream: Observable[Seq[VDomModifier]]): VDomModifier = IO.pure(ModifierStreamReceiver(seqStream.map[VDomModifier](x => x)))
-  }
-
-  implicit def observableSeqRender[T : AsVDomModifier]: AsVDomModifier[Observable[Seq[T]]] = (seqStream: Observable[Seq[T]]) => IO.pure(
-    ModifierStreamReceiver(seqStream.map[VDomModifier](_.map(implicitly[AsVDomModifier[T]].asVDomModifier)))
+  implicit def valueObservableRender[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) => IO.pure(
+    ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
   )
-
 }

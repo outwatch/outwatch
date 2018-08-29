@@ -1,5 +1,6 @@
 package outwatch.dom.helpers
 
+import cats.effect.IO
 import monix.reactive.Observable
 import outwatch.dom._
 
@@ -115,8 +116,8 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
   private val handleStreamedModifier: Modifier => ContentKind = {
-    case ModifierStreamReceiver(modStream, initialValue) =>
-      val observable = modStream.switchMap[Modifier] { mod =>
+    case ModifierStreamReceiver(modStream) =>
+      val observable = modStream.observable.switchMap[Modifier] { mod =>
         handleStreamedModifier(mod.unsafeRunSync) match {
           //TODO: why is startWith different and leaks a subscription? see tests with: stream.startWith(initialValue :: Nil)
           case ContentKind.Dynamic(stream, initialValue) => Observable.concat(Observable.now(initialValue), stream)
@@ -124,7 +125,7 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
         }
       }
 
-      handleStreamedModifier(initialValue) match {
+      handleStreamedModifier(modStream.value.fold[Modifier](EmptyModifier)(_.unsafeRunSync)) match {
         case ContentKind.Dynamic(initialObservable, mod) =>
           val combinedObservable = observable.publishSelector { observable =>
             Observable.merge(initialObservable.takeUntil(observable), observable)

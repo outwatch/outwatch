@@ -56,7 +56,7 @@ class OutWatchDomSpec extends JSDomSpec {
           attributes.hidden <-- Observable(false)
         ).map(_.unsafeRunSync())
       ),
-      ModifierStreamReceiver(Observable())
+      ModifierStreamReceiver(ValueObservable(Observable()))
     )
 
     val SeparatedModifiers(properties, emitters, children) =
@@ -75,8 +75,8 @@ class OutWatchDomSpec extends JSDomSpec {
       EmptyModifier,
       Emitter("click", _ => Continue),
       Emitter("input",  _ => Continue),
-      ModifierStreamReceiver(Observable()),
-      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(ValueObservable(Observable())),
+      ModifierStreamReceiver(ValueObservable(Observable())),
       Emitter("keyup",  _ => Continue),
       StringVNode("text"),
       div().unsafeRunSync()
@@ -99,8 +99,8 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("click", _ => Continue),
       Emitter("input",  _ => Continue),
       Emitter("keyup",  _ => Continue),
-      ModifierStreamReceiver(Observable()),
-      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(ValueObservable(Observable())),
+      ModifierStreamReceiver(ValueObservable(Observable())),
       StringVNode("text"),
       StringVNode("text2")
     )
@@ -122,9 +122,9 @@ class OutWatchDomSpec extends JSDomSpec {
       Emitter("click", _ => Continue),
       Emitter("input", _ => Continue),
       UpdateHook(PublishSubject()),
-      ModifierStreamReceiver(Observable()),
-      ModifierStreamReceiver(Observable()),
-      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(ValueObservable(Observable())),
+      ModifierStreamReceiver(ValueObservable(Observable())),
+      ModifierStreamReceiver(ValueObservable(Observable())),
       Emitter("keyup", _ => Continue),
       InsertHook(PublishSubject()),
       PrePatchHook(PublishSubject()),
@@ -161,19 +161,19 @@ class OutWatchDomSpec extends JSDomSpec {
     val vtree = div(
       IO {
         list += "child1"
-        ModifierStreamReceiver(Observable(div()))
+        ModifierStreamReceiver(ValueObservable(Observable(div())))
       },
       IO {
         list += "child2"
-        ModifierStreamReceiver(Observable())
+        ModifierStreamReceiver(ValueObservable(Observable()))
       },
       IO {
         list += "children1"
-        ModifierStreamReceiver(Observable())
+        ModifierStreamReceiver(ValueObservable(Observable()))
       },
       IO {
         list += "children2"
-        ModifierStreamReceiver(Observable())
+        ModifierStreamReceiver(ValueObservable(Observable()))
       },
       div(
         IO {
@@ -203,7 +203,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
   it should "provide unique key for child nodes if stream is present" in {
     val mods = Seq(
-      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(ValueObservable(Observable())),
       div(id := "1").unsafeRunSync(),
       div(id := "2").unsafeRunSync()
       // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
@@ -232,7 +232,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "keep existing key for child nodes" in {
     val mods = Seq(
       Key(1234),
-      ModifierStreamReceiver(Observable()),
+      ModifierStreamReceiver(ValueObservable(Observable())),
       div()(IO.pure(Key(5678))).unsafeRunSync()
     )
 
@@ -907,7 +907,7 @@ class OutWatchDomSpec extends JSDomSpec {
   "Modifier stream" should "work for modifier" in {
     val myHandler = Handler.create[VDomModifier](Seq(cls := "hans", b("stark"))).unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)))
+      div(VDomModifier(myHandler))
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -922,7 +922,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "work for multiple mods" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)), "bla")
+      div(myHandler, "bla")
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -935,7 +935,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
     myHandler.onNext(div(
-      IO.pure(ModifierStreamReceiver(innerHandler)),
+      innerHandler,
       cls := "no?",
       "yes?"
     ))
@@ -946,13 +946,13 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?</div>bla</div>"""
 
     myHandler.onNext(div(
-      IO.pure(ModifierStreamReceiver(innerHandler)),
+      innerHandler,
       cls := "no?",
       "yes?",
       b("go!")
     ))
 
-    element.innerHTML shouldBe """<div><div class="no?">yes?<b>go!</b></div>bla</div>"""
+    element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?<b>go!</b></div>bla</div>"""
 
     innerHandler.onNext(Seq(span("question and answer:"), id := "heidi"))
     element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question and answer:</span>yes?<b>go!</b></div>bla</div>"""
@@ -967,7 +967,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "work for nested modifier stream receiver" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)))
+      div(myHandler)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -976,20 +976,20 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe "<div></div>"
 
     val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler)))
+    myHandler.onNext(innerHandler)
     element.innerHTML shouldBe """<div></div>"""
 
     innerHandler.onNext(VDomModifier(cls := "hans", "1"))
     element.innerHTML shouldBe """<div class="hans">1</div>"""
 
     val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler2)))
+    myHandler.onNext(innerHandler2)
     element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
     element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
 
     innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
@@ -1010,7 +1010,7 @@ class OutWatchDomSpec extends JSDomSpec {
         onPrePatch --> sideEffect { (e1, e2) =>
           numPatches += 1
         },
-        IO.pure(ModifierStreamReceiver(myHandler, VDomModifier("initial").unsafeRunSync))
+        ValueObservable(myHandler, VDomModifier("initial"))
       )
     )
 
@@ -1021,7 +1021,7 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 0
 
     val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler, Attribute("initial", "2"))))
+    myHandler.onNext(ValueObservable(innerHandler, IO.pure(Attribute("initial", "2"))))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     numPatches shouldBe 1
 
@@ -1030,15 +1030,15 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 2
 
     val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler2, VDomModifier("initial3").unsafeRunSync)))
+    myHandler.onNext(ValueObservable(innerHandler2, VDomModifier("initial3")))
     element.innerHTML shouldBe """<div>initial3</div>"""
     numPatches shouldBe 3
 
-    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(innerHandler2, VDomModifier("initial4").unsafeRunSync) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2, VDomModifier("initial4"))) :: Nil)))
     element.innerHTML shouldBe """<div>initial4</div>"""
     numPatches shouldBe 4
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
     numPatches shouldBe 5
 
@@ -1087,7 +1087,7 @@ class OutWatchDomSpec extends JSDomSpec {
         onPrePatch --> sideEffect { (e1, e2) =>
           numPatches += 1
         },
-        IO.pure(ModifierStreamReceiver(myHandler))
+        myHandler
       )
     )
 
@@ -1098,7 +1098,7 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 1
 
     val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler.startWith(IO.pure(Attribute("initial", "2")) :: Nil))))
+    myHandler.onNext(innerHandler.startWith(IO.pure(Attribute("initial", "2")) :: Nil))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     numPatches shouldBe 3
 
@@ -1107,15 +1107,15 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 4
 
     val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler2.startWith("initial3" :: Nil))))
+    myHandler.onNext(innerHandler2.startWith(VDomModifier("initial3") :: Nil))
     element.innerHTML shouldBe """<div>initial3</div>"""
     numPatches shouldBe 6
 
-    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(innerHandler2.startWith("initial4" :: Nil)) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2.startWith(VDomModifier("initial4") :: Nil))) :: Nil)))
     element.innerHTML shouldBe """<div>initial4</div>"""
     numPatches shouldBe 8
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(innerHandler2) :: Nil)))
+    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
     element.innerHTML shouldBe """<div>pete</div>"""
     numPatches shouldBe 9
 
@@ -1139,7 +1139,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val innerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
     val node = div(id := "strings",
       div(
-        IO.pure(ModifierStreamReceiver(myHandler.map { x => outerTriggers += x; x }, ModifierStreamReceiver(innerHandler.map { x => innerTriggers += x; x }, StringVNode("initial"))))
+        ValueObservable(myHandler.map { x => outerTriggers += x; x }, VDomModifier(ValueObservable(innerHandler.map { x => innerTriggers += x; x }, VDomModifier("initial"))))
       )
     )
 
@@ -1160,7 +1160,7 @@ class OutWatchDomSpec extends JSDomSpec {
     outerTriggers.size shouldBe 1
     innerTriggers.size shouldBe 1
 
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable.empty, Attribute("initial", "2"))))
+    myHandler.onNext(ValueObservable(Observable.empty, IO.pure(Attribute("initial", "2"))))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     outerTriggers.size shouldBe 2
     innerTriggers.size shouldBe 1
@@ -1170,66 +1170,66 @@ class OutWatchDomSpec extends JSDomSpec {
     outerTriggers.size shouldBe 2
     innerTriggers.size shouldBe 1
 
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler.map { x => innerTriggers += x; x }, EmptyModifier)))
-    element.innerHTML shouldBe """<div></div>"""
+    myHandler.onNext(ValueObservable(innerHandler.map { x => innerTriggers += x; x }, VDomModifier.empty))
+    element.innerHTML shouldBe """<div>me?</div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 1
+    innerTriggers.size shouldBe 2
 
     innerHandler.onNext(IO.pure(Attribute("attr", "3")))
     element.innerHTML shouldBe """<div attr="3"></div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 2
+    innerTriggers.size shouldBe 3
 
     val innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
     val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
     val innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
     val innerHandler3 = Handler.create[VDomModifier].unsafeRunSync()
-    innerHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler2.map { x => innerTriggers2 += x; x }, ModifierStreamReceiver(innerHandler3.map { x => innerTriggers3 += x; x }))))
+    innerHandler.onNext(ValueObservable(innerHandler2.map { x => innerTriggers2 += x; x }, VDomModifier(ValueObservable(innerHandler3.map { x => innerTriggers3 += x; x }))))
     element.innerHTML shouldBe """<div></div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 3
+    innerTriggers.size shouldBe 4
     innerTriggers2.size shouldBe 0
     innerTriggers3.size shouldBe 0
 
     innerHandler2.onNext(VDomModifier("2"))
     element.innerHTML shouldBe """<div>2</div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 3
+    innerTriggers.size shouldBe 4
     innerTriggers2.size shouldBe 1
     innerTriggers3.size shouldBe 0
 
     innerHandler.onNext(IO.pure(EmptyModifier))
     element.innerHTML shouldBe """<div></div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 4
+    innerTriggers.size shouldBe 5
     innerTriggers2.size shouldBe 1
     innerTriggers3.size shouldBe 0
 
     innerHandler2.onNext(VDomModifier("me?"))
     element.innerHTML shouldBe """<div></div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 4
+    innerTriggers.size shouldBe 5
     innerTriggers2.size shouldBe 1
     innerTriggers3.size shouldBe 0
 
     innerHandler3.onNext(VDomModifier("me?"))
     element.innerHTML shouldBe """<div></div>"""
     outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 4
+    innerTriggers.size shouldBe 5
     innerTriggers2.size shouldBe 1
     innerTriggers3.size shouldBe 0
 
     myHandler.onNext(VDomModifier("go away"))
     element.innerHTML shouldBe """<div>go away</div>"""
     outerTriggers.size shouldBe 4
-    innerTriggers.size shouldBe 4
+    innerTriggers.size shouldBe 5
     innerTriggers2.size shouldBe 1
     innerTriggers3.size shouldBe 0
 
     innerHandler.onNext(VDomModifier("me?"))
     element.innerHTML shouldBe """<div>go away</div>"""
     outerTriggers.size shouldBe 4
-    innerTriggers.size shouldBe 4
+    innerTriggers.size shouldBe 5
     innerTriggers2.size shouldBe 1
     innerTriggers3.size shouldBe 0
   }
@@ -1280,7 +1280,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "work for double nested modifier stream receiver" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)))
+      div(myHandler)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -1288,14 +1288,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable[VDomModifier](cls := "hans")))))))
+    myHandler.onNext(Observable[VDomModifier](Observable[VDomModifier](cls := "hans")))
     element.innerHTML shouldBe """<div class="hans"></div>"""
   }
 
   it should "work for triple nested modifier stream receiver" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)))
+      div(myHandler)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -1303,14 +1303,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable[VDomModifier](IO.pure(ModifierStreamReceiver(Observable(cls := "hans"))))))))))
+    myHandler.onNext(Observable[VDomModifier](Observable[VDomModifier](Observable(cls := "hans"))))
     element.innerHTML shouldBe """<div class="hans"></div>"""
   }
 
   it should "work for multiple nested modifier stream receiver" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)))
+      div(myHandler)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -1318,14 +1318,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    myHandler.onNext(IO.pure(ModifierStreamReceiver(Observable[VDomModifier](VDomModifier(IO.pure(ModifierStreamReceiver(Observable[VDomModifier]("a"))), IO.pure(ModifierStreamReceiver(Observable(span("b")))))))))
+    myHandler.onNext(Observable[VDomModifier](VDomModifier(Observable[VDomModifier]("a"), Observable(span("b")))))
     element.innerHTML shouldBe """<div>a<span>b</span></div>"""
   }
 
   it should "work for nested attribute stream receiver" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(IO.pure(ModifierStreamReceiver(myHandler)))
+      div(myHandler)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -1340,7 +1340,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "work for nested emitter" in {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
-      div(id := "click", IO.pure(ModifierStreamReceiver(myHandler)))
+      div(id := "click", myHandler)
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()

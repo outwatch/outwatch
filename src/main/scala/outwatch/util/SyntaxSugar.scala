@@ -2,7 +2,7 @@ package outwatch.util
 
 import cats.effect.IO
 import monix.reactive.Observable
-import outwatch.dom.{Attribute, ModifierStreamReceiver, EmptyModifier}
+import outwatch.dom.{Attribute, EmptyModifier, ModifierStreamReceiver, ValueObservable}
 
 
 object SyntaxSugar {
@@ -11,7 +11,7 @@ object SyntaxSugar {
     def ?=(attr: IO[Attribute]): IO[ModifierStreamReceiver] = {
       attr.map { attr =>
         val attributes = values.map(b => if (b) IO.pure(attr) else IO.pure(EmptyModifier))
-        ModifierStreamReceiver(attributes)
+        ModifierStreamReceiver(ValueObservable(attributes))
       }
     }
   }
