@@ -1055,6 +1055,30 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 7
   }
 
+  it should "work for deeply nested handlers" in {
+    val a = Handler.create[Int](0).unsafeRunSync
+    val b = a.map(_.toString)
+
+    val node = 
+      div(
+        a.map(_ => 
+            div(
+              b.map(b =>
+                div(b)
+              )
+            )
+        )
+      )
+    
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("app")
+    element.innerHTML shouldBe "<div><div><div>0</div></div></div>"
+
+    a.onNext(1)
+    element.innerHTML shouldBe "<div><div><div>1</div></div></div>"
+  }
+
   it should "work for nested modifier stream receiver and empty default and start with" in {
     var numPatches = 0
     val myHandler = Handler.create[VDomModifier]("initial").unsafeRunSync()
