@@ -1,6 +1,8 @@
 package outwatch
 
-
+import scala.language.implicitConversions
+import scala.concurrent.Future
+import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler
@@ -8,8 +10,8 @@ import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
 import org.scalajs.dom.{document, window}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest._
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-
 
 trait EasySubscribe {
 
@@ -64,9 +66,9 @@ trait LocalStorageMock {
   }
 }
 
-abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock {
+trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock { self: Suite =>
 
-  implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
+  implicit val scheduler: TrampolineScheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
   override def beforeEach(): Unit = {
 
@@ -80,4 +82,10 @@ abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach 
     document.body.appendChild(root)
     ()
   }
+
+}
+
+abstract class JSDomSpec extends FlatSpec with OutwatchSpec
+abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
+  implicit def ioAssertionToFutureAssertion(io: IO[Assertion]): Future[Assertion] = io.unsafeToFuture()
 }

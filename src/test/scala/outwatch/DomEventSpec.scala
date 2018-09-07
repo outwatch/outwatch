@@ -1,6 +1,6 @@
 package outwatch
 
-
+import cats.effect.IO
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.Observable
 import org.scalajs.dom.{html, _}
@@ -8,7 +8,7 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 
-class DomEventSpec extends JSDomSpec {
+class DomEventSpec extends JSDomAsyncSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 
@@ -21,14 +21,20 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
-    document.getElementById("btn").hasAttribute("disabled") shouldBe false
+    for {
+          _ <- OutWatch.renderInto("#app", vtree)
+       hasD <- IO(document.getElementById("btn").hasAttribute("disabled"))
+          _ <- IO(hasD shouldBe false)
+      event <- IO {
+                 val event = document.createEvent("Events")
+                 initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+                 event
+              }
+          _ <- IO(document.getElementById("click").dispatchEvent(event))
+          d <- IO(document.getElementById("btn").getAttribute("disabled"))
+          _ <- IO(d shouldBe "")
+    } yield succeed
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
-
-    document.getElementById("btn").getAttribute("disabled") shouldBe ""
   }
 
   it should "be converted to a generic emitter correctly" in {
@@ -41,56 +47,61 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).map { _ =>
 
-    document.getElementById("child").innerHTML shouldBe ""
+      document.getElementById("child").innerHTML shouldBe ""
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("child").innerHTML shouldBe message
+      document.getElementById("child").innerHTML shouldBe message
 
-    //dispatch another event
-    document.getElementById("click").dispatchEvent(event)
+      //dispatch another event
+      document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("child").innerHTML shouldBe message
+      document.getElementById("child").innerHTML shouldBe message
+
+    }
   }
 
   it should "be converted to a generic stream emitter correctly" in {
 
-    val messages = Handler.create[String].unsafeRunSync()
+    Handler.create[String].flatMap { messages =>
 
-    val vtree = Handler.create[String].flatMap { stream =>
-      div(id := "click", onClick(messages) --> stream,
-        span(id := "child", stream)
-      )
+      val vtree = Handler.create[String].flatMap { stream =>
+        div(id := "click", onClick(messages) --> stream,
+          span(id := "child", stream)
+        )
+      }
+
+      OutWatch.renderInto("#app", vtree).map { _ =>
+
+        document.getElementById("child").innerHTML shouldBe ""
+
+        val firstMessage = "First"
+        messages.onNext(firstMessage)
+
+        val event = document.createEvent("Events")
+        initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+        document.getElementById("click").dispatchEvent(event)
+
+        document.getElementById("child").innerHTML shouldBe firstMessage
+
+        //dispatch another event
+        document.getElementById("click").dispatchEvent(event)
+
+        document.getElementById("child").innerHTML shouldBe firstMessage
+
+        val secondMessage = "Second"
+        messages.onNext(secondMessage)
+
+        document.getElementById("click").dispatchEvent(event)
+
+        document.getElementById("child").innerHTML shouldBe secondMessage
+      }
+
     }
-
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
-
-    document.getElementById("child").innerHTML shouldBe ""
-
-    val firstMessage = "First"
-    messages.onNext(firstMessage)
-
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
-
-    document.getElementById("child").innerHTML shouldBe firstMessage
-
-    //dispatch another event
-    document.getElementById("click").dispatchEvent(event)
-
-    document.getElementById("child").innerHTML shouldBe firstMessage
-
-    val secondMessage = "Second"
-    messages.onNext(secondMessage)
-
-    document.getElementById("click").dispatchEvent(event)
-
-    document.getElementById("child").innerHTML shouldBe secondMessage
   }
 
   it should "be able to set the value of a text field" in {
@@ -99,63 +110,70 @@ class DomEventSpec extends JSDomSpec {
 
     val vtree = input(id := "input", attributes.value <-- values)
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).map {_ =>
 
-    val patched = document.getElementById("input").asInstanceOf[html.Input]
+      val patched = document.getElementById("input").asInstanceOf[html.Input]
 
-    patched.value shouldBe ""
+      patched.value shouldBe ""
 
-    val value1 = "Hello"
-    values.onNext(value1)
+      val value1 = "Hello"
+      values.onNext(value1)
 
-    patched.value shouldBe value1
+      patched.value shouldBe value1
 
-    val value2 = "World"
-    values.onNext(value2)
+      val value2 = "World"
+      values.onNext(value2)
 
-    patched.value shouldBe value2
+      patched.value shouldBe value2
 
-    values.onNext("")
+      values.onNext("")
 
-    patched.value shouldBe ""
+      patched.value shouldBe ""
+
+    }
   }
+
   it should "preserve user input after setting defaultValue" in {
     val defaultValues = PublishSubject[String]
 
     val vtree = input(id := "input", attributes.defaultValue <-- defaultValues)
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).map { _ =>
 
-    val patched = document.getElementById("input").asInstanceOf[html.Input]
-    patched.value shouldBe ""
+      val patched = document.getElementById("input").asInstanceOf[html.Input]
+      patched.value shouldBe ""
 
-    val value1 = "Hello"
-    defaultValues.onNext(value1)
-    patched.value shouldBe value1
+      val value1 = "Hello"
+      defaultValues.onNext(value1)
+      patched.value shouldBe value1
 
-    val userInput = "user input"
-    patched.value = userInput
+      val userInput = "user input"
+      patched.value = userInput
 
-    defaultValues.onNext("GoodByte")
-    patched.value shouldBe userInput
+      defaultValues.onNext("GoodByte")
+      patched.value shouldBe userInput
+
+    }
   }
 
   it should "set input value to the same value after user change" in {
     val values = PublishSubject[String]
 
     val vtree = input(id := "input", attributes.value <-- values)
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).map { _ =>
 
-    val patched = document.getElementById("input").asInstanceOf[html.Input]
-    patched.value shouldBe ""
+      val patched = document.getElementById("input").asInstanceOf[html.Input]
+      patched.value shouldBe ""
 
-    val value1 = "Hello"
-    values.onNext(value1)
-    patched.value shouldBe value1
+      val value1 = "Hello"
+      values.onNext(value1)
+      patched.value shouldBe value1
 
-    patched.value = "user input"
+      patched.value = "user input"
 
-    values.onNext("Hello")
-    patched.value shouldBe value1
+      values.onNext("Hello")
+      patched.value shouldBe value1
+
+    }
   }
 
   it should "be bindable to a list of children" in {
@@ -167,65 +185,68 @@ class DomEventSpec extends JSDomSpec {
       ul(id := "list", state)
     )
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    OutWatch.renderInto("#app", vtree).map { _ =>
 
-    val list = document.getElementById("list")
+      val list = document.getElementById("list")
 
-    list.childElementCount shouldBe 0
+      list.childElementCount shouldBe 0
 
-    val first = "Test"
+      val first = "Test"
 
-    state.onNext(Seq(span(first)))
+      state.onNext(Seq(span(first)))
 
-    list.childElementCount shouldBe 1
-    list.innerHTML.contains(first) shouldBe true
+      list.childElementCount shouldBe 1
+      list.innerHTML.contains(first) shouldBe true
 
-    val second = "Hello"
-    state.onNext(Seq(span(first), span(second)))
+      val second = "Hello"
+      state.onNext(Seq(span(first), span(second)))
 
-    list.childElementCount shouldBe 2
-    list.innerHTML.contains(first) shouldBe true
-    list.innerHTML.contains(second) shouldBe true
+      list.childElementCount shouldBe 2
+      list.innerHTML.contains(first) shouldBe true
+      list.innerHTML.contains(second) shouldBe true
 
-    val third = "World"
+      val third = "World"
 
-    state.onNext(Seq(span(first), span(second), span(third)))
+      state.onNext(Seq(span(first), span(second), span(third)))
 
-    list.childElementCount shouldBe 3
-    list.innerHTML.contains(first) shouldBe true
-    list.innerHTML.contains(second) shouldBe true
-    list.innerHTML.contains(third) shouldBe true
+      list.childElementCount shouldBe 3
+      list.innerHTML.contains(first) shouldBe true
+      list.innerHTML.contains(second) shouldBe true
+      list.innerHTML.contains(third) shouldBe true
 
-    state.onNext(Seq(span(first), span(third)))
+      state.onNext(Seq(span(first), span(third)))
 
-    list.childElementCount shouldBe 2
-    list.innerHTML.contains(first) shouldBe true
-    list.innerHTML.contains(third) shouldBe true
+      list.childElementCount shouldBe 2
+      list.innerHTML.contains(first) shouldBe true
+      list.innerHTML.contains(third) shouldBe true
+
+    }
   }
 
   it should "be able to handle two events of the same type" in {
 
-    val first = Handler.create[String].unsafeRunSync()
-
-    val second = Handler.create[String].unsafeRunSync()
-
     val messages = ("Hello", "World")
 
-    val node = div(
-      button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
-      span(id := "first", first),
-      span(id := "second", second)
-    )
+    val node = Handler.create[String].flatMap { first =>
+      Handler.create[String].flatMap { second =>
+        div(
+          button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
+          span(id := "first", first),
+          span(id := "second", second)
+        )
+      }
+    }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map {_ =>
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("click").dispatchEvent(event)
+      document.getElementById("first").innerHTML shouldBe messages._1
+      document.getElementById("second").innerHTML shouldBe messages._2
 
-    document.getElementById("first").innerHTML shouldBe messages._1
-    document.getElementById("second").innerHTML shouldBe messages._2
+    }
   }
 
   it should "be able to be transformed by a function in place" in {
@@ -241,16 +262,16 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map {_ =>
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("click").dispatchEvent(event)
+      document.getElementById("num").innerHTML shouldBe number.toString
 
-    document.getElementById("num").innerHTML shouldBe number.toString
+    }
   }
-
 
   it should ".transform should work as expected" in {
 
@@ -268,14 +289,15 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
 
-    document.getElementById("click").dispatchEvent(event)
+      document.getElementById("num").innerHTML shouldBe "<span>1</span><span>2</span>"
 
-    document.getElementById("num").innerHTML shouldBe "<span>1</span><span>2</span>"
+    }
   }
 
   it should "be able to be transformed from strings" in {
@@ -289,14 +311,15 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map {_ =>
 
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("input", false, true)
+      val inputEvt = document.createEvent("HTMLEvents")
+      initEvent(inputEvt)("input", canBubbleArg = false, cancelableArg = true)
+      document.getElementById("input").dispatchEvent(inputEvt)
 
-    document.getElementById("input").dispatchEvent(inputEvt)
+      document.getElementById("num").innerHTML shouldBe number.toString
 
-    document.getElementById("num").innerHTML shouldBe number.toString
+    }
   }
 
   it should "handler can trigger side-effecting functions" in {
@@ -318,24 +341,26 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map {_ =>
 
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("click", false, true)
+      val inputEvt = document.createEvent("HTMLEvents")
+      initEvent(inputEvt)("click", canBubbleArg = false, cancelableArg = true)
 
-    document.getElementById("button").dispatchEvent(inputEvt)
-    stream.onNext("woop")
-    triggeredEventFunction shouldBe 1
-    triggeredIntFunction shouldBe 1
-    triggeredFunction shouldBe 1
-    triggeredFunction2 shouldBe 1
+      document.getElementById("button").dispatchEvent(inputEvt)
+      stream.onNext("woop")
+      triggeredEventFunction shouldBe 1
+      triggeredIntFunction shouldBe 1
+      triggeredFunction shouldBe 1
+      triggeredFunction2 shouldBe 1
 
-    document.getElementById("button").dispatchEvent(inputEvt)
-    stream.onNext("waap")
-    triggeredEventFunction shouldBe 2
-    triggeredIntFunction shouldBe 2
-    triggeredFunction shouldBe 2
-    triggeredFunction2 shouldBe 2
+      document.getElementById("button").dispatchEvent(inputEvt)
+      stream.onNext("waap")
+      triggeredEventFunction shouldBe 2
+      triggeredIntFunction shouldBe 2
+      triggeredFunction shouldBe 2
+      triggeredFunction2 shouldBe 2
+
+    }
   }
 
   it should "be able to toggle attributes with a boolean observer" in {
@@ -349,17 +374,17 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("click", true, false)
+      val inputEvt = document.createEvent("HTMLEvents")
+      initEvent(inputEvt)("click", canBubbleArg = true, cancelableArg = false)
 
+      document.getElementById("input").dispatchEvent(inputEvt)
+      document.getElementById("toggled").classList.contains(someClass) shouldBe true
 
-    document.getElementById("input").dispatchEvent(inputEvt)
+    }
 
-    document.getElementById("toggled").classList.contains(someClass) shouldBe true
   }
-
 
   it should "correctly be transformed from latest in observable" in {
 
@@ -378,31 +403,32 @@ class DomEventSpec extends JSDomSpec {
       }
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val inputElement = document.getElementById("input").asInstanceOf[html.Input]
-    val submitButton = document.getElementById("submit")
+      val inputElement = document.getElementById("input").asInstanceOf[html.Input]
+      val submitButton = document.getElementById("submit")
 
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("input", false, true)
+      val inputEvt = document.createEvent("HTMLEvents")
+      initEvent(inputEvt)("input", canBubbleArg = false, cancelableArg = true)
 
-    val clickEvt = document.createEvent("Events")
-    initEvent(clickEvt)("click", true, true)
+      val clickEvt = document.createEvent("Events")
+      initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
 
-    inputElement.value = "item 1"
-    inputElement.dispatchEvent(inputEvt)
+      inputElement.value = "item 1"
+      inputElement.dispatchEvent(inputEvt)
 
-    inputElement.value = "item 2"
-    inputElement.dispatchEvent(inputEvt)
+      inputElement.value = "item 2"
+      inputElement.dispatchEvent(inputEvt)
 
-    inputElement.value = "item 3"
-    inputElement.dispatchEvent(inputEvt)
+      inputElement.value = "item 3"
+      inputElement.dispatchEvent(inputEvt)
 
-    submitButton.dispatchEvent(clickEvt)
+      submitButton.dispatchEvent(clickEvt)
 
-    document.getElementById("items").childNodes.length shouldBe 1
+      document.getElementById("items").childNodes.length shouldBe 1
+
+    }
   }
-
 
   "Boolean Props" should "be handled corectly" in {
 
@@ -414,24 +440,26 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
-    val onButton = document.getElementById("on_button")
-    val offButton = document.getElementById("off_button")
+      val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
+      val onButton = document.getElementById("on_button")
+      val offButton = document.getElementById("off_button")
 
-    checkbox.checked shouldBe false
+      checkbox.checked shouldBe false
 
-    val clickEvt = document.createEvent("Events")
-    initEvent(clickEvt)("click", true, true)
+      val clickEvt = document.createEvent("Events")
+      initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
 
-    onButton.dispatchEvent(clickEvt)
+      onButton.dispatchEvent(clickEvt)
 
-    checkbox.checked shouldBe true
+      checkbox.checked shouldBe true
 
-    offButton.dispatchEvent(clickEvt)
+      offButton.dispatchEvent(clickEvt)
 
-    checkbox.checked shouldBe false
+      checkbox.checked shouldBe false
+
+    }
   }
 
   "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
@@ -442,20 +470,20 @@ class DomEventSpec extends JSDomSpec {
     events.window.onClick(ev => winClicked = true)
     events.document.onClick(ev => docClicked = true)
 
-    val node =
-      div(
-        button(id := "input", tpe := "checkbox")
-      )
+    val node = div(button(id := "input", tpe := "checkbox"))
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("click", true, false)
+      val inputEvt = document.createEvent("HTMLEvents")
+      initEvent(inputEvt)("click", canBubbleArg = true, cancelableArg = false)
 
-    document.getElementById("input").dispatchEvent(inputEvt)
+      document.getElementById("input").dispatchEvent(inputEvt)
 
-    winClicked shouldBe true
-    docClicked shouldBe true
+      winClicked shouldBe true
+      docClicked shouldBe true
+
+    }
+
   }
 
   "EmitterOps" should "correctly work on events" in {
@@ -493,43 +521,43 @@ class DomEventSpec extends JSDomSpec {
       } yield elem
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map( _ =>
+      document.getElementById("input") should not be null
+    )
 
-    val element = document.getElementById("input")
-    element should not be null
   }
 
   it should "correctly be compiled with currentTarget" in {
 
-    val stringHandler = Handler.create[String].unsafeRunSync()
+    Handler.create[String].flatMap { stringHandler =>
 
-    def modifier: VDomModifier = onDrag.value --> stringHandler
+      def modifier: VDomModifier = onDrag.value --> stringHandler
 
-    val node = Handler.create[String].flatMap { submit =>
+      val node = Handler.create[String].flatMap { _ =>
 
-      for {
-        stream <- Handler.create[String]
-        eventStream <- Handler.create[MouseEvent]
-        elem <- div(
-          input(
-            id := "input", tpe := "text",
+        for {
+          stream <- Handler.create[String]
+               _ <- Handler.create[MouseEvent]
+            elem <- div(
+                      input(
+                        id := "input", tpe := "text",
 
-            onSearch.target.value --> stream,
-            onClick.value --> stream,
+                        onSearch.target.value --> stream,
+                        onClick.value --> stream,
 
-            modifier
-          ),
-          ul(id := "items")
-        )
-      } yield elem
+                        modifier
+                      ),
+                      ul(id := "items")
+                    )
+        } yield elem
+      }
+
+      OutWatch.renderInto("#app", node).map( _ =>
+        document.getElementById("input") should not be null
+      )
+
     }
-
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    val element = document.getElementById("input")
-    element should not be null
   }
-
 
   "Children stream" should "work for string sequences" in {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
@@ -537,82 +565,110 @@ class DomEventSpec extends JSDomSpec {
       myStrings
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "ab"
+    OutWatch.renderInto("#app", node).map( _ =>
+      document.getElementById("strings").innerHTML shouldBe "ab"
+    )
   }
 
   "LocalStorage.handler" should "have proper events" in {
+
     var option: Option[Option[String]] = None
-    val handler = util.LocalStorage.handler("hans").unsafeRunSync()
-    handler.foreach { o => option = Some(o) }
 
-    option shouldBe Some(None)
+    util.LocalStorage.handler("hans").map { handler =>
 
-    handler.onNext(Some("gisela"))
-    option shouldBe Some(Some("gisela"))
+      handler.foreach { o => option = Some(o) }
 
-    handler.onNext(None)
-    option shouldBe Some(None)
+      option shouldBe Some(None)
+
+      handler.onNext(Some("gisela"))
+      option shouldBe Some(Some("gisela"))
+
+      handler.onNext(None)
+      option shouldBe Some(None)
+
+    }
   }
 
   "LocalStorage.handlerWithEventsOnly" should "have proper events" in {
+
     var option: Option[Option[String]] = None
-    val handler = util.LocalStorage.handlerWithEventsOnly("hans").unsafeRunSync()
-    handler.foreach { o => option = Some(o) }
 
-    option shouldBe Some(None)
+    util.LocalStorage.handlerWithEventsOnly("hans").map {handler =>
+      handler.foreach { o => option = Some(o) }
 
-    handler.onNext(Some("gisela"))
-    option shouldBe Some(None)
+      option shouldBe Some(None)
 
-    handler.onNext(None)
-    option shouldBe Some(None)
+      handler.onNext(Some("gisela"))
+      option shouldBe Some(None)
+
+      handler.onNext(None)
+      option shouldBe Some(None)
+
+    }
   }
 
   "LocalStorage.handlerWithEventsOnly" should "have initial value" in {
+
     import org.scalajs.dom.window.localStorage
     localStorage.setItem("hans", "wurst")
 
     var option: Option[Option[String]] = None
-    val handler = util.LocalStorage.handlerWithEventsOnly("hans").unsafeRunSync()
-    handler.foreach { o => option = Some(o) }
 
-    option shouldBe Some(Some("wurst"))
+    util.LocalStorage.handlerWithEventsOnly("hans").map { handler =>
+
+      handler.foreach { o => option = Some(o) }
+      option shouldBe Some(Some("wurst"))
+    }
   }
 
   "LocalStorage.handlerWithoutEvents" should "have proper events" in {
+
     var option: Option[Option[String]] = None
-    val handler = util.LocalStorage.handlerWithoutEvents("hans").unsafeRunSync()
-    handler.foreach { o => option = Some(o) }
 
-    option shouldBe Some(None)
+    util.LocalStorage.handlerWithoutEvents("hans").map { handler =>
 
-    handler.onNext(Some("gisela"))
-    option shouldBe Some(Some("gisela"))
+      handler.foreach { o => option = Some(o) }
 
-    handler.onNext(None)
-    option shouldBe Some(None)
+      option shouldBe Some(None)
+
+      handler.onNext(Some("gisela"))
+      option shouldBe Some(Some("gisela"))
+
+      handler.onNext(None)
+      option shouldBe Some(None)
+
+    }
   }
 
   "Emitterbuilder" should "preventDefault (compile only)" in {
+
     val node = div(
       id := "click",
       onClick.filter(_ => true).preventDefault.map(_ => 4) --> sideEffect{()},
       onClick.preventDefault.map(_ => 3) --> sideEffect{()}
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    val test = for {
+      _ <- OutWatch.renderInto("#app", node)
+      e <- IO {
+            val event = document.createEvent("Events")
+            initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+            event
+          }
+      _ <- document.getElementById("click").dispatchEvent(e)
+    } yield {
+      succeed
+    }
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
+    test
+
   }
 
   "Emitterbuilder" should "stopPropagation" in {
+
     var triggeredFirst = false
     var triggeredSecond = false
+
     val node = div(
       onClick --> sideEffect{triggeredSecond = true},
       div(
@@ -621,14 +677,15 @@ class DomEventSpec extends JSDomSpec {
       )
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
 
-    triggeredFirst shouldBe true
-    triggeredSecond shouldBe false
+      triggeredFirst shouldBe true
+      triggeredSecond shouldBe false
+    }
   }
 
   "Emitterbuilder" should "stopImmediatePropagation" in {
@@ -644,13 +701,15 @@ class DomEventSpec extends JSDomSpec {
       onClick --> sideEffect{triggeredSecond = true}
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
 
-    triggeredFirst shouldBe true
-    triggeredSecond shouldBe false
+      triggeredFirst shouldBe true
+      triggeredSecond shouldBe false
+
+    }
   }
 }

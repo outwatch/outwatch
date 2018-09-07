@@ -11,13 +11,13 @@ import outwatch.dom.dsl._
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import snabbdom.{DataObject, hFunction}
 import org.scalajs.dom.window.localStorage
-
+import org.scalatest.Assertion
 import scala.collection.immutable.Seq
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.collection.mutable
 
-class OutWatchDomSpec extends JSDomSpec {
+class OutWatchDomSpec extends JSDomAsyncSpec {
 
   "Properties" should "be separated correctly" in {
     val properties = Seq(
@@ -43,57 +43,73 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   "VDomModifiers" should "be separated correctly" in {
-    val modifiers = Seq(
-      Attribute("class", "red"),
-      EmptyModifier,
-      Emitter("click", _ => Continue),
-      new StringVNode("Test"),
-      div().unsafeRunSync(),
-      CompositeModifier(
-        Seq(
-          div(),
-          attributes.`class` := "blue",
-          attributes.onClick(1) --> sideEffect{},
-          attributes.hidden <-- Observable(false)
-        ).map(_.unsafeRunSync())
-      ),
-      ModifierStreamReceiver(ValueObservable(Observable()))
-    )
 
-    val seps = SeparatedModifiers.from(modifiers)
-    import seps._
+    val test = for {
+      div <- div()
+      seq <- Seq(
+              div(),
+              attributes.`class` := "blue",
+              attributes.onClick(1) --> sideEffect{},
+              attributes.hidden <-- Observable(false)
+            ).sequence
+    } yield {
 
-    emitters.length shouldBe 2
-    properties.attributes.attrs.length shouldBe 2
-    children.nodes.length shouldBe 5
-    children.hasStream shouldBe true
-    children.hasVTree shouldBe true
+      val modifiers = Seq(
+        Attribute("class", "red"),
+        EmptyModifier,
+        Emitter("click", _ => Continue),
+        StringVNode("Test"),
+        div,
+        CompositeModifier(seq),
+        ModifierStreamReceiver(ValueObservable(Observable()))
+      )
+
+      val seps = SeparatedModifiers.from(modifiers)
+      import seps._
+
+      emitters.length shouldBe 2
+      properties.attributes.attrs.length shouldBe 2
+      children.nodes.length shouldBe 5
+      children.hasStream shouldBe true
+      children.hasVTree shouldBe true
+    }
+
+    test
+
   }
 
   it should "be separated correctly with children" in {
-    val modifiers: Seq[Modifier] = Seq(
-      Attribute("class","red"),
-      EmptyModifier,
-      Emitter("click", _ => Continue),
-      Emitter("input",  _ => Continue),
-      ModifierStreamReceiver(ValueObservable(Observable())),
-      ModifierStreamReceiver(ValueObservable(Observable())),
-      Emitter("keyup",  _ => Continue),
-      StringVNode("text"),
-      div().unsafeRunSync()
-    )
 
-    val seps = SeparatedModifiers.from(modifiers)
-    import seps._
 
-    emitters.length shouldBe 3
-    properties.attributes.attrs.length shouldBe 1
-    children.nodes.length shouldBe 4
-    children.hasStream shouldBe true
-    children.hasVTree shouldBe true
+    val test = div().map { div =>
+
+      val modifiers: Seq[Modifier] = Seq(
+        Attribute("class","red"),
+        EmptyModifier,
+        Emitter("click", _ => Continue),
+        Emitter("input",  _ => Continue),
+        ModifierStreamReceiver(ValueObservable(Observable())),
+        ModifierStreamReceiver(ValueObservable(Observable())),
+        Emitter("keyup",  _ => Continue),
+        StringVNode("text"),
+        div
+      )
+
+      val seps = SeparatedModifiers.from(modifiers)
+      import seps._
+
+      emitters.length shouldBe 3
+      properties.attributes.attrs.length shouldBe 1
+      children.nodes.length shouldBe 4
+      children.hasStream shouldBe true
+      children.hasVTree shouldBe true
+    }
+
+    test
   }
 
   it should "be separated correctly with string children" in {
+
     val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
@@ -117,6 +133,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "be separated correctly with children and properties" in {
+
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyModifier,
@@ -157,6 +174,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "be run once" in {
+
     val list = new collection.mutable.ArrayBuffer[String]
 
     val vtree = div(
@@ -190,64 +208,88 @@ class OutWatchDomSpec extends JSDomSpec {
       )
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
+    val test = for {
 
-    list.isEmpty shouldBe true
+      node <- IO {
+        val node = document.createElement("div")
+        document.body.appendChild(node)
+        node
+      }
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+      _ <- IO(list.isEmpty shouldBe true)
+      _ <- OutWatch.renderInto(node, vtree)
+    } yield {
 
-    list should contain theSameElementsAs List(
-      "child1", "child2", "children1", "children2", "attr1", "attr2"
-    )
+      list should contain theSameElementsAs List(
+        "child1", "child2", "children1", "children2", "attr1", "attr2"
+      )
+
+    }
+
+    test
   }
 
   it should "provide unique key for child nodes if stream is present" in {
-    val mods = Seq(
-      ModifierStreamReceiver(ValueObservable(Observable())),
-      div(id := "1").unsafeRunSync(),
-      div(id := "2").unsafeRunSync()
-      // div().unsafeRunSync(), div().unsafeRunSync() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
-    )
 
-    val modifiers =  SeparatedModifiers.from(mods)
-    val children = modifiers.children
+    import cats.syntax.apply._
 
-    children.nodes.length shouldBe 3
-    children.hasStream shouldBe true
-    children.hasVTree shouldBe true
+    val d1 = div(id := "1")
+    val d2 = div(id := "2")
 
-    val proxy = SnabbdomModifiers.toSnabbdom(modifiers, "div")
-    proxy.key.isDefined shouldBe true
+    (d1, d2).mapN { (div1, div2) =>
 
-    proxy.children.get.length shouldBe 2
+      val mods = Seq(
+        ModifierStreamReceiver(ValueObservable(Observable())),
+        div1,
+        div2
+        // div1, div1 //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
+      )
 
-    val key1 = proxy.children.get(0).key
-    val key2 = proxy.children.get(1).key
+      val modifiers = SeparatedModifiers.from(mods)
+      val children = modifiers.children
 
-    key1.isDefined shouldBe true
-    key2.isDefined shouldBe true
-    key1.get should not be key2.get
+      children.nodes.length shouldBe 3
+      children.hasStream shouldBe true
+      children.hasVTree shouldBe true
+
+      val proxy = SnabbdomModifiers.toSnabbdom(modifiers, "div")
+      proxy.key.isDefined shouldBe true
+
+      proxy.children.get.length shouldBe 2
+
+      val key1 = proxy.children.get(0).key
+      val key2 = proxy.children.get(1).key
+
+      key1.isDefined shouldBe true
+      key2.isDefined shouldBe true
+      key1.get should not be key2.get
+    }
   }
 
   it should "keep existing key for child nodes" in {
-    val mods = Seq(
-      Key(1234),
-      ModifierStreamReceiver(ValueObservable(Observable())),
-      div()(IO.pure(Key(5678))).unsafeRunSync()
-    )
 
-    val modifiers =  SeparatedModifiers.from(mods)
-    val children = modifiers.children
+    val test = div()(IO.pure(Key(5678))).map { div =>
 
-    children.nodes.length shouldBe 2
-    children.hasStream shouldBe true
-    children.hasVTree shouldBe true
+      val mods = Seq(
+        Key(1234),
+        ModifierStreamReceiver(ValueObservable(Observable())),
+        div
+      )
 
-    val proxy = SnabbdomModifiers.toSnabbdom(modifiers, "div")
-    proxy.key.toOption  shouldBe Some(1234)
+      val modifiers = SeparatedModifiers.from(mods)
+      val children = modifiers.children
 
-    proxy.children.get(0).key.toOption shouldBe Some(5678)
+      children.nodes.length shouldBe 2
+      children.hasStream shouldBe true
+      children.hasVTree shouldBe true
+
+      val proxy = SnabbdomModifiers.toSnabbdom(modifiers, "div")
+      proxy.key.toOption shouldBe Some(1234)
+
+      proxy.children.get(0).key.toOption shouldBe Some(5678)
+    }
+
+    test
   }
 
   "VTrees" should "be constructed correctly" in {
@@ -255,87 +297,109 @@ class OutWatchDomSpec extends JSDomSpec {
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
-    val proxy = fixture.proxy
+    val vproxy = div(IO.pure(attributes.head), IO.pure(attributes(1)), child).map(_.toSnabbdom)
+    val proxy  = fixture.proxy
 
-    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(proxy)
-
+    vproxy.map(JSON.stringify(_) shouldBe JSON.stringify(proxy))
   }
 
   it should "be correctly created with the HyperscriptHelper" in {
+
     val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
     val message = "Hello"
     val child = span(message)
-    val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
-    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    val vproxy = div(IO.pure(attributes.head), IO.pure(attributes(1)), child).map(_.toSnabbdom)
+    val proxy  = fixture.proxy
+
+    vproxy.map(JSON.stringify(_) shouldBe JSON.stringify(proxy))
   }
 
 
   it should "run its modifiers once!" in {
-    val stringHandler = Handler.create[String].unsafeRunSync()
-    var ioCounter = 0
-    var handlerCounter = 0
-    stringHandler { _ =>
-      handlerCounter += 1
+
+    Handler.create[String].flatMap { stringHandler =>
+
+      var ioCounter = 0
+      var handlerCounter = 0
+      stringHandler { _ =>
+        handlerCounter += 1
+      }
+
+      val vtree = div(
+        div(
+          IO {
+            ioCounter += 1
+            Attribute("hans", "")
+          }
+        ),
+        stringHandler
+      )
+
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+
+      ioCounter shouldBe 0
+      handlerCounter shouldBe 0
+
+
+      OutWatch.renderInto(node, vtree).map { _ =>
+
+        ioCounter shouldBe 1
+        handlerCounter shouldBe 0
+        stringHandler.onNext("pups")
+        ioCounter shouldBe 1
+        handlerCounter shouldBe 1
+
+      }
+
     }
 
-    val vtree = div(
-      div(
-        IO {
-          ioCounter += 1
-          Attribute("hans", "")
-        }
-      ),
-      stringHandler
-    )
-
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-
-    ioCounter shouldBe 0
-    handlerCounter shouldBe 0
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
-    ioCounter shouldBe 1
-    handlerCounter shouldBe 0
-    stringHandler.onNext("pups")
-    ioCounter shouldBe 1
-    handlerCounter shouldBe 1
   }
 
   it should "run its modifiers once in CompositeModifier!" in {
-    val stringHandler = Handler.create[String].unsafeRunSync()
-    var ioCounter = 0
-    var handlerCounter = 0
-    stringHandler { _ =>
-      handlerCounter += 1
+
+    Handler.create[String].flatMap { stringHandler =>
+
+      var ioCounter = 0
+      var handlerCounter = 0
+      stringHandler { _ =>
+        handlerCounter += 1
+      }
+
+      val vtree = div(
+        div(Seq(
+          IO {
+            ioCounter += 1
+            Attribute("hans", "")
+          }
+        )),
+        stringHandler
+      )
+
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+
+      ioCounter shouldBe 0
+      handlerCounter shouldBe 0
+
+      OutWatch.renderInto(node, vtree).map { _ =>
+
+        ioCounter shouldBe 1
+        handlerCounter shouldBe 0
+        stringHandler.onNext("pups")
+        ioCounter shouldBe 1
+        handlerCounter shouldBe 1
+
+      }
+
     }
 
-    val vtree = div(
-      div(Seq(
-        IO {
-          ioCounter += 1
-          Attribute("hans", "")
-        }
-      )),
-      stringHandler
-    )
-
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-
-    ioCounter shouldBe 0
-    handlerCounter shouldBe 0
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
-    ioCounter shouldBe 1
-    handlerCounter shouldBe 0
-    stringHandler.onNext("pups")
-    ioCounter shouldBe 1
-    handlerCounter shouldBe 1
   }
 
   it should "be correctly patched into the DOM" in {
+
     val id = "msg"
     val cls = "red"
     val attributes = List(Attribute("class", cls), Attribute("id", id))
@@ -343,26 +407,31 @@ class OutWatchDomSpec extends JSDomSpec {
     val child = span(message)
     val vtree = div(IO.pure(attributes.head), IO.pure(attributes(1)), child)
 
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
+    node.flatMap { n =>
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+      OutWatch.renderInto(n, vtree).map { _ =>
 
-    val patchedNode = document.getElementById(id)
+          val patchedNode = document.getElementById(id)
+          patchedNode.childElementCount shouldBe 1
+          patchedNode.classList.contains(cls) shouldBe true
+          patchedNode.children(0).innerHTML shouldBe message
+      }
 
-    patchedNode.childElementCount shouldBe 1
-    patchedNode.classList.contains(cls) shouldBe true
-    patchedNode.children(0).innerHTML shouldBe message
+    }
 
   }
 
   it should "be replaced if they contain changeables" in {
 
-    def page(num: Int): VNode = {
-      val pageNum = Handler.create[Int](num).unsafeRunSync()
-
-      div( id := "page",
+    def page(num: Int): VNode = for {
+      pageNum <- Handler.create[Int](num)
+      node <- div( id := "page",
         num match {
           case 1 =>
             div(pageNum)
@@ -370,7 +439,7 @@ class OutWatchDomSpec extends JSDomSpec {
             div(pageNum)
         }
       )
-    }
+    } yield node
 
     val pageHandler = PublishSubject[Int]
 
@@ -378,43 +447,46 @@ class OutWatchDomSpec extends JSDomSpec {
       div(pageHandler.map(page))
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+    node.flatMap { n =>
 
-    pageHandler.onNext(1)
+      OutWatch.renderInto(n, vtree).map { _ =>
 
-    val domNode = document.getElementById("page")
+        pageHandler.onNext(1)
 
-    domNode.textContent shouldBe "1"
+        val domNode = document.getElementById("page")
 
-    pageHandler.onNext(2)
+        domNode.textContent shouldBe "1"
 
-    domNode.textContent shouldBe "2"
+        pageHandler.onNext(2)
 
+        domNode.textContent shouldBe "2"
+      }
+
+    }
   }
 
   "The HTML DSL" should "construct VTrees properly" in {
     import outwatch.dom._
 
-    val vtree = div(cls := "red", id := "msg",
-      span("Hello")
-    )
+    val vproxy = div(cls := "red", id := "msg", span("Hello")).map(_.toSnabbdom)
+    val proxy  = fixture.proxy
 
-    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
+    vproxy.map(JSON.stringify(_) shouldBe JSON.stringify(proxy))
   }
 
   it should "construct VTrees with optional children properly" in {
     import outwatch.dom._
 
-    val vtree = div(cls := "red", id := "msg",
-      Option(span("Hello")),
-      Option.empty[VDomModifier]
-    )
+    val vproxy = div(cls := "red", id := "msg", Option(span("Hello")), Option.empty[VDomModifier]).map(_.toSnabbdom)
+    val proxy  = fixture.proxy
 
-    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(fixture.proxy)
-
+    vproxy.map(JSON.stringify(_) shouldBe JSON.stringify(proxy))
   }
 
   it should "construct VTrees with boolean attributes" in {
@@ -422,19 +494,20 @@ class OutWatchDomSpec extends JSDomSpec {
 
     def boolBuilder(name: String) = new BasicAttrBuilder[Boolean](name, identity)
     def stringBuilder(name: String) = new BasicAttrBuilder[Boolean](name, _.toString)
-    val vtree = div(
+
+    val vproxy = div(
       boolBuilder("a"),
       boolBuilder("b") := true,
       boolBuilder("c") := false,
       stringBuilder("d"),
       stringBuilder("e") := true,
       stringBuilder("f") := false
-    )
+    ).map(_.toSnabbdom)
 
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = hFunction("div", DataObject(attrs, js.Dictionary()))
 
-    JSON.stringify(vtree.map(_.toSnabbdom).unsafeRunSync()) shouldBe JSON.stringify(expected)
+    vproxy.map(JSON.stringify(_) shouldBe JSON.stringify(expected))
 
   }
 
@@ -451,50 +524,67 @@ class OutWatchDomSpec extends JSDomSpec {
       )
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+    node.flatMap {n =>
 
-    val patchedNode = document.getElementById("test")
+      OutWatch.renderInto(n, vtree).map {_ =>
 
-    patchedNode.childElementCount shouldBe 2
-    patchedNode.classList.contains("blue") shouldBe true
-    patchedNode.children(0).innerHTML shouldBe message
+        val patchedNode = document.getElementById("test")
 
-    document.getElementById("list").childElementCount shouldBe 3
+        patchedNode.childElementCount shouldBe 2
+        patchedNode.classList.contains("blue") shouldBe true
+        patchedNode.children(0).innerHTML shouldBe message
+        document.getElementById("list").childElementCount shouldBe 3
+      }
 
+    }
   }
 
   it should "change the value of a textfield" in {
+
     val messages = PublishSubject[String]
     val vtree = div(
       input(attributes.value <-- messages, id := "input")
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+    node.flatMap { n =>
 
-    val field = document.getElementById("input").asInstanceOf[html.Input]
+      OutWatch.renderInto(n, vtree).map { _ =>
 
-    field.value shouldBe ""
+        val field = document.getElementById("input").asInstanceOf[html.Input]
 
-    val message = "Hello"
-    messages.onNext(message)
+        field.value shouldBe ""
 
-    field.value shouldBe message
+        val message = "Hello"
+        messages.onNext(message)
 
-    val message2 = "World"
-    messages.onNext(message2)
+        field.value shouldBe message
 
-    field.value shouldBe message2
+        val message2 = "World"
+        messages.onNext(message2)
+
+        field.value shouldBe message2
+      }
+
+    }
   }
 
   it should "render child nodes in correct order" in {
+
     val messagesA = PublishSubject[String]
     val messagesB = PublishSubject[String]
+
     val vNode = div(
       span("A"),
       messagesA.map(span(_)),
@@ -502,17 +592,27 @@ class OutWatchDomSpec extends JSDomSpec {
       messagesB.map(span(_))
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    messagesA.onNext("1")
-    messagesB.onNext("2")
+    node.flatMap { n =>
 
-    node.innerHTML shouldBe "<div><span>A</span><span>1</span><span>B</span><span>2</span></div>"
+      OutWatch.renderInto(n, vNode).map { _ =>
+
+        messagesA.onNext("1")
+        messagesB.onNext("2")
+
+        n.innerHTML shouldBe "<div><span>A</span><span>1</span><span>B</span><span>2</span></div>"
+      }
+
+    }
   }
 
   it should "render child string-nodes in correct order" in {
+
     val messagesA = PublishSubject[String]
     val messagesB = PublishSubject[String]
     val vNode = div(
@@ -522,23 +622,34 @@ class OutWatchDomSpec extends JSDomSpec {
       messagesB
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    node.innerHTML shouldBe "<div>AB</div>"
+    node.flatMap { n =>
 
-    messagesA.onNext("1")
-    node.innerHTML shouldBe "<div>A1B</div>"
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    messagesB.onNext("2")
-    node.innerHTML shouldBe "<div>A1B2</div>"
+        n.innerHTML shouldBe "<div>AB</div>"
+
+        messagesA.onNext("1")
+        n.innerHTML shouldBe "<div>A1B</div>"
+
+        messagesB.onNext("2")
+        n.innerHTML shouldBe "<div>A1B2</div>"
+      }
+
+    }
   }
 
   it should "render child string-nodes in correct order, mixed with children" in {
+
     val messagesA = PublishSubject[String]
     val messagesB = PublishSubject[String]
     val messagesC = PublishSubject[Seq[VNode]]
+
     val vNode = div(
       "A",
       messagesA,
@@ -547,63 +658,94 @@ class OutWatchDomSpec extends JSDomSpec {
       messagesB
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    node.innerHTML shouldBe "<div>AB</div>"
+    node.flatMap { n =>
 
-    messagesA.onNext("1")
-    node.innerHTML shouldBe "<div>A1B</div>"
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    messagesB.onNext("2")
-    node.innerHTML shouldBe "<div>A1B2</div>"
+        n.innerHTML shouldBe "<div>AB</div>"
 
-    messagesC.onNext(Seq(div("5"), div("7")))
-    node.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
+        messagesA.onNext("1")
+        n.innerHTML shouldBe "<div>A1B</div>"
+
+        messagesB.onNext("2")
+        n.innerHTML shouldBe "<div>A1B2</div>"
+
+        messagesC.onNext(Seq(div("5"), div("7")))
+        n.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
+      }
+
+    }
   }
 
   it should "update merged nodes children correctly" in {
+
     val messages = PublishSubject[Seq[VNode]]
     val otherMessages = PublishSubject[Seq[VNode]]
     val vNode = div(messages)(otherMessages)
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
 
-    otherMessages.onNext(Seq(div("otherMessage")))
-    node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    messages.onNext(Seq(div("message")))
-    node.children(0).innerHTML shouldBe "<div>message</div><div>otherMessage</div>"
+    node.flatMap { n =>
 
-    otherMessages.onNext(Seq(div("genus")))
-    node.children(0).innerHTML shouldBe "<div>message</div><div>genus</div>"
+      OutWatch.renderInto(n, vNode).map { _ =>
+
+        otherMessages.onNext(Seq(div("otherMessage")))
+        n.children(0).innerHTML shouldBe "<div>otherMessage</div>"
+
+        messages.onNext(Seq(div("message")))
+        n.children(0).innerHTML shouldBe "<div>message</div><div>otherMessage</div>"
+
+        otherMessages.onNext(Seq(div("genus")))
+        n.children(0).innerHTML shouldBe "<div>message</div><div>genus</div>"
+      }
+
+    }
   }
 
   it should "update merged nodes separate children correctly" in {
+
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
     val vNode = div(messages)(otherMessages)
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    node.children(0).innerHTML shouldBe ""
+    node.flatMap { n =>
 
-    otherMessages.onNext("otherMessage")
-    node.children(0).innerHTML shouldBe "otherMessage"
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    messages.onNext("message")
-    node.children(0).innerHTML shouldBe "messageotherMessage"
+        n.children(0).innerHTML shouldBe ""
 
-    otherMessages.onNext("genus")
-    node.children(0).innerHTML shouldBe "messagegenus"
+        otherMessages.onNext("otherMessage")
+        n.children(0).innerHTML shouldBe "otherMessage"
+
+        messages.onNext("message")
+        n.children(0).innerHTML shouldBe "messageotherMessage"
+
+        otherMessages.onNext("genus")
+        n.children(0).innerHTML shouldBe "messagegenus"
+      }
+
+    }
   }
 
   it should "partially render component even if parts not present" in {
+
     val messagesColor = PublishSubject[String]
     val messagesBgColor = PublishSubject[String]
     val childString = PublishSubject[String]
@@ -614,32 +756,44 @@ class OutWatchDomSpec extends JSDomSpec {
       childString
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
-    val inner = document.getElementById("inner").asInstanceOf[html.Div]
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    inner.innerHTML shouldBe ""
-    inner.style.color shouldBe ""
-    inner.style.backgroundColor shouldBe ""
+    node.flatMap { n =>
 
-    childString.onNext("fish")
-    inner.innerHTML shouldBe "fish"
-    inner.style.color shouldBe ""
-    inner.style.backgroundColor shouldBe ""
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    messagesColor.onNext("red")
-    inner.innerHTML shouldBe "fish"
-    inner.style.color shouldBe "red"
-    inner.style.backgroundColor shouldBe ""
+        val inner = document.getElementById("inner").asInstanceOf[html.Div]
 
-    messagesBgColor.onNext("blue")
-    inner.innerHTML shouldBe "fish"
-    inner.style.color shouldBe "red"
-    inner.style.backgroundColor shouldBe "blue"
+        inner.innerHTML shouldBe ""
+        inner.style.color shouldBe ""
+        inner.style.backgroundColor shouldBe ""
+
+        childString.onNext("fish")
+        inner.innerHTML shouldBe "fish"
+        inner.style.color shouldBe ""
+        inner.style.backgroundColor shouldBe ""
+
+        messagesColor.onNext("red")
+        inner.innerHTML shouldBe "fish"
+        inner.style.color shouldBe "red"
+        inner.style.backgroundColor shouldBe ""
+
+        messagesBgColor.onNext("blue")
+        inner.innerHTML shouldBe "fish"
+        inner.style.color shouldBe "red"
+        inner.style.backgroundColor shouldBe "blue"
+
+      }
+
+    }
   }
 
   it should "partially render component even if parts not present2" in {
+
     val messagesColor = PublishSubject[String]
     val childString = PublishSubject[String]
 
@@ -648,441 +802,597 @@ class OutWatchDomSpec extends JSDomSpec {
       childString
     )
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
-    val inner = document.getElementById("inner").asInstanceOf[html.Div]
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    inner.innerHTML shouldBe ""
-    inner.style.color shouldBe ""
+    node.flatMap { n =>
 
-    childString.onNext("fish")
-    inner.innerHTML shouldBe "fish"
-    inner.style.color shouldBe ""
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    messagesColor.onNext("red")
-    inner.innerHTML shouldBe "fish"
-    inner.style.color shouldBe "red"
+        val inner = document.getElementById("inner").asInstanceOf[html.Div]
+
+        inner.innerHTML shouldBe ""
+        inner.style.color shouldBe ""
+
+        childString.onNext("fish")
+        inner.innerHTML shouldBe "fish"
+        inner.style.color shouldBe ""
+
+        messagesColor.onNext("red")
+        inner.innerHTML shouldBe "fish"
+        inner.style.color shouldBe "red"
+      }
+
+    }
   }
 
   it should "update reused vnodes correctly" in {
+
     val messages = PublishSubject[String]
     val vNode = div(data.ralf := true, messages)
     val container = div(vNode, vNode)
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, container).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    messages.onNext("message")
-    node.children(0).children(0).innerHTML shouldBe "message"
-    node.children(0).children(1).innerHTML shouldBe "message"
+    node.flatMap { n =>
 
-    messages.onNext("bumo")
-    node.children(0).children(0).innerHTML shouldBe "bumo"
-    node.children(0).children(1).innerHTML shouldBe "bumo"
+      OutWatch.renderInto(n, container).map { _ =>
+
+        messages.onNext("message")
+        n.children(0).children(0).innerHTML shouldBe "message"
+        n.children(0).children(1).innerHTML shouldBe "message"
+
+        messages.onNext("bumo")
+        n.children(0).children(0).innerHTML shouldBe "bumo"
+        n.children(0).children(1).innerHTML shouldBe "bumo"
+      }
+
+    }
   }
 
   it should "update merged nodes correctly (render reuse)" in {
+
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
     val vNodeTemplate = div(messages)
     val vNode = vNodeTemplate(otherMessages)
 
-    val node1 = document.createElement("div")
-    document.body.appendChild(node1)
-    OutWatch.renderInto(node1, vNodeTemplate).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    val node2 = document.createElement("div")
-    document.body.appendChild(node2)
-    OutWatch.renderInto(node2, vNode).unsafeRunSync()
+    val test = for {
 
-    messages.onNext("gurkon")
-    otherMessages.onNext("otherMessage")
-    node1.children(0).innerHTML shouldBe "gurkon"
-    node2.children(0).innerHTML shouldBe "gurkonotherMessage"
+      node1 <- node
+       _ <- OutWatch.renderInto(node1, vNodeTemplate)
 
-    messages.onNext("message")
-    node1.children(0).innerHTML shouldBe "message"
-    node2.children(0).innerHTML shouldBe "messageotherMessage"
+      node2 <- node
+       _ <- OutWatch.renderInto(node2, vNode)
 
-    otherMessages.onNext("genus")
-    node1.children(0).innerHTML shouldBe "message"
-    node2.children(0).innerHTML shouldBe "messagegenus"
+    } yield {
+
+      messages.onNext("gurkon")
+      otherMessages.onNext("otherMessage")
+      node1.children(0).innerHTML shouldBe "gurkon"
+      node2.children(0).innerHTML shouldBe "gurkonotherMessage"
+
+      messages.onNext("message")
+      node1.children(0).innerHTML shouldBe "message"
+      node2.children(0).innerHTML shouldBe "messageotherMessage"
+
+      otherMessages.onNext("genus")
+      node1.children(0).innerHTML shouldBe "message"
+      node2.children(0).innerHTML shouldBe "messagegenus"
+    }
+
+    test
   }
 
   it should "update merged node attributes correctly" in {
+
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
     val vNode = div(data.noise <-- messages)(data.noise <-- otherMessages)
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    otherMessages.onNext("otherMessage")
-    node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
+    node.flatMap { n =>
 
-    messages.onNext("message") // should be ignored
-    node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    otherMessages.onNext("genus")
-    node.children(0).getAttribute("data-noise") shouldBe "genus"
+        otherMessages.onNext("otherMessage")
+        n.children(0).getAttribute("data-noise") shouldBe "otherMessage"
+
+        messages.onNext("message") // should be ignored
+        n.children(0).getAttribute("data-noise") shouldBe "otherMessage"
+
+        otherMessages.onNext("genus")
+        n.children(0).getAttribute("data-noise") shouldBe "genus"
+      }
+
+    }
   }
 
   it should "update merged node styles written with style() correctly" in {
+
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
     val vNode = div(style("color") <-- messages)(style("color") <-- otherMessages)
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    otherMessages.onNext("red")
-    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+    node.flatMap { n =>
 
-    messages.onNext("blue") // should be ignored
-    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    otherMessages.onNext("green")
-    node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+        otherMessages.onNext("red")
+        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+
+        messages.onNext("blue") // should be ignored
+        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+
+        otherMessages.onNext("green")
+        n.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+      }
+
+    }
   }
 
   it should "update merged node styles correctly" in {
+
     val messages = PublishSubject[String]
     val otherMessages = PublishSubject[String]
     val vNode = div(color <-- messages)(color <-- otherMessages)
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    otherMessages.onNext("red")
-    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+    node.flatMap { n =>
 
-    messages.onNext("blue") // should be ignored
-    node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+      OutWatch.renderInto(n, vNode).map { _ =>
 
-    otherMessages.onNext("green")
-    node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+        otherMessages.onNext("red")
+        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+
+        messages.onNext("blue") // should be ignored
+        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+
+        otherMessages.onNext("green")
+        n.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+      }
+
+    }
   }
 
 
   it should "render composite VNodes properly" in {
+
     val items = Seq("one", "two", "three")
     val vNode = div(items.map(item => span(item)))
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    node.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
+    node.flatMap { n =>
 
+      OutWatch.renderInto(n, vNode).map { _ =>
+
+        n.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
+      }
+
+    }
   }
 
   it should "render nodes with only attribute receivers properly" in {
+
     val classes = PublishSubject[String]
     val vNode = button( className <-- classes, "Submit")
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    classes.onNext("active")
+    node.flatMap { n =>
 
-    node.innerHTML shouldBe """<button class="active">Submit</button>"""
+      OutWatch.renderInto(n, vNode).map { _ =>
+
+        classes.onNext("active")
+
+        n.innerHTML shouldBe """<button class="active">Submit</button>"""
+      }
+
+    }
   }
 
   it should "work with custom tags" in {
 
     val vNode = div(tag("main")())
 
-    val node = document.createElement("div")
-    document.body.appendChild(node)
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
 
-    OutWatch.renderInto(node, vNode).unsafeRunSync()
+    node.flatMap { n =>
 
-    node.innerHTML shouldBe "<div><main></main></div>"
+      OutWatch.renderInto(n, vNode).map { _ =>
+
+        n.innerHTML shouldBe "<div><main></main></div>"
+      }
+
+    }
   }
 
   it should "work with un-assigned booleans attributes and props" in {
 
     val vNode = option(selected, disabled)
 
-    val node = document.createElement("option").asInstanceOf[html.Option]
-    document.body.appendChild(node)
+    val node = IO {
+      val node = document.createElement("option").asInstanceOf[html.Option]
+      document.body.appendChild(node)
+      node
+    }
 
-    node.selected shouldBe false
-    node.disabled shouldBe false
+    node.flatMap { n =>
 
-    OutWatch.renderReplace(node, vNode).unsafeRunSync()
+      n.selected shouldBe false
+      n.disabled shouldBe false
 
-    node.selected shouldBe true
-    node.disabled shouldBe true
+      OutWatch.renderReplace(n, vNode).map {_ =>
+
+        n.selected shouldBe true
+        n.disabled shouldBe true
+      }
+
+    }
   }
 
   it should "correctly work with AsVDomModifier conversions" in {
 
-    val node = document.createElement("div")
+    val test: IO[Assertion] = for {
+      n1 <- IO(document.createElement("div"))
 
-    OutWatch.renderReplace(node, div("one")).unsafeRunSync()
-    node.innerHTML shouldBe "one"
+       _ <- OutWatch.renderReplace(n1, div("one"))
+       _ = n1.innerHTML shouldBe "one"
 
-    OutWatch.renderReplace(node, div(Some("one"))).unsafeRunSync()
-    node.innerHTML shouldBe "one"
+       _ <- OutWatch.renderReplace(n1, div(Some("one")))
+       _ = n1.innerHTML shouldBe "one"
 
-    val node2 = document.createElement("div")
-    OutWatch.renderReplace(node2, div(None:Option[Int])).unsafeRunSync()
-    node2.innerHTML shouldBe ""
+      n2 <- IO(document.createElement("div"))
 
-    OutWatch.renderReplace(node, div(1)).unsafeRunSync()
-    node.innerHTML shouldBe "1"
+       _ <- OutWatch.renderReplace(n2, div(None:Option[Int]))
+       _ = n2.innerHTML shouldBe ""
 
-    OutWatch.renderReplace(node, div(1.0)).unsafeRunSync()
-    node.innerHTML shouldBe "1"
+      _ <- OutWatch.renderReplace(n1, div(1))
+      _ = n1.innerHTML shouldBe "1"
 
-    OutWatch.renderReplace(node, div(Seq("one", "two"))).unsafeRunSync()
-    node.innerHTML shouldBe "onetwo"
+      _ <- OutWatch.renderReplace(n1, div(1.0))
+      _ = n1.innerHTML shouldBe "1"
 
-    OutWatch.renderReplace(node, div(Seq(1, 2))).unsafeRunSync()
-    node.innerHTML shouldBe "12"
+      _ <- OutWatch.renderReplace(n1, div(Seq("one", "two")))
+      _ = n1.innerHTML shouldBe "onetwo"
 
-    OutWatch.renderReplace(node, div(Seq(1.0, 2.0))).unsafeRunSync()
-    node.innerHTML shouldBe "12"
+      _ <- OutWatch.renderReplace(n1, div(Seq(1, 2)))
+      _ = n1.innerHTML shouldBe "12"
+
+      _ <- OutWatch.renderReplace(n1, div(Seq(1.0, 2.0)))
+      _ = n1.innerHTML shouldBe "12"
+
+    } yield succeed
+
+    test
   }
 
   "Children stream" should "work for string sequences" in {
+
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
-    val node = div(id := "strings",
-      myStrings
-    )
+    val node = div(id := "strings", myStrings)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "ab"
+      val element = document.getElementById("strings")
+      element.innerHTML shouldBe "ab"
+
+    }
   }
 
   "Children stream" should "work for double/boolean/long/int" in {
+
     val node = div(id := "strings",
       1.1, true, 133L, 7
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "1.1true1337"
+      val element = document.getElementById("strings")
+      element.innerHTML shouldBe "1.1true1337"
+
+    }
   }
 
   "Child stream" should "work for string options" in {
-    val myOption: Handler[Option[String]] = Handler.create(Option("a")).unsafeRunSync()
-    val node = div(id := "strings",
-      myOption
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create(Option("a")).flatMap { myOption =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "a"
+      val node = div(id := "strings", myOption)
 
-    myOption.onNext(None)
-    element.innerHTML shouldBe ""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "a"
+
+        myOption.onNext(None)
+        element.innerHTML shouldBe ""
+
+      }
+
+    }
   }
 
   it should "work for vnode options" in {
-    val myOption: Handler[Option[VNode]] = Handler.create(Option(div("a"))).unsafeRunSync()
-    val node = div(id := "strings",
-      myOption
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create(Option(div("a"))).flatMap { myOption =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div>a</div>"
+      val node = div(id := "strings", myOption)
 
-    myOption.onNext(None)
-    element.innerHTML shouldBe ""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div>a</div>"
+
+        myOption.onNext(None)
+        element.innerHTML shouldBe ""
+
+      }
+
+    }
   }
 
   "Modifier stream" should "work for modifier" in {
-    val myHandler = Handler.create[VDomModifier](Seq(cls := "hans", b("stark"))).unsafeRunSync()
-    val node = div(id := "strings",
-      div(VDomModifier(myHandler))
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier](Seq(cls := "hans", b("stark"))).flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe """<div class="hans"><b>stark</b></div>"""
+      val node = div(id := "strings",
+        div(VDomModifier(myHandler))
+      )
 
-    myHandler.onNext(Option(id := "fair"))
-    element.innerHTML shouldBe """<div id="fair"></div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe """<div class="hans"><b>stark</b></div>"""
+
+        myHandler.onNext(Option(id := "fair"))
+        element.innerHTML shouldBe """<div id="fair"></div>"""
+
+      }
+
+    }
   }
 
   it should "work for multiple mods" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(myHandler, "bla")
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    val test: IO[Assertion] = Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div>bla</div>"
+      val node = div(id := "strings",
+        div(myHandler, "bla")
+      )
 
-    myHandler.onNext(cls := "hans")
-    element.innerHTML shouldBe """<div class="hans">bla</div>"""
+      OutWatch.renderInto("#app", node).flatMap { _ =>
 
-    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(div(
-      innerHandler,
-      cls := "no?",
-      "yes?"
-    ))
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div>bla</div>"
 
-    element.innerHTML shouldBe """<div><div class="no?">yes?</div>bla</div>"""
+        myHandler.onNext(cls := "hans")
+        element.innerHTML shouldBe """<div class="hans">bla</div>"""
 
-    innerHandler.onNext(Seq(span("question:"), id := "heidi"))
-    element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?</div>bla</div>"""
+        Handler.create[VDomModifier].map { innerHandler =>
 
-    myHandler.onNext(div(
-      innerHandler,
-      cls := "no?",
-      "yes?",
-      b("go!")
-    ))
+          myHandler.onNext(div(
+            innerHandler,
+            cls := "no?",
+            "yes?"
+          ))
+          element.innerHTML shouldBe """<div><div class="no?">yes?</div>bla</div>"""
 
-    element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?<b>go!</b></div>bla</div>"""
+          innerHandler.onNext(Seq(span("question:"), id := "heidi"))
+          element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?</div>bla</div>"""
 
-    innerHandler.onNext(Seq(span("question and answer:"), id := "heidi"))
-    element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question and answer:</span>yes?<b>go!</b></div>bla</div>"""
+          myHandler.onNext(div(
+            innerHandler,
+            cls := "no?",
+            "yes?",
+            b("go!")
+          ))
 
-    myHandler.onNext(Seq(span("nope")))
-    element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
+          element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?<b>go!</b></div>bla</div>"""
 
-    innerHandler.onNext(b("me?"))
-    element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
+          innerHandler.onNext(Seq(span("question and answer:"), id := "heidi"))
+          element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question and answer:</span>yes?<b>go!</b></div>bla</div>"""
+
+          myHandler.onNext(Seq(span("nope")))
+          element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
+
+          innerHandler.onNext(b("me?"))
+          element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
+
+        }
+      }
+
+    }
+
+    test
   }
 
   it should "work for nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(myHandler)
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div></div>"
+      val node = div(id := "strings",
+        div(myHandler)
+      )
 
-    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(innerHandler)
-    element.innerHTML shouldBe """<div></div>"""
+      OutWatch.renderInto("#app", node).flatMap { _ =>
 
-    innerHandler.onNext(VDomModifier(cls := "hans", "1"))
-    element.innerHTML shouldBe """<div class="hans">1</div>"""
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div></div>"
 
-    val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(innerHandler2)
-    element.innerHTML shouldBe """<div></div>"""
+        Handler.create[VDomModifier].flatMap { innerHandler =>
 
-    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
-    element.innerHTML shouldBe """<div></div>"""
+          myHandler.onNext(innerHandler)
+          element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
-    element.innerHTML shouldBe """<div>pete</div>"""
+          innerHandler.onNext(VDomModifier(cls := "hans", "1"))
+          element.innerHTML shouldBe """<div class="hans">1</div>"""
 
-    innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
-    element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+          Handler.create[VDomModifier].map { innerHandler2 =>
 
-    innerHandler.onNext(b("me?"))
-    element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+          myHandler.onNext(innerHandler2)
+          element.innerHTML shouldBe """<div></div>"""
 
-    myHandler.onNext(span("the end"))
-    element.innerHTML shouldBe """<div><span>the end</span></div>"""
+          myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+          element.innerHTML shouldBe """<div></div>"""
+
+          myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+          element.innerHTML shouldBe """<div>pete</div>"""
+
+          innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
+          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+
+          innerHandler.onNext(b("me?"))
+          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+
+          myHandler.onNext(span("the end"))
+          element.innerHTML shouldBe """<div><span>the end</span></div>"""
+
+          }
+        }
+      }
+
+    }
   }
 
   it should "work for nested modifier stream receiver and default value" in {
+
     var numPatches = 0
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(
-        onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
-          numPatches += 1
-        },
-        ValueObservable(myHandler, VDomModifier("initial"))
+
+    Handler.create[VDomModifier].flatMap { myHandler =>
+
+      val node: VNode = div(id := "strings",
+        div(
+          onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
+            numPatches += 1
+          },
+          ValueObservable(myHandler, VDomModifier("initial"))
+        )
       )
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+      OutWatch.renderInto("#app", node).flatMap { _ =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div>initial</div>"
-    numPatches shouldBe 0
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div>initial</div>"
+        numPatches shouldBe 0
 
-    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(ValueObservable(innerHandler, IO.pure(Attribute("initial", "2"))))
-    element.innerHTML shouldBe """<div initial="2"></div>"""
-    numPatches shouldBe 1
+      Handler.create[VDomModifier].flatMap { innerHandler =>
 
-    innerHandler.onNext(IO.pure(Attribute("attr", "3")))
-    element.innerHTML shouldBe """<div attr="3"></div>"""
-    numPatches shouldBe 2
+        myHandler.onNext(ValueObservable(innerHandler, IO.pure(Attribute("initial", "2"))))
+        element.innerHTML shouldBe """<div initial="2"></div>"""
+        numPatches shouldBe 1
 
-    val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(ValueObservable(innerHandler2, VDomModifier("initial3")))
-    element.innerHTML shouldBe """<div>initial3</div>"""
-    numPatches shouldBe 3
+        innerHandler.onNext(IO.pure(Attribute("attr", "3")))
+        element.innerHTML shouldBe """<div attr="3"></div>"""
+        numPatches shouldBe 2
 
-    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2, VDomModifier("initial4"))) :: Nil)))
-    element.innerHTML shouldBe """<div>initial4</div>"""
-    numPatches shouldBe 4
+        Handler.create[VDomModifier].map {innerHandler2 =>
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
-    element.innerHTML shouldBe """<div>pete</div>"""
-    numPatches shouldBe 5
+          myHandler.onNext(ValueObservable(innerHandler2, VDomModifier("initial3")))
+          element.innerHTML shouldBe """<div>initial3</div>"""
+          numPatches shouldBe 3
 
-    innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
-    element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-    numPatches shouldBe 6
+          myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2, VDomModifier("initial4"))) :: Nil)))
+          element.innerHTML shouldBe """<div>initial4</div>"""
+          numPatches shouldBe 4
 
-    innerHandler.onNext("me?")
-    element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-    numPatches shouldBe 6
+          myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+          element.innerHTML shouldBe """<div>pete</div>"""
+          numPatches shouldBe 5
 
-    myHandler.onNext(span("the end"))
-    element.innerHTML shouldBe """<div><span>the end</span></div>"""
-    numPatches shouldBe 7
+          innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
+          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+          numPatches shouldBe 6
+
+          innerHandler.onNext("me?")
+          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+          numPatches shouldBe 6
+
+          myHandler.onNext(span("the end"))
+          element.innerHTML shouldBe """<div><span>the end</span></div>"""
+          numPatches shouldBe 7
+
+      }}}}
   }
 
   it should "work for deeply nested handlers" in {
-    val a = Handler.create[Int](0).unsafeRunSync
-    val b = a.map(_.toString)
 
-    val node = 
-      div(
-        a.map(_ => 
-            div(
-              b.map(b =>
-                div(b)
+    val test: IO[Assertion] = Handler.create[Int](0).flatMap { a =>
+
+      val b = a.map(_.toString)
+      val node =
+        div(
+          a.map(_ =>
+              div(
+                b.map(b =>
+                  div(b)
+                )
               )
-            )
+          )
         )
-      )
-    
-    OutWatch.renderInto("#app", node).unsafeRunSync()
 
-    val element = document.getElementById("app")
-    element.innerHTML shouldBe "<div><div><div>0</div></div></div>"
+      OutWatch.renderInto("#app", node).map {_ =>
 
-    a.onNext(1)
-    element.innerHTML shouldBe "<div><div><div>1</div></div></div>"
+        val element = document.getElementById("app")
+        element.innerHTML shouldBe "<div><div><div>0</div></div></div>"
+
+        a.onNext(1)
+        element.innerHTML shouldBe "<div><div><div>1</div></div></div>"
+
+      }
+    }
+
+    test
   }
 
   it should "work for nested modifier stream receiver and empty default and start with" in {
+
     var numPatches = 0
-    val myHandler = Handler.create[VDomModifier]("initial").unsafeRunSync()
+
+    Handler.create[VDomModifier]("initial").flatMap { myHandler =>
+
     val node = div(id := "strings",
       div(
         onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
@@ -1092,311 +1402,359 @@ class OutWatchDomSpec extends JSDomSpec {
       )
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).flatMap { _ =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div>initial</div>"
-    numPatches shouldBe 1
+      val element = document.getElementById("strings")
+      element.innerHTML shouldBe "<div>initial</div>"
+      numPatches shouldBe 1
 
-    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(innerHandler.startWith(IO.pure(Attribute("initial", "2")) :: Nil))
-    element.innerHTML shouldBe """<div initial="2"></div>"""
-    numPatches shouldBe 3
+      Handler.create[VDomModifier].flatMap { innerHandler =>
+      myHandler.onNext(innerHandler.startWith(IO.pure(Attribute("initial", "2")) :: Nil))
+      element.innerHTML shouldBe """<div initial="2"></div>"""
+      numPatches shouldBe 3
 
-    innerHandler.onNext(IO.pure(Attribute("attr", "3")))
-    element.innerHTML shouldBe """<div attr="3"></div>"""
-    numPatches shouldBe 4
+      innerHandler.onNext(IO.pure(Attribute("attr", "3")))
+      element.innerHTML shouldBe """<div attr="3"></div>"""
+      numPatches shouldBe 4
 
-    val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(innerHandler2.startWith(VDomModifier("initial3") :: Nil))
-    element.innerHTML shouldBe """<div>initial3</div>"""
-    numPatches shouldBe 6
+        Handler.create[VDomModifier].map { innerHandler2 =>
+        myHandler.onNext(innerHandler2.startWith(VDomModifier("initial3") :: Nil))
+        element.innerHTML shouldBe """<div>initial3</div>"""
+        numPatches shouldBe 6
 
-    myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2.startWith(VDomModifier("initial4") :: Nil))) :: Nil)))
-    element.innerHTML shouldBe """<div>initial4</div>"""
-    numPatches shouldBe 8
+        myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2.startWith(VDomModifier("initial4") :: Nil))) :: Nil)))
+        element.innerHTML shouldBe """<div>initial4</div>"""
+        numPatches shouldBe 8
 
-    myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
-    element.innerHTML shouldBe """<div>pete</div>"""
-    numPatches shouldBe 9
+        myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+        element.innerHTML shouldBe """<div>pete</div>"""
+        numPatches shouldBe 9
 
-    innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
-    element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-    numPatches shouldBe 10
+        innerHandler2.onNext(VDomModifier(id := "dieter", "r"))
+        element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+        numPatches shouldBe 10
 
-    innerHandler.onNext("me?")
-    element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-    numPatches shouldBe 10
+        innerHandler.onNext("me?")
+        element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+        numPatches shouldBe 10
 
-    myHandler.onNext(span("the end"))
-    element.innerHTML shouldBe """<div><span>the end</span></div>"""
-    numPatches shouldBe 11
+        myHandler.onNext(span("the end"))
+        element.innerHTML shouldBe """<div><span>the end</span></div>"""
+        numPatches shouldBe 11
+
+    }}}}
   }
 
   it should "work for modifier stream receiver and streaming default value (subscriptions are canceled properly)" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val outerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
-    val innerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
-    val node = div(id := "strings",
-      div(
-        ValueObservable(myHandler.map { x => outerTriggers += x; x }, VDomModifier(ValueObservable(innerHandler.map { x => innerTriggers += x; x }, VDomModifier("initial"))))
+
+    Handler.create[VDomModifier].flatMap { myHandler =>
+    Handler.create[VDomModifier].flatMap { innerHandler =>
+
+      val outerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
+      val innerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
+
+      val node = div(id := "strings",
+        div(
+          ValueObservable(myHandler.map { x => outerTriggers += x; x }, VDomModifier(ValueObservable(innerHandler.map { x => innerTriggers += x; x }, VDomModifier("initial"))))
+        )
       )
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+      OutWatch.renderInto("#app", node).flatMap {_ =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div>initial</div>"
-    outerTriggers.size shouldBe 0
-    innerTriggers.size shouldBe 0
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div>initial</div>"
+        outerTriggers.size shouldBe 0
+        innerTriggers.size shouldBe 0
 
-    innerHandler.onNext(VDomModifier("hi!"))
-    element.innerHTML shouldBe """<div>hi!</div>"""
-    outerTriggers.size shouldBe 0
-    innerTriggers.size shouldBe 1
+        innerHandler.onNext(VDomModifier("hi!"))
+        element.innerHTML shouldBe """<div>hi!</div>"""
+        outerTriggers.size shouldBe 0
+        innerTriggers.size shouldBe 1
 
-    myHandler.onNext(VDomModifier("test"))
-    element.innerHTML shouldBe """<div>test</div>"""
-    outerTriggers.size shouldBe 1
-    innerTriggers.size shouldBe 1
+        myHandler.onNext(VDomModifier("test"))
+        element.innerHTML shouldBe """<div>test</div>"""
+        outerTriggers.size shouldBe 1
+        innerTriggers.size shouldBe 1
 
-    myHandler.onNext(ValueObservable(Observable.empty, IO.pure(Attribute("initial", "2"))))
-    element.innerHTML shouldBe """<div initial="2"></div>"""
-    outerTriggers.size shouldBe 2
-    innerTriggers.size shouldBe 1
+        myHandler.onNext(ValueObservable(Observable.empty, IO.pure(Attribute("initial", "2"))))
+        element.innerHTML shouldBe """<div initial="2"></div>"""
+        outerTriggers.size shouldBe 2
+        innerTriggers.size shouldBe 1
 
-    innerHandler.onNext(VDomModifier("me?"))
-    element.innerHTML shouldBe """<div initial="2"></div>"""
-    outerTriggers.size shouldBe 2
-    innerTriggers.size shouldBe 1
+        innerHandler.onNext(VDomModifier("me?"))
+        element.innerHTML shouldBe """<div initial="2"></div>"""
+        outerTriggers.size shouldBe 2
+        innerTriggers.size shouldBe 1
 
-    myHandler.onNext(ValueObservable(innerHandler.map { x => innerTriggers += x; x }, VDomModifier.empty))
-    element.innerHTML shouldBe """<div>me?</div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 2
+        myHandler.onNext(ValueObservable(innerHandler.map { x => innerTriggers += x; x }, VDomModifier.empty))
+        element.innerHTML shouldBe """<div>me?</div>"""
+        outerTriggers.size shouldBe 3
+        innerTriggers.size shouldBe 2
 
-    innerHandler.onNext(IO.pure(Attribute("attr", "3")))
-    element.innerHTML shouldBe """<div attr="3"></div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 3
+        innerHandler.onNext(IO.pure(Attribute("attr", "3")))
+        element.innerHTML shouldBe """<div attr="3"></div>"""
+        outerTriggers.size shouldBe 3
+        innerTriggers.size shouldBe 3
 
-    val innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
-    val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
-    val innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
-    val innerHandler3 = Handler.create[VDomModifier].unsafeRunSync()
-    innerHandler.onNext(ValueObservable(innerHandler2.map { x => innerTriggers2 += x; x }, VDomModifier(ValueObservable(innerHandler3.map { x => innerTriggers3 += x; x }))))
-    element.innerHTML shouldBe """<div></div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 4
-    innerTriggers2.size shouldBe 0
-    innerTriggers3.size shouldBe 0
+        val innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
+        val innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
 
-    innerHandler2.onNext(VDomModifier("2"))
-    element.innerHTML shouldBe """<div>2</div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 4
-    innerTriggers2.size shouldBe 1
-    innerTriggers3.size shouldBe 0
+        Handler.create[VDomModifier].flatMap { innerHandler2 =>
+        Handler.create[VDomModifier].map { innerHandler3 =>
 
-    innerHandler.onNext(IO.pure(EmptyModifier))
-    element.innerHTML shouldBe """<div></div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 5
-    innerTriggers2.size shouldBe 1
-    innerTriggers3.size shouldBe 0
+            innerHandler.onNext(ValueObservable(innerHandler2.map { x => innerTriggers2 += x; x }, VDomModifier(ValueObservable(innerHandler3.map { x => innerTriggers3 += x; x }))))
+            element.innerHTML shouldBe """<div></div>"""
+            outerTriggers.size shouldBe 3
+            innerTriggers.size shouldBe 4
+            innerTriggers2.size shouldBe 0
+            innerTriggers3.size shouldBe 0
 
-    innerHandler2.onNext(VDomModifier("me?"))
-    element.innerHTML shouldBe """<div></div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 5
-    innerTriggers2.size shouldBe 1
-    innerTriggers3.size shouldBe 0
+            innerHandler2.onNext(VDomModifier("2"))
+            element.innerHTML shouldBe """<div>2</div>"""
+            outerTriggers.size shouldBe 3
+            innerTriggers.size shouldBe 4
+            innerTriggers2.size shouldBe 1
+            innerTriggers3.size shouldBe 0
 
-    innerHandler3.onNext(VDomModifier("me?"))
-    element.innerHTML shouldBe """<div></div>"""
-    outerTriggers.size shouldBe 3
-    innerTriggers.size shouldBe 5
-    innerTriggers2.size shouldBe 1
-    innerTriggers3.size shouldBe 0
+            innerHandler.onNext(IO.pure(EmptyModifier))
+            element.innerHTML shouldBe """<div></div>"""
+            outerTriggers.size shouldBe 3
+            innerTriggers.size shouldBe 5
+            innerTriggers2.size shouldBe 1
+            innerTriggers3.size shouldBe 0
 
-    myHandler.onNext(VDomModifier("go away"))
-    element.innerHTML shouldBe """<div>go away</div>"""
-    outerTriggers.size shouldBe 4
-    innerTriggers.size shouldBe 5
-    innerTriggers2.size shouldBe 1
-    innerTriggers3.size shouldBe 0
+            innerHandler2.onNext(VDomModifier("me?"))
+            element.innerHTML shouldBe """<div></div>"""
+            outerTriggers.size shouldBe 3
+            innerTriggers.size shouldBe 5
+            innerTriggers2.size shouldBe 1
+            innerTriggers3.size shouldBe 0
 
-    innerHandler.onNext(VDomModifier("me?"))
-    element.innerHTML shouldBe """<div>go away</div>"""
-    outerTriggers.size shouldBe 4
-    innerTriggers.size shouldBe 5
-    innerTriggers2.size shouldBe 1
-    innerTriggers3.size shouldBe 0
+            innerHandler3.onNext(VDomModifier("me?"))
+            element.innerHTML shouldBe """<div></div>"""
+            outerTriggers.size shouldBe 3
+            innerTriggers.size shouldBe 5
+            innerTriggers2.size shouldBe 1
+            innerTriggers3.size shouldBe 0
+
+            myHandler.onNext(VDomModifier("go away"))
+            element.innerHTML shouldBe """<div>go away</div>"""
+            outerTriggers.size shouldBe 4
+            innerTriggers.size shouldBe 5
+            innerTriggers2.size shouldBe 1
+            innerTriggers3.size shouldBe 0
+
+            innerHandler.onNext(VDomModifier("me?"))
+            element.innerHTML shouldBe """<div>go away</div>"""
+            outerTriggers.size shouldBe 4
+            innerTriggers.size shouldBe 5
+            innerTriggers2.size shouldBe 1
+            innerTriggers3.size shouldBe 0
+
+      }}}}}
   }
 
   it should "work for nested observables with seq modifiers " in {
-    val innerHandler = Handler.create("b").unsafeRunSync()
-    val outerHandler = Handler.create(Seq[VDomModifier]("a", data.test := "v", innerHandler)).unsafeRunSync
-    val node = div(
-      id := "strings",
-      outerHandler
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create("b").flatMap { innerHandler =>
+    Handler.create(Seq[VDomModifier]("a", data.test := "v", innerHandler)).flatMap { outerHandler =>
 
-    val element = document.getElementById("strings")
-    element.outerHTML shouldBe """<div id="strings" data-test="v">ab</div>"""
+      val node = div(
+        id := "strings",
+        outerHandler
+      )
 
-    innerHandler.onNext("c")
-    element.outerHTML shouldBe """<div id="strings" data-test="v">ac</div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
 
-    outerHandler.onNext(Seq[VDomModifier]("meh"))
-    element.outerHTML shouldBe """<div id="strings">meh</div>"""
+        val element = document.getElementById("strings")
+        element.outerHTML shouldBe """<div id="strings" data-test="v">ab</div>"""
+
+        innerHandler.onNext("c")
+        element.outerHTML shouldBe """<div id="strings" data-test="v">ac</div>"""
+
+        outerHandler.onNext(Seq[VDomModifier]("meh"))
+        element.outerHTML shouldBe """<div id="strings">meh</div>"""
+      }
+
+    }}
   }
 
   it should "work for nested observables with seq modifiers and attribute stream" in {
-    val innerHandler = Handler.create[String].unsafeRunSync()
-    val outerHandler = Handler.create(Seq[VDomModifier]("a", data.test := "v", href <-- innerHandler)).unsafeRunSync
-    val node = div(
-      id := "strings",
-      outerHandler
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[String].flatMap { innerHandler =>
+    Handler.create(Seq[VDomModifier]("a", data.test := "v", href <-- innerHandler)).flatMap { outerHandler =>
 
-    val element = document.getElementById("strings")
-    element.outerHTML shouldBe """<div id="strings" data-test="v">a</div>"""
+      val node = div(
+        id := "strings",
+        outerHandler
+      )
 
-    innerHandler.onNext("c")
-    element.outerHTML shouldBe """<div id="strings" data-test="v" href="c">a</div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
 
-    innerHandler.onNext("d")
-    element.outerHTML shouldBe """<div id="strings" data-test="v" href="d">a</div>"""
+        val element = document.getElementById("strings")
+        element.outerHTML shouldBe """<div id="strings" data-test="v">a</div>"""
 
-    outerHandler.onNext(Seq[VDomModifier]("meh"))
-    element.outerHTML shouldBe """<div id="strings">meh</div>"""
+        innerHandler.onNext("c")
+        element.outerHTML shouldBe """<div id="strings" data-test="v" href="c">a</div>"""
+
+        innerHandler.onNext("d")
+        element.outerHTML shouldBe """<div id="strings" data-test="v" href="d">a</div>"""
+
+        outerHandler.onNext(Seq[VDomModifier]("meh"))
+        element.outerHTML shouldBe """<div id="strings">meh</div>"""
+      }
+
+    }}
   }
 
   it should "work for double nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(myHandler)
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div></div>"
+      val node = div(id := "strings",
+        div(myHandler)
+      )
 
-    myHandler.onNext(Observable[VDomModifier](Observable[VDomModifier](cls := "hans")))
-    element.innerHTML shouldBe """<div class="hans"></div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div></div>"
+
+        myHandler.onNext(Observable[VDomModifier](Observable[VDomModifier](cls := "hans")))
+        element.innerHTML shouldBe """<div class="hans"></div>"""
+      }
+
+    }
   }
 
   it should "work for triple nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(myHandler)
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div></div>"
+      val node = div(id := "strings",
+        div(myHandler)
+      )
 
-    myHandler.onNext(Observable[VDomModifier](Observable[VDomModifier](Observable(cls := "hans"))))
-    element.innerHTML shouldBe """<div class="hans"></div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div></div>"
+
+        myHandler.onNext(Observable[VDomModifier](Observable[VDomModifier](Observable(cls := "hans"))))
+        element.innerHTML shouldBe """<div class="hans"></div>"""
+      }
+
+    }
   }
 
   it should "work for multiple nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(myHandler)
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div></div>"
+      val node = div(id := "strings",
+        div(myHandler)
+      )
 
-    myHandler.onNext(Observable[VDomModifier](VDomModifier(Observable[VDomModifier]("a"), Observable(span("b")))))
-    element.innerHTML shouldBe """<div>a<span>b</span></div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div></div>"
+
+        myHandler.onNext(Observable[VDomModifier](VDomModifier(Observable[VDomModifier]("a"), Observable(span("b")))))
+        element.innerHTML shouldBe """<div>a<span>b</span></div>"""
+      }
+
+    }
   }
 
   it should "work for nested attribute stream receiver" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(myHandler)
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe "<div></div>"
+      val node = div(id := "strings",
+        div(myHandler)
+      )
 
-    myHandler.onNext(cls <-- Observable("hans"))
-    element.innerHTML shouldBe """<div class="hans"></div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
+
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe "<div></div>"
+
+        myHandler.onNext(cls <-- Observable("hans"))
+        element.innerHTML shouldBe """<div class="hans"></div>"""
+      }
+
+    }
   }
 
   it should "work for nested emitter" in {
-    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
-    val node = div(id := "strings",
-      div(id := "click", myHandler)
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    Handler.create[VDomModifier].flatMap { myHandler =>
 
-    val element = document.getElementById("strings")
-    element.innerHTML shouldBe """<div id="click"></div>"""
+      val node = div(id := "strings",
+        div(id := "click", myHandler)
+      )
 
-    var clickCounter = 0
-    myHandler.onNext(onClick --> sideEffect(_ => clickCounter += 1))
-    element.innerHTML shouldBe """<div id="click"></div>"""
+      OutWatch.renderInto("#app", node).map { _ =>
 
-    clickCounter shouldBe 0
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("click").dispatchEvent(event)
-    clickCounter shouldBe 1
+        val element = document.getElementById("strings")
+        element.innerHTML shouldBe """<div id="click"></div>"""
 
-    document.getElementById("click").dispatchEvent(event)
-    clickCounter shouldBe 2
+        var clickCounter = 0
+        myHandler.onNext(onClick --> sideEffect(_ => clickCounter += 1))
+        element.innerHTML shouldBe """<div id="click"></div>"""
 
-    myHandler.onNext(VDomModifier.empty)
-    element.innerHTML shouldBe """<div id="click"></div>"""
+        clickCounter shouldBe 0
+        val event = document.createEvent("Events")
+        initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+        document.getElementById("click").dispatchEvent(event)
+        clickCounter shouldBe 1
 
-    document.getElementById("click").dispatchEvent(event)
-    clickCounter shouldBe 2
+        document.getElementById("click").dispatchEvent(event)
+        clickCounter shouldBe 2
+
+        myHandler.onNext(VDomModifier.empty)
+        element.innerHTML shouldBe """<div id="click"></div>"""
+
+        document.getElementById("click").dispatchEvent(event)
+        clickCounter shouldBe 2
+      }
+
+    }
   }
 
   it should "work for streaming accum attributes" in {
-    val myClasses = Handler.create[String]("second").unsafeRunSync()
-    val myClasses2 = Handler.create[String].unsafeRunSync()
-    val node = div(
-      id := "strings",
-      div(
-        cls := "first",
-        myClasses.map { cls := _ },
-        Seq[VDomModifier](
-          cls <-- myClasses2
+
+    Handler.create[String]("second").flatMap { myClasses =>
+    Handler.create[String].flatMap { myClasses2 =>
+
+      val node = div(
+        id := "strings",
+        div(
+          cls := "first",
+          myClasses.map { cls := _ },
+          Seq[VDomModifier](
+            cls <-- myClasses2
+          )
         )
       )
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+      OutWatch.renderInto("#app", node).map {_ =>
+        val element = document.getElementById("strings")
 
-    val element = document.getElementById("strings")
+        element.innerHTML shouldBe """<div class="first second"></div>"""
 
-    element.innerHTML shouldBe """<div class="first second"></div>"""
+        myClasses2.onNext("third")
+        element.innerHTML shouldBe """<div class="first second third"></div>"""
 
-    myClasses2.onNext("third")
-    element.innerHTML shouldBe """<div class="first second third"></div>"""
+        myClasses2.onNext("more")
+        element.innerHTML shouldBe """<div class="first second more"></div>"""
 
-    myClasses2.onNext("more")
-    element.innerHTML shouldBe """<div class="first second more"></div>"""
+        myClasses.onNext("yeah")
+        element.innerHTML shouldBe """<div class="first yeah more"></div>"""
+      }
 
-    myClasses.onNext("yeah")
-    element.innerHTML shouldBe """<div class="first yeah more"></div>"""
+    }}
   }
 
   "LocalStorage" should "provide a handler" in {
@@ -1406,139 +1764,153 @@ class OutWatchDomSpec extends JSDomSpec {
 
     assert(localStorage.getItem(key) == null)
 
-    val storageHandler = util.LocalStorage.handler(key).unsafeRunSync()
-    storageHandler.foreach{e => triggeredHandlerEvents += e}
-    assert(localStorage.getItem(key) == null)
-    assert(triggeredHandlerEvents.toList == List(None))
+    util.LocalStorage.handler(key).flatMap { storageHandler =>
 
-    storageHandler.onNext(Some("joe"))
-    assert(localStorage.getItem(key) == "joe")
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe")))
+      storageHandler.foreach{e => triggeredHandlerEvents += e}
+      assert(localStorage.getItem(key) == null)
+      assert(triggeredHandlerEvents.toList == List(None))
 
-    var initialValue:Option[String] = null
-    util.LocalStorage.handler(key).unsafeRunSync().foreach {initialValue = _}
-    assert(initialValue == Some("joe"))
+      storageHandler.onNext(Some("joe"))
+      assert(localStorage.getItem(key) == "joe")
+      assert(triggeredHandlerEvents.toList == List(None, Some("joe")))
 
-    storageHandler.onNext(None)
-    assert(localStorage.getItem(key) == null)
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None))
+      var initialValue:Option[String] = null
 
-    // localStorage.setItem(key, "split") from another window
-    dispatchStorageEvent(key, newValue = "split", null)
-    assert(localStorage.getItem(key) == "split")
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split")))
+      util.LocalStorage.handler(key).map { sh =>
 
-    // localStorage.removeItem(key) from another window
-    dispatchStorageEvent(key, null, "split")
-    assert(localStorage.getItem(key) == null)
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
+        sh.foreach {initialValue = _}
+        assert(initialValue == Some("joe"))
 
-    // only trigger handler if value changed
-    storageHandler.onNext(None)
-    assert(localStorage.getItem(key) == null)
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
+        storageHandler.onNext(None)
+        assert(localStorage.getItem(key) == null)
+        assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None))
 
-    storageHandler.onNext(Some("rhabarbar"))
-    assert(localStorage.getItem(key) == "rhabarbar")
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar")))
+        // localStorage.setItem(key, "split") from another window
+        dispatchStorageEvent(key, newValue = "split", null)
+        assert(localStorage.getItem(key) == "split")
+        assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split")))
 
-    // localStorage.clear() from another window
-    dispatchStorageEvent(null, null, null)
-    assert(localStorage.getItem(key) == null)
-    assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar"), None))
+        // localStorage.removeItem(key) from another window
+        dispatchStorageEvent(key, null, "split")
+        assert(localStorage.getItem(key) == null)
+        assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
+
+        // only trigger handler if value changed
+        storageHandler.onNext(None)
+        assert(localStorage.getItem(key) == null)
+        assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None))
+
+        storageHandler.onNext(Some("rhabarbar"))
+        assert(localStorage.getItem(key) == "rhabarbar")
+        assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar")))
+
+        // localStorage.clear() from another window
+        dispatchStorageEvent(null, null, null)
+        assert(localStorage.getItem(key) == null)
+        assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar"), None))
+      }
+    }
   }
 
   "Observer/Observable types" should "work for Subject" in {
-    val myHandler = BehaviorSubject(-1)
-    val clsHandler = BehaviorSubject("one")
+
     var mounts = 0
     var unmounts = 0
     var updates = 0
 
-    val node = div(
-      id := "strings",
-      myHandler,
-      cls <-- clsHandler,
-      onClick(0) --> myHandler,
-      onDomMount --> sideEffect { mounts += 1 },
-      onDomUnmount --> sideEffect { unmounts += 1 },
-      onDomUpdate --> sideEffect { updates += 1 }
-    )
+    for {
+       myHandler <- IO(BehaviorSubject(-1))
+      clsHandler <- IO(BehaviorSubject("one"))
+            node = div(
+                      id := "strings",
+                      myHandler,
+                      cls <-- clsHandler,
+                      onClick(0) --> myHandler,
+                      onDomMount --> sideEffect { mounts += 1 },
+                      onDomUnmount --> sideEffect { unmounts += 1 },
+                      onDomUpdate --> sideEffect { updates += 1 }
+                    )
+          _ <- OutWatch.renderInto("#app", node)
+    } yield {
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+      val element = document.getElementById("strings")
+      element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 2
 
-    val element = document.getElementById("strings")
-    element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 2
+      myHandler.onNext(1)
+      element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 3
 
-    myHandler.onNext(1)
-    element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 3
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("strings").dispatchEvent(event)
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("strings").dispatchEvent(event)
+      element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 4
 
-    element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 4
+      clsHandler.onNext("two")
+      element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 5
 
-    clsHandler.onNext("two")
-    element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 5
+    }
   }
 
   it should "work for Var" in {
-    val myHandler = Var(-1)
-    val clsHandler = Var("one")
+
     var mounts = 0
     var unmounts = 0
     var updates = 0
 
-    val node = div(
-      id := "strings",
-      myHandler,
-      cls <-- clsHandler,
-      onClick(0) --> myHandler,
-      onDomMount --> sideEffect { mounts += 1 },
-      onDomUnmount --> sideEffect { unmounts += 1 },
-      onDomUpdate --> sideEffect { updates += 1 }
-    )
+    for {
+       myHandler <- IO(Var(-1))
+      clsHandler <- IO(Var("one"))
+            node = div(
+                    id := "strings",
+                    myHandler,
+                    cls <-- clsHandler,
+                    onClick(0) --> myHandler,
+                    onDomMount --> sideEffect { mounts += 1 },
+                    onDomUnmount --> sideEffect { unmounts += 1 },
+                    onDomUpdate --> sideEffect { updates += 1 }
+                  )
+                _ <- OutWatch.renderInto("#app", node)
+    } yield {
+      val element = document.getElementById("strings")
+      element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 0
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+      myHandler := 1
+      element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 1
 
-    val element = document.getElementById("strings")
-    element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 0
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("strings").dispatchEvent(event)
 
-    myHandler := 1
-    element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 1
+      element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 2
 
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-    document.getElementById("strings").dispatchEvent(event)
+      clsHandler := "two"
+      element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
+      mounts shouldBe 1
+      unmounts shouldBe 0
+      updates shouldBe 3
+    }
 
-    element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 2
-
-    clsHandler := "two"
-    element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
-    mounts shouldBe 1
-    unmounts shouldBe 0
-    updates shouldBe 3
   }
+
 }
