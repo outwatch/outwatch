@@ -5,6 +5,7 @@ import org.scalajs.dom._
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.{UndefOr, |}
+import monix.execution.Cancelable
 
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
@@ -33,10 +34,10 @@ object hFunction {
 
 
 trait Hooks extends js.Object {
-  var insert: js.UndefOr[Hooks.HookSingleFn] //TODO: can we get rid of this var?
+  val insert: js.UndefOr[Hooks.HookSingleFn]
   val prepatch: js.UndefOr[Hooks.HookPairFn]
   val update: js.UndefOr[Hooks.HookPairFn]
-  var postpatch: js.UndefOr[Hooks.HookPairFn] //TODO: can we get rid of this var?
+  val postpatch: js.UndefOr[Hooks.HookPairFn]
   val destroy: js.UndefOr[Hooks.HookSingleFn]
 }
 
@@ -57,10 +58,10 @@ object Hooks {
     val _postpatch = postpatch
     val _destroy = destroy
     new Hooks {
-      var insert = _insert
+      val insert = _insert
       val prepatch = _prepatch
       val update = _update
-      var postpatch = _postpatch
+      val postpatch = _postpatch
       val destroy = _destroy
     }
   }
@@ -131,6 +132,8 @@ object patch {
   def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 }
 
+case class OutwatchState(id: Int, domUnmountHooks: js.UndefOr[Hooks.HookSingleFn])
+
 @js.native
 trait VNodeProxy extends js.Object {
   var sel: String
@@ -139,6 +142,8 @@ trait VNodeProxy extends js.Object {
   var elm: js.UndefOr[Element]
   var text: js.UndefOr[String]
   var key: js.UndefOr[DataObject.KeyValue]
+
+  var outwatchState: js.UndefOr[OutwatchState]
 }
 
 object VNodeProxy {

@@ -1007,7 +1007,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(
-        onPrePatch --> sideEffect { (e1, e2) =>
+        onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
           numPatches += 1
         },
         ValueObservable(myHandler, VDomModifier("initial"))
@@ -1084,7 +1084,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val myHandler = Handler.create[VDomModifier]("initial").unsafeRunSync()
     val node = div(id := "strings",
       div(
-        onPrePatch --> sideEffect { (e1, e2) =>
+        onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
           numPatches += 1
         },
         myHandler

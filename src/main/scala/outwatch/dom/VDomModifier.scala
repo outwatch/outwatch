@@ -110,6 +110,10 @@ final case class DestroyStyle(title: String, value: String) extends Style
 
 // Hooks
 
+private[outwatch] final case class DomMountHook(observer: Observer[Element]) extends Hook[Element]
+private[outwatch] final case class DomUnmountHook(observer: Observer[Element]) extends Hook[Element]
+private[outwatch] final case class DomUpdateHook(observer: Observer[Element]) extends Hook[Element]
+
 private[outwatch] final case class InsertHook(observer: Observer[Element]) extends Hook[Element]
 private[outwatch] final case class PrePatchHook(observer: Observer[(Option[Element], Option[Element])])
   extends Hook[(Option[Element], Option[Element])]

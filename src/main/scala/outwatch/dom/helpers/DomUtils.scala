@@ -33,6 +33,8 @@ private[outwatch] case class Children(nodes: List[ChildVNode], hasStream: Boolea
     case other => other
   }
 
+  // if child streams exist, we want the static children in the same node to have keys
+  // for efficient patching when the streams change
   def ensureKey: Children = if (hasStream && hasVTree) copy(nodes = nodes.map(ensureVNodeKey)) else this
 
   def ::(node: ChildVNode): Children = node match {
@@ -86,9 +88,16 @@ private[outwatch] final case class SeparatedHooks(
   prePatchHooks: List[PrePatchHook] = Nil,
   updateHooks: List[UpdateHook] = Nil,
   postPatchHooks: List[PostPatchHook] = Nil,
-  destroyHooks: List[DestroyHook] = Nil
+  destroyHooks: List[DestroyHook] = Nil,
+  domMountHooks: List[DomMountHook] = Nil,
+  domUnmountHooks: List[DomUnmountHook] = Nil,
+  domUpdateHooks: List[DomUpdateHook] = Nil
 ) extends SnabbdomHooks {
   def ::(h: Hook[_]): SeparatedHooks = h match {
+    case dh: DomMountHook => copy(domMountHooks = dh :: domMountHooks)
+    case dh: DomUnmountHook => copy(domUnmountHooks = dh :: domUnmountHooks)
+    case dh: DomUpdateHook => copy(domUpdateHooks = dh :: domUpdateHooks)
+    case pph: PrePatchHook => copy(prePatchHooks = pph :: prePatchHooks)
     case ih: InsertHook => copy(insertHooks = ih :: insertHooks)
     case pph: PrePatchHook => copy(prePatchHooks = pph :: prePatchHooks)
     case uh: UpdateHook => copy(updateHooks = uh :: updateHooks)
@@ -187,7 +196,7 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
 // attribute streams. it is about capturing the dynamic content of a node.
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
-private[outwatch] final case class Receivers(children: Children) {
+private[outwatch] final class Receivers(children: Children) {
   private val childNodes = {
     if (children.hasStream) children.nodes // only interested if there is dynamic content
     else Nil
