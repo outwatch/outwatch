@@ -1,52 +1,61 @@
 package outwatch
 
+import cats.effect.IO
 import org.scalajs.dom.{html, _}
 import monix.reactive.{Observable, Observer}
+import org.scalatest.Assertion
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.util.Store
 
-class ScenarioTestSpec extends JSDomSpec {
+class ScenarioTestSpec extends JSDomAsyncSpec {
+
+  def getMinus: Element   = document.getElementById("minus")
+  def getPlus: Element    = document.getElementById("plus")
+  def getCounter: Element = document.getElementById("counter")
 
   "A simple counter application" should "work as intended" in {
 
-    val node = for {
-      handlePlus <- Handler.create[MouseEvent]
-      plusOne = handlePlus.map(_ => 1)
-
+    val test: IO[Assertion] = for {
+       handlePlus <- Handler.create[MouseEvent]
       handleMinus <- Handler.create[MouseEvent]
-      minusOne = handleMinus.map(_ => -1)
+          plusOne = handlePlus.map(_ => 1)
+         minusOne = handleMinus.map(_ => -1)
+            count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
 
-      count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
-
-      div <- div(
-        div(
-          button(id := "plus", "+", onClick --> handlePlus),
-          button(id := "minus", "-", onClick --> handleMinus),
-          span(id:="counter", count)
-        )
-      )
-    } yield div
-
-    val root = document.createElement("div")
-    document.body.appendChild(root)
-
-    OutWatch.renderInto(root, node).unsafeRunSync()
-
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-
-    document.getElementById("counter").innerHTML shouldBe 0.toString
-
-    document.getElementById("minus").dispatchEvent(event)
-
-    document.getElementById("counter").innerHTML shouldBe (-1).toString
-
-    for (i <- 0 to 10) {
-      document.getElementById("plus").dispatchEvent(event)
-      document.getElementById("counter").innerHTML shouldBe i.toString
+             node = div(div(
+                        button(id := "plus", "+", onClick --> handlePlus),
+                        button(id := "minus", "-", onClick --> handleMinus),
+                        span(id:="counter", count)
+                    ))
+                r <- IO {
+                      val root = document.createElement("div")
+                      document.body.appendChild(root)
+                      root
+                    }
+                _ <- OutWatch.renderInto(r, node)
+            event <- IO {
+                      val event = document.createEvent("Events")
+                      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+                      event
+                    }
+                _ <- IO {
+                      getCounter.innerHTML shouldBe 0.toString
+                      getMinus.dispatchEvent(event)
+                      getCounter.innerHTML shouldBe (-1).toString
+                    }
+                as <- IO {
+                      (0 to 10).map { _ =>
+                        getPlus.dispatchEvent(event)
+                        getCounter.innerHTML
+                     }}
+    } yield {
+      as should contain theSameElementsInOrderAs (0 to 10).map(_.toString)
     }
+
+    test
+
   }
 
 
@@ -63,7 +72,7 @@ class ScenarioTestSpec extends JSDomSpec {
       case Minus => state - 1
     }
 
-    val node = for {
+    val node: IO[VTree] = for {
       store <- Store.create[State, Action](0, reduce _)
 
       div <- div(
@@ -75,28 +84,51 @@ class ScenarioTestSpec extends JSDomSpec {
       )
     } yield div
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
+    val test: IO[Assertion] = for {
+      r <- IO {
+            val root = document.createElement("div")
+            document.body.appendChild(root)
+            root
+          }
+      _ <- OutWatch.renderInto(r, node)
+      e <- IO {
+            val event = document.createEvent("Events")
+            initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+            event
+          }
+      _ <- IO {
+            getCounter.innerHTML shouldBe 0.toString
+            getMinus.dispatchEvent(e)
+            getCounter.innerHTML shouldBe (-1).toString
+          }
+      as <- IO {
+            (0 to 10).map { _ =>
+              getPlus.dispatchEvent(e)
+              getCounter.innerHTML
+           }}
 
-    OutWatch.renderInto(root, node).unsafeRunSync()
-
-    val event = document.createEvent("Events")
-    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-
-    document.getElementById("counter").innerHTML shouldBe 0.toString
-
-    document.getElementById("minus").dispatchEvent(event)
-
-    document.getElementById("counter").innerHTML shouldBe (-1).toString
-
-    for (i <- 0 to 10) {
-      document.getElementById("plus").dispatchEvent(event)
-      document.getElementById("counter").innerHTML shouldBe i.toString
+    } yield {
+      as should contain theSameElementsInOrderAs (0 to 10).map(_.toString)
     }
+
+    test
+
   }
 
   "A simple name application" should "work as intended" in {
+
     val greetStart = "Hello ,"
+    val name1 = "Luka"
+    val name2 = "Peter"
+
+    def getGreeting(evt: Event, name: String): IO[String] = IO {
+      document.getElementById("input").asInstanceOf[html.Input].value = name
+      document.getElementById("input").dispatchEvent(evt)
+      document.getElementById("greeting").innerHTML
+    }
+
+    def assertGreeting(greeting: String, name: String): Assertion =
+      assert(greeting == greetStart + name)
 
     val node = Handler.create[String].flatMap { nameHandler =>
       div(
@@ -107,32 +139,35 @@ class ScenarioTestSpec extends JSDomSpec {
       )
     }
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
+    val test: IO[Assertion] = for {
+          r <- IO {
+                val root = document.createElement("div")
+                document.body.appendChild(root)
+                root
+              }
+          _ <- OutWatch.renderInto(r, node)
+      event <- IO {
+                val evt = document.createEvent("HTMLEvents")
+                initEvent(evt)("input", canBubbleArg = false, cancelableArg = true)
+                evt
+              }
+          g1 <- getGreeting(event, name1)
+          g2 <- getGreeting(event, name2)
+           _ = assertGreeting(g1, name1)
+           _ = assertGreeting(g2, name2)
 
-    OutWatch.renderInto(root, node).unsafeRunSync()
+    } yield succeed
 
-
-    val evt = document.createEvent("HTMLEvents")
-    initEvent(evt)("input", false, true)
-    val name = "Luka"
-
-    document.getElementById("input").asInstanceOf[html.Input].value = name
-    document.getElementById("input").dispatchEvent(evt)
-
-    document.getElementById("greeting").innerHTML shouldBe greetStart + name
-
-    val name2 = "Peter"
-
-    document.getElementById("input").asInstanceOf[html.Input].value = name2
-    document.getElementById("input").dispatchEvent(evt)
-
-    document.getElementById("greeting").innerHTML shouldBe greetStart + name2
+    test
   }
 
   "A component" should "be referential transparent" in {
 
-    def component() = {
+    val createDiv = IO(document.createElement("div"))
+    def getButton(element: Element) =
+      element.getElementsByTagName("button").item(0)
+
+    def component(): IO[VTree] = {
       Handler.create[String].flatMap { handler =>
         div(
           button(onClick("clicked") --> handler),
@@ -141,25 +176,29 @@ class ScenarioTestSpec extends JSDomSpec {
       }
     }
 
-    val clickEvt = document.createEvent("Events")
-    initEvent(clickEvt)("click", true, true)
-
     val comp = component()
-
     val component1 = div(component(), component())
     val component2 = div(comp, comp)
 
-    val element1 = document.createElement("div")
-    OutWatch.renderInto(element1, component1).unsafeRunSync()
+    val test: IO[Assertion] = for {
+      evt <- IO {
+        val clickEvt = document.createEvent("Events")
+        initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
+        clickEvt
+      }
+      e1 <- createDiv
+       _ <- OutWatch.renderInto(e1, component1)
+      e2 <- createDiv
+       _ <- OutWatch.renderInto(e2, component2)
+       _ <- IO {
+             getButton(e1).dispatchEvent(evt)
+             getButton(e2).dispatchEvent(evt)
+           }
+       _ = e1.innerHTML shouldBe e1.innerHTML
 
-    val element2 = document.createElement("div")
-    OutWatch.renderInto(element2, component2).unsafeRunSync()
+    } yield succeed
 
-    element1.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
-
-    element2.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
-
-    element1.innerHTML shouldBe element2.innerHTML
+    test
   }
 
   "A todo application" should "work with components" in {
@@ -197,11 +236,11 @@ class ScenarioTestSpec extends JSDomSpec {
 
 
     def addToList(todo: String) = {
-      (list: Vector[String]) => list :+ todo
+      list: Vector[String] => list :+ todo
     }
 
     def removeFromList(todo: String) = {
-      (list: Vector[String]) => list.filterNot(_ == todo)
+      list: Vector[String] => list.filterNot(_ == todo)
     }
 
     val vtree = for {
@@ -225,55 +264,72 @@ class ScenarioTestSpec extends JSDomSpec {
       )
     } yield div
 
-    val root = document.createElement("div")
-    document.body.appendChild(root)
+    val test: IO[Assertion] = for {
 
-    OutWatch.renderInto(root, vtree).unsafeRunSync()
+      root <- IO {
+        val root = document.createElement("div")
+        document.body.appendChild(root)
+        root
+      }
 
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("input", false, true)
+      _ <- OutWatch.renderInto(root, vtree)
 
-    val clickEvt = document.createEvent("Events")
-    initEvent(clickEvt)("click", true, true)
+      inputEvt <- IO {
+        val inputEvt = document.createEvent("HTMLEvents")
+        initEvent(inputEvt)("input", canBubbleArg = false, cancelableArg = true)
+        inputEvt
+      }
 
-    val inputElement = document.getElementById("input").asInstanceOf[html.Input]
-    val submitButton = document.getElementById("submit")
-    val list = document.getElementById("list")
+      clickEvt <- IO {
+        val clickEvt = document.createEvent("Events")
+        initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
+        clickEvt
+      }
 
-    list.childElementCount shouldBe 0
+         inputE <- IO(document.getElementById("input").asInstanceOf[html.Input])
+      submitBtn <- IO(document.getElementById("submit"))
+           list <- IO(document.getElementById("list"))
+              _ = list.childElementCount shouldBe 0
 
-    val todo = "fold laundry"
-    inputElement.value = todo
-    inputElement.dispatchEvent(inputEvt)
-    submitButton.dispatchEvent(clickEvt)
+      t <- IO {
+        val todo = "fold laundry"
+        inputE.value = todo
+        inputE.dispatchEvent(inputEvt)
+        submitBtn.dispatchEvent(clickEvt)
+        todo
+      }
+      _ = list.childElementCount shouldBe 1
 
-    list.childElementCount shouldBe 1
+      t2 <- IO {
+        val todo2 = "wash dishes"
+        inputE.value = todo2
+        inputE.dispatchEvent(inputEvt)
+        submitBtn.dispatchEvent(clickEvt)
+        todo2
+      }
+      _ = list.childElementCount shouldBe 2
 
-    val todo2 = "wash dishes"
-    inputElement.value = todo2
-    inputElement.dispatchEvent(inputEvt)
-    submitButton.dispatchEvent(clickEvt)
+      t3 <- IO {
+        val todo3 = "clean windows"
+        inputE.value = todo3
+        inputE.dispatchEvent(inputEvt)
+        submitBtn.dispatchEvent(clickEvt)
+        todo3
+      }
+      _ = list.childElementCount shouldBe 3
 
-    list.childElementCount shouldBe 2
+      _ <- IO(document.getElementById(t2).dispatchEvent(clickEvt))
+      _ = list.childElementCount shouldBe 2
 
-    val todo3 = "clean windows"
-    inputElement.value = todo3
-    inputElement.dispatchEvent(inputEvt)
-    submitButton.dispatchEvent(clickEvt)
+      _ <- IO(document.getElementById(t3).dispatchEvent(clickEvt))
+      _ = list.childElementCount shouldBe 1
 
-    list.childElementCount shouldBe 3
+      _ <- IO(document.getElementById(t).dispatchEvent(clickEvt))
+      _ = list.childElementCount shouldBe 0
 
-    document.getElementById(todo2).dispatchEvent(clickEvt)
+    } yield succeed
 
-    list.childElementCount shouldBe 2
-
-    document.getElementById(todo3).dispatchEvent(clickEvt)
-
-    list.childElementCount shouldBe 1
-
-    document.getElementById(todo).dispatchEvent(clickEvt)
-
-    list.childElementCount shouldBe 0
+    test
 
   }
 }

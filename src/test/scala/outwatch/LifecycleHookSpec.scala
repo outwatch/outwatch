@@ -6,15 +6,18 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom._
 import outwatch.dom._
 import outwatch.dom.dsl._
-
 import scala.collection.mutable
+import scala.concurrent.Future
 
-class LifecycleHookSpec extends JSDomSpec {
+class LifecycleHookSpec extends JSDomAsyncSpec {
+
+  def renderUnsafe(node: dom.VNode): Future[Unit] =
+    OutWatch.renderInto("#app", node).unsafeToFuture()
 
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = Sink.create{_: Element =>
       switch = true
       Continue
     }
@@ -25,20 +28,20 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+    }
   }
 
   it should "be called correctly on merged nodes" in {
+
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = Sink.create{_: Element =>
       switch = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: Element) =>
+    val sink2 = Sink.create{_: Element =>
       switch2 = true
       Continue
     }
@@ -52,10 +55,10 @@ class LifecycleHookSpec extends JSDomSpec {
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-    switch2 shouldBe true
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+      switch2 shouldBe true
+    }
 
   }
 
@@ -63,7 +66,7 @@ class LifecycleHookSpec extends JSDomSpec {
   "Destruction hooks"  should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = Sink.create{_: Element =>
       switch = true
       Continue
     }
@@ -74,21 +77,21 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+    }
 
   }
 
   it should "be called correctly on merged nodes" in {
 
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = Sink.create{_: Element =>
       switch = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: Element) =>
+    val sink2 = Sink.create{_: Element =>
       switch2 = true
       Continue
     }
@@ -102,20 +105,22 @@ class LifecycleHookSpec extends JSDomSpec {
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+      switch2 shouldBe true
+    }
 
-    switch shouldBe true
-    switch2 shouldBe true
   }
 
   "Update hooks" should "be called correctly on merged nodes" in {
+
     var switch1 = false
-    val sink1 = Sink.create{(_: (Element, Element)) =>
+    val sink1 = Sink.create{_: (Element, Element) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: (Element, Element)) =>
+    val sink2 = Sink.create{_: (Element, Element) =>
       switch2 = true
       Continue
     }
@@ -127,20 +132,28 @@ class LifecycleHookSpec extends JSDomSpec {
       node <- div(message, onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
     } yield node
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    switch1 shouldBe false
-    switch2 shouldBe false
+    val res1 = for {
+      _ <- renderUnsafe(node)
+    } yield {
+      switch1 shouldBe false
+      switch2 shouldBe false
+    }
 
-    message.onNext("wursi")
-    switch1 shouldBe true
-    switch2 shouldBe true
+    for {
+      _ <- res1
+      _ <- message.onNext("wursi")
+    } yield {
+      switch1 shouldBe true
+      switch2 shouldBe true
+    }
+
   }
 
 
   it should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create{(_: (Element, Element)) =>
+    val sink = Sink.create{_: (Element, Element) =>
       switch = true
       Continue
     }
@@ -151,16 +164,15 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+    }
   }
 
   "Prepatch hooks" should "be called" in {
 
     var switch = false
-    val sink = Sink.create{(_: (Option[Element], Option[Element])) =>
+    val sink = Sink.create{_: (Option[Element], Option[Element]) =>
       switch = true
       Continue
     }
@@ -171,19 +183,20 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+    }
   }
 
   it should "be called correctly on merged nodes" in {
+
     var switch1 = false
-    val sink1 = Sink.create{(_: (Option[Element], Option[Element])) =>
+    val sink1 = Sink.create{_: (Option[Element], Option[Element]) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: (Option[Element], Option[Element])) =>
+    val sink2 = Sink.create{_: (Option[Element], Option[Element]) =>
       switch2 = true
       Continue
     }
@@ -194,20 +207,27 @@ class LifecycleHookSpec extends JSDomSpec {
       node <- div(message, onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
     } yield node
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    switch1 shouldBe false
-    switch2 shouldBe false
+    val res1 = for {
+      _ <- renderUnsafe(node)
+    } yield {
+      switch1 shouldBe false
+      switch2 shouldBe false
+    }
 
-    message.onNext("wursi")
+    for {
+      _ <- res1
+      _ <- message.onNext("wursi")
+    } yield {
+      switch1 shouldBe true
+      switch2 shouldBe true
+    }
 
-    switch1 shouldBe true
-    switch2 shouldBe true
   }
 
   "Postpatch hooks" should "be called" in {
 
     var switch = false
-    val sink = Sink.create{(_: (Element, Element)) =>
+    val sink = Sink.create{_: (Element, Element) =>
       switch = true
       Continue
     }
@@ -218,20 +238,21 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    for(_ <- renderUnsafe(node)) yield {
+      switch shouldBe true
+    }
 
-    switch shouldBe true
   }
 
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = Sink.create{(_: (Element, Element)) =>
+    val sink1 = Sink.create{_: (Element, Element) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: (Element, Element)) =>
+    val sink2 = Sink.create{_: (Element, Element) =>
       switch2 = true
       Continue
     }
@@ -242,37 +263,44 @@ class LifecycleHookSpec extends JSDomSpec {
       node <- div(message, onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
     } yield node
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    switch1 shouldBe false
-    switch2 shouldBe false
+    val res1 = for {
+      _ <- renderUnsafe(node)
+    } yield {
+      switch1 shouldBe false
+      switch2 shouldBe false
+    }
 
-    message.onNext("wursi")
-
-    switch1 shouldBe true
-    switch2 shouldBe true
+    for {
+      _ <- res1
+      _ <- message.onNext("wursi")
+    } yield {
+      switch1 shouldBe true
+      switch2 shouldBe true
+    }
   }
 
 
   "Hooks" should "be called in the correct order for modified node" in {
+
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = Sink.create { _: Element =>
       hooks += "insert"
       Continue
     }
-    val prepatchSink = Sink.create { (_: (Option[Element], Option[Element])) =>
+    val prepatchSink = Sink.create { _: (Option[Element], Option[Element]) =>
       hooks += "prepatch"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = Sink.create { _: (Element, Element) =>
       hooks += "update"
       Continue
     }
-    val postpatchSink = Sink.create { (_: (Element, Element)) =>
+    val postpatchSink = Sink.create { _: (Element, Element) =>
       hooks += "postpatch"
       Continue
 
     }
-    val destroySink = Sink.create { (_: Element) =>
+    val destroySink = Sink.create { _: Element =>
       hooks += "destroy"
       Continue
     }
@@ -295,22 +323,29 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    val res1 = for {
+      _ <- renderUnsafe(node)
+    } yield {
+      hooks.toList shouldBe List("insert")
+    }
 
-    hooks.toList shouldBe List("insert")
+    for {
+      _ <- res1
+      _ <- message.onNext("next")
+    } yield {
+      hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
+    }
 
-    message.onNext("next")
-
-    hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
   }
 
   "Empty single children receiver" should "not trigger node update on render" in {
+
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = Sink.create { _: Element =>
       hooks += "insert"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = Sink.create { _: (Element, Element) =>
       hooks += "update"
       Continue
     }
@@ -327,22 +362,23 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    hooks.toList shouldBe  List("insert")
+    for(_ <- renderUnsafe(node)) yield {
+      hooks.toList shouldBe  List("insert")
+    }
   }
 
   "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
+
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = Sink.create { _: Element =>
       hooks += "insert"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = Sink.create { _: (Element, Element) =>
       hooks += "update"
       Continue
     }
-    val destroySink = Sink.create { (_: Element) =>
+    val destroySink = Sink.create { _: Element =>
       hooks += "destroy"
       Continue
     }
@@ -359,24 +395,27 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    for {
+      _ <- renderUnsafe(node)
+      _ <- message.onNext("next")
+    } yield {
+     hooks.contains("destroy") shouldBe false
+    }
 
-    message.onNext("next")
-
-    hooks.contains("destroy") shouldBe false
   }
 
   it should "be only inserted once when children stream emits" in {
+
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = Sink.create { _: Element =>
       hooks += "insert"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = Sink.create { _: (Element, Element) =>
       hooks += "update"
       Continue
     }
-    val destroySink = Sink.create { (_: Element) =>
+    val destroySink = Sink.create { _: Element =>
       hooks += "destroy"
       Continue
     }
@@ -393,13 +432,13 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    messageList.onNext(Seq("one"))
-
-    messageList.onNext(Seq("one", "two"))
-
-    hooks.count(_ == "insert") shouldBe 1
+    for {
+      _ <- renderUnsafe(node)
+      _ <- messageList.onNext(Seq("one"))
+      _ <- messageList.onNext(Seq("one", "two"))
+    } yield {
+      hooks.count(_ == "insert") shouldBe 1
+    }
   }
 
 
@@ -408,7 +447,7 @@ class LifecycleHookSpec extends JSDomSpec {
     val nodes = PublishSubject[VNode]
 
     var latest = ""
-    val sink = Sink.create { (elem: String) =>
+    val sink = Sink.create { elem: String =>
       latest = elem
       Continue
     }
@@ -421,17 +460,26 @@ class LifecycleHookSpec extends JSDomSpec {
       )))
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    val res1 = for {
+      _ <- renderUnsafe(node)
+    } yield {
+      latest shouldBe ""
+    }
 
-    latest shouldBe ""
+    val res2 = for {
+      _ <- res1
+      _ <- sub.onNext("first")
+    } yield {
+      latest shouldBe "first"
+    }
 
-    sub.onNext("first")
-    latest shouldBe "first"
-
-    nodes.onNext(div()) // this triggers child destroy and subscription cancelation
-
-    sub.onNext("second")
-    latest shouldBe "first"
+    for {
+      _ <- nodes.onNext(div()) // this triggers child destroy and subscription cancelation
+      _ <- res2
+      _ <- sub.onNext("second")
+    } yield {
+      latest shouldBe "first"
+    }
   }
 
 
@@ -439,7 +487,7 @@ class LifecycleHookSpec extends JSDomSpec {
 
     val operations = mutable.ArrayBuffer.empty[String]
 
-    val sink = Sink.create { (op: String) =>
+    val sink = Sink.create { op: String =>
       operations += op
       Continue
     }
@@ -453,13 +501,15 @@ class LifecycleHookSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    for(_ <- renderUnsafe(node)) yield {
+      operations.toList shouldBe List("div", "insert")
+    }
 
-    operations.toList shouldBe List("div", "insert")
 
   }
 
   "Lifecycle and subscription" should "with a snabbdom key" in {
+
     var onSnabbdomInsertCount = 0
     var onSnabbdomPrePatchCount = 0
     var onSnabbdomPostPatchCount = 0
@@ -469,130 +519,135 @@ class LifecycleHookSpec extends JSDomSpec {
     var onDomMountList = List.empty[Int]
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
-
-    val innerHandler = Handler.create[Int].unsafeRunSync
-    val handler = Handler.create[(String, String)].unsafeRunSync
-    val otherHandler = Handler.create[String].unsafeRunSync
-
     var counter = 0
-    val node = div(
-      id := "strings",
-      otherHandler.map(div(_)),
-      handler.map { case (keyText, text) =>
-        counter += 1
-        val c = counter
-        div(
-          dsl.key := keyText,
-          text,
-          innerHandler.map { i => innerHandlerCount += 1; i },
-          onSnabbdomInsert --> sideEffect { onSnabbdomInsertCount += 1 },
-          onSnabbdomPrePatch --> sideEffect { onSnabbdomPrePatchCount += 1 },
-          onSnabbdomPostPatch --> sideEffect { onSnabbdomPostPatchCount += 1 },
-          onSnabbdomUpdate --> sideEffect { onSnabbdomUpdateCount += 1 },
-          onSnabbdomDestroy --> sideEffect { onSnabbdomDestroyCount += 1 },
-          onDomMount --> sideEffect { onDomMountList :+= c },
-          onDomUnmount --> sideEffect { onDomUnmountList :+= c },
-          onDomUpdate --> sideEffect { onDomUpdateList :+= c }
-        )
-      }
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    val element = document.getElementById("strings")
+    Handler.create[Int].flatMap { innerHandler =>
+    Handler.create[(String, String)].flatMap { handler =>
+    Handler.create[String].flatMap { otherHandler =>
 
-    element.innerHTML shouldBe ""
-    onSnabbdomInsertCount shouldBe 0
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe Nil
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      val node: VNode = div(
+        id := "strings",
+        otherHandler.map(div(_)),
+        handler.map { case (keyText, text) =>
+          counter += 1
+          val c = counter
+          div(
+            dsl.key := keyText,
+            text,
+            innerHandler.map { i => innerHandlerCount += 1; i },
+            onSnabbdomInsert --> sideEffect { onSnabbdomInsertCount += 1 },
+            onSnabbdomPrePatch --> sideEffect { onSnabbdomPrePatchCount += 1 },
+            onSnabbdomPostPatch --> sideEffect { onSnabbdomPostPatchCount += 1 },
+            onSnabbdomUpdate --> sideEffect { onSnabbdomUpdateCount += 1 },
+            onSnabbdomDestroy --> sideEffect { onSnabbdomDestroyCount += 1 },
+            onDomMount --> sideEffect { onDomMountList :+= c },
+            onDomUnmount --> sideEffect { onDomUnmountList :+= c },
+            onDomUpdate --> sideEffect { onDomUpdateList :+= c }
+          )
+        }
+      )
 
-    handler.onNext(("key", "heinz"))
-    element.innerHTML shouldBe "<div>heinz</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1)
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
 
-    handler.onNext(("key", "golum"))
-    element.innerHTML shouldBe "<div>golum</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 1
-    onSnabbdomPostPatchCount shouldBe 1
-    onSnabbdomUpdateCount shouldBe 1
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2)
-    //    onDomUnmountList shouldBe List(1)
-    onDomUpdateList shouldBe Nil
+      OutWatch.renderInto("#app", node).map { _ =>
 
-    handler.onNext(("key", "dieter"))
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2, 3)
-    onDomUnmountList shouldBe List(1,2)
-    onDomUpdateList shouldBe Nil
+        val element = document.getElementById("strings")
 
-    handler.onNext(("nope", "dieter"))
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 2
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 1
-    onDomMountList shouldBe List(1, 2 ,3, 4)
-    onDomUnmountList shouldBe List(1,2,3)
-    onDomUpdateList shouldBe Nil
+        element.innerHTML shouldBe ""
+        onSnabbdomInsertCount shouldBe 0
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 0
+        onDomMountList shouldBe Nil
+        onDomUnmountList shouldBe Nil
+        onDomUpdateList shouldBe Nil
 
-    handler.onNext(("yes", "peter"))
-    element.innerHTML shouldBe "<div>peter</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+        handler.onNext(("key", "heinz"))
+        element.innerHTML shouldBe "<div>heinz</div>"
+        onSnabbdomInsertCount shouldBe 1
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 0
+        onDomMountList shouldBe List(1)
+        onDomUnmountList shouldBe Nil
+        onDomUpdateList shouldBe Nil
 
-    otherHandler.onNext("hi")
-    element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 3
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+        handler.onNext(("key", "golum"))
+        element.innerHTML shouldBe "<div>golum</div>"
+        onSnabbdomInsertCount shouldBe 1
+        onSnabbdomPrePatchCount shouldBe 1
+        onSnabbdomPostPatchCount shouldBe 1
+        onSnabbdomUpdateCount shouldBe 1
+        onSnabbdomDestroyCount shouldBe 0
+        onDomMountList shouldBe List(1, 2)
+        //    onDomUnmountList shouldBe List(1)
+        onDomUpdateList shouldBe Nil
 
-    innerHandlerCount shouldBe 0
+        handler.onNext(("key", "dieter"))
+        element.innerHTML shouldBe "<div>dieter</div>"
+        onSnabbdomInsertCount shouldBe 1
+        onSnabbdomPrePatchCount shouldBe 2
+        onSnabbdomPostPatchCount shouldBe 2
+        onSnabbdomUpdateCount shouldBe 2
+        onSnabbdomDestroyCount shouldBe 0
+        onDomMountList shouldBe List(1, 2, 3)
+        onDomUnmountList shouldBe List(1,2)
+        onDomUpdateList shouldBe Nil
 
-    innerHandler.onNext(0)
-    element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 4
-    onSnabbdomPostPatchCount shouldBe 3
-    onSnabbdomUpdateCount shouldBe 3
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe List(5)
+        handler.onNext(("nope", "dieter"))
+        element.innerHTML shouldBe "<div>dieter</div>"
+        onSnabbdomInsertCount shouldBe 2
+        onSnabbdomPrePatchCount shouldBe 2
+        onSnabbdomPostPatchCount shouldBe 2
+        onSnabbdomUpdateCount shouldBe 2
+        onSnabbdomDestroyCount shouldBe 1
+        onDomMountList shouldBe List(1, 2 ,3, 4)
+        onDomUnmountList shouldBe List(1,2,3)
+        onDomUpdateList shouldBe Nil
 
-    innerHandlerCount shouldBe 1
+        handler.onNext(("yes", "peter"))
+        element.innerHTML shouldBe "<div>peter</div>"
+        onSnabbdomInsertCount shouldBe 3
+        onSnabbdomPrePatchCount shouldBe 2
+        onSnabbdomPostPatchCount shouldBe 2
+        onSnabbdomUpdateCount shouldBe 2
+        onSnabbdomDestroyCount shouldBe 2
+        onDomMountList shouldBe List(1, 2, 3, 4, 5)
+        onDomUnmountList shouldBe List(1, 2, 3, 4)
+        onDomUpdateList shouldBe Nil
+
+        otherHandler.onNext("hi")
+        element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
+        onSnabbdomInsertCount shouldBe 3
+        onSnabbdomPrePatchCount shouldBe 3
+        onSnabbdomPostPatchCount shouldBe 2
+        onSnabbdomUpdateCount shouldBe 2
+        onSnabbdomDestroyCount shouldBe 2
+        onDomMountList shouldBe List(1, 2, 3, 4, 5)
+        onDomUnmountList shouldBe List(1, 2, 3, 4)
+        onDomUpdateList shouldBe Nil
+
+        innerHandlerCount shouldBe 0
+
+        innerHandler.onNext(0)
+        element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
+        onSnabbdomInsertCount shouldBe 3
+        onSnabbdomPrePatchCount shouldBe 4
+        onSnabbdomPostPatchCount shouldBe 3
+        onSnabbdomUpdateCount shouldBe 3
+        onSnabbdomDestroyCount shouldBe 2
+        onDomMountList shouldBe List(1, 2, 3, 4, 5)
+        onDomUnmountList shouldBe List(1, 2, 3, 4)
+        onDomUpdateList shouldBe List(5)
+
+        innerHandlerCount shouldBe 1
+
+      }}}}
   }
 
   it should "without a custom key" in {
+
     var onSnabbdomInsertCount = 0
     var onSnabbdomPrePatchCount = 0
     var onSnabbdomPostPatchCount = 0
@@ -602,125 +657,129 @@ class LifecycleHookSpec extends JSDomSpec {
     var onDomMountList = List.empty[Int]
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
-
-    val innerHandler = Handler.create[Int].unsafeRunSync
-    val handler = Handler.create[String].unsafeRunSync
-    val otherHandler = Handler.create[String].unsafeRunSync
-
     var counter = 0
-    val node = div(
-      id := "strings",
-      otherHandler.map(div(_)),
-      handler.map { text =>
-        counter += 1
-        val c = counter
-        div(
-          text,
-          innerHandler.map { i => innerHandlerCount += 1; i },
-          onSnabbdomInsert --> sideEffect { onSnabbdomInsertCount += 1 },
-          onSnabbdomPrePatch --> sideEffect { onSnabbdomPrePatchCount += 1 },
-          onSnabbdomPostPatch --> sideEffect { onSnabbdomPostPatchCount += 1 },
-          onSnabbdomUpdate --> sideEffect { onSnabbdomUpdateCount += 1 },
-          onSnabbdomDestroy --> sideEffect { onSnabbdomDestroyCount += 1 },
-          onDomMount --> sideEffect { onDomMountList :+= c },
-          onDomUnmount --> sideEffect { onDomUnmountList :+= c },
-          onDomUpdate --> sideEffect { onDomUpdateList :+= c }
-        )
-      }
-    )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    val element = document.getElementById("strings")
+    Handler.create[Int].flatMap { innerHandler =>
+    Handler.create[String].flatMap { handler =>
+    Handler.create[String].flatMap { otherHandler =>
 
-    element.innerHTML shouldBe ""
-    onSnabbdomInsertCount shouldBe 0
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe Nil
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      val node = div(
+        id := "strings",
+        otherHandler.map(div(_)),
+        handler.map { text =>
+          counter += 1
+          val c = counter
+          div(
+            text,
+            innerHandler.map { i => innerHandlerCount += 1; i },
+            onSnabbdomInsert --> sideEffect { onSnabbdomInsertCount += 1 },
+            onSnabbdomPrePatch --> sideEffect { onSnabbdomPrePatchCount += 1 },
+            onSnabbdomPostPatch --> sideEffect { onSnabbdomPostPatchCount += 1 },
+            onSnabbdomUpdate --> sideEffect { onSnabbdomUpdateCount += 1 },
+            onSnabbdomDestroy --> sideEffect { onSnabbdomDestroyCount += 1 },
+            onDomMount --> sideEffect { onDomMountList :+= c },
+            onDomUnmount --> sideEffect { onDomUnmountList :+= c },
+            onDomUpdate --> sideEffect { onDomUpdateList :+= c }
+          )
+        }
+      )
 
-    handler.onNext("heinz")
-    element.innerHTML shouldBe "<div>heinz</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1)
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      OutWatch.renderInto("#app", node).map { _ =>
 
-    handler.onNext("golum")
-    element.innerHTML shouldBe "<div>golum</div>"
-    onSnabbdomInsertCount shouldBe 2
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 1
-    onDomMountList shouldBe List(1,2)
-    onDomUnmountList shouldBe List(1)
-    onDomUpdateList shouldBe Nil
+        val element = document.getElementById("strings")
 
-    handler.onNext("dieter")
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1,2,3)
-    onDomUnmountList shouldBe List(1,2)
-    onDomUpdateList shouldBe Nil
+        element.innerHTML shouldBe ""
+        onSnabbdomInsertCount shouldBe 0
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 0
+        onDomMountList shouldBe Nil
+        onDomUnmountList shouldBe Nil
+        onDomUpdateList shouldBe Nil
 
-    handler.onNext("dieter")
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 4
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 3
-    onDomMountList shouldBe List(1,2,3,4)
-    onDomUnmountList shouldBe List(1,2,3)
-    onDomUpdateList shouldBe Nil
+        handler.onNext("heinz")
+        element.innerHTML shouldBe "<div>heinz</div>"
+        onSnabbdomInsertCount shouldBe 1
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 0
+        onDomMountList shouldBe List(1)
+        onDomUnmountList shouldBe Nil
+        onDomUpdateList shouldBe Nil
 
-    handler.onNext("peter")
-    element.innerHTML shouldBe "<div>peter</div>"
-    onSnabbdomInsertCount shouldBe 5
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 4
-    onDomMountList shouldBe List(1,2,3,4,5)
-    onDomUnmountList shouldBe List(1,2,3,4)
-    onDomUpdateList shouldBe Nil
+        handler.onNext("golum")
+        element.innerHTML shouldBe "<div>golum</div>"
+        onSnabbdomInsertCount shouldBe 2
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 1
+        onDomMountList shouldBe List(1,2)
+        onDomUnmountList shouldBe List(1)
+        onDomUpdateList shouldBe Nil
 
-    otherHandler.onNext("hi")
-    element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
-    onSnabbdomInsertCount shouldBe 5
-    onSnabbdomPrePatchCount shouldBe 1
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 4
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+        handler.onNext("dieter")
+        element.innerHTML shouldBe "<div>dieter</div>"
+        onSnabbdomInsertCount shouldBe 3
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 2
+        onDomMountList shouldBe List(1,2,3)
+        onDomUnmountList shouldBe List(1,2)
+        onDomUpdateList shouldBe Nil
 
-    innerHandlerCount shouldBe 0
+        handler.onNext("dieter")
+        element.innerHTML shouldBe "<div>dieter</div>"
+        onSnabbdomInsertCount shouldBe 4
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 3
+        onDomMountList shouldBe List(1,2,3,4)
+        onDomUnmountList shouldBe List(1,2,3)
+        onDomUpdateList shouldBe Nil
 
-    innerHandler.onNext(0)
-    element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
-    onSnabbdomInsertCount shouldBe 5
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 1
-    onSnabbdomUpdateCount shouldBe 1
-    onSnabbdomDestroyCount shouldBe 4
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe List(5)
+        handler.onNext("peter")
+        element.innerHTML shouldBe "<div>peter</div>"
+        onSnabbdomInsertCount shouldBe 5
+        onSnabbdomPrePatchCount shouldBe 0
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 4
+        onDomMountList shouldBe List(1,2,3,4,5)
+        onDomUnmountList shouldBe List(1,2,3,4)
+        onDomUpdateList shouldBe Nil
 
-    innerHandlerCount shouldBe 1
+        otherHandler.onNext("hi")
+        element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
+        onSnabbdomInsertCount shouldBe 5
+        onSnabbdomPrePatchCount shouldBe 1
+        onSnabbdomPostPatchCount shouldBe 0
+        onSnabbdomUpdateCount shouldBe 0
+        onSnabbdomDestroyCount shouldBe 4
+        onDomMountList shouldBe List(1, 2, 3, 4, 5)
+        onDomUnmountList shouldBe List(1, 2, 3, 4)
+        onDomUpdateList shouldBe Nil
+
+        innerHandlerCount shouldBe 0
+
+        innerHandler.onNext(0)
+        element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
+        onSnabbdomInsertCount shouldBe 5
+        onSnabbdomPrePatchCount shouldBe 2
+        onSnabbdomPostPatchCount shouldBe 1
+        onSnabbdomUpdateCount shouldBe 1
+        onSnabbdomDestroyCount shouldBe 4
+        onDomMountList shouldBe List(1, 2, 3, 4, 5)
+        onDomUnmountList shouldBe List(1, 2, 3, 4)
+        onDomUpdateList shouldBe List(5)
+
+        innerHandlerCount shouldBe 1
+
+    }}}}
+
   }
 }
