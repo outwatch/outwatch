@@ -216,7 +216,7 @@ class OutWatchDomSpec extends JSDomSpec {
     children.hasStream shouldBe true
     children.hasVTree shouldBe true
 
-    val proxy = modifiers.toSnabbdom("div")
+    val proxy = SnabbdomModifiers.toSnabbdom(modifiers, "div")
     proxy.key.isDefined shouldBe true
 
     proxy.children.get.length shouldBe 2
@@ -243,7 +243,7 @@ class OutWatchDomSpec extends JSDomSpec {
     children.hasStream shouldBe true
     children.hasVTree shouldBe true
 
-    val proxy = modifiers.toSnabbdom("div")
+    val proxy = SnabbdomModifiers.toSnabbdom(modifiers, "div")
     proxy.key.toOption  shouldBe Some(1234)
 
     proxy.children.get(0).key.toOption shouldBe Some(5678)

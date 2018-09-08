@@ -1,7 +1,7 @@
 package outwatch.dom
 
 import monix.execution.{Ack, Scheduler}
-import monix.reactive.{Observable, Observer}
+import monix.reactive.Observer
 import org.scalajs.dom._
 import outwatch.dom.helpers.SeparatedModifiers
 import snabbdom.{DataObject, VNodeProxy}
@@ -148,7 +148,7 @@ private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifi
   private var proxy: VNodeProxy = null
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
     if (proxy == null) {
-      proxy = SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)
+      proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(modifiers), nodeType)
     }
     proxy
   }

@@ -2,11 +2,9 @@ package outwatch
 
 import org.scalajs.dom.{document, html}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import outwatch.dom.helpers.OutwatchTracing
 import snabbdom.{DataObject, hFunction, patch}
 
 import scala.scalajs.js
-import scala.scalajs.js.JSON
 
 class SnabbdomSpec extends JSDomSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {

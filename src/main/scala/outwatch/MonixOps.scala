@@ -1,11 +1,9 @@
 package outwatch
 
 import cats.effect.IO
-import monix.execution.{Ack, Cancelable, Scheduler}
+import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
-
-import scala.concurrent.Future
 
 trait MonixOps {
   type ProHandler[-I, +O] = Observable[O] with Observer[I]

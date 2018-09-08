@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
 import monix.reactive.Observable
 import outwatch.dom._
 

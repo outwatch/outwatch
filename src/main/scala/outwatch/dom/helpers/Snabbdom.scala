@@ -1,13 +1,10 @@
 package outwatch.dom.helpers
 
 import monix.execution.Ack.Continue
-import monix.execution.Scheduler
-import monix.execution.Cancelable
-import monix.execution.cancelables.StackedCancelable
+import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import outwatch.SideEffects
 import outwatch.dom._
 import snabbdom._
 
@@ -91,22 +88,24 @@ private[outwatch] trait SnabbdomAttributes { self: SeparatedAttributes =>
 private[outwatch] trait SnabbdomHooks { self: SeparatedHooks =>
 
   private def createHookSingle(hooks: Seq[Hook[dom.Element]]): js.UndefOr[Hooks.HookSingleFn] = {
-    Option(hooks).filter(_.nonEmpty).map[Hooks.HookSingleFn](hooks =>
-      (p: VNodeProxy) => for (e <- p.elm) hooks.foreach(_.observer.onNext(e))
-    ).orUndefined
+    if (hooks.isEmpty) js.undefined
+    else { (p: VNodeProxy) =>
+      for (e <- p.elm) hooks.foreach(_.observer.onNext(e))
+    }: Hooks.HookSingleFn
   }
 
   private def createHookPair(hooks: Seq[Hook[(dom.Element, dom.Element)]]): js.UndefOr[Hooks.HookPairFn] = {
-    Option(hooks).filter(_.nonEmpty).map[Hooks.HookPairFn](hooks =>
-      (old: VNodeProxy, cur: VNodeProxy) => for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.onNext((o, c)))
-    ).orUndefined
+    if (hooks.isEmpty) js.undefined
+    else { (old: VNodeProxy, cur: VNodeProxy) =>
+      for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.onNext((o, c)))
+    }: Hooks.HookPairFn
   }
 
-  private def createHookPairOption(hooks: Seq[Hook[(Option[dom.Element], Option[dom.Element])]]
-  ): js.UndefOr[Hooks.HookPairFn] = {
-    Option(hooks).filter(_.nonEmpty).map[Hooks.HookPairFn](hooks =>
-      (old: VNodeProxy, cur: VNodeProxy) => hooks.foreach(_.observer.onNext((old.elm.toOption, cur.elm.toOption)))
-    ).orUndefined
+  private def createHookPairOption(hooks: Seq[Hook[(Option[dom.Element], Option[dom.Element])]]): js.UndefOr[Hooks.HookPairFn] = {
+    if (hooks.isEmpty) js.undefined
+    else { (old: VNodeProxy, cur: VNodeProxy) =>
+      hooks.foreach(_.observer.onNext((old.elm.toOption, cur.elm.toOption)))
+    }: Hooks.HookPairFn
   }
 
   private def createPostPatchHookWithUnmount()(implicit s: Scheduler): Hooks.HookPairFn =
@@ -251,9 +250,10 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
     createProxy(previousProxy.sel, previousProxy.outwatchState, dataObject, childrenWithKey)
   }
 
-  private[outwatch] def toSnabbdom(nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
-    val childrenWithKey = children.ensureKey
-    val receivers = new Receivers(childrenWithKey)
+  private[outwatch] def toSnabbdom(modifiers: SeparatedModifiers, nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
+    import modifiers._
+
+    val vNodeId = modifiers.hashCode
 
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
@@ -286,10 +286,10 @@ private[outwatch] trait SnabbdomModifiers { self: SeparatedModifiers =>
       }
 
       // hooks for subscribing and unsubscribing
-      val cancelable = StackedCancelable()
+      val cancelable = new QueuedCancelable()
       val subscriptionHooks =
-        DomMountHook(SideEffects.observerFromFunction(_ => cancelable.push(subscribe()))) ::
-          DomUnmountHook(SideEffects.observerFromFunction(_ => cancelable.pop().cancel())) ::
+        DomMountHook(sideEffect {cancelable.enqueue(subscribe()) }) ::
+          DomUnmountHook(sideEffect { cancelable.dequeue().cancel() }) ::
           Nil
 
       // create initial proxy with subscription hooks

@@ -1,8 +1,5 @@
 package outwatch.dom
 
-import snabbdom.VNodeProxy
-import monix.reactive.Observer
-import org.scalajs.dom.Element
 import outwatch.dom.helpers._
 import cats.effect.IO
 
