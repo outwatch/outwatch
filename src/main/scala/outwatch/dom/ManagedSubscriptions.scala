@@ -4,22 +4,22 @@ import cats.effect.IO
 import monix.execution.cancelables.CompositeCancelable
 import monix.execution.{Cancelable, Scheduler}
 import outwatch.dom.dsl.attributes.lifecycle
+import outwatch.dom.helpers.QueuedCancelable
 
 trait ManagedSubscriptions {
 
   def managed(subscription: IO[Cancelable])(implicit s: Scheduler): VDomModifier = {
-    subscription.flatMap { sub: Cancelable =>
-      lifecycle.onSnabbdomDestroy --> sideEffect{sub.cancel()}
-    }
+    val cancelable = new QueuedCancelable()
+    VDomModifier(
+      lifecycle.onDomMount --> sideEffect{ cancelable.enqueue(subscription.unsafeRunSync()) },
+      lifecycle.onDomUnmount --> sideEffect{ cancelable.dequeue().cancel() }
+    )
   }
 
   def managed(sub1: IO[Cancelable], sub2: IO[Cancelable], subscriptions: IO[Cancelable]*)(implicit s: Scheduler): VDomModifier = {
-    (sub1 :: sub2 :: subscriptions.toList).sequence.flatMap { subs: Seq[Cancelable] =>
-      val composite = CompositeCancelable(subs: _*)
-      lifecycle.onSnabbdomDestroy --> sideEffect{composite.cancel()}
-    }
+    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map(subs => CompositeCancelable(subs: _*))
+    managed(composite)
   }
-
 }
 
 object ManagedSubscriptions extends ManagedSubscriptions
