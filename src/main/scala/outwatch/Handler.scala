@@ -23,7 +23,7 @@ object ProHandler {
     handler <- Handler.create[I]
   } yield handler.mapObservable[O](f)
 
-  def apply[I,O](observable: Observable[O], observer:Observer[I]):ProHandler[I,O] = new Observable[O] with Observer[I] {
+  def apply[I,O](observer:Observer[I], observable: Observable[O]):ProHandler[I,O] = new Observable[O] with Observer[I] {
     override def onNext(elem: I): Future[Ack] = observer.onNext(elem)
     override def onError(ex: Throwable): Unit = observer.onError(ex)
     override def onComplete(): Unit = observer.onComplete()
