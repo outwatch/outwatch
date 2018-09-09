@@ -3,112 +3,90 @@ package outwatch.dom.helpers
 import monix.reactive.Observable
 import outwatch.dom._
 
-object SeparatedModifiers {
+import scala.collection.mutable
+
+private[outwatch] object SeparatedModifiers {
   private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
-    modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
+    val m = new SeparatedModifiers()
+    m.append(modifiers)
+    m
   }
 }
 
-private[outwatch] final case class SeparatedModifiers(
-  properties: SeparatedProperties = SeparatedProperties(),
-  emitters: SeparatedEmitters = SeparatedEmitters(),
-  children: Children = Children.empty
-) extends SnabbdomModifiers { self =>
+private[outwatch] class SeparatedModifiers {
+  val properties = new SeparatedProperties
+  val emitters = new mutable.ArrayBuffer[Emitter]()
+  val children = new Children
 
-  def ::(m: Modifier): SeparatedModifiers = m match {
-    case pr: Property => copy(properties = pr :: properties)
-    case vn: ChildVNode => copy(children = vn :: children)
-    case em: Emitter => copy(emitters = em :: emitters)
-    case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
-    case EmptyModifier => self
+  def append(modifiers: Seq[Modifier]): Unit = modifiers.foreach {
+    case em: Emitter =>
+      emitters += em
+    case cm: CompositeModifier =>
+      append(cm.modifiers)
+    case s: StringVNode =>
+      children.nodes += s
+    case s: VTree =>
+      children.nodes += s
+      children.hasVTree = true
+    case s: ModifierStreamReceiver =>
+      children.nodes += s
+      children.hasStream = true
+    case key: Key =>
+      properties.keys += key
+    case a : Attr =>
+      properties.attributes.attrs += a
+    case p : Prop =>
+      properties.attributes.props += p
+    case s : Style =>
+      properties.attributes.styles += s
+    case h: DomMountHook =>
+      properties.hooks.domMountHooks += h
+    case h: DomUnmountHook =>
+      properties.hooks.domUnmountHooks += h
+    case h: DomUpdateHook =>
+      properties.hooks.domUpdateHooks += h
+    case h: InsertHook =>
+      properties.hooks.insertHooks += h
+    case h: PrePatchHook =>
+      properties.hooks.prePatchHooks += h
+    case h: UpdateHook =>
+      properties.hooks.updateHooks += h
+    case h: PostPatchHook =>
+      properties.hooks.postPatchHooks += h
+    case h: DestroyHook =>
+      properties.hooks.destroyHooks += h
+    case EmptyModifier =>
+      ()
   }
 }
 
-//TODO: Children is not a good name, as these can be stringmodifiers or vnodes or modifier streams.
-// So this is not neccessarily a child node.
-private[outwatch] case class Children(nodes: List[ChildVNode], hasStream: Boolean, hasVTree: Boolean) {
-  private def ensureVNodeKey[N >: VTree](node: N): N = node match {
-    case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
-    case other => other
-  }
-
-  // if child streams exist, we want the static children in the same node to have keys
-  // for efficient patching when the streams change
-  def ensureKey: Children = if (hasStream && hasVTree) copy(nodes = nodes.map(ensureVNodeKey)) else this
-
-  def ::(node: ChildVNode): Children = node match {
-    case s: StringVNode => copy(nodes = s :: nodes)
-    case s: VTree => copy(nodes = s :: nodes, hasVTree = true)
-    case s: ModifierStreamReceiver => copy(nodes = s :: nodes, hasStream = true)
-  }
-}
-object Children {
-  def empty = Children(Nil, hasStream = false, hasVTree = false)
+private[outwatch] class Children {
+  val nodes = new mutable.ArrayBuffer[ChildVNode]()
+  var hasStream: Boolean = false
+  var hasVTree: Boolean = false
 }
 
-private[outwatch] final case class SeparatedProperties(
-  attributes: SeparatedAttributes = SeparatedAttributes(),
-  hooks: SeparatedHooks = SeparatedHooks(),
-  keys: List[Key] = Nil
-) {
-  def ::(p: Property): SeparatedProperties = p match {
-    case att: Attribute => copy(attributes = att :: attributes)
-    case hook: Hook[_] => copy(hooks = hook :: hooks)
-    case key: Key => copy(keys = key :: keys)
-  }
+private[outwatch] class SeparatedProperties {
+  val attributes = new SeparatedAttributes()
+  val hooks = new SeparatedHooks()
+  val keys = new mutable.ArrayBuffer[Key]()
 }
 
-private[outwatch] final case class SeparatedStyles(
-  styles: List[Style] = Nil
-) extends SnabbdomStyles {
-  @inline def ::(s: Style): SeparatedStyles = copy(styles = s :: styles)
+private[outwatch] class SeparatedAttributes {
+  val attrs = new mutable.ArrayBuffer[Attr]()
+  val props = new mutable.ArrayBuffer[Prop]()
+  val styles = new mutable.ArrayBuffer[Style]()
 }
 
-
-private[outwatch] final case class SeparatedAttributes(
-  attrs: List[Attr] = Nil,
-  props: List[Prop] = Nil,
-  styles: SeparatedStyles = SeparatedStyles()
-) extends SnabbdomAttributes {
-  @inline def ::(a: Attribute): SeparatedAttributes = a match {
-    case a : Attr => copy(attrs = a :: attrs)
-    case p : Prop => copy(props = p :: props)
-    case s : Style => copy(styles= s :: styles)
-  }
-}
-object SeparatedAttributes {
-  private[outwatch] def from(attributes: Seq[Attribute]): SeparatedAttributes = {
-    attributes.foldRight(SeparatedAttributes())((a, sa) => a :: sa)
-  }
-}
-
-private[outwatch] final case class SeparatedHooks(
-  insertHooks: List[InsertHook] = Nil,
-  prePatchHooks: List[PrePatchHook] = Nil,
-  updateHooks: List[UpdateHook] = Nil,
-  postPatchHooks: List[PostPatchHook] = Nil,
-  destroyHooks: List[DestroyHook] = Nil,
-  domMountHooks: List[DomMountHook] = Nil,
-  domUnmountHooks: List[DomUnmountHook] = Nil,
-  domUpdateHooks: List[DomUpdateHook] = Nil
-) extends SnabbdomHooks {
-  def ::(h: Hook[_]): SeparatedHooks = h match {
-    case dh: DomMountHook => copy(domMountHooks = dh :: domMountHooks)
-    case dh: DomUnmountHook => copy(domUnmountHooks = dh :: domUnmountHooks)
-    case dh: DomUpdateHook => copy(domUpdateHooks = dh :: domUpdateHooks)
-    case pph: PrePatchHook => copy(prePatchHooks = pph :: prePatchHooks)
-    case ih: InsertHook => copy(insertHooks = ih :: insertHooks)
-    case pph: PrePatchHook => copy(prePatchHooks = pph :: prePatchHooks)
-    case uh: UpdateHook => copy(updateHooks = uh :: updateHooks)
-    case pph: PostPatchHook => copy(postPatchHooks = pph :: postPatchHooks)
-    case dh: DestroyHook => copy(destroyHooks = dh :: destroyHooks)
-  }
-}
-
-private[outwatch] final case class SeparatedEmitters(
-  emitters: List[Emitter] = Nil
-) extends SnabbdomEmitters {
-  def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
+private[outwatch] class SeparatedHooks {
+  val insertHooks = new mutable.ArrayBuffer[InsertHook]()
+  val prePatchHooks = new mutable.ArrayBuffer[PrePatchHook]()
+  val updateHooks = new mutable.ArrayBuffer[UpdateHook]()
+  val postPatchHooks = new mutable.ArrayBuffer[PostPatchHook]()
+  val destroyHooks = new mutable.ArrayBuffer[DestroyHook]()
+  val domMountHooks = new mutable.ArrayBuffer[DomMountHook]()
+  val domUnmountHooks = new mutable.ArrayBuffer[DomUnmountHook]()
+  val domUpdateHooks = new mutable.ArrayBuffer[DomUpdateHook]()
 }
 
 private[outwatch] sealed trait ContentKind
@@ -195,16 +173,8 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
 // attribute streams. it is about capturing the dynamic content of a node.
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
-private[outwatch] final class Receivers(children: Children) {
-  private val childNodes = {
-    if (children.hasStream) children.nodes // only interested if there is dynamic content
-    else Nil
-  }
-
-  private lazy val streamableModifiers = new StreamableModifiers(childNodes)
+private[outwatch] final class Receivers(childNodes: Seq[ChildVNode]) {
+  private val streamableModifiers = new StreamableModifiers(childNodes)
   def initialState: Array[Modifier] = streamableModifiers.initialModifiers
   def observable: Observable[Array[Modifier]] = streamableModifiers.observable
-
-  // it is empty if there is no dynamic modifier, i.e., no observables.
-  def nonEmpty: Boolean = childNodes.nonEmpty
 }

@@ -30,14 +30,15 @@ class OutWatchDomSpec extends JSDomSpec {
       PostPatchHook(PublishSubject())
     )
 
-    val SeparatedProperties(att, hooks, keys) = properties.foldRight(SeparatedProperties())((p, sp) => p :: sp)
+    val seps = SeparatedModifiers.from(properties)
+    import seps.properties._
 
     hooks.insertHooks.length shouldBe 2
     hooks.prePatchHooks.length shouldBe 1
     hooks.updateHooks.length shouldBe 1
     hooks.postPatchHooks.length shouldBe 1
     hooks.destroyHooks.length shouldBe 1
-    att.attrs.length shouldBe 1
+    attributes.attrs.length shouldBe 1
     keys.length shouldBe 0
   }
 
@@ -59,10 +60,10 @@ class OutWatchDomSpec extends JSDomSpec {
       ModifierStreamReceiver(ValueObservable(Observable()))
     )
 
-    val SeparatedModifiers(properties, emitters, children) =
-      SeparatedModifiers.from(modifiers)
+    val seps = SeparatedModifiers.from(modifiers)
+    import seps._
 
-    emitters.emitters.length shouldBe 2
+    emitters.length shouldBe 2
     properties.attributes.attrs.length shouldBe 2
     children.nodes.length shouldBe 5
     children.hasStream shouldBe true
@@ -82,10 +83,10 @@ class OutWatchDomSpec extends JSDomSpec {
       div().unsafeRunSync()
     )
 
-    val SeparatedModifiers(properties, emitters, children) =
-      SeparatedModifiers.from(modifiers)
+    val seps = SeparatedModifiers.from(modifiers)
+    import seps._
 
-    emitters.emitters.length shouldBe 3
+    emitters.length shouldBe 3
     properties.attributes.attrs.length shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
@@ -105,10 +106,10 @@ class OutWatchDomSpec extends JSDomSpec {
       StringVNode("text2")
     )
 
-    val SeparatedModifiers(properties, emitters, children) =
-      SeparatedModifiers.from(modifiers)
+    val seps = SeparatedModifiers.from(modifiers)
+    import seps._
 
-    emitters.emitters.length shouldBe 3
+    emitters.length shouldBe 3
     properties.attributes.attrs.length shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
@@ -132,11 +133,11 @@ class OutWatchDomSpec extends JSDomSpec {
       StringVNode("text")
     )
 
-    val SeparatedModifiers(properties, emitters, children) =
-      SeparatedModifiers.from(modifiers)
+    val seps = SeparatedModifiers.from(modifiers)
+    import seps._
 
-    emitters.emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
-    emitters.emitters.length shouldBe 3
+    emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
+    emitters.length shouldBe 3
     properties.hooks.insertHooks.length shouldBe 1
     properties.hooks.prePatchHooks.length shouldBe 1
     properties.hooks.updateHooks.length shouldBe 1

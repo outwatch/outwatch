@@ -3,7 +3,7 @@ package outwatch.dom
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
-import outwatch.dom.helpers.SeparatedModifiers
+import outwatch.dom.helpers.{SeparatedModifiers, SnabbdomModifiers}
 import snabbdom.{DataObject, VNodeProxy}
 
 import scala.concurrent.Future
