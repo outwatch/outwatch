@@ -9,11 +9,11 @@ import monix.reactive.{Observable, Observer}
 import scala.concurrent.Future
 
 object Handler {
-  def empty[T](implicit s: Scheduler):IO[Handler[T]] = IO(PublishSubject[T])
+  def empty[T]():IO[Handler[T]] = IO(PublishSubject[T])
 
-  def create[T]()(implicit s: Scheduler):IO[Handler[T]] = IO(PublishSubject[T])
+  def create[T]:IO[Handler[T]] = IO(PublishSubject[T])
 
-  def create[T](seed:T)(implicit s: Scheduler):IO[Handler[T]] = IO {
+  def create[T](seed:T):IO[Handler[T]] = IO {
       PublishSubject[T].transformObservable(_.startWith(seed :: Nil))
   }
 }
