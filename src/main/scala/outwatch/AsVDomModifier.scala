@@ -2,7 +2,6 @@ package outwatch
 
 import cats.effect.IO
 import cats.syntax.functor._
-import monix.reactive.Observable
 import outwatch.dom.{AsValueObservable, CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
 
 trait AsVDomModifier[-T] {
@@ -40,10 +39,6 @@ object AsVDomModifier {
   implicit object BooleanAsVDomModifier extends AsVDomModifier[Boolean] {
     def asVDomModifier(value: Boolean): VDomModifier = IO.pure(StringVNode(value.toString))
   }
-
-  implicit def observableRender[T : AsVDomModifier]: AsVDomModifier[Observable[T]] = (valueStream: Observable[T]) => IO.pure(
-    ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
-  )
 
   implicit def valueObservableRender[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) => IO.pure(
     ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))

@@ -2,7 +2,6 @@ package outwatch.dom
 
 import cats.Functor
 import monix.reactive.Observable
-import monix.reactive.subjects.Var
 
 trait ValueObservable[+T] {
   def observable: Observable[T]
@@ -22,28 +21,4 @@ object ValueObservable {
     override def value: Option[T] = Some(initialValue)
   }
   def apply[F[_], T](stream: F[T])(implicit asValueObservable: AsValueObservable[F]): ValueObservable[T] = asValueObservable.as(stream)
-}
-
-trait AsValueObservable[-F[_]] {
-  def as[T](stream: F[T]): ValueObservable[T]
-}
-
-object AsValueObservable {
-  implicit object valueObservable extends AsValueObservable[ValueObservable] {
-    def as[T](stream: ValueObservable[T]): ValueObservable[T] = stream
-  }
-
-  implicit object observable extends AsValueObservable[Observable] {
-    def as[T](stream: Observable[T]): ValueObservable[T] = new ValueObservable[T] {
-      def observable: Observable[T] = stream
-      def value: Option[T] = None
-    }
-  }
-
-  implicit object variable extends AsValueObservable[Var] {
-    def as[T](stream: Var[T]): ValueObservable[T] = new ValueObservable[T] {
-      def observable: Observable[T] = stream.drop(1)
-      def value: Option[T] = Some(stream.apply())
-    }
-  }
 }

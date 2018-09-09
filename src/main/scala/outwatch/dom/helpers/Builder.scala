@@ -14,8 +14,7 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
 
   def :=(value: T): IO[A] = IO.pure(assign(value))
   def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
-  def <--(valueStream: Observable[T]): IO[ModifierStreamReceiver] = <--[Observable](valueStream)
-  def <--[F[+_] : AsValueObservable](valueStream: F[T]): IO[ModifierStreamReceiver] = {
+  def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): IO[ModifierStreamReceiver] = {
     IO.pure(ModifierStreamReceiver(ValueObservable(valueStream).map(v => IO.pure(assign(v)))))
   }
 }
@@ -120,7 +119,6 @@ object ChildrenStreamReceiverBuilder {
   )
 
   def <--[T](childrenStream: Observable[Seq[T]])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
-//    ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map(_.map(r.asVDomModifier))))
-    ???
+    ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map(_.map(r.asVDomModifier))))
   )
 }

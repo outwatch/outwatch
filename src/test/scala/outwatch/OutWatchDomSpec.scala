@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import monix.execution.Ack.Continue
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import monix.reactive.Observable
 import org.scalajs.dom.{document, html}
 import outwatch.dom.helpers._
@@ -1446,5 +1446,99 @@ class OutWatchDomSpec extends JSDomSpec {
     dispatchStorageEvent(null, null, null)
     assert(localStorage.getItem(key) == null)
     assert(triggeredHandlerEvents.toList == List(None, Some("joe"), None, Some("split"), None, Some("rhabarbar"), None))
+  }
+
+  "Observer/Observable types" should "work for Subject" in {
+    val myHandler = BehaviorSubject(-1)
+    val clsHandler = BehaviorSubject("one")
+    var mounts = 0
+    var unmounts = 0
+    var updates = 0
+
+    val node = div(
+      id := "strings",
+      myHandler,
+      cls <-- clsHandler,
+      onClick(0) --> myHandler,
+      onDomMount --> sideEffect { mounts += 1 },
+      onDomUnmount --> sideEffect { unmounts += 1 },
+      onDomUpdate --> sideEffect { updates += 1 }
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 2
+
+    myHandler.onNext(1)
+    element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 3
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    document.getElementById("strings").dispatchEvent(event)
+
+    element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 4
+
+    clsHandler.onNext("two")
+    element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 5
+  }
+
+  it should "work for Var" in {
+    val myHandler = Var(-1)
+    val clsHandler = Var("one")
+    var mounts = 0
+    var unmounts = 0
+    var updates = 0
+
+    val node = div(
+      id := "strings",
+      myHandler,
+      cls <-- clsHandler,
+      onClick(0) --> myHandler,
+      onDomMount --> sideEffect { mounts += 1 },
+      onDomUnmount --> sideEffect { unmounts += 1 },
+      onDomUpdate --> sideEffect { updates += 1 }
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 0
+
+    myHandler := 1
+    element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 1
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    document.getElementById("strings").dispatchEvent(event)
+
+    element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 2
+
+    clsHandler := "two"
+    element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
+    mounts shouldBe 1
+    unmounts shouldBe 0
+    updates shouldBe 3
   }
 }

@@ -12,7 +12,7 @@ trait EmitterBuilder[E, O, R] extends Any {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[E, T, R]
 
-  def -->(observer: Observer[_ >: O])(implicit scheduler:Scheduler): IO[R]
+  def -->(observer: Observer[O])(implicit scheduler:Scheduler): IO[R]
 
   def apply[T](value: T): EmitterBuilder[E, T, R] = map(_ => value)
 
@@ -42,7 +42,7 @@ final case class TransformingEmitterBuilder[E, O, R] private[helpers](
     transformer = tr compose transformer
   )
 
-  def -->(observer: Observer[_ >: O])(implicit scheduler:Scheduler): IO[R] = {
+  def -->(observer: Observer[O])(implicit scheduler:Scheduler): IO[R] = {
     val redirected: Observer[E] = observer.redirect[E](transformer)
     create(redirected)
   }
@@ -53,7 +53,7 @@ final case class CustomEmitterBuilder[E, R](create: Observer[E] => IO[R]) extend
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[E, T, R] =
     new TransformingEmitterBuilder[E, T, R](tr, create)
 
-  def -->(observer: Observer[_ >: E])(implicit scheduler:Scheduler): IO[R] = create(observer)
+  def -->(observer: Observer[E])(implicit scheduler:Scheduler): IO[R] = create(observer)
 }
 object SimpleEmitterBuilder {
   def apply[E, R](create: Observer[E] => R) = CustomEmitterBuilder[E, R](observer => IO.pure(create(observer)))
