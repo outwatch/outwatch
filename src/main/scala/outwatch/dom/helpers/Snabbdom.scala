@@ -231,7 +231,7 @@ private[outwatch] object SnabbdomModifiers {
         mergeHooksPair(previousData.hook.prepatch, hooks.prepatch),
         mergeHooksPair(previousData.hook.update, hooks.update),
         mergeHooksPair(previousData.hook.postpatch, hooks.postpatch),
-        mergeHooksSingle(previousData.hook.destroy, hooks.destroy),
+        mergeHooksSingle(previousData.hook.destroy, hooks.destroy)
       ),
       key = keyOption.orUndefined orElse previousData.key
     )
