@@ -14,19 +14,19 @@ trait MonixOps {
   @deprecated("use ProHandler instead", "")
   type Pipe[-I, +O] = ProHandler[I,O]
 
-  implicit class RichObserver[I](observer: Observer[I])(implicit scheduler: Scheduler) {
-    def redirect[I2](f: Observable[I2] => Observable[I]): Observer[I2] = {
+  implicit class RichObserver[I](observer: Observer[I]) {
+    def redirect[I2](f: Observable[I2] => Observable[I])(implicit scheduler: Scheduler): Observer[I2] = {
       val subject = PublishSubject[I2]
       f(subject).subscribe(observer)
       subject
     }
 
-    def redirectMap[I2](f: I2 => I): Observer[I2] = redirect(_.map(f))
+    def redirectMap[I2](f: I2 => I)(implicit scheduler: Scheduler): Observer[I2] = redirect(_.map(f))
 
     @deprecated("use onNext instead.", "")
     def unsafeOnNext(nextValue: I) = observer.onNext(nextValue)
 
-    def <--(observable: Observable[I]): IO[Cancelable] = IO {
+    def <--(observable: Observable[I])(implicit scheduler: Scheduler): IO[Cancelable] = IO {
       observable.subscribe(observer)
     }
   }
