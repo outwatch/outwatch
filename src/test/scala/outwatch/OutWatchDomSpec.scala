@@ -272,7 +272,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
 
   it should "run its modifiers once!" in {
-    val stringHandler = Handler.create[String]().unsafeRunSync()
+    val stringHandler = Handler.create[String].unsafeRunSync()
     var ioCounter = 0
     var handlerCounter = 0
     stringHandler { _ =>
@@ -303,7 +303,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "run its modifiers once in CompositeModifier!" in {
-    val stringHandler = Handler.create[String]().unsafeRunSync()
+    val stringHandler = Handler.create[String].unsafeRunSync()
     var ioCounter = 0
     var handlerCounter = 0
     stringHandler { _ =>
@@ -919,7 +919,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for multiple mods" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(IO.pure(ModifierStreamReceiver(myHandler)), "bla")
     )
@@ -932,7 +932,7 @@ class OutWatchDomSpec extends JSDomSpec {
     myHandler.onNext(cls := "hans")
     element.innerHTML shouldBe """<div class="hans">bla</div>"""
 
-    val innerHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
     myHandler.onNext(div(
       IO.pure(ModifierStreamReceiver(innerHandler)),
       cls := "no?",
@@ -964,7 +964,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(IO.pure(ModifierStreamReceiver(myHandler)))
     )
@@ -974,14 +974,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe "<div></div>"
 
-    val innerHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
     myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler)))
     element.innerHTML shouldBe """<div></div>"""
 
     innerHandler.onNext(VDomModifier(cls := "hans", "1"))
     element.innerHTML shouldBe """<div class="hans">1</div>"""
 
-    val innerHandler2 = Handler.create[VDomModifier]().unsafeRunSync()
+    val innerHandler2 = Handler.create[VDomModifier].unsafeRunSync()
     myHandler.onNext(IO.pure(ModifierStreamReceiver(innerHandler2)))
     element.innerHTML shouldBe """<div></div>"""
 
@@ -1022,7 +1022,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for nested observables with seq modifiers and attribute stream" in {
-    val innerHandler = Handler.create[String]().unsafeRunSync()
+    val innerHandler = Handler.create[String].unsafeRunSync()
     val outerHandler = Handler.create(Seq[VDomModifier]("a", data.test := "v", href <-- innerHandler)).unsafeRunSync
     val node = div(
       id := "strings",
@@ -1045,7 +1045,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for double nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(IO.pure(ModifierStreamReceiver(myHandler)))
     )
@@ -1060,7 +1060,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for triple nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(IO.pure(ModifierStreamReceiver(myHandler)))
     )
@@ -1075,7 +1075,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for multiple nested modifier stream receiver" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(IO.pure(ModifierStreamReceiver(myHandler)))
     )
@@ -1090,7 +1090,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for nested attribute stream receiver" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(IO.pure(ModifierStreamReceiver(myHandler)))
     )
@@ -1105,7 +1105,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for nested emitter" in {
-    val myHandler = Handler.create[VDomModifier]().unsafeRunSync()
+    val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(id := "click", IO.pure(ModifierStreamReceiver(myHandler)))
     )
@@ -1128,7 +1128,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
   it should "work for streaming accum attributes" in {
     val myClasses = Handler.create[String]("second").unsafeRunSync()
-    val myClasses2 = Handler.create[String]().unsafeRunSync()
+    val myClasses2 = Handler.create[String].unsafeRunSync()
     val node = div(
       id := "strings",
       div(
