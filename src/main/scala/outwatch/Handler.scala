@@ -19,6 +19,10 @@ object Handler {
 }
 
 object ProHandler {
+  def create[I,O](f: I => O): IO[ProHandler[I,O]] = for {
+    handler <- Handler.create[I]
+  } yield handler.mapObservable[O](f)
+
   def apply[I,O](observable: Observable[O], observer:Observer[I]):ProHandler[I,O] = new Observable[O] with Observer[I] {
     override def onNext(elem: I): Future[Ack] = observer.onNext(elem)
     override def onError(ex: Throwable): Unit = observer.onError(ex)
