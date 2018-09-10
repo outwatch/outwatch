@@ -4,6 +4,18 @@
 
 ...
 
+* Make Handler.create return a BehaviourSubject if there is a seed, otherwise create a ReplaceSubject.createLimited(1).
+
+* Introduce proper lifecycle hooks: `onDomMount` (called when a VNode is mounted into an element), `onDomUnmount` (called when a VNode is unmounted from an element), `onDomUpdate` (called when a VNode was updated in the same element). With only using snabbdom lifecycle hooks, we get incorrect behavior: onInsert and onDestroy are not sufficient to know when a node is inserted into the dom or removed from the dom. You also need to check onPostPatch and check whether you are patching against an older version of the same node or against a totally different node. For outwatch, this lead to leaking subscriptions because only onDestroy is handled, but a node could be removed via onPostPatch as well. The same was true for the managed subscription. Therefore, we added the new lifecycle events. They are built by putting a state into the VNodeProxy which can be accessed in onPostPatch hooks. So now, subscriptions do not leak anymore and application have proper hooks for accessing the dom element only when necessary. The snabbdom events were renamed to onSnabbdomInsert, onSnabbdomDestroy, etc. Old names were deprecated with a hint on using the new hooks.
+
+* Introduce AsValueObservable and AsObserver typeclasses for convenience. This allows to hook custom streaming libraries into Outwatch. You can use any type `Stream[_]` as an observable when you define an Instance of `AsValueObservable[Stream]` and use it as a sink when you define an instance of `AsObserver[Stream]`. The ValueObservable class allows to provide an optional initial value, if your stream implementation can access that synchronously
+
+* Fix leaking subscriptions when using custom snabbdom keys.
+
+* Fix leaking managed subscriptions when nodes are patched.
+
+* Faster patching and updating of streamed content. We now cache VNodes so they are not recalculated when they did not change. We fixed patches using outdated data. Furthermore, separation of VDomModifiers was made more efficient.
+
 * Update snabbdom to version 0.7.2.
 
 * Remove implicit scheduler from `Handler.create` methods.
