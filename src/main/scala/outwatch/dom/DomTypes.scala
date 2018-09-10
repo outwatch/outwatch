@@ -4,6 +4,7 @@ import com.raquo.domtypes.generic.builders
 import com.raquo.domtypes.generic.keys
 import com.raquo.domtypes.generic.codecs
 import com.raquo.domtypes.generic.defs.attrs
+import com.raquo.domtypes.generic.defs.complex.canonical
 import com.raquo.domtypes.generic.defs.reflectedAttrs
 import com.raquo.domtypes.generic.defs.props
 import com.raquo.domtypes.generic.defs.styles
@@ -73,8 +74,6 @@ trait TagsSvg
 // all Attributes
 trait Attributes
   extends HtmlAttrs
-  with ReflectedAttrs
-  with Props
   with Events
   with AttributeHelpers
   with OutwatchAttributes
@@ -85,32 +84,16 @@ object Attributes extends Attributes
 
 // Html Attrs
 trait HtmlAttrs
-  extends attrs.Attrs[BasicAttrBuilder]
-  with builders.HtmlAttrBuilder[BasicAttrBuilder] {
+  extends attrs.HtmlAttrs[BasicAttrBuilder]
+  with reflectedAttrs.ReflectedHtmlAttrs[BuilderTypes.Attribute]
+  with props.Props[BuilderTypes.Property]
+  with canonical.CanonicalComplexHtmlKeys[BuilderTypes.Attribute, BasicAttrBuilder, BuilderTypes.Property]
+  with builders.HtmlAttrBuilder[BasicAttrBuilder]
+  with builders.ReflectedHtmlAttrBuilder[BuilderTypes.Attribute]
+  with builders.PropBuilder[BuilderTypes.Property] {
 
   override protected def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
-}
-
-// Svg Attrs
-trait SvgAttrs
-  extends attrs.SvgAttrs[BasicAttrBuilder]
-  with builders.SvgAttrBuilder[BasicAttrBuilder] {
-
-  override protected def svgAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
-    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
-}
-
-// Reflected attrs
-trait ReflectedAttrs
-  extends reflectedAttrs.ReflectedAttrs[BuilderTypes.Attribute]
-  with builders.ReflectedAttrBuilder[BuilderTypes.Attribute] {
-
-  // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className = new AccumAttrBuilder[String]("class",
-    stringReflectedAttr(attrKey = "class", propKey = "className"),
-    _ + " " + _
-  )
 
   override protected def reflectedAttr[V, DomPropV](
     attrKey: String,
@@ -118,18 +101,27 @@ trait ReflectedAttrs
     attrCodec: codecs.Codec[V, String],
     propCodec: codecs.Codec[V, DomPropV]
   ) = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
-    //or: new PropertyBuilder(propKey, propCodec.encode)
-}
-
-// Props
-trait Props
-  extends props.Props[BuilderTypes.Property]
-  with builders.PropBuilder[BuilderTypes.Property] {
+  //or: new PropertyBuilder(propKey, propCodec.encode)
 
   override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
     new PropBuilder(key, codec.encode)
+
+  // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
+  override lazy val className = new AccumAttrBuilder[String]("class",
+    stringReflectedAttr(attrKey = "class", propKey = "className"),
+    _ + " " + _
+  )
 }
 
+// Svg Attrs
+trait SvgAttrs
+  extends attrs.SvgAttrs[BasicAttrBuilder]
+  with builders.SvgAttrBuilder[BasicAttrBuilder] {
+
+  // According to snabbdom documentation, the namespace can be ignore as it is handled automatically.
+  override protected def svgAttr[V](key: String, codec: codecs.Codec[V, String], namespace: Option[String]): BasicAttrBuilder[V] =
+    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
+}
 
 // Events
 trait Events

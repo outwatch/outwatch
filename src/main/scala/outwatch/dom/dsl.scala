@@ -7,8 +7,6 @@ object dsl extends Attributes with Tags with Styles {
   }
   object attributes extends Attributes {
     object attrs extends HtmlAttrs
-    object reflected extends ReflectedAttrs
-    object props extends Props
     object events extends Events
     object outwatch extends OutwatchAttributes
     object lifecycle extends OutWatchLifeCycleAttributes
