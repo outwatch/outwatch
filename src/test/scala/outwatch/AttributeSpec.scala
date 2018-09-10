@@ -79,7 +79,7 @@ class AttributeSpec extends JSDomSpec {
       prop("num") := 12,
       style("baz") := "baz",
       contentEditable := false,
-      autoComplete := false,
+      unselectable := false,
       disabled := false
     ).map(_.toSnabbdom).unsafeRunSync()
 
@@ -88,7 +88,7 @@ class AttributeSpec extends JSDomSpec {
       "boo" -> true,
       "yoo" -> "yes",
       "contenteditable" -> "false",
-      "autocomplete" -> "off",
+      "unselectable" -> "off",
       "disabled" -> false
     )
     node.data.props.toList should contain theSameElementsAs List(
