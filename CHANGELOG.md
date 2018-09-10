@@ -3,6 +3,25 @@
 # Unpublished
 
 ...
+
+* Update snabbdom to version 0.7.2.
+
+* Remove implicit scheduler from `Handler.create` methods.
+
+* Add `AsVDomModifier` instances for `Long` and `Boolean`.
+
+* Add `CustomEmitterBuilder` for returning an effectful action wrapped in `IO`.
+
+* Add possibility to trace what is patched with snabbdom. You can get an `Observable[(VNodeProxy, VNodeProxy)]` for tracing the old and new proxies: `OutwatchTracing.patch`.
+
+* Use monix types `Observable` and `Observer` instead of having our own type `Handler`. `Handler[T]` is now only a type alias for `Observable[T] with Observer[T]` and `ProHandler[I,O]` is an alias for `Observable[O] with Observer[I]`.
+
+* Add event actions to EmitterBuilder, you can now do: `onClick.stopPropagation --> someSink` or `onFocus.preventDefault --> someSink`.
+
+* More flexible streaming of `VDomModifier`. You can now stream any modifier.
+
+* Support SVG elements.
+
 * `1051c3c` `2018-01-21` Add RC to readme 
 * `fc71430` `2018-01-17` Handle all VDomModifier implicit conversions though the AsVDomModifier type class 
 * `cc6bd29` `2018-01-17` Simplify node version declaration in travis 
