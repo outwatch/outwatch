@@ -2,7 +2,8 @@ package outwatch
 
 import cats.effect.IO
 import monix.reactive.Observable
-import outwatch.dom.{CompositeModifier, ModifierStreamReceiver, StringModifier, VDomModifier}
+import org.scalajs.dom.Element
+import outwatch.dom.{CompositeModifier, ModifierStreamReceiver, StringModifier, VDomModifier, VNodeT}
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier

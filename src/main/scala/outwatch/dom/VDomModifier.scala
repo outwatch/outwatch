@@ -152,9 +152,9 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
 // TODO: instead of Seq[VDomModifier] use Vector or JSArray?
 // Fast concatenation and lastOption operations are important
 // Needs to be benchmarked in the Browser
-private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
+private[outwatch] final case class VTree[+T <: Element](nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
 
-  def apply(args: VDomModifier*): VNode = args.sequence.map(args => copy(modifiers = modifiers ++ args))
+  def apply[S >: T <: Element](args: VDomModifier*): VNodeT[S] = args.sequence.map(args => copy(modifiers = modifiers ++ args))
 
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
     SeparatedModifiers.from(modifiers).toSnabbdom(nodeType)

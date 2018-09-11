@@ -1,13 +1,15 @@
 package outwatch
 
 import cats.effect.IO
+import org.scalajs.dom.Element
 
 package object dom extends Implicits with ManagedSubscriptions with SideEffects with MonixOps {
 
   val Sink = outwatch.Sink
   val Handler = outwatch.Handler
 
-  type VNode = IO[VTree]
+  type VNodeT[+T <: Element] = IO[VTree[T]]
+  type VNode = IO[VTree[Element]]
   type VDomModifier = IO[Modifier]
   object VDomModifier {
     val empty: VDomModifier = IO.pure(EmptyModifier)

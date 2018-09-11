@@ -63,8 +63,8 @@ object Children {
 
   private[outwatch] case class VNodes(nodes: List[ChildVNode], hasStream: Boolean) extends Children {
 
-    private def ensureVNodeKey[N >: VTree](node: N): N = node match {
-      case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
+    private def ensureVNodeKey[N >: VTree[_]](node: N): N = node match {
+      case vtree: VTree[_] => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
       case other => other
     }
 

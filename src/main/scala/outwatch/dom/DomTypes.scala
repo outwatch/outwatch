@@ -36,24 +36,19 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[TagBuilder.Tag, dom.html.Element] with builders.SvgTagBuilder[TagBuilder.Tag, dom.svg.Element] {
+private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[VTree, dom.html.Element] with builders.SvgTagBuilder[VTree, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
-  //TODO: add element type to VTree for typed interface
-  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
-  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VTree = VTree(tagName, Seq.empty)
-}
-
-private[outwatch] object TagBuilder {
-  type Tag[T] = VTree
+  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VTree[Ref] = VTree(tagName, Seq.empty)
+  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VTree[Ref] = VTree(tagName, Seq.empty)
 }
 
 trait Tags
-  extends EmbedTags[TagBuilder.Tag]
-  with GroupingTags[TagBuilder.Tag]
-  with TextTags[TagBuilder.Tag]
-  with FormTags[TagBuilder.Tag]
-  with SectionTags[TagBuilder.Tag]
-  with TableTags[TagBuilder.Tag]
+  extends EmbedTags[VTree]
+  with GroupingTags[VTree]
+  with TextTags[VTree]
+  with FormTags[VTree]
+  with SectionTags[VTree]
+  with TableTags[VTree]
   with TagBuilder
   with TagHelpers
   with TagsCompat
@@ -62,12 +57,12 @@ trait Tags
 object Tags extends Tags
 
 trait TagsExtra
-  extends DocumentTags[TagBuilder.Tag]
-  with MiscTags[TagBuilder.Tag]
+  extends DocumentTags[VTree]
+  with MiscTags[VTree]
   with TagBuilder
 
 trait TagsSvg
-  extends SvgTags[TagBuilder.Tag]
+  extends SvgTags[VTree]
   with TagBuilder
 
 // all Attributes

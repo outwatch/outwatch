@@ -889,7 +889,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "work for vnode options" in {
-    val myOption: Handler[Option[VNode]] = Handler.create(Option(div("a"))).unsafeRunSync()
+    val myOption: Handler[Option[VNodeT[html.Div]]] = Handler.create(Option(div.apply("a"))).unsafeRunSync()
     val node = div(id := "strings",
       myOption
     )
