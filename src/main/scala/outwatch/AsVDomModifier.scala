@@ -1,8 +1,8 @@
 package outwatch
 
 import cats.effect.IO
-import monix.reactive.Observable
-import outwatch.dom.{CompositeModifier, ModifierStreamReceiver, StringModifier, VDomModifier}
+import cats.syntax.functor._
+import outwatch.dom.{AsValueObservable, CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
@@ -21,39 +21,26 @@ object AsVDomModifier {
   }
 
   implicit object StringAsVDomModifier extends AsVDomModifier[String] {
-    def asVDomModifier(value: String): VDomModifier = IO.pure(StringModifier(value))
+    def asVDomModifier(value: String): VDomModifier = IO.pure(StringVNode(value))
   }
 
   implicit object IntAsVDomModifier extends AsVDomModifier[Int] {
-    def asVDomModifier(value: Int): VDomModifier = IO.pure(StringModifier(value.toString))
+    def asVDomModifier(value: Int): VDomModifier = IO.pure(StringVNode(value.toString))
   }
 
   implicit object DoubleAsVDomModifier extends AsVDomModifier[Double] {
-    def asVDomModifier(value: Double): VDomModifier = IO.pure(StringModifier(value.toString))
+    def asVDomModifier(value: Double): VDomModifier = IO.pure(StringVNode(value.toString))
   }
 
   implicit object LongAsVDomModifier extends AsVDomModifier[Long] {
-    def asVDomModifier(value: Long): VDomModifier = IO.pure(StringModifier(value.toString))
+    def asVDomModifier(value: Long): VDomModifier = IO.pure(StringVNode(value.toString))
   }
 
   implicit object BooleanAsVDomModifier extends AsVDomModifier[Boolean] {
-    def asVDomModifier(value: Boolean): VDomModifier = IO.pure(StringModifier(value.toString))
+    def asVDomModifier(value: Boolean): VDomModifier = IO.pure(StringVNode(value.toString))
   }
 
-  implicit object ObservableRender extends AsVDomModifier[Observable[VDomModifier]] {
-    def asVDomModifier(valueStream: Observable[VDomModifier]): VDomModifier = IO.pure(ModifierStreamReceiver(valueStream))
-  }
-
-  implicit def observableRender[T : AsVDomModifier]: AsVDomModifier[Observable[T]] = (valueStream: Observable[T]) => IO.pure(
-    ModifierStreamReceiver(valueStream.map(implicitly[AsVDomModifier[T]].asVDomModifier))
+  implicit def valueObservableRender[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) => IO.pure(
+    ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
   )
-
-  implicit object ObservableSeqRender extends AsVDomModifier[Observable[Seq[VDomModifier]]] {
-    def asVDomModifier(seqStream: Observable[Seq[VDomModifier]]): VDomModifier = IO.pure(ModifierStreamReceiver(seqStream.map[VDomModifier](x => x)))
-  }
-
-  implicit def observableSeqRender[T : AsVDomModifier]: AsVDomModifier[Observable[Seq[T]]] = (seqStream: Observable[Seq[T]]) => IO.pure(
-    ModifierStreamReceiver(seqStream.map[VDomModifier](_.map(implicitly[AsVDomModifier[T]].asVDomModifier)))
-  )
-
 }

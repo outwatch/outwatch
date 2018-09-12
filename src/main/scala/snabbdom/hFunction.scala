@@ -131,14 +131,18 @@ object patch {
   def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 }
 
+case class OutwatchState(id: Int, domUnmountHooks: js.UndefOr[Hooks.HookSingleFn])
+
 @js.native
 trait VNodeProxy extends js.Object {
-  val sel: String
-  val data: DataObject
-  val children: js.UndefOr[js.Array[VNodeProxy]]
-  val elm: js.UndefOr[Element]
-  val text: js.UndefOr[String]
-  val key: js.UndefOr[DataObject.KeyValue]
+  var sel: String
+  var data: DataObject
+  var children: js.UndefOr[js.Array[VNodeProxy]]
+  var elm: js.UndefOr[Element]
+  var text: js.UndefOr[String]
+  var key: js.UndefOr[DataObject.KeyValue]
+
+  var outwatchState: js.UndefOr[OutwatchState]
 }
 
 object VNodeProxy {

@@ -68,20 +68,20 @@ trait AttributesCompat extends OutWatchChildAttributesCompat { self: Attributes 
   @deprecated("Use onKeyDown instead", "0.11.0")
   lazy val keydown = onKeyDown
 
-  @deprecated("Use onInsert instead", "0.11.0")
-  lazy val insert = onInsert
+  @deprecated("Use onSnabbdomInsert instead", "0.11.0")
+  lazy val insert = onSnabbdomInsert
 
-  @deprecated("Use onPrePatch instead", "0.11.0")
-  lazy val prepatch = onPrePatch
+  @deprecated("Use onSnabbdomPrePatch instead", "0.11.0")
+  lazy val prepatch = onSnabbdomPrePatch
 
-  @deprecated("Use onUpdate instead", "0.11.0")
-  lazy val update = onUpdate
+  @deprecated("Use onSnabbdomUpdate instead", "0.11.0")
+  lazy val update = onSnabbdomUpdate
 
-  @deprecated("Use onPostPatch instead", "0.11.0")
-  lazy val postpatch = onPostPatch
+  @deprecated("Use onSnabbdomPostPatch instead", "0.11.0")
+  lazy val postpatch = onSnabbdomPostPatch
 
-  @deprecated("Use onDestroy instead", "0.11.0")
-  lazy val destroy = onDestroy
+  @deprecated("Use onSnabbdomDestroy instead", "0.11.0")
+  lazy val destroy = onSnabbdomDestroy
 }
 
 trait TagsCompat { self: Tags =>

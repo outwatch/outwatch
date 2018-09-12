@@ -3,144 +3,95 @@ package outwatch.dom.helpers
 import monix.reactive.Observable
 import outwatch.dom._
 
-import scala.collection.breakOut
+import scala.collection.mutable
 
-object SeparatedModifiers {
+private[outwatch] object SeparatedModifiers {
   private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
-    modifiers.foldRight(SeparatedModifiers())((m, sm) => m :: sm)
+    val m = new SeparatedModifiers()
+    m.append(modifiers)
+    m
   }
 }
 
-private[outwatch] final case class SeparatedModifiers(
-  properties: SeparatedProperties = SeparatedProperties(),
-  emitters: SeparatedEmitters = SeparatedEmitters(),
-  attributeReceivers: List[AttributeStreamReceiver] = Nil,
-  children: Children = Children.Empty
-) extends SnabbdomModifiers { self =>
+private[outwatch] class SeparatedModifiers {
+  val properties = new SeparatedProperties
+  val emitters = new mutable.ArrayBuffer[Emitter]()
+  val children = new Children
 
-  def ::(m: Modifier): SeparatedModifiers = m match {
-    case pr: Property => copy(properties = pr :: properties)
-    case vn: ChildVNode => copy(children = vn :: children)
-    case em: Emitter => copy(emitters = em :: emitters)
-    case rc: AttributeStreamReceiver => copy(attributeReceivers = rc :: attributeReceivers)
-    case cm: CompositeModifier => cm.modifiers.foldRight(self)((m, sm) => m :: sm)
-    case sm: StringModifier => copy(children = sm :: children)
-    case EmptyModifier => self
+  def append(modifiers: Seq[Modifier]): Unit = modifiers.foreach {
+    case em: Emitter =>
+      emitters += em
+    case cm: CompositeModifier =>
+      append(cm.modifiers)
+    case s: StringVNode =>
+      children.nodes += s
+    case s: VTree =>
+      children.nodes += s
+      children.hasVTree = true
+    case s: ModifierStreamReceiver =>
+      children.nodes += s
+      children.hasStream = true
+    case key: Key =>
+      properties.keys += key
+    case a : Attr =>
+      properties.attributes.attrs += a
+    case p : Prop =>
+      properties.attributes.props += p
+    case s : Style =>
+      properties.attributes.styles += s
+    case h: DomMountHook =>
+      properties.hooks.domMountHooks += h
+    case h: DomUnmountHook =>
+      properties.hooks.domUnmountHooks += h
+    case h: DomUpdateHook =>
+      properties.hooks.domUpdateHooks += h
+    case h: InsertHook =>
+      properties.hooks.insertHooks += h
+    case h: PrePatchHook =>
+      properties.hooks.prePatchHooks += h
+    case h: UpdateHook =>
+      properties.hooks.updateHooks += h
+    case h: PostPatchHook =>
+      properties.hooks.postPatchHooks += h
+    case h: DestroyHook =>
+      properties.hooks.destroyHooks += h
+    case EmptyModifier =>
+      ()
   }
 }
 
-private[outwatch] trait Children {
-  def ::(mod: StringModifier): Children
-
-  def ::(node: ChildVNode): Children
-
-  def ensureKey: Children = this
+private[outwatch] class Children {
+  val nodes = new mutable.ArrayBuffer[ChildVNode]()
+  var hasStream: Boolean = false
+  var hasVTree: Boolean = false
 }
 
-//TODO: Children is not a good name, as these can be stringmodifiers or vnodes or modifier streams.
-// So this is not neccessarily a child node.
-object Children {
-  private def toVNode(mod: StringModifier) = StringVNode(mod.string)
-  private def toModifier(node: StringVNode) = StringModifier(node.string)
-
-  private[outwatch] case object Empty extends Children {
-    override def ::(mod: StringModifier): Children = StringModifiers(mod :: Nil)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StringVNode => toModifier(s) :: this
-      case n => n :: VNodes(Nil, hasStream = false)
-    }
-  }
-
-  private[outwatch] case class StringModifiers(modifiers: List[StringModifier]) extends Children {
-    override def ::(mod: StringModifier): Children = copy(mod :: modifiers)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StringVNode => toModifier(s) :: this // this should never happen
-      case n => n :: VNodes(modifiers.map(toVNode), hasStream = false)
-    }
-  }
-
-  private[outwatch] case class VNodes(nodes: List[ChildVNode], hasStream: Boolean) extends Children {
-
-    private def ensureVNodeKey[N >: VTree](node: N): N = node match {
-      case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
-      case other => other
-    }
-
-    override def ensureKey: Children = if (hasStream) copy(nodes = nodes.map(ensureVNodeKey)) else this
-
-    override def ::(mod: StringModifier): Children = copy(toVNode(mod) :: nodes)
-
-    override def ::(node: ChildVNode): Children = node match {
-      case s: StaticVNode => copy(nodes = s :: nodes)
-      case s: ModifierStreamReceiver => copy(nodes = s :: nodes, hasStream = true)
-    }
-  }
+private[outwatch] class SeparatedProperties {
+  val attributes = new SeparatedAttributes()
+  val hooks = new SeparatedHooks()
+  val keys = new mutable.ArrayBuffer[Key]()
 }
 
-private[outwatch] final case class SeparatedProperties(
-  attributes: SeparatedAttributes = SeparatedAttributes(),
-  hooks: SeparatedHooks = SeparatedHooks(),
-  keys: List[Key] = Nil
-) {
-  def ::(p: Property): SeparatedProperties = p match {
-    case att: Attribute => copy(attributes = att :: attributes)
-    case hook: Hook[_] => copy(hooks = hook :: hooks)
-    case key: Key => copy(keys = key :: keys)
-  }
+private[outwatch] class SeparatedAttributes {
+  val attrs = new mutable.ArrayBuffer[Attr]()
+  val props = new mutable.ArrayBuffer[Prop]()
+  val styles = new mutable.ArrayBuffer[Style]()
 }
 
-private[outwatch] final case class SeparatedStyles(
-  styles: List[Style] = Nil
-) extends SnabbdomStyles {
-  @inline def ::(s: Style): SeparatedStyles = copy(styles = s :: styles)
-}
-
-
-private[outwatch] final case class SeparatedAttributes(
-  attrs: List[Attr] = Nil,
-  props: List[Prop] = Nil,
-  styles: SeparatedStyles = SeparatedStyles()
-) extends SnabbdomAttributes {
-  @inline def ::(a: Attribute): SeparatedAttributes = a match {
-    case a : Attr => copy(attrs = a :: attrs)
-    case p : Prop => copy(props = p :: props)
-    case s : Style => copy(styles= s :: styles)
-    case EmptyAttribute => this
-  }
-}
-object SeparatedAttributes {
-  private[outwatch] def from(attributes: Seq[Attribute]): SeparatedAttributes = {
-    attributes.foldRight(SeparatedAttributes())((a, sa) => a :: sa)
-  }
-}
-
-private[outwatch] final case class SeparatedHooks(
-  insertHooks: List[InsertHook] = Nil,
-  prePatchHooks: List[PrePatchHook] = Nil,
-  updateHooks: List[UpdateHook] = Nil,
-  postPatchHooks: List[PostPatchHook] = Nil,
-  destroyHooks: List[DestroyHook] = Nil
-) extends SnabbdomHooks {
-  def ::(h: Hook[_]): SeparatedHooks = h match {
-    case ih: InsertHook => copy(insertHooks = ih :: insertHooks)
-    case pph: PrePatchHook => copy(prePatchHooks = pph :: prePatchHooks)
-    case uh: UpdateHook => copy(updateHooks = uh :: updateHooks)
-    case pph: PostPatchHook => copy(postPatchHooks = pph :: postPatchHooks)
-    case dh: DestroyHook => copy(destroyHooks = dh :: destroyHooks)
-  }
-}
-
-private[outwatch] final case class SeparatedEmitters(
-  emitters: List[Emitter] = Nil
-) extends SnabbdomEmitters {
-  def ::(e: Emitter): SeparatedEmitters = copy(emitters = e :: emitters)
+private[outwatch] class SeparatedHooks {
+  val insertHooks = new mutable.ArrayBuffer[InsertHook]()
+  val prePatchHooks = new mutable.ArrayBuffer[PrePatchHook]()
+  val updateHooks = new mutable.ArrayBuffer[UpdateHook]()
+  val postPatchHooks = new mutable.ArrayBuffer[PostPatchHook]()
+  val destroyHooks = new mutable.ArrayBuffer[DestroyHook]()
+  val domMountHooks = new mutable.ArrayBuffer[DomMountHook]()
+  val domUnmountHooks = new mutable.ArrayBuffer[DomUnmountHook]()
+  val domUpdateHooks = new mutable.ArrayBuffer[DomUpdateHook]()
 }
 
 private[outwatch] sealed trait ContentKind
 private[outwatch] object ContentKind {
-  case class Dynamic(observable: Observable[Modifier]) extends ContentKind
+  case class Dynamic(observable: Observable[Modifier], initialValue: Modifier) extends ContentKind
   case class Static(modifier: Modifier) extends ContentKind
 }
 
@@ -152,34 +103,38 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
   private val handleStreamedModifier: Modifier => ContentKind = {
     case ModifierStreamReceiver(modStream) =>
-      val observable = modStream.switchMap[Modifier] { mod =>
+      val observable = modStream.observable.switchMap[Modifier] { mod =>
         handleStreamedModifier(mod.unsafeRunSync) match {
-          //TODO: why is startWith different and leaks a subscription? stream.startWith(EmptyModifier :: Nil)
-          case ContentKind.Dynamic(stream) => Observable.concat(Observable.now(EmptyModifier), stream)
+          //TODO: why is startWith different and leaks a subscription? see tests with: stream.startWith(initialValue :: Nil)
+          case ContentKind.Dynamic(stream, initialValue) => Observable.concat(Observable.now(initialValue), stream)
           case ContentKind.Static(mod) => Observable.now(mod)
         }
       }
 
-      ContentKind.Dynamic(observable)
-    case AttributeStreamReceiver(_, attributeStream) =>
-      ContentKind.Dynamic(attributeStream)
+      handleStreamedModifier(modStream.value.fold[Modifier](EmptyModifier)(_.unsafeRunSync)) match {
+        case ContentKind.Dynamic(initialObservable, mod) =>
+          val combinedObservable = observable.publishSelector { observable =>
+            Observable.merge(initialObservable.takeUntil(observable), observable)
+          }
+          ContentKind.Dynamic(combinedObservable, mod)
+        case ContentKind.Static(mod) =>
+          ContentKind.Dynamic(observable, mod)
+      }
+
     case CompositeModifier(modifiers) if (modifiers.nonEmpty) =>
       val streamableModifiers = new StreamableModifiers(modifiers)
       if (streamableModifiers.updaterObservables.isEmpty) {
         ContentKind.Static(CompositeModifier(modifiers))
       } else {
-        val hasStaticContent = streamableModifiers.updaterObservables.size < streamableModifiers.initialModifiers.size
-        val startingModifiers = if (hasStaticContent) CompositeModifier(streamableModifiers.initialModifiers) :: Nil else Nil
-
         ContentKind.Dynamic(
-          streamableModifiers.observable
-            .map(CompositeModifier(_))
-            .startWith(startingModifiers))
+          streamableModifiers.observable.map(CompositeModifier(_)),
+          CompositeModifier(streamableModifiers.initialModifiers))
       }
 
 
     case mod => ContentKind.Static(mod)
   }
+
 
   // the nodes array has a fixed size - each static child node is one element
   // and the dynamic nodes can place one element on each update and start with
@@ -198,8 +153,8 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
     while (i < modifiers.size) {
       val index = i
       handleStreamedModifier(modifiers(index)) match {
-        case ContentKind.Dynamic(stream) =>
-          initialModifiers(index) = EmptyModifier
+        case ContentKind.Dynamic(stream, initialValue) =>
+          initialModifiers(index) = initialValue
           updaterObservables += stream.map { mod =>
             (array: Array[Modifier]) => array.updated(index, mod)
           }
@@ -218,22 +173,8 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
 // attribute streams. it is about capturing the dynamic content of a node.
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
-private[outwatch] final case class Receivers(
-  children: Children,
-  attributeStreamReceivers: List[AttributeStreamReceiver]
-) {
-
-  private val childNodes = children match {
-    case Children.VNodes(nodes, /*hasStream =*/ true) => nodes // only interested if there are dynamic nodes
-    case _ => Nil
-  }
-
-  private val uniqueAttributeReceivers: List[AttributeStreamReceiver] = attributeStreamReceivers
-    .groupBy(_.attribute).values.map(_.last)(breakOut)
-
-  private lazy val streamableModifiers = new StreamableModifiers(childNodes ++ uniqueAttributeReceivers)
+private[outwatch] final class Receivers(childNodes: Seq[ChildVNode]) {
+  private val streamableModifiers = new StreamableModifiers(childNodes)
+  def initialState: Array[Modifier] = streamableModifiers.initialModifiers
   def observable: Observable[Array[Modifier]] = streamableModifiers.observable
-
-  // it is empty if there is no dynamic modifier, i.e., no observables.
-  def nonEmpty: Boolean = childNodes.nonEmpty || uniqueAttributeReceivers.nonEmpty
 }

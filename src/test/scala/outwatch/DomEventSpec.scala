@@ -312,7 +312,7 @@ class DomEventSpec extends JSDomSpec {
           onClick --> sideEffect(_ => triggeredEventFunction += 1),
           onClick(1) --> sideEffect(triggeredIntFunction += _),
           onClick --> sideEffect { triggeredFunction += 1 },
-          onUpdate --> sideEffect((old, current) => triggeredFunction2 += 1),
+          onSnabbdomUpdate --> sideEffect((old, current) => triggeredFunction2 += 1),
           stream
         )
       )
@@ -485,8 +485,8 @@ class DomEventSpec extends JSDomSpec {
 
             onClick.filter(_ => true).value --> stringStream,
 
-            onInsert.asHtml --> htmlElementStream,
-            onUpdate.asSvg --> svgElementTupleStream
+            onSnabbdomInsert.asHtml --> htmlElementStream,
+            onSnabbdomUpdate.asSvg --> svgElementTupleStream
           ),
           ul(id := "items")
         )

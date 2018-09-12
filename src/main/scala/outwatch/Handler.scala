@@ -3,19 +3,17 @@ package outwatch
 import cats.effect.IO
 import monix.execution.{Ack, Cancelable}
 import monix.reactive.observers.Subscriber
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
 import monix.reactive.{Observable, Observer}
 
 import scala.concurrent.Future
 
 object Handler {
-  def empty[T]():IO[Handler[T]] = IO(PublishSubject[T])
+  def empty[T]:IO[Handler[T]] = create[T]
 
-  def create[T]:IO[Handler[T]] = IO(PublishSubject[T])
+  def create[T]:IO[Handler[T]] = IO(ReplaySubject.createLimited(1))
 
-  def create[T](seed:T):IO[Handler[T]] = IO {
-      PublishSubject[T].transformObservable(_.startWith(seed :: Nil))
-  }
+  def create[T](seed:T):IO[Handler[T]] = IO(BehaviorSubject[T](seed))
 }
 
 object ProHandler {
