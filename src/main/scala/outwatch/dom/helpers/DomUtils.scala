@@ -2,11 +2,10 @@ package outwatch.dom.helpers
 
 import monix.reactive.Observable
 import outwatch.dom._
-
-import scala.collection.mutable
+import scala.scalajs.js
 
 private[outwatch] object SeparatedModifiers {
-  private[outwatch] def from(modifiers: Seq[Modifier]): SeparatedModifiers = {
+  private[outwatch] def from(modifiers: js.Array[_ <: Modifier]): SeparatedModifiers = {
     val m = new SeparatedModifiers()
     m.append(modifiers)
     m
@@ -15,10 +14,10 @@ private[outwatch] object SeparatedModifiers {
 
 private[outwatch] class SeparatedModifiers {
   val properties = new SeparatedProperties
-  val emitters = new mutable.ArrayBuffer[Emitter]()
+  val emitters = new js.Array[Emitter]()
   val children = new Children
 
-  def append(modifiers: Seq[Modifier]): Unit = modifiers.foreach {
+  def append(modifiers: js.Array[_ <: Modifier]): Unit = modifiers.foreach {
     case em: Emitter =>
       emitters += em
     case cm: CompositeModifier =>
@@ -61,7 +60,7 @@ private[outwatch] class SeparatedModifiers {
 }
 
 private[outwatch] class Children {
-  val nodes = new mutable.ArrayBuffer[ChildVNode]()
+  val nodes = new js.Array[ChildVNode]()
   var hasStream: Boolean = false
   var hasVTree: Boolean = false
 }
@@ -69,24 +68,24 @@ private[outwatch] class Children {
 private[outwatch] class SeparatedProperties {
   val attributes = new SeparatedAttributes()
   val hooks = new SeparatedHooks()
-  val keys = new mutable.ArrayBuffer[Key]()
+  val keys = new js.Array[Key]()
 }
 
 private[outwatch] class SeparatedAttributes {
-  val attrs = new mutable.ArrayBuffer[Attr]()
-  val props = new mutable.ArrayBuffer[Prop]()
-  val styles = new mutable.ArrayBuffer[Style]()
+  val attrs = new js.Array[Attr]()
+  val props = new js.Array[Prop]()
+  val styles = new js.Array[Style]()
 }
 
 private[outwatch] class SeparatedHooks {
-  val insertHooks = new mutable.ArrayBuffer[InsertHook]()
-  val prePatchHooks = new mutable.ArrayBuffer[PrePatchHook]()
-  val updateHooks = new mutable.ArrayBuffer[UpdateHook]()
-  val postPatchHooks = new mutable.ArrayBuffer[PostPatchHook]()
-  val destroyHooks = new mutable.ArrayBuffer[DestroyHook]()
-  val domMountHooks = new mutable.ArrayBuffer[DomMountHook]()
-  val domUnmountHooks = new mutable.ArrayBuffer[DomUnmountHook]()
-  val domUpdateHooks = new mutable.ArrayBuffer[DomUpdateHook]()
+  val insertHooks = new js.Array[InsertHook]()
+  val prePatchHooks = new js.Array[PrePatchHook]()
+  val updateHooks = new js.Array[UpdateHook]()
+  val postPatchHooks = new js.Array[PostPatchHook]()
+  val destroyHooks = new js.Array[DestroyHook]()
+  val domMountHooks = new js.Array[DomMountHook]()
+  val domUnmountHooks = new js.Array[DomUnmountHook]()
+  val domUpdateHooks = new js.Array[DomUpdateHook]()
 }
 
 private[outwatch] sealed trait ContentKind
@@ -97,7 +96,7 @@ private[outwatch] object ContentKind {
 
 // StreamableModifiers takes a list of modifiers. It constructs an Observable
 // of updates from dynamic modifiers in this list.
-private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
+private[outwatch] class StreamableModifiers[T <: Modifier](modifiers: js.Array[T]) {
 
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
@@ -140,24 +139,27 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
   // and the dynamic nodes can place one element on each update and start with
   // EmptyModifier, and we reserve an array element for each attribute
   // receiver.
-  val initialModifiers = new Array[Modifier](modifiers.size)
+  val initialModifiers = new js.Array[Modifier](modifiers.size)
 
   // for each node which might be dynamic, we have an Observable of Modifier updates
-  val updaterObservables = new collection.mutable.ArrayBuffer[Observable[Array[Modifier] => Array[Modifier]]]
+  val updaterObservables = new js.Array[Observable[(Int, Modifier)]]
 
   // an observable representing the current state of this VNode. We take all
   // state update functions we have from dynamic modifiers and then scan over
   // them starting with the initial state.
-  val observable = {
+  private val innerObservable = {
     var i = 0;
+    var j = 0;
     while (i < modifiers.size) {
       val index = i
+      val jndex = j
       handleStreamedModifier(modifiers(index)) match {
         case ContentKind.Dynamic(stream, initialValue) =>
           initialModifiers(index) = initialValue
-          updaterObservables += stream.map { mod =>
-            (array: Array[Modifier]) => array.updated(index, mod)
+          updaterObservables(jndex) = stream.map { mod =>
+            (index, mod)
           }
+          j += 1
         case ContentKind.Static(mod) =>
           initialModifiers(index) = mod
       }
@@ -165,16 +167,20 @@ private[outwatch] class StreamableModifiers(modifiers: Seq[Modifier]) {
     }
 
     Observable.merge(updaterObservables: _*)
-      .scan(initialModifiers)((modifiers, update) => update(modifiers))
+      .map { case (index, mod) =>
+        initialModifiers(index) = mod
+      }
   }
+
+  val observable = innerObservable.map(_ => initialModifiers)
 }
 
 // Receivers represent a VNode with its static/streamable children and its
 // attribute streams. it is about capturing the dynamic content of a node.
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
-private[outwatch] final class Receivers(childNodes: Seq[ChildVNode]) {
+private[outwatch] final class Receivers(childNodes: js.Array[ChildVNode]) {
   private val streamableModifiers = new StreamableModifiers(childNodes)
-  def initialState: Array[Modifier] = streamableModifiers.initialModifiers
-  def observable: Observable[Array[Modifier]] = streamableModifiers.observable
+  def initialState: js.Array[Modifier] = streamableModifiers.initialModifiers
+  def observable: Observable[js.Array[Modifier]] = streamableModifiers.observable
 }

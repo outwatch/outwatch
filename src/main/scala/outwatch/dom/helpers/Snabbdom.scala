@@ -8,7 +8,6 @@ import org.scalajs.dom
 import outwatch.dom._
 import snabbdom._
 
-import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -19,28 +18,24 @@ object OutwatchTracing {
 
 private[outwatch] object DictionaryOps {
   def merge[T](first: js.Dictionary[T], second: js.Dictionary[T]) = {
-    val result = js.Dictionary.empty[T]
-    first.foreach { case (key, value) => result(key) = value }
-    second.foreach { case (key, value) => result(key) = value }
-    result
+    first.foreach { case (key, value) if second.get(key).isEmpty => second(key) = value }
+    second
   }
 
   def mergeWithAccum[T](first: js.Dictionary[T], second: js.Dictionary[T], keys: Set[String], accum: (T,T) => T) = {
-    val result = js.Dictionary.empty[T]
-    first.foreach { case (key, value) => result(key) = value }
-    second.foreach {
-      case (key, value) if keys(key) => first.get(key) match {
-        case Some(prev) => result(key) = accum(prev, value)
-        case None => result(key) = value
+    first.foreach {
+      case (key, value) if keys(key) => second.get(key) match {
+        case Some(next) => second(key) = accum(value, next)
+        case None => second(key) = value
       }
-      case (key, value) => result(key) = value
+      case (key, value) => second(key) = value
     }
-    result
+    second
   }
 }
 
 private[outwatch] object SnabbdomStyles {
-  def toSnabbdom(styles: Seq[Style]): js.Dictionary[Style.Value] = {
+  def toSnabbdom(styles: js.Array[Style]): js.Dictionary[Style.Value] = {
     val styleDict = js.Dictionary[Style.Value]()
 
     val delayedDict = js.Dictionary[String]()
@@ -89,21 +84,21 @@ private[outwatch] object SnabbdomAttributes {
 
 private[outwatch] object SnabbdomHooks {
 
-  private def createHookSingle(hooks: Seq[Hook[dom.Element]]): js.UndefOr[Hooks.HookSingleFn] = {
+  private def createHookSingle(hooks: js.Array[_ <: Hook[dom.Element]]): js.UndefOr[Hooks.HookSingleFn] = {
     if (hooks.isEmpty) js.undefined
     else { (p: VNodeProxy) =>
       for (e <- p.elm) hooks.foreach(_.observer.onNext(e))
     }: Hooks.HookSingleFn
   }
 
-  private def createHookPair(hooks: Seq[Hook[(dom.Element, dom.Element)]]): js.UndefOr[Hooks.HookPairFn] = {
+  private def createHookPair(hooks: js.Array[_ <: Hook[(dom.Element, dom.Element)]]): js.UndefOr[Hooks.HookPairFn] = {
     if (hooks.isEmpty) js.undefined
     else { (old: VNodeProxy, cur: VNodeProxy) =>
       for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.onNext((o, c)))
     }: Hooks.HookPairFn
   }
 
-  private def createHookPairOption(hooks: Seq[Hook[(Option[dom.Element], Option[dom.Element])]]): js.UndefOr[Hooks.HookPairFn] = {
+  private def createHookPairOption(hooks: js.Array[_ <: Hook[(Option[dom.Element], Option[dom.Element])]]): js.UndefOr[Hooks.HookPairFn] = {
     if (hooks.isEmpty) js.undefined
     else { (old: VNodeProxy, cur: VNodeProxy) =>
       hooks.foreach(_.observer.onNext((old.elm.toOption, cur.elm.toOption)))
@@ -160,11 +155,11 @@ private[outwatch] object SnabbdomHooks {
 
 private[outwatch] object SnabbdomEmitters {
 
-  private def emittersToFunction(emitters: Seq[Emitter]): js.Function1[dom.Event, Unit] = {
+  private def emittersToFunction(emitters: js.Array[Emitter]): js.Function1[dom.Event, Unit] = {
     (event: dom.Event) => emitters.foreach(_.trigger(event))
   }
 
-  def toSnabbdom(emitters: Seq[Emitter]): js.Dictionary[js.Function1[dom.Event, Unit]] = {
+  def toSnabbdom(emitters: js.Array[Emitter]): js.Dictionary[js.Function1[dom.Event, Unit]] = {
     emitters
       .groupBy(_.eventType)
       .mapValues(emittersToFunction)
@@ -241,14 +236,14 @@ private[outwatch] object SnabbdomModifiers {
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  private[outwatch] def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: Seq[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
+  private[outwatch] def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
     val proxy = if (children.isEmpty) {
       hFunction(nodeType, dataObject)
     } else if (hasVTree) {
-      val childProxies: js.Array[VNodeProxy] = children.collect { case s: StaticVNode => s.toSnabbdom }(breakOut)
+      val childProxies = children.collect { case s: StaticVNode => s.toSnabbdom }
       hFunction(nodeType, dataObject, childProxies)
     } else {
-      val textChildren: js.Array[String] = children.collect { case s: StringVNode => s.string }(breakOut)
+      val textChildren = children.collect { case s: StringVNode => s.string }
       hFunction(nodeType, dataObject, textChildren.mkString)
     }
 
@@ -287,7 +282,7 @@ private[outwatch] object SnabbdomModifiers {
       var initialProxy: VNodeProxy = null
       var proxy: VNodeProxy = null
 
-      def toProxy(modifiers: Array[Modifier]): VNodeProxy = {
+      def toProxy(modifiers: js.Array[Modifier]): VNodeProxy = {
         SnabbdomModifiers.updateSnabbdom(SeparatedModifiers.from(modifiers), initialProxy)
       }
       def subscribe(): Cancelable = {
@@ -311,10 +306,9 @@ private[outwatch] object SnabbdomModifiers {
 
       // hooks for subscribing and unsubscribing
       val cancelable = new QueuedCancelable()
-      val subscriptionHooks =
-        DomMountHook(sideEffect {cancelable.enqueue(subscribe()) }) ::
-          DomUnmountHook(sideEffect { cancelable.dequeue().cancel() }) ::
-          Nil
+      val subscriptionHooks = js.Array(
+        DomMountHook(sideEffect {cancelable.enqueue(subscribe()) }),
+        DomUnmountHook(sideEffect { cancelable.dequeue().cancel() }))
 
       modifiers.append(subscriptionHooks)
 

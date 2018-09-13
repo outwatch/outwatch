@@ -1,11 +1,13 @@
 package outwatch.dom
 
+import cats.effect.IO
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
 import outwatch.dom.helpers.{SeparatedModifiers, SnabbdomModifiers}
 import snabbdom.{DataObject, VNodeProxy}
 
+import scala.scalajs.js
 import scala.concurrent.Future
 
 /*
@@ -48,7 +50,7 @@ sealed trait Property extends Modifier
 
 final case class Emitter(eventType: String, trigger: Event => Future[Ack]) extends Modifier
 
-private[outwatch] final case class CompositeModifier(modifiers: Seq[Modifier]) extends Modifier
+private[outwatch] final case class CompositeModifier(modifiers: js.Array[Modifier]) extends Modifier
 
 case object EmptyModifier extends Modifier
 
@@ -138,12 +140,11 @@ private[outwatch] final case class StringVNode(string: String) extends AnyVal wi
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
 }
 
-// TODO: instead of Seq[VDomModifier] use Vector or JSArray?
-// Fast concatenation and lastOption operations are important
-// Needs to be benchmarked in the Browser
-private[outwatch] final case class VTree(nodeType: String, modifiers: Seq[Modifier]) extends StaticVNode {
+private[outwatch] final case class VTree(nodeType: String, modifiers: js.Array[Modifier]) extends StaticVNode {
 
-  def apply(args: VDomModifier*): VNode = args.sequence.map(args => copy(modifiers = modifiers ++ args))
+  def apply(args: VDomModifier*): VNode = IO {
+    copy(modifiers = modifiers ++ args.map(_.unsafeRunSync))
+  }
 
   private var proxy: VNodeProxy = null
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {

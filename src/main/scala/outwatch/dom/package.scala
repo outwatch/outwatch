@@ -1,6 +1,7 @@
 package outwatch
 
 import cats.effect.IO
+import scala.scalajs.js
 
 package object dom extends Implicits with ManagedSubscriptions with SideEffects with MonixOps {
 
@@ -12,8 +13,9 @@ package object dom extends Implicits with ManagedSubscriptions with SideEffects 
   object VDomModifier {
     val empty: VDomModifier = IO.pure(EmptyModifier)
 
-    def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
-      (Seq(modifier, modifier2) ++ modifiers).sequence.map(CompositeModifier)
+    def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier = IO {
+      CompositeModifier(js.Array(modifier.unsafeRunSync, modifier2.unsafeRunSync) ++ modifiers.map(_.unsafeRunSync))
+    }
     def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
   }
 }

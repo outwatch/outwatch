@@ -17,8 +17,8 @@ trait ManagedSubscriptions {
   }
 
   def managed(sub1: IO[Cancelable], sub2: IO[Cancelable], subscriptions: IO[Cancelable]*)(implicit s: Scheduler): VDomModifier = {
-    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map(subs => CompositeCancelable(subs: _*))
-    managed(composite)
+      val composite = IO(CompositeCancelable((sub1.unsafeRunSync :: sub2.unsafeRunSync :: subscriptions.map(_.unsafeRunSync).toList): _*))
+      managed(composite)
   }
 }
 

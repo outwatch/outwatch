@@ -4,14 +4,24 @@ import cats.effect.IO
 import cats.syntax.functor._
 import outwatch.dom.{AsValueObservable, CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
 
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
 }
 
 object AsVDomModifier {
 
+  implicit def jsArrayModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[js.Array[T]] =
+    (value: js.Array[T]) => IO {
+      CompositeModifier(value.map(v => vm.asVDomModifier(v).unsafeRunSync))
+    }
+
   implicit def seqModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[Seq[T]] =
-    (value: Seq[T]) => value.map(vm.asVDomModifier).sequence.map(CompositeModifier)
+    (value: Seq[T]) => IO {
+      CompositeModifier(value.map(v => vm.asVDomModifier(v).unsafeRunSync).toJSArray)
+    }
 
   implicit def optionModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[Option[T]] =
     (value: Option[T]) => value.map(vm.asVDomModifier) getOrElse VDomModifier.empty

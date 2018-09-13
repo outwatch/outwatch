@@ -17,7 +17,11 @@ import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.collection.mutable
 
+import scala.scalajs.js.JSConverters._
+
 class OutWatchDomSpec extends JSDomSpec {
+
+  implicit def ListToJsArray[T](list: Seq[T]): js.Array[T] = list.toJSArray
 
   "Properties" should "be separated correctly" in {
     val properties = Seq(
@@ -136,7 +140,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.map(_.eventType) shouldBe List("click", "input", "keyup")
+    emitters.map(_.eventType).toList shouldBe List("click", "input", "keyup")
     emitters.length shouldBe 3
     properties.hooks.insertHooks.length shouldBe 1
     properties.hooks.prePatchHooks.length shouldBe 1

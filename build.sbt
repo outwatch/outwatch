@@ -4,7 +4,7 @@ name := "OutWatch"
 
 normalizedName := "outwatch"
 
-version := "0.11.1-SNAPSHOT"
+version := "1.22"
 
 organization := "io.github.outwatch"
 

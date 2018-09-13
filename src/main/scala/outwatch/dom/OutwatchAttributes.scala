@@ -2,6 +2,7 @@ package outwatch.dom
 
 import outwatch.dom.helpers._
 import cats.effect.IO
+import scala.scalajs.js
 
 /** Trait containing the contents of the `Attributes` module, so they can be
   * mixed in to other objects if needed. This should contain "all" attributes
@@ -75,5 +76,5 @@ trait AttributeHelpers { self: Attributes =>
 }
 
 trait TagHelpers { self: Tags =>
-  def tag(name: String): VNode= IO.pure(VTree(name, Seq.empty))
+  def tag(name: String): VNode= IO.pure(VTree(name, js.Array()))
 }
