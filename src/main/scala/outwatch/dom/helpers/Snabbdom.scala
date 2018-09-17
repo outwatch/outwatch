@@ -306,11 +306,8 @@ private[outwatch] object SnabbdomModifiers {
 
       // hooks for subscribing and unsubscribing
       val cancelable = new QueuedCancelable()
-      val subscriptionHooks = js.Array(
-        DomMountHook(sideEffect {cancelable.enqueue(subscribe()) }),
-        DomUnmountHook(sideEffect { cancelable.dequeue().cancel() }))
-
-      modifiers.append(subscriptionHooks)
+      modifiers.append(DomMountHook(sideEffect {cancelable.enqueue(subscribe()) }))
+      modifiers.append(DomUnmountHook(sideEffect { cancelable.dequeue().cancel() }))
 
       // create initial proxy with subscription hooks
       val state = SnabbdomHooks.toOutwatchState(properties.hooks, vNodeId)

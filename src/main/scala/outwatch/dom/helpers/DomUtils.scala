@@ -7,7 +7,7 @@ import scala.scalajs.js
 private[outwatch] object SeparatedModifiers {
   private[outwatch] def from(modifiers: js.Array[_ <: Modifier]): SeparatedModifiers = {
     val m = new SeparatedModifiers()
-    m.append(modifiers)
+    modifiers.foreach(m.append)
     m
   }
 }
@@ -17,11 +17,11 @@ private[outwatch] class SeparatedModifiers {
   val emitters = new js.Array[Emitter]()
   val children = new Children
 
-  def append(modifiers: js.Array[_ <: Modifier]): Unit = modifiers.foreach {
+  def append(modifier: Modifier): Unit = modifier match {
     case em: Emitter =>
       emitters += em
     case cm: CompositeModifier =>
-      append(cm.modifiers)
+      cm.modifiers.foreach(append)
     case s: StringVNode =>
       children.nodes += s
     case s: VTree =>
@@ -96,7 +96,7 @@ private[outwatch] object ContentKind {
 
 // StreamableModifiers takes a list of modifiers. It constructs an Observable
 // of updates from dynamic modifiers in this list.
-private[outwatch] class StreamableModifiers[T <: Modifier](modifiers: js.Array[T]) {
+private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: Modifier]) {
 
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
