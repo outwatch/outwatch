@@ -48,7 +48,7 @@ sealed trait Modifier extends Any
 
 sealed trait Property extends Modifier
 
-final case class Emitter(eventType: String, trigger: Event => Future[Ack]) extends Modifier
+final case class Emitter(eventType: String, trigger: Event => Unit) extends Modifier
 
 private[outwatch] final case class CompositeModifier(modifiers: js.Array[_ <: Modifier]) extends Modifier
 
@@ -72,7 +72,7 @@ object Attribute {
 
 
 sealed trait Hook[T] extends Property {
-  def observer: Observer[T]
+  def trigger: T => Unit
 }
 
 // Attributes
@@ -112,16 +112,15 @@ final case class DestroyStyle(title: String, value: String) extends Style
 
 // Hooks
 
-private[outwatch] final case class DomMountHook(observer: Observer[Element]) extends Hook[Element]
-private[outwatch] final case class DomUnmountHook(observer: Observer[Element]) extends Hook[Element]
-private[outwatch] final case class DomUpdateHook(observer: Observer[Element]) extends Hook[Element]
+private[outwatch] final case class DomMountHook(trigger: Element => Unit) extends Hook[Element]
+private[outwatch] final case class DomUnmountHook(trigger: Element => Unit) extends Hook[Element]
+private[outwatch] final case class DomUpdateHook(trigger: Element => Unit) extends Hook[Element]
 
-private[outwatch] final case class InsertHook(observer: Observer[Element]) extends Hook[Element]
-private[outwatch] final case class PrePatchHook(observer: Observer[(Option[Element], Option[Element])])
-  extends Hook[(Option[Element], Option[Element])]
-private[outwatch] final case class UpdateHook(observer: Observer[(Element, Element)]) extends Hook[(Element, Element)]
-private[outwatch] final case class PostPatchHook(observer: Observer[(Element, Element)]) extends Hook[(Element, Element)]
-private[outwatch] final case class DestroyHook(observer: Observer[Element]) extends Hook[Element]
+private[outwatch] final case class InsertHook(trigger: Element => Unit) extends Hook[Element]
+private[outwatch] final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook[(Option[Element], Option[Element])]
+private[outwatch] final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook[(Element, Element)]
+private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook[(Element, Element)]
+private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook[Element]
 
 // Child Nodes
 

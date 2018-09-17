@@ -87,21 +87,21 @@ private[outwatch] object SnabbdomHooks {
   private def createHookSingle(hooks: js.Array[_ <: Hook[dom.Element]]): js.UndefOr[Hooks.HookSingleFn] = {
     if (hooks.isEmpty) js.undefined
     else { (p: VNodeProxy) =>
-      for (e <- p.elm) hooks.foreach(_.observer.onNext(e))
+      for (e <- p.elm) hooks.foreach(_.trigger(e))
     }: Hooks.HookSingleFn
   }
 
   private def createHookPair(hooks: js.Array[_ <: Hook[(dom.Element, dom.Element)]]): js.UndefOr[Hooks.HookPairFn] = {
     if (hooks.isEmpty) js.undefined
     else { (old: VNodeProxy, cur: VNodeProxy) =>
-      for (o <- old.elm; c <- cur.elm) hooks.foreach(_.observer.onNext((o, c)))
+      for (o <- old.elm; c <- cur.elm) hooks.foreach(_.trigger((o, c)))
     }: Hooks.HookPairFn
   }
 
   private def createHookPairOption(hooks: js.Array[_ <: Hook[(Option[dom.Element], Option[dom.Element])]]): js.UndefOr[Hooks.HookPairFn] = {
     if (hooks.isEmpty) js.undefined
     else { (old: VNodeProxy, cur: VNodeProxy) =>
-      hooks.foreach(_.observer.onNext((old.elm.toOption, cur.elm.toOption)))
+      hooks.foreach(_.trigger((old.elm.toOption, cur.elm.toOption)))
     }: Hooks.HookPairFn
   }
 
@@ -111,11 +111,11 @@ private[outwatch] object SnabbdomHooks {
     { (oldProxy: VNodeProxy, proxy: VNodeProxy) =>
       if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
         oldProxy.outwatchState.foreach(_.domUnmountHooks.foreach(_ (oldProxy)))
-        proxy.elm.foreach(elm => domMountHooks.foreach(_.observer.onNext(elm)))
+        proxy.elm.foreach(elm => domMountHooks.foreach(_.trigger(elm)))
       } else {
-        proxy.elm.foreach(elm => domUpdateHooks.foreach(_.observer.onNext(elm)))
+        proxy.elm.foreach(elm => domUpdateHooks.foreach(_.trigger(elm)))
       }
-      for (o <- oldProxy.elm; c <- proxy.elm) postPatchHooks.foreach(_.observer.onNext((o, c)))
+      for (o <- oldProxy.elm; c <- proxy.elm) postPatchHooks.foreach(_.trigger((o, c)))
     }
   }
 
@@ -126,11 +126,11 @@ private[outwatch] object SnabbdomHooks {
     else { (oldProxy: VNodeProxy, proxy: VNodeProxy) =>
       if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
         oldProxy.outwatchState.foreach(_.domUnmountHooks.foreach(_ (oldProxy)))
-        proxy.elm.foreach(elm => domMountHooks.foreach(_.observer.onNext(elm)))
+        proxy.elm.foreach(elm => domMountHooks.foreach(_.trigger(elm)))
       } else {
-        proxy.elm.foreach(elm => domUpdateHooks.foreach(_.observer.onNext(elm)))
+        proxy.elm.foreach(elm => domUpdateHooks.foreach(_.trigger(elm)))
       }
-      for (o <- oldProxy.elm; c <- proxy.elm) postPatchHooks.foreach(_.observer.onNext((o, c)))
+      for (o <- oldProxy.elm; c <- proxy.elm) postPatchHooks.foreach(_.trigger((o, c)))
     }: Hooks.HookPairFn
   }
 
@@ -306,8 +306,8 @@ private[outwatch] object SnabbdomModifiers {
 
       // hooks for subscribing and unsubscribing
       val cancelable = new QueuedCancelable()
-      modifiers.append(DomMountHook(sideEffect {cancelable.enqueue(subscribe()) }))
-      modifiers.append(DomUnmountHook(sideEffect { cancelable.dequeue().cancel() }))
+      modifiers.append(DomMountHook(_ => cancelable.enqueue(subscribe())))
+      modifiers.append(DomUnmountHook(_ => cancelable.dequeue().cancel()))
 
       // create initial proxy with subscription hooks
       val state = SnabbdomHooks.toOutwatchState(properties.hooks, vNodeId)

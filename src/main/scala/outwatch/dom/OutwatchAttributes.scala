@@ -14,9 +14,9 @@ trait OutwatchAttributes
 
 /** Outwatch component life cycle hooks. */
 trait OutWatchLifeCycleAttributes {
-  lazy val onDomMount = SimpleEmitterBuilder(DomMountHook)
-  lazy val onDomUnmount = SimpleEmitterBuilder(DomUnmountHook)
-  lazy val onDomUpdate = SimpleEmitterBuilder(DomUpdateHook)
+  lazy val onDomMount = CustomEmitterBuilder.pure(DomMountHook)
+  lazy val onDomUnmount = CustomEmitterBuilder.pure(DomUnmountHook)
+  lazy val onDomUpdate = CustomEmitterBuilder.pure(DomUpdateHook)
 
   /**
     * Lifecycle hook for component insertion.
@@ -26,17 +26,17 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomMount instead for getting realiably notified whenever the element is mounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomInsert.", "")
   lazy val onInsert   = onSnabbdomInsert
-  lazy val onSnabbdomInsert   = SimpleEmitterBuilder(InsertHook)
+  lazy val onSnabbdomInsert   = CustomEmitterBuilder.pure(InsertHook)
 
   /** Lifecycle hook for component prepatch. */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPrePatch.", "")
   lazy val onPrePatch   = onSnabbdomPrePatch
-  lazy val onSnabbdomPrePatch   = SimpleEmitterBuilder(PrePatchHook)
+  lazy val onSnabbdomPrePatch   = CustomEmitterBuilder.pure(PrePatchHook)
 
   /** Lifecycle hook for component updates. */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomUpdate.", "")
   lazy val onUpdate   = onSnabbdomUpdate
-  lazy val onSnabbdomUpdate   = SimpleEmitterBuilder(UpdateHook)
+  lazy val onSnabbdomUpdate   = CustomEmitterBuilder.pure(UpdateHook)
 
   /**
     * Lifecycle hook for component postpatch.
@@ -45,7 +45,7 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPostPatch.", "")
   lazy val onPostPatch   = onSnabbdomPostPatch
-  lazy val onSnabbdomPostPatch   = SimpleEmitterBuilder(PostPatchHook)
+  lazy val onSnabbdomPostPatch   = CustomEmitterBuilder.pure(PostPatchHook)
 
   /**
     * Lifecycle hook for component destruction.
@@ -55,7 +55,7 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomUnmount instead for getting realiably notified whenever an element is unmounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomDestroy.", "")
   lazy val onDestroy  = onSnabbdomDestroy
-  lazy val onSnabbdomDestroy  = SimpleEmitterBuilder(DestroyHook)
+  lazy val onSnabbdomDestroy  = CustomEmitterBuilder.pure(DestroyHook)
 }
 
 /** Snabbdom Key Attribute */

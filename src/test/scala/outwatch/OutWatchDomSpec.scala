@@ -1,7 +1,6 @@
 package outwatch
 
 import cats.effect.IO
-import monix.execution.Ack.Continue
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import monix.reactive.Observable
 import org.scalajs.dom.{document, html}
@@ -26,12 +25,12 @@ class OutWatchDomSpec extends JSDomSpec {
   "Properties" should "be separated correctly" in {
     val properties = Seq(
       Attribute("hidden", "true"),
-      InsertHook(PublishSubject()),
-      UpdateHook(PublishSubject()),
-      InsertHook(PublishSubject()),
-      DestroyHook(PublishSubject()),
-      PrePatchHook(PublishSubject()),
-      PostPatchHook(PublishSubject())
+      InsertHook(_ => ()),
+      UpdateHook(_ => ()),
+      InsertHook(_ => ()),
+      DestroyHook(_ => ()),
+      PrePatchHook(_ => ()),
+      PostPatchHook(_ => ())
     )
 
     val seps = SeparatedModifiers.from(properties)
@@ -50,7 +49,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers = Seq(
       Attribute("class", "red"),
       EmptyModifier,
-      Emitter("click", _ => Continue),
+      Emitter("click", _ => ()),
       new StringVNode("Test"),
       div().unsafeRunSync(),
       CompositeModifier(
@@ -78,11 +77,11 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
-      Emitter("click", _ => Continue),
-      Emitter("input",  _ => Continue),
+      Emitter("click", _ => ()),
+      Emitter("input",  _ => ()),
       ModifierStreamReceiver(ValueObservable(Observable())),
       ModifierStreamReceiver(ValueObservable(Observable())),
-      Emitter("keyup",  _ => Continue),
+      Emitter("keyup",  _ => ()),
       StringVNode("text"),
       div().unsafeRunSync()
     )
@@ -101,9 +100,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers: Seq[Modifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
-      Emitter("click", _ => Continue),
-      Emitter("input",  _ => Continue),
-      Emitter("keyup",  _ => Continue),
+      Emitter("click", _ => ()),
+      Emitter("input",  _ => ()),
+      Emitter("keyup",  _ => ()),
       ModifierStreamReceiver(ValueObservable(Observable())),
       ModifierStreamReceiver(ValueObservable(Observable())),
       StringVNode("text"),
@@ -124,16 +123,16 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers = Seq(
       Attribute("class","red"),
       EmptyModifier,
-      Emitter("click", _ => Continue),
-      Emitter("input", _ => Continue),
-      UpdateHook(PublishSubject()),
+      Emitter("click", _ => ()),
+      Emitter("input", _ => ()),
+      UpdateHook(_ => ()),
       ModifierStreamReceiver(ValueObservable(Observable())),
       ModifierStreamReceiver(ValueObservable(Observable())),
       ModifierStreamReceiver(ValueObservable(Observable())),
-      Emitter("keyup", _ => Continue),
-      InsertHook(PublishSubject()),
-      PrePatchHook(PublishSubject()),
-      PostPatchHook(PublishSubject()),
+      Emitter("keyup", _ => ()),
+      InsertHook(_ => ()),
+      PrePatchHook(_ => ()),
+      PostPatchHook(_ => ()),
       StringVNode("text")
     )
 

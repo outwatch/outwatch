@@ -11,8 +11,8 @@ trait ManagedSubscriptions {
   def managed(subscription: IO[Cancelable])(implicit s: Scheduler): VDomModifier = {
     val cancelable = new QueuedCancelable()
     VDomModifier(
-      lifecycle.onDomMount --> sideEffect{ cancelable.enqueue(subscription.unsafeRunSync()) },
-      lifecycle.onDomUnmount --> sideEffect{ cancelable.dequeue().cancel() }
+      lifecycle.onDomMount handleWith { cancelable.enqueue(subscription.unsafeRunSync()) },
+      lifecycle.onDomUnmount handleWith { cancelable.dequeue().cancel() }
     )
   }
 

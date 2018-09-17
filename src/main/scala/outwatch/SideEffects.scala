@@ -15,7 +15,10 @@ object SideEffects {
 }
 
 trait SideEffects {
+  @deprecated("use emitter.handleWith(f) instead of emitter --> sideEffect(f).", "")
   def sideEffect[T](f: T => Unit)(implicit s: Scheduler): Observer[T] = SideEffects.observerFromFunction(f)
+  @deprecated("use emitter.handleWith(f) instead of emitter --> sideEffect(f).", "")
   def sideEffect[S, T](f: (S, T) => Unit)(implicit s: Scheduler): Observer[(S, T)] = SideEffects.observerFromFunction(f.tupled)
+  @deprecated("use emitter.handleWith(f) instead of emitter --> sideEffect(f).", "")
   def sideEffect(f: => Unit)(implicit s: Scheduler): Observer[Any] = SideEffects.observerFromFunction(_ => f)
 }
