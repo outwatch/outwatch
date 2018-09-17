@@ -1545,4 +1545,104 @@ class OutWatchDomSpec extends JSDomSpec {
     unmounts shouldBe 0
     updates shouldBe 3
   }
+
+  "ChildCommand" should "work in handler" in {
+    val cmds = Handler.create[ChildCommand].unsafeRunSync()
+
+    val node = div(
+      id := "strings",
+      cmds
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe ""
+
+    cmds.onNext(ChildCommand.Set(b("Hello World") :: span("!") :: Nil))
+    element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
+
+    cmds.onNext(ChildCommand.Insert(1, p("and friends", dsl.key := 42)))
+    element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
+
+    cmds.onNext(ChildCommand.Move(1, 2))
+    element.innerHTML shouldBe """<b>Hello World</b><span>!</span><p>and friends</p>"""
+
+    cmds.onNext(ChildCommand.MoveId(ChildId.Key(42), 1))
+    element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
+
+    cmds.onNext(ChildCommand.RemoveId(ChildId.Key(42)))
+    element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
+
+  }
+
+  it should "work in handler with element reference" in {
+    val initialChildren =
+      p(
+        "How much?",
+        dsl.key := "question-1",
+        id := "id-1"
+      ) ::
+        p(
+          "Why so cheap?",
+          dsl.key := "question-2",
+          id := "id-2"
+
+        ) ::
+        Nil
+
+    val cmds = Handler.create[ChildCommand](ChildCommand.Set(initialChildren)).unsafeRunSync()
+
+    val node = div(
+      "Questions?",
+      div(
+        id := "strings",
+        onClick.map(ev => ChildCommand.RemoveId(ChildId.Element(ev.target))) --> cmds,
+        cmds
+      ),
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe """<p id="id-1">How much?</p><p id="id-2">Why so cheap?</p>"""
+
+    val event = document.createEvent("Events")
+    initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+    document.getElementById("id-1").dispatchEvent(event)
+
+    element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p>"""
+
+    cmds.onNext(ChildCommand.InsertBeforeId(ChildId.Key("question-2"), div("spam")))
+    element.innerHTML shouldBe """<div>spam</div><p id="id-2">Why so cheap?</p>"""
+
+    cmds.onNext(ChildCommand.MoveId(ChildId.Key("question-2"), 0))
+    element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p><div>spam</div>"""
+
+    document.getElementById("id-2").dispatchEvent(event)
+    element.innerHTML shouldBe """<div>spam</div>"""
+  }
+
+  it should "work in value observable" in {
+    val cmds = Handler.create[ChildCommand].unsafeRunSync()
+
+    val node = div(
+      id := "strings",
+      ValueObservable(cmds, ChildCommand.Set(div("huch") :: Nil))
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    val element = document.getElementById("strings")
+    element.innerHTML shouldBe "<div>huch</div>"
+
+    cmds.onNext(ChildCommand.Prepend(b("nope")))
+    element.innerHTML shouldBe """<b>nope</b><div>huch</div>"""
+
+    cmds.onNext(ChildCommand.Move(0, 1))
+    element.innerHTML shouldBe """<div>huch</div><b>nope</b>"""
+
+    cmds.onNext(ChildCommand.Replace(1, b("yes")))
+    element.innerHTML shouldBe """<div>huch</div><b>yes</b>"""
+  }
 }

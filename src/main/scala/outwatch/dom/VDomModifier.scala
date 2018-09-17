@@ -50,7 +50,7 @@ sealed trait Property extends Modifier
 
 final case class Emitter(eventType: String, trigger: Event => Future[Ack]) extends Modifier
 
-private[outwatch] final case class CompositeModifier(modifiers: js.Array[Modifier]) extends Modifier
+private[outwatch] final case class CompositeModifier(modifiers: js.Array[_ <: Modifier]) extends Modifier
 
 case object EmptyModifier extends Modifier
 
@@ -146,11 +146,12 @@ private[outwatch] final case class VTree(nodeType: String, modifiers: js.Array[M
     copy(modifiers = modifiers ++ args.map(_.unsafeRunSync))
   }
 
-  private var proxy: VNodeProxy = null
+  private var _proxy: VNodeProxy = null
+  private[outwatch] def proxy: Option[VNodeProxy] = Option(_proxy)
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
-    if (proxy == null) {
-      proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(modifiers), nodeType)
+    if (_proxy == null) {
+      _proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(modifiers), nodeType)
     }
-    proxy
+    _proxy
   }
 }

@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import cats.syntax.functor._
-import outwatch.dom.{AsValueObservable, CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
+import outwatch.dom.{AsValueObservable, ChildCommand, CompositeModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -53,4 +53,8 @@ object AsVDomModifier {
   implicit def valueObservableRender[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) => IO.pure(
     ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
   )
+
+  implicit def childCommandObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) => for {
+    stream <- ChildCommand.stream(ValueObservable(valueStream))
+  } yield ModifierStreamReceiver(stream)
 }
