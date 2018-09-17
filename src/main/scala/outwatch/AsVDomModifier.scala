@@ -55,6 +55,10 @@ object AsVDomModifier {
   )
 
   implicit def childCommandObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) => for {
+    stream <- ChildCommand.stream(ValueObservable(valueStream).map(Seq(_)))
+  } yield ModifierStreamReceiver(stream)
+
+  implicit def childCommandSeqObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[Seq[ChildCommand]]] = (valueStream: F[Seq[ChildCommand]]) => for {
     stream <- ChildCommand.stream(ValueObservable(valueStream))
   } yield ModifierStreamReceiver(stream)
 }

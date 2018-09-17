@@ -28,11 +28,10 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  private[outwatch] def stream(valueStream: ValueObservable[ChildCommand]): IO[ValueObservable[VDomModifier]] = IO {
+  private[outwatch] def stream(valueStream: ValueObservable[Seq[ChildCommand]]): IO[ValueObservable[VDomModifier]] = IO {
     val children = new js.Array[VTree]
 
-    valueStream.map { cmd =>
-      println("YO " + cmd + children)
+    valueStream.map { cmds =>
       val idToIndex: ChildId => Int = {
         case ChildId.Key(key) => children.indexWhere { tree =>
           tree.proxy.fold(false)(_.key.fold(false)((k: Key.Value) => k == key))
@@ -69,7 +68,7 @@ object ChildCommand {
         }
       }
 
-      cmd match {
+      cmds foreach {
         case Append(node) =>
           children.push(node.unsafeRunSync)
           ()
@@ -105,7 +104,6 @@ object ChildCommand {
           removeByIndex(idToIndex(id))
       }
 
-      println("DONE " + cmd + children)
       IO.pure(CompositeModifier(children))
     }
   }
