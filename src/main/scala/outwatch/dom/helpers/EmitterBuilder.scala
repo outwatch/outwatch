@@ -20,6 +20,8 @@ trait EmitterBuilder[E, O, R] extends Any {
 
   def apply[T](value: T): EmitterBuilder[E, T, R] = map(_ => value)
 
+  def mapTo[T](value: => T): EmitterBuilder[E, T, R] = map(_ => value)
+
   def apply[T](latest: Observable[T])(implicit scheduler: Scheduler) = transform(_.withLatestFrom(latest)((_, u) => u))
 
   @deprecated("Deprecated, use '.map' instead", "0.11.0")
