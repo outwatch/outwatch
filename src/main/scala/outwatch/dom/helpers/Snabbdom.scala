@@ -64,9 +64,7 @@ private[outwatch] object SnabbdomStyles {
 
 private[outwatch] object SnabbdomAttributes {
 
-  type jsDict[T] = js.Dictionary[T]
-
-  def toSnabbdom(attributes: SeparatedAttributes): (jsDict[Attr.Value], jsDict[Prop.Value], jsDict[Style.Value]) = {
+  def toSnabbdom(attributes: SeparatedAttributes): (js.Dictionary[Attr.Value], js.Dictionary[Prop.Value], js.Dictionary[Style.Value]) = {
     import attributes._
 
     val attrsDict = js.Dictionary[Attr.Value]()
