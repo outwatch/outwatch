@@ -42,7 +42,7 @@ Modifier
  */
 
 
-sealed trait Modifier extends Any
+sealed trait Modifier
 
 // Modifiers
 
@@ -54,7 +54,7 @@ private[outwatch] final case class CompositeModifier(modifiers: js.Array[_ <: Mo
 
 case object EmptyModifier extends Modifier
 
-sealed trait ChildVNode extends Any with Modifier
+sealed trait ChildVNode extends Modifier
 
 // Properties
 
@@ -124,7 +124,7 @@ private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends
 
 // Child Nodes
 
-private[outwatch] sealed trait StaticVNode extends Any with ChildVNode {
+private[outwatch] sealed trait StaticVNode extends ChildVNode {
   def toSnabbdom(implicit s: Scheduler): VNodeProxy
 }
 object StaticVNode {
@@ -132,10 +132,10 @@ object StaticVNode {
 }
 
 
-final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends AnyVal with ChildVNode
+final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends ChildVNode
 
 // Static Nodes
-private[outwatch] final case class StringVNode(string: String) extends AnyVal with StaticVNode {
+private[outwatch] final case class StringVNode(string: String) extends StaticVNode {
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
 }
 
