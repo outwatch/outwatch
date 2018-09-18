@@ -23,6 +23,8 @@ private[outwatch] class SeparatedModifiers {
   var keyOption: js.UndefOr[Key.Value] = js.undefined
 
   def append(modifier: Modifier): Unit = modifier match {
+    case EmptyModifier =>
+      ()
     case cm: CompositeModifier =>
       cm.modifiers.foreach(append)
     case s: VTree =>
@@ -81,8 +83,6 @@ private[outwatch] class SeparatedModifiers {
       hooks.postPatchHook = createHooksPair(hooks.postPatchHook, h)
     case h: DestroyHook =>
       hooks.destroyHook = createHooksSingle(hooks.destroyHook, h)
-    case EmptyModifier =>
-      ()
   }
 
   private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
