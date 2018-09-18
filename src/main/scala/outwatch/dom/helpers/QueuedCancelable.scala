@@ -1,22 +1,20 @@
 package outwatch.dom.helpers
 
 import monix.execution.Cancelable
+import scala.scalajs.js
 
 class QueuedCancelable extends Cancelable {
-  private var queue: List[Cancelable] = Nil
+  private val queue: js.Array[Cancelable] = new js.Array()
 
-  def enqueue(cancelable: Cancelable) = queue :+= cancelable
+  def enqueue(cancelable: Cancelable): Unit = queue.push(cancelable)
   def dequeue(): Cancelable = {
-    if (queue.isEmpty) Cancelable.empty
-    else {
-      val res = queue.head
-      queue = queue.tail
-      res
-    }
+    val head = queue.shift()
+    if (head == null) Cancelable.empty
+    else head
   }
 
   def cancel() = {
     queue.foreach(_.cancel())
-    queue = Nil
+    queue.clear()
   }
 }
