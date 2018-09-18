@@ -8,14 +8,54 @@ import snabbdom.Hooks
 import scala.scalajs.js
 
 private[outwatch] object SeparatedModifiers {
-  private[outwatch] def from(modifiers: js.Array[_ <: Modifier]): SeparatedModifiers = {
+  def from(modifiers: js.Array[_ <: Modifier]): SeparatedModifiers = {
     val m = new SeparatedModifiers()
     modifiers.foreach(m.append)
+    m
+  }
+
+
+  def fromWithoutChildren(that: SeparatedModifiers): SeparatedModifiers = {
+    val m = new SeparatedModifiers()
+    import m._
+
+    that.emitters.foreach { case (k, v) =>
+      if (!emitters.contains(k)) {
+        emitters(k) = new js.Array[js.Function1[dom.Event, Unit]]
+      }
+      emitters(k) ++= v
+    }
+
+    // keep out children intentionally
+
+    hooks.insertHook = that.hooks.insertHook
+    hooks.prePatchHook = that.hooks.prePatchHook
+    hooks.updateHook = that.hooks.updateHook
+    hooks.postPatchHook = that.hooks.postPatchHook
+    hooks.destroyHook = that.hooks.destroyHook
+    hooks.domMountHook = that.hooks.domMountHook
+    hooks.domUnmountHook = that.hooks.domUnmountHook
+    hooks.domUpdateHook = that.hooks.domUpdateHook
+
+    that.attributes.attrs.foreach { case (k, v) =>
+      attributes.attrs(k) = v
+    }
+    that.attributes.props.foreach { case (k, v) =>
+      attributes.props(k) = v
+    }
+    that.attributes.styles.foreach { case (k, v) =>
+      //TODO: copy over js.Dictionary in styles
+      attributes.styles(k) = v
+    }
+
+    keyOption = that.keyOption orElse keyOption
+
     m
   }
 }
 
 private[outwatch] class SeparatedModifiers {
+  //TODO: size hints for arrays
   val emitters = js.Dictionary[js.Array[js.Function1[dom.Event, Unit]]]()
   val children = new Children
   val attributes = new SeparatedAttributes()
@@ -49,20 +89,11 @@ private[outwatch] class SeparatedModifiers {
     case s: BasicStyle =>
       attributes.styles(s.title) = s.value
     case s: DelayedStyle =>
-      if (!attributes.styles.contains("delayed")) {
-        attributes.styles("delayed") = js.Dictionary[String](): Style.Value
-      }
-      attributes.styles("delayed").asInstanceOf[js.Dictionary[String]](s.title) = s.value
+      setSpecialStyle(StyleKey.delayed)(s.title, s.value)
     case s: RemoveStyle =>
-      if (!attributes.styles.contains("remove")) {
-        attributes.styles("remove") = js.Dictionary[String](): Style.Value
-      }
-      attributes.styles("remove").asInstanceOf[js.Dictionary[String]](s.title) = s.value
+      setSpecialStyle(StyleKey.remove)(s.title, s.value)
     case s: DestroyStyle =>
-      if (!attributes.styles.contains("destroy")) {
-        attributes.styles("destroy") = js.Dictionary[String](): Style.Value
-      }
-      attributes.styles("destroy").asInstanceOf[js.Dictionary[String]](s.title) = s.value
+      setSpecialStyle(StyleKey.destroy)(s.title, s.value)
     case a: AccumStyle =>
       attributes.styles(a.title) = attributes.styles.get(a.title).fold[Style.Value](a.value)(s =>
         a.accum(s.asInstanceOf[String], a.value): Style.Value
@@ -76,7 +107,7 @@ private[outwatch] class SeparatedModifiers {
     case h: DomUpdateHook =>
       hooks.domUpdateHook = createHooksSingle(hooks.domUpdateHook, h)
     case h: InsertHook =>
-      hooks.domUpdateHook = createHooksSingle(hooks.domUpdateHook, h)
+      hooks.insertHook = createHooksSingle(hooks.insertHook, h)
     case h: PrePatchHook =>
       hooks.prePatchHook = createHooksPairOption(hooks.prePatchHook, h)
     case h: UpdateHook =>
@@ -87,6 +118,13 @@ private[outwatch] class SeparatedModifiers {
       hooks.destroyHook = createHooksSingle(hooks.destroyHook, h)
   }
 
+  private def setSpecialStyle(styleName: String)(title: String, value: String): Unit =
+    if (!attributes.styles.contains(styleName)) {
+      attributes.styles(styleName) = js.Dictionary[String](title -> value): Style.Value
+    } else {
+      attributes.styles(styleName).asInstanceOf[js.Dictionary[String]](title) = value
+    }
+
   private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
     if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
     else { p => current.get(p); p.elm.foreach(hook.trigger) }
@@ -96,6 +134,12 @@ private[outwatch] class SeparatedModifiers {
   private def createHooksPairOption(current: js.UndefOr[Hooks.HookPairFn], hook: Hook[(Option[dom.Element], Option[dom.Element])]): Hooks.HookPairFn =
     if (current.isEmpty) { (o,p) => hook.trigger((o.elm.toOption, p.elm.toOption)) }
     else { (o,p) => current.get(o, p); hook.trigger((o.elm.toOption, p.elm.toOption)) }
+}
+
+private[outwatch] object StyleKey {
+  def delayed = "delayed"
+  def remove = "remove"
+  def destroy = "destroy"
 }
 
 private[outwatch] class Children {

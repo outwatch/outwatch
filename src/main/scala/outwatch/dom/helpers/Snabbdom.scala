@@ -15,36 +15,9 @@ object OutwatchTracing {
   def patch: Observable[(VNodeProxy, VNodeProxy)] = patchSubject
 }
 
-private[outwatch] object DictionaryOps {
-  def mergeArrayIntoSecond[T](first: js.Dictionary[T], second: js.Dictionary[js.Array[T]]) = {
-    first.foreach { case (key, value) =>
-      if (!second.contains(key)) {
-        second(key) = new js.Array[T]
-      }
-      second(key) += value
-    }
-    second
-  }
-  def mergeIntoSecond[T](first: js.Dictionary[T], second: js.Dictionary[T]) = {
-    first.foreach { case (key, value) if second.get(key).isEmpty => second(key) = value }
-    second
-  }
-
-  def mergeAccumIntoSecond[T](first: js.Dictionary[T], second: js.Dictionary[T], keys: Set[String], accum: (T,T) => T) = {
-    first.foreach {
-      case (key, value) if keys(key) => second.get(key) match {
-        case Some(next) => second(key) = accum(value, next)
-        case None => second(key) = value
-      }
-      case (key, value) => second(key) = value
-    }
-    second
-  }
-}
-
 private[outwatch] object SnabbdomHooks {
 
-  private def createPostPatchHookWithUnmount(hooks: SeparatedHooks): Hooks.HookPairFn = {
+  private def createPostPatchHook(hooks: SeparatedHooks): Hooks.HookPairFn = {
     import hooks._
 
     { (oldProxy: VNodeProxy, proxy: VNodeProxy) =>
@@ -58,22 +31,7 @@ private[outwatch] object SnabbdomHooks {
     }
   }
 
-  private def createPostPatchHook(hooks: SeparatedHooks): js.UndefOr[Hooks.HookPairFn] = {
-    import hooks._
-
-    if (domMountHook.isEmpty && domUpdateHook.isEmpty && postPatchHook.isEmpty) js.undefined
-    else { (oldProxy: VNodeProxy, proxy: VNodeProxy) =>
-      if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
-        oldProxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldProxy)))
-        domMountHook.foreach(_(proxy))
-      } else {
-        domUpdateHook.foreach(_(proxy))
-      }
-      postPatchHook.foreach(_(oldProxy, proxy))
-    }: Hooks.HookPairFn
-  }
-
-  def mergeHooksSingle[T](prevHook: js.UndefOr[Hooks.HookSingleFn], newHook: js.UndefOr[Hooks.HookSingleFn]): js.UndefOr[Hooks.HookSingleFn] = {
+  private def mergeHooksSingle[T](prevHook: js.UndefOr[Hooks.HookSingleFn], newHook: js.UndefOr[Hooks.HookSingleFn]): js.UndefOr[Hooks.HookSingleFn] = {
     prevHook.map { prevHook =>
       newHook.fold[Hooks.HookSingleFn](prevHook) { newHook => e =>
         prevHook(e)
@@ -81,7 +39,7 @@ private[outwatch] object SnabbdomHooks {
       }
     }.orElse(newHook)
   }
-  def mergeHooksPair[T](prevHook: js.UndefOr[Hooks.HookPairFn], newHook: js.UndefOr[Hooks.HookPairFn]): js.UndefOr[Hooks.HookPairFn] = {
+  private def mergeHooksPair[T](prevHook: js.UndefOr[Hooks.HookPairFn], newHook: js.UndefOr[Hooks.HookPairFn]): js.UndefOr[Hooks.HookPairFn] = {
     prevHook.map { prevHook =>
       newHook.fold[Hooks.HookPairFn](prevHook) { newHook => (e1, e2) =>
         prevHook(e1, e2)
@@ -97,11 +55,11 @@ private[outwatch] object SnabbdomHooks {
     else OutwatchState(vNodeId, domUnmountHook)
   }
 
-  def toSnabbdom(hooks: SeparatedHooks, unmount: Boolean): Hooks = {
+  def toSnabbdom(hooks: SeparatedHooks): Hooks = {
     import hooks._
     val insert = mergeHooksSingle(domMountHook, insertHook)
     val destroy = mergeHooksSingle(domUnmountHook, destroyHook)
-    val postPatch: js.UndefOr[Hooks.HookPairFn] = if (unmount) createPostPatchHookWithUnmount(hooks) else createPostPatchHook(hooks)
+    val postPatch: js.UndefOr[Hooks.HookPairFn] = createPostPatchHook(hooks)
 
     Hooks(insert, prePatchHook, updateHook, postPatch, destroy)
   }
@@ -124,42 +82,14 @@ private[outwatch] object SnabbdomEmitters {
 
 private[outwatch] object SnabbdomModifiers {
 
-  private def createDataObject(modifiers: SeparatedModifiers, vNodeId: Int): DataObject = {
+  private def createDataObject(modifiers: SeparatedModifiers): DataObject = {
     import modifiers._
-
-    val key: js.UndefOr[Key.Value] = if (children.hasStream) keyOption.orElse(vNodeId) else keyOption
 
     DataObject(
       attributes.attrs, attributes.props, attributes.styles,
       SnabbdomEmitters.toSnabbdom(emitters),
-      SnabbdomHooks.toSnabbdom(hooks, unmount = true),
-      key
-    )
-  }
-
-  private def updateDataObject(modifiers: SeparatedModifiers, previousData: DataObject)(implicit scheduler: Scheduler): DataObject = {
-    import modifiers._
-
-    val snabbdomHooks = SnabbdomHooks.toSnabbdom(hooks, unmount = false)
-
-    DataObject(
-      //TODO this is a workaround for streaming accum attributes. the fix only
-      //handles "class"-attributes, because it is the only default accum
-      //attribute.  But this should for work for all accum attributes.
-      //Therefore we need to have all accum keys for initial attrs and styles
-      //whith their accum function here.
-      attrs = DictionaryOps.mergeAccumIntoSecond(previousData.attrs, attributes.attrs, Set("class"), (p, n) => p.toString + " " + n.toString),
-      props = DictionaryOps.mergeIntoSecond(previousData.props, attributes.props),
-      style = DictionaryOps.mergeIntoSecond(previousData.style, attributes.styles),
-      on = SnabbdomEmitters.toSnabbdom(DictionaryOps.mergeArrayIntoSecond(previousData.on, emitters)),
-      hook = Hooks(
-        SnabbdomHooks.mergeHooksSingle(previousData.hook.insert, snabbdomHooks.insert),
-        SnabbdomHooks.mergeHooksPair(previousData.hook.prepatch, snabbdomHooks.prepatch),
-        SnabbdomHooks.mergeHooksPair(previousData.hook.update, snabbdomHooks.update),
-        SnabbdomHooks.mergeHooksPair(previousData.hook.postpatch, snabbdomHooks.postpatch),
-        SnabbdomHooks.mergeHooksSingle(previousData.hook.destroy, snabbdomHooks.destroy)
-      ),
-      key = keyOption orElse previousData.key
+      SnabbdomHooks.toSnabbdom(hooks),
+      keyOption
     )
   }
 
@@ -182,17 +112,22 @@ private[outwatch] object SnabbdomModifiers {
     proxy
   }
 
-  private[outwatch] def updateSnabbdom(modifiers: SeparatedModifiers, previousProxy: VNodeProxy)(implicit scheduler: Scheduler): VNodeProxy = {
-    import modifiers._
+  private[outwatch] def updateSnabbdom(modifiersArray: js.Array[Modifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
+
+    val newModifiers = SeparatedModifiers.fromWithoutChildren(initialModifiers)
+    modifiersArray.foreach(newModifiers.append)
 
     // Updates never contain streamable content and therefore we do not need to
     // handle them with Receivers.
-    val dataObject = updateDataObject(modifiers, previousProxy.data)
 
-    createProxy(previousProxy.sel, previousProxy.outwatchState, dataObject, children.nodes, children.hasVTree)
+    val dataObject = createDataObject(newModifiers)
+    val state = SnabbdomHooks.toOutwatchState(newModifiers.hooks, vNodeId)
+
+    createProxy(nodeType, state, dataObject, newModifiers.children.nodes, newModifiers.children.hasVTree)
   }
 
-  private[outwatch] def toSnabbdom(modifiers: SeparatedModifiers, nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
+  private[outwatch] def toSnabbdom(modifiersArray: js.Array[Modifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
+    val modifiers = SeparatedModifiers.from(modifiersArray)
     import modifiers._
 
     val vNodeId = modifiers.hashCode
@@ -210,11 +145,10 @@ private[outwatch] object SnabbdomModifiers {
       val receivers = new Receivers(childrenWithKey)
 
       // needs var for forward referencing
-      var initialProxy: VNodeProxy = null
       var proxy: VNodeProxy = null
 
-      def toProxy(modifiers: js.Array[Modifier]): VNodeProxy = {
-        SnabbdomModifiers.updateSnabbdom(SeparatedModifiers.from(modifiers), initialProxy)
+      def toProxy(newState: js.Array[Modifier]): VNodeProxy = {
+        updateSnabbdom(newState, nodeType, vNodeId, modifiers)
       }
       def subscribe(): Cancelable = {
         receivers.observable
@@ -235,23 +169,23 @@ private[outwatch] object SnabbdomModifiers {
         )
       }
 
-      // hooks for subscribing and unsubscribing
+      // add a key if not existing. we want to have a key for each streaming
+      // node so it can be patched efficiently by snabbdom
+      if (keyOption.isEmpty) {
+        modifiers.append(Key(vNodeId))
+      }
+
+      // hooks for subscribing and unsubscribing the streamable content
       val cancelable = new QueuedCancelable()
       modifiers.append(DomMountHook(_ => cancelable.enqueue(subscribe())))
       modifiers.append(DomUnmountHook(_ => cancelable.dequeue().cancel()))
 
       // create initial proxy
-      val state = SnabbdomHooks.toOutwatchState(hooks, vNodeId)
-      val dataObject = createDataObject(modifiers, vNodeId)
-      initialProxy = createProxy(nodeType, state, dataObject, childrenWithKey, children.hasVTree)
-
-      // directly update this dataobject with default values from the receivers
-      proxy = updateSnabbdom(SeparatedModifiers.from(receivers.initialState), initialProxy)
-
+      proxy = updateSnabbdom(receivers.initialState, nodeType, vNodeId, modifiers)
       proxy
     } else {
       val state = SnabbdomHooks.toOutwatchState(hooks, vNodeId)
-      val dataObject = createDataObject(modifiers, vNodeId)
+      val dataObject = createDataObject(modifiers)
       createProxy(nodeType, state, dataObject, children.nodes, children.hasVTree)
     }
   }

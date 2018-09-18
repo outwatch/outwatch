@@ -149,7 +149,7 @@ private[outwatch] final case class VTree(nodeType: String, modifiers: js.Array[M
   private[outwatch] def proxy: Option[VNodeProxy] = Option(_proxy)
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
     if (_proxy == null) {
-      _proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(modifiers), nodeType)
+      _proxy = SnabbdomModifiers.toSnabbdom(modifiers, nodeType)
     }
     _proxy
   }
