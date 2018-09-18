@@ -73,6 +73,8 @@ private[outwatch] class SeparatedModifiers {
       hooks.domMountHook = createHooksSingle(hooks.domMountHook, h)
     case h: DomUnmountHook =>
       hooks.domUnmountHook = createHooksSingle(hooks.domUnmountHook, h)
+    case h: DomUpdateHook =>
+      hooks.domUpdateHook = createHooksSingle(hooks.domUpdateHook, h)
     case h: InsertHook =>
       hooks.domUpdateHook = createHooksSingle(hooks.domUpdateHook, h)
     case h: PrePatchHook =>
