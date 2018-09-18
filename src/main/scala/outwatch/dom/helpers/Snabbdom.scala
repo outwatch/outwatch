@@ -48,9 +48,9 @@ private[outwatch] object SnabbdomStyles {
       case s: RemoveStyle => removeDict(s.title) = s.value
       case s: DestroyStyle => destroyDict(s.title) = s.value
       case a: AccumStyle =>
-        styleDict(a.title) = styleDict.get(a.title).map(s =>
+        styleDict(a.title) = styleDict.get(a.title).fold[Style.Value](a.value)(s =>
           a.accum(s.asInstanceOf[String], a.value): Style.Value
-        ).getOrElse(a.value)
+        )
 
     }
 
