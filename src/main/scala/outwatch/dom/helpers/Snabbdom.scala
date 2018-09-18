@@ -172,18 +172,14 @@ private[outwatch] object SnabbdomModifiers {
   private[outwatch] def createDataObject(modifiers: SeparatedModifiers, vNodeId: Int)(implicit s: Scheduler): DataObject = {
     import modifiers._
 
-    val keyOption = properties.keys.lastOption
-    val key = if (children.hasStream) {
-      keyOption.fold[Key.Value](vNodeId)(_.value): js.UndefOr[Key.Value]
-    } else {
-      keyOption.map(_.value).orUndefined
-    }
+    val key: js.UndefOr[Key.Value] = if (children.hasStream) keyOption.orElse(vNodeId) else keyOption
 
-    val hooks = SnabbdomHooks.toSnabbdom(properties.hooks, unmount = true)
-
-    val (attrs, props, style) = SnabbdomAttributes.toSnabbdom(properties.attributes)
+    val (attrs, props, style) = SnabbdomAttributes.toSnabbdom(attributes)
     DataObject(
-      attrs, props, style, SnabbdomEmitters.toSnabbdom(emitters), hooks, key
+      attrs, props, style,
+      SnabbdomEmitters.toSnabbdom(emitters),
+      SnabbdomHooks.toSnabbdom(hooks, unmount = true),
+      key
     )
   }
 
@@ -207,9 +203,8 @@ private[outwatch] object SnabbdomModifiers {
   private def updateDataObject(modifiers: SeparatedModifiers, previousData: DataObject)(implicit scheduler: Scheduler): DataObject = {
     import modifiers._
 
-    val (attrs, props, style) = SnabbdomAttributes.toSnabbdom(properties.attributes)
-    val hooks = SnabbdomHooks.toSnabbdom(properties.hooks, unmount = false)
-    val keyOption = properties.keys.lastOption.map(_.value)
+    val (attrs, props, style) = SnabbdomAttributes.toSnabbdom(attributes)
+    val snabbdomHooks = SnabbdomHooks.toSnabbdom(hooks, unmount = false)
 
     DataObject(
       //TODO this is a workaround for streaming accum attributes. the fix only
@@ -222,13 +217,13 @@ private[outwatch] object SnabbdomModifiers {
       style = DictionaryOps.merge(previousData.style, style),
       on = DictionaryOps.merge(previousData.on, SnabbdomEmitters.toSnabbdom(emitters)),
       hook = Hooks(
-        mergeHooksSingle(previousData.hook.insert, hooks.insert),
-        mergeHooksPair(previousData.hook.prepatch, hooks.prepatch),
-        mergeHooksPair(previousData.hook.update, hooks.update),
-        mergeHooksPair(previousData.hook.postpatch, hooks.postpatch),
-        mergeHooksSingle(previousData.hook.destroy, hooks.destroy)
+        mergeHooksSingle(previousData.hook.insert, snabbdomHooks.insert),
+        mergeHooksPair(previousData.hook.prepatch, snabbdomHooks.prepatch),
+        mergeHooksPair(previousData.hook.update, snabbdomHooks.update),
+        mergeHooksPair(previousData.hook.postpatch, snabbdomHooks.postpatch),
+        mergeHooksSingle(previousData.hook.destroy, snabbdomHooks.destroy)
       ),
-      key = keyOption.orUndefined orElse previousData.key
+      key = keyOption orElse previousData.key
     )
   }
 
@@ -309,17 +304,17 @@ private[outwatch] object SnabbdomModifiers {
       modifiers.append(DomMountHook(_ => cancelable.enqueue(subscribe())))
       modifiers.append(DomUnmountHook(_ => cancelable.dequeue().cancel()))
 
-      // create initial proxy with subscription hooks
-      val state = SnabbdomHooks.toOutwatchState(properties.hooks, vNodeId)
+      // create initial proxy
+      val state = SnabbdomHooks.toOutwatchState(hooks, vNodeId)
       val dataObject = createDataObject(modifiers, vNodeId)
       initialProxy = createProxy(nodeType, state, dataObject, childrenWithKey, children.hasVTree)
 
-      // directly update this dataobject with default values from the receivers and subcription callbacks
+      // directly update this dataobject with default values from the receivers
       proxy = updateSnabbdom(SeparatedModifiers.from(receivers.initialState), initialProxy)
 
       proxy
     } else {
-      val state = SnabbdomHooks.toOutwatchState(properties.hooks, vNodeId)
+      val state = SnabbdomHooks.toOutwatchState(hooks, vNodeId)
       val dataObject = createDataObject(modifiers, vNodeId)
       createProxy(nodeType, state, dataObject, children.nodes, children.hasVTree)
     }

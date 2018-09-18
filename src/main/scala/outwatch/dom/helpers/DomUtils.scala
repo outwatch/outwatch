@@ -13,9 +13,11 @@ private[outwatch] object SeparatedModifiers {
 }
 
 private[outwatch] class SeparatedModifiers {
-  val properties = new SeparatedProperties
   val emitters = new js.Array[Emitter]()
   val children = new Children
+  val attributes = new SeparatedAttributes()
+  val hooks = new SeparatedHooks()
+  var keyOption: js.UndefOr[Key.Value] = js.undefined
 
   def append(modifier: Modifier): Unit = modifier match {
     case em: Emitter =>
@@ -31,29 +33,29 @@ private[outwatch] class SeparatedModifiers {
       children.nodes += s
       children.hasStream = true
     case key: Key =>
-      properties.keys += key
+      keyOption = key.value
     case a : Attr =>
-      properties.attributes.attrs += a
+      attributes.attrs += a
     case p : Prop =>
-      properties.attributes.props += p
+      attributes.props += p
     case s : Style =>
-      properties.attributes.styles += s
+      attributes.styles += s
     case h: DomMountHook =>
-      properties.hooks.domMountHooks += h
+      hooks.domMountHooks += h
     case h: DomUnmountHook =>
-      properties.hooks.domUnmountHooks += h
+      hooks.domUnmountHooks += h
     case h: DomUpdateHook =>
-      properties.hooks.domUpdateHooks += h
+      hooks.domUpdateHooks += h
     case h: InsertHook =>
-      properties.hooks.insertHooks += h
+      hooks.insertHooks += h
     case h: PrePatchHook =>
-      properties.hooks.prePatchHooks += h
+      hooks.prePatchHooks += h
     case h: UpdateHook =>
-      properties.hooks.updateHooks += h
+      hooks.updateHooks += h
     case h: PostPatchHook =>
-      properties.hooks.postPatchHooks += h
+      hooks.postPatchHooks += h
     case h: DestroyHook =>
-      properties.hooks.destroyHooks += h
+      hooks.destroyHooks += h
     case EmptyModifier =>
       ()
   }
@@ -63,12 +65,6 @@ private[outwatch] class Children {
   val nodes = new js.Array[ChildVNode]()
   var hasStream: Boolean = false
   var hasVTree: Boolean = false
-}
-
-private[outwatch] class SeparatedProperties {
-  val attributes = new SeparatedAttributes()
-  val hooks = new SeparatedHooks()
-  val keys = new js.Array[Key]()
 }
 
 private[outwatch] class SeparatedAttributes {

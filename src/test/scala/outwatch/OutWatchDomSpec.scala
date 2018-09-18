@@ -34,7 +34,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val seps = SeparatedModifiers.from(properties)
-    import seps.properties._
+    import seps._
 
     hooks.insertHooks.length shouldBe 2
     hooks.prePatchHooks.length shouldBe 1
@@ -42,7 +42,7 @@ class OutWatchDomSpec extends JSDomSpec {
     hooks.postPatchHooks.length shouldBe 1
     hooks.destroyHooks.length shouldBe 1
     attributes.attrs.length shouldBe 1
-    keys.length shouldBe 0
+    keyOption.isEmpty shouldBe true
   }
 
   "VDomModifiers" should "be separated correctly" in {
@@ -67,7 +67,7 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.length shouldBe 2
-    properties.attributes.attrs.length shouldBe 2
+    attributes.attrs.length shouldBe 2
     children.nodes.length shouldBe 5
     children.hasStream shouldBe true
     children.hasVTree shouldBe true
@@ -90,7 +90,7 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.length shouldBe 3
-    properties.attributes.attrs.length shouldBe 1
+    attributes.attrs.length shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
     children.hasVTree shouldBe true
@@ -113,7 +113,7 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.length shouldBe 3
-    properties.attributes.attrs.length shouldBe 1
+    attributes.attrs.length shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
     children.hasVTree shouldBe false
@@ -141,13 +141,13 @@ class OutWatchDomSpec extends JSDomSpec {
 
     emitters.map(_.eventType).toList shouldBe List("click", "input", "keyup")
     emitters.length shouldBe 3
-    properties.hooks.insertHooks.length shouldBe 1
-    properties.hooks.prePatchHooks.length shouldBe 1
-    properties.hooks.updateHooks.length shouldBe 1
-    properties.hooks.postPatchHooks.length shouldBe 1
-    properties.hooks.destroyHooks.length shouldBe 0
-    properties.attributes.attrs.length shouldBe 1
-    properties.keys.length shouldBe 0
+    hooks.insertHooks.length shouldBe 1
+    hooks.prePatchHooks.length shouldBe 1
+    hooks.updateHooks.length shouldBe 1
+    hooks.postPatchHooks.length shouldBe 1
+    hooks.destroyHooks.length shouldBe 0
+    attributes.attrs.length shouldBe 1
+    keyOption.isEmpty shouldBe true
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
     children.hasVTree shouldBe false
