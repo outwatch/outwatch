@@ -1,7 +1,10 @@
 package outwatch.dom.helpers
 
 import monix.reactive.Observable
+import org.scalajs.dom
 import outwatch.dom._
+import snabbdom.Hooks
+
 import scala.scalajs.js
 
 private[outwatch] object SeparatedModifiers {
@@ -13,52 +16,84 @@ private[outwatch] object SeparatedModifiers {
 }
 
 private[outwatch] class SeparatedModifiers {
-  val emitters = new js.Array[Emitter]()
+  val emitters = js.Dictionary[js.Array[js.Function1[dom.Event, Unit]]]()
   val children = new Children
   val attributes = new SeparatedAttributes()
   val hooks = new SeparatedHooks()
   var keyOption: js.UndefOr[Key.Value] = js.undefined
 
   def append(modifier: Modifier): Unit = modifier match {
-    case em: Emitter =>
-      emitters += em
     case cm: CompositeModifier =>
       cm.modifiers.foreach(append)
-    case s: StringVNode =>
-      children.nodes += s
     case s: VTree =>
       children.nodes += s
       children.hasVTree = true
+    case s: StringVNode =>
+      children.nodes += s
     case s: ModifierStreamReceiver =>
       children.nodes += s
       children.hasStream = true
+    case a : BasicAttr =>
+      attributes.attrs(a.title) = a.value
+    case a : AccumAttr =>
+      attributes.attrs(a.title) = attributes.attrs.get(a.title).fold(a.value)(a.accum(_, a.value))
+    case p : Prop =>
+      attributes.props(p.title) = p.value
+    case em: Emitter =>
+      if (!emitters.contains(em.eventType)) {
+        emitters(em.eventType) = new js.Array[js.Function1[dom.Event, Unit]]
+      }
+      emitters(em.eventType) += em.trigger
+    case s: BasicStyle =>
+      attributes.styles(s.title) = s.value
+    case s: DelayedStyle =>
+      if (!attributes.styles.contains("delayed")) {
+        attributes.styles("delayed") = js.Dictionary[String](): Style.Value
+      }
+      attributes.styles("delayed").asInstanceOf[js.Dictionary[String]](s.title) = s.value
+    case s: RemoveStyle =>
+      if (!attributes.styles.contains("remove")) {
+        attributes.styles("remove") = js.Dictionary[String](): Style.Value
+      }
+      attributes.styles("remove").asInstanceOf[js.Dictionary[String]](s.title) = s.value
+    case s: DestroyStyle =>
+      if (!attributes.styles.contains("destroy")) {
+        attributes.styles("destroy") = js.Dictionary[String](): Style.Value
+      }
+      attributes.styles("destroy").asInstanceOf[js.Dictionary[String]](s.title) = s.value
+    case a: AccumStyle =>
+      attributes.styles(a.title) = attributes.styles.get(a.title).fold[Style.Value](a.value)(s =>
+        a.accum(s.asInstanceOf[String], a.value): Style.Value
+      )
     case key: Key =>
       keyOption = key.value
-    case a : Attr =>
-      attributes.attrs += a
-    case p : Prop =>
-      attributes.props += p
-    case s : Style =>
-      attributes.styles += s
     case h: DomMountHook =>
-      hooks.domMountHooks += h
+      hooks.domMountHook = createHooksSingle(hooks.domMountHook, h)
     case h: DomUnmountHook =>
-      hooks.domUnmountHooks += h
-    case h: DomUpdateHook =>
-      hooks.domUpdateHooks += h
+      hooks.domUnmountHook = createHooksSingle(hooks.domUnmountHook, h)
     case h: InsertHook =>
-      hooks.insertHooks += h
+      hooks.domUpdateHook = createHooksSingle(hooks.domUpdateHook, h)
     case h: PrePatchHook =>
-      hooks.prePatchHooks += h
+      hooks.prePatchHook = createHooksPairOption(hooks.prePatchHook, h)
     case h: UpdateHook =>
-      hooks.updateHooks += h
+      hooks.updateHook = createHooksPair(hooks.updateHook, h)
     case h: PostPatchHook =>
-      hooks.postPatchHooks += h
+      hooks.postPatchHook = createHooksPair(hooks.postPatchHook, h)
     case h: DestroyHook =>
-      hooks.destroyHooks += h
+      hooks.destroyHook = createHooksSingle(hooks.destroyHook, h)
     case EmptyModifier =>
       ()
   }
+
+  private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
+    if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
+    else { p => current.get(p); p.elm.foreach(hook.trigger) }
+  private def createHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: Hook[(dom.Element, dom.Element)]): Hooks.HookPairFn =
+    if (current.isEmpty) { (o,p) => for { oe <- o.elm; pe <- p.elm } hook.trigger((oe, pe)) }
+    else { (o,p) => current.get(o, p); for { oe <- o.elm; pe <- p.elm } hook.trigger((oe, pe)) }: Hooks.HookPairFn
+  private def createHooksPairOption(current: js.UndefOr[Hooks.HookPairFn], hook: Hook[(Option[dom.Element], Option[dom.Element])]): Hooks.HookPairFn =
+    if (current.isEmpty) { (o,p) => hook.trigger((o.elm.toOption, p.elm.toOption)) }
+    else { (o,p) => current.get(o, p); hook.trigger((o.elm.toOption, p.elm.toOption)) }
 }
 
 private[outwatch] class Children {
@@ -68,20 +103,20 @@ private[outwatch] class Children {
 }
 
 private[outwatch] class SeparatedAttributes {
-  val attrs = new js.Array[Attr]()
-  val props = new js.Array[Prop]()
-  val styles = new js.Array[Style]()
+  val attrs = js.Dictionary[Attr.Value]()
+  val props = js.Dictionary[Prop.Value]()
+  val styles = js.Dictionary[Style.Value]()
 }
 
 private[outwatch] class SeparatedHooks {
-  val insertHooks = new js.Array[InsertHook]()
-  val prePatchHooks = new js.Array[PrePatchHook]()
-  val updateHooks = new js.Array[UpdateHook]()
-  val postPatchHooks = new js.Array[PostPatchHook]()
-  val destroyHooks = new js.Array[DestroyHook]()
-  val domMountHooks = new js.Array[DomMountHook]()
-  val domUnmountHooks = new js.Array[DomUnmountHook]()
-  val domUpdateHooks = new js.Array[DomUpdateHook]()
+  var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var prePatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var updateHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var postPatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var domMountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var domUpdateHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
 
 private[outwatch] sealed trait ContentKind

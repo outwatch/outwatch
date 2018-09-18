@@ -67,13 +67,8 @@ final case class TransformingEmitterBuilder[E, O, R] private[helpers](
     transformer = tr compose transformer
   )
 
-  def flatMap[T](f: O => Option[T]): EmitterBuilder[T, R] = {//transform(_.map(f).collect { case Some(o) => o })
-    new FunctionEmitterBuilder[O, T, R](f, f => create {
-      val subject = PublishSubject[E]
-      transformer(subject).foreach(f)
-      subject.onNext
-    })
-  }
+  def collect[T](f: O => Option[T]): EmitterBuilder[T, R] = transform(_.map(f).collect { case Some(o) => o })
+  def flatMap[T](f: O => Option[T]): EmitterBuilder[T, R] = transform(_.map(f).collect { case Some(o) => o })
 
   def handleWith(action: O => Unit): IO[R] = {
     val subject = PublishSubject[O]

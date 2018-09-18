@@ -36,12 +36,12 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(properties)
     import seps._
 
-    hooks.insertHooks.length shouldBe 2
-    hooks.prePatchHooks.length shouldBe 1
-    hooks.updateHooks.length shouldBe 1
-    hooks.postPatchHooks.length shouldBe 1
-    hooks.destroyHooks.length shouldBe 1
-    attributes.attrs.length shouldBe 1
+    hooks.insertHook.isDefined shouldBe true
+    hooks.prePatchHook.isDefined shouldBe true
+    hooks.updateHook.isDefined shouldBe true
+    hooks.postPatchHook.isDefined shouldBe true
+    hooks.destroyHook.isDefined shouldBe true
+    attributes.attrs.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
   }
 
@@ -66,8 +66,8 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.length shouldBe 2
-    attributes.attrs.length shouldBe 2
+    emitters.values.flatten.size shouldBe 2
+    attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 5
     children.hasStream shouldBe true
     children.hasVTree shouldBe true
@@ -89,8 +89,8 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.length shouldBe 3
-    attributes.attrs.length shouldBe 1
+    emitters.values.flatten.size shouldBe 3
+    attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
     children.hasVTree shouldBe true
@@ -112,8 +112,8 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.length shouldBe 3
-    attributes.attrs.length shouldBe 1
+    emitters.values.flatten.size shouldBe 3
+    attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
     children.hasVTree shouldBe false
@@ -139,14 +139,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.map(_.eventType).toList shouldBe List("click", "input", "keyup")
-    emitters.length shouldBe 3
-    hooks.insertHooks.length shouldBe 1
-    hooks.prePatchHooks.length shouldBe 1
-    hooks.updateHooks.length shouldBe 1
-    hooks.postPatchHooks.length shouldBe 1
-    hooks.destroyHooks.length shouldBe 0
-    attributes.attrs.length shouldBe 1
+    emitters.keys.toList shouldBe List("click", "input", "keyup")
+    emitters.values.flatten.size shouldBe 3
+    hooks.insertHook.isDefined shouldBe true
+    hooks.prePatchHook.isDefined shouldBe true
+    hooks.updateHook.isDefined shouldBe true
+    hooks.postPatchHook.isDefined shouldBe true
+    hooks.destroyHook.isDefined shouldBe false
+    attributes.attrs.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true

@@ -1,6 +1,7 @@
 package snabbdom
 
 import org.scalajs.dom._
+import snabbdom.DataObject.KeyValue
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
@@ -131,7 +132,7 @@ object patch {
   def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 }
 
-case class OutwatchState(id: Int, domUnmountHooks: js.UndefOr[Hooks.HookSingleFn])
+case class OutwatchState(id: Int, domUnmountHook: js.UndefOr[Hooks.HookSingleFn])
 
 @js.native
 trait VNodeProxy extends js.Object {
