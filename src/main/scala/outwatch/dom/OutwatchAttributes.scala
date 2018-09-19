@@ -75,5 +75,5 @@ trait AttributeHelpers { self: Attributes =>
 }
 
 trait TagHelpers { self: Tags =>
-  def tag(name: String): VTree= VTree(name, js.Array())
+  def tag(name: String): VNode= VNode(name, js.Array())
 }

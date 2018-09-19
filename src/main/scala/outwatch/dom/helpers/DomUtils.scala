@@ -8,7 +8,7 @@ import snabbdom.Hooks
 import scala.scalajs.js
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: js.Array[_ <: Modifier]): SeparatedModifiers = {
+  def from(modifiers: js.Array[_ <: VDomModifier]): SeparatedModifiers = {
     val m = new SeparatedModifiers()
     modifiers.foreach(m.append)
     m
@@ -62,12 +62,12 @@ private[outwatch] class SeparatedModifiers {
   val hooks = new SeparatedHooks()
   var keyOption: js.UndefOr[Key.Value] = js.undefined
 
-  def append(modifier: Modifier): Unit = modifier match {
+  def append(modifier: VDomModifier): Unit = modifier match {
     case EmptyModifier =>
       ()
     case cm: CompositeModifier =>
       cm.modifiers.foreach(append)
-    case s: VTree =>
+    case s: VNode =>
       children.nodes += s
       children.hasVTree = true
     case s: StringVNode =>
@@ -169,19 +169,19 @@ private[outwatch] class SeparatedHooks {
 
 private[outwatch] sealed trait ContentKind
 private[outwatch] object ContentKind {
-  case class Dynamic(observable: Observable[Modifier], initialValue: Modifier) extends ContentKind
-  case class Static(modifier: Modifier) extends ContentKind
+  case class Dynamic(observable: Observable[VDomModifier], initialValue: VDomModifier) extends ContentKind
+  case class Static(modifier: VDomModifier) extends ContentKind
 }
 
 // StreamableModifiers takes a list of modifiers. It constructs an Observable
 // of updates from dynamic modifiers in this list.
-private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: Modifier]) {
+private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifier]) {
 
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
-  private val handleStreamedModifier: Modifier => ContentKind = {
+  private val handleStreamedModifier: VDomModifier => ContentKind = {
     case ModifierStreamReceiver(modStream) =>
-      val observable = modStream.observable.switchMap[Modifier] { mod =>
+      val observable = modStream.observable.switchMap[VDomModifier] { mod =>
         handleStreamedModifier(mod) match {
           //TODO: why is startWith different and leaks a subscription? see tests with: stream.startWith(initialValue :: Nil)
           case ContentKind.Dynamic(stream, initialValue) => Observable.concat(Observable.now(initialValue), stream)
@@ -219,10 +219,10 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: Modifier]) 
   // and the dynamic nodes can place one element on each update and start with
   // EmptyModifier, and we reserve an array element for each attribute
   // receiver.
-  val initialModifiers = new js.Array[Modifier](modifiers.size)
+  val initialModifiers = new js.Array[VDomModifier](modifiers.size)
 
   // for each node which might be dynamic, we have an Observable of Modifier updates
-  val updaterObservables = new js.Array[Observable[(Int, Modifier)]]
+  val updaterObservables = new js.Array[Observable[(Int, VDomModifier)]]
 
   // an observable representing the current state of this VNode. We take all
   // state update functions we have from dynamic modifiers and then scan over
@@ -261,6 +261,6 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: Modifier]) 
 // Observable to stream the current modifiers of this node.
 private[outwatch] final class Receivers(childNodes: js.Array[ChildVNode]) {
   private val streamableModifiers = new StreamableModifiers(childNodes)
-  def initialState: js.Array[Modifier] = streamableModifiers.initialModifiers
-  def observable: Observable[js.Array[Modifier]] = streamableModifiers.observable
+  def initialState: js.Array[VDomModifier] = streamableModifiers.initialModifiers
+  def observable: Observable[js.Array[VDomModifier]] = streamableModifiers.observable
 }

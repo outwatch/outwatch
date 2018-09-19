@@ -73,7 +73,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "be separated correctly with children" in {
-    val modifiers: Seq[Modifier] = Seq(
+    val modifiers: Seq[VDomModifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => ()),
@@ -96,7 +96,7 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   it should "be separated correctly with string children" in {
-    val modifiers: Seq[Modifier] = Seq(
+    val modifiers: Seq[VDomModifier] = Seq(
       Attribute("class","red"),
       EmptyModifier,
       Emitter("click", _ => ()),
@@ -179,12 +179,12 @@ class OutWatchDomSpec extends JSDomSpec {
         ModifierStreamReceiver(ValueObservable(Observable()))
       },
       div(
-        {
+        IO {
           list += "attr1"
           Attribute("attr1", "peter")
         },
         Seq(
-          {
+          IO {
             list += "attr2"
             Attribute("attr2", "hans")
           }

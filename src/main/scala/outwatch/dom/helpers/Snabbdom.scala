@@ -112,7 +112,7 @@ private[outwatch] object SnabbdomModifiers {
     proxy
   }
 
-  private[outwatch] def updateSnabbdom(modifiersArray: js.Array[Modifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
+  private[outwatch] def updateSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
 
     val newModifiers = SeparatedModifiers.fromWithoutChildren(initialModifiers)
     modifiersArray.foreach(newModifiers.append)
@@ -126,7 +126,7 @@ private[outwatch] object SnabbdomModifiers {
     createProxy(nodeType, state, dataObject, newModifiers.children.nodes, newModifiers.children.hasVTree)
   }
 
-  private[outwatch] def toSnabbdom(modifiersArray: js.Array[Modifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
+  private[outwatch] def toSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
     val modifiers = SeparatedModifiers.from(modifiersArray)
     import modifiers._
 
@@ -138,7 +138,7 @@ private[outwatch] object SnabbdomModifiers {
     if (children.hasStream) {
       // if there is streamable content and static nodes, we give keys to all static nodes
       val childrenWithKey = if (children.hasVTree) children.nodes.map {
-        case vtree: VTree => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
+        case vtree: VNode => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
         case other => other
       } else children.nodes
 
@@ -147,7 +147,7 @@ private[outwatch] object SnabbdomModifiers {
       // needs var for forward referencing
       var proxy: VNodeProxy = null
 
-      def toProxy(newState: js.Array[Modifier]): VNodeProxy = {
+      def toProxy(newState: js.Array[VDomModifier]): VNodeProxy = {
         updateSnabbdom(newState, nodeType, vNodeId, modifiers)
       }
       def subscribe(): Cancelable = {

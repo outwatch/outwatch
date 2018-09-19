@@ -4,6 +4,7 @@ import cats.effect.IO
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observer
 import org.scalajs.dom._
+import outwatch.AsVDomModifier
 import outwatch.dom.helpers.{SeparatedModifiers, SnabbdomModifiers}
 import snabbdom.{DataObject, VNodeProxy}
 
@@ -42,19 +43,27 @@ Modifier
  */
 
 
-sealed trait Modifier
+sealed trait VDomModifier
+
+object VDomModifier {
+  val empty: VDomModifier = EmptyModifier
+
+  def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2) ++ modifiers)
+  def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
+}
 
 // Modifiers
 
-sealed trait Property extends Modifier
+sealed trait Property extends VDomModifier
 
-final case class Emitter(eventType: String, trigger: Event => Unit) extends Modifier
+final case class Emitter(eventType: String, trigger: Event => Unit) extends VDomModifier
 
-private[outwatch] final case class CompositeModifier(modifiers: js.Array[_ <: Modifier]) extends Modifier
+private[outwatch] final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
 
-case object EmptyModifier extends Modifier
+case object EmptyModifier extends VDomModifier
 
-sealed trait ChildVNode extends Modifier
+sealed trait ChildVNode extends VDomModifier
 
 // Properties
 
@@ -123,7 +132,7 @@ private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) =
 private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook[Element]
 
 
-case class EffectModifier(effect: IO[Modifier]) extends Modifier
+case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 
 // Child Nodes
 
@@ -143,9 +152,9 @@ private[outwatch] final case class StringVNode(string: String) extends StaticVNo
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
 }
 
-private[outwatch] final case class VTree(nodeType: String, modifiers: js.Array[Modifier]) extends StaticVNode {
+private[outwatch] final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends StaticVNode {
 
-  def apply(args: VDomModifier*): VTree = copy(modifiers = modifiers ++ args)
+  def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
 
   private var _proxy: VNodeProxy = null
   private[outwatch] def proxy: Option[VNodeProxy] = Option(_proxy)

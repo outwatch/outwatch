@@ -28,7 +28,7 @@ object ChildCommand {
   case class RemoveId(id: ChildId) extends ChildCommand
 
   private[outwatch] def stream(valueStream: ValueObservable[Seq[ChildCommand]]): ValueObservable[VDomModifier] = {
-    val children = new js.Array[VTree]
+    val children = new js.Array[VNode]
 
     valueStream.map { cmds =>
       val idToIndex: ChildId => Int = {
