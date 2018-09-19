@@ -20,19 +20,18 @@ class ScenarioTestSpec extends JSDomSpec {
 
       count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
 
-      div <- div(
+    } yield div(
         div(
           button(id := "plus", "+", onClick --> handlePlus),
           button(id := "minus", "-", onClick --> handleMinus),
           span(id:="counter", count)
         )
       )
-    } yield div
 
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    OutWatch.renderInto(root, node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto(root, _)).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -65,20 +64,18 @@ class ScenarioTestSpec extends JSDomSpec {
 
     val node = for {
       store <- Store.create[State, Action](0, reduce _)
-
-      div <- div(
+    } yield div(
         div(
           button(id := "plus", "+", onClick(Plus) --> store),
           button(id := "minus", "-", onClick(Minus) --> store),
           span(id:="counter", store)
         )
       )
-    } yield div
 
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    OutWatch.renderInto(root, node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto(root, _)).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -98,7 +95,7 @@ class ScenarioTestSpec extends JSDomSpec {
   "A simple name application" should "work as intended" in {
     val greetStart = "Hello ,"
 
-    val node = Handler.create[String].flatMap { nameHandler =>
+    val node = Handler.create[String].map { nameHandler =>
       div(
         label("Name:"),
         input(id := "input", tpe := "text", onInput.value --> nameHandler),
@@ -110,7 +107,7 @@ class ScenarioTestSpec extends JSDomSpec {
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    OutWatch.renderInto(root, node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto(root, _)).unsafeRunSync()
 
 
     val evt = document.createEvent("HTMLEvents")
@@ -133,7 +130,7 @@ class ScenarioTestSpec extends JSDomSpec {
   "A component" should "be referential transparent" in {
 
     def component() = {
-      Handler.create[String].flatMap { handler =>
+      Handler.create[String].map { handler =>
         div(
           button(onClick("clicked") --> handler),
           div(cls := "label", handler)
@@ -155,7 +152,11 @@ class ScenarioTestSpec extends JSDomSpec {
     val element2 = document.createElement("div")
     OutWatch.renderInto(element2, component2).unsafeRunSync()
 
+    element1.innerHTML shouldBe element2.innerHTML
+
     element1.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
+
+    element1.innerHTML should not equal element2.innerHTML
 
     element2.getElementsByTagName("button").item(0).dispatchEvent(clickEvt)
 
@@ -186,13 +187,12 @@ class ScenarioTestSpec extends JSDomSpec {
       confirm = Observable.merge(enterPressed, clickStream)
         .withLatestFrom(textFieldStream)((_, input) => input)
 
-      div <- div(
+    } yield div(
         managed(outputStream <-- confirm),
         label(labelText),
         input(id:= "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
         button(id := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
-    } yield div
 
 
 
@@ -219,16 +219,15 @@ class ScenarioTestSpec extends JSDomSpec {
         .map(_.map(n => TodoComponent(n, deleteHandler)))
       textFieldComponent = TextFieldComponent("Todo: ", inputHandler)
 
-      div <- div(
+    } yield div(
         textFieldComponent,
         ul(id:= "list", state)
       )
-    } yield div
 
     val root = document.createElement("div")
     document.body.appendChild(root)
 
-    OutWatch.renderInto(root, vtree).unsafeRunSync()
+    vtree.flatMap(OutWatch.renderInto(root, _)).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("input", false, true)

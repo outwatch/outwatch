@@ -8,11 +8,9 @@ import outwatch.dom.{Attribute, EmptyModifier, ModifierStreamReceiver, ValueObse
 object SyntaxSugar {
 
   implicit class BooleanSelector(val values: Observable[Boolean]) extends AnyVal {
-    def ?=(attr: IO[Attribute]): IO[ModifierStreamReceiver] = {
-      attr.map { attr =>
-        val attributes = values.map(b => if (b) IO.pure(attr) else IO.pure(EmptyModifier))
-        ModifierStreamReceiver(ValueObservable(attributes))
-      }
+    def ?=(attr: Attribute): ModifierStreamReceiver = {
+      val attributes = values.map(b => if (b) attr else EmptyModifier)
+      ModifierStreamReceiver(ValueObservable(attributes))
     }
   }
 

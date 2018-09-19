@@ -13,9 +13,5 @@ trait Implicits {
   // but if we do this: emitter --> obs will not compile with sideeffects without type parameters
   implicit def asObserver[T, F[_]](value: F[T])(implicit ao: AsObserver[F]): Observer[T] = ao.as(value)
 
-  implicit class ioVTreeMerge(vnode: VNode) {
-    def apply(args: VDomModifier*): VNode = vnode.flatMap(_.apply(args: _*))
-  }
-
   implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)
 }

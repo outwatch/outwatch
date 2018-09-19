@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
 import cats.syntax.functor._
 import monix.reactive.Observable
 import outwatch.AsVDomModifier
@@ -12,16 +11,16 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
   protected def name: String
   private[outwatch] def assign(value: T): A
 
-  def :=(value: T): IO[A] = IO.pure(assign(value))
-  def :=?(value: Option[T]): Option[VDomModifier] = value.map(:=)
-  def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): IO[ModifierStreamReceiver] = {
-    IO.pure(ModifierStreamReceiver(ValueObservable(valueStream).map(v => IO.pure(assign(v)))))
+  def :=(value: T): A = assign(value)
+  def :=?(value: Option[T]): Option[VDomModifier] = value.map(assign)
+  def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): ModifierStreamReceiver = {
+    ModifierStreamReceiver(ValueObservable(valueStream).map(assign))
   }
 }
 
 object AttributeBuilder {
-  implicit def toAttribute(builder: AttributeBuilder[Boolean, Attr]): IO[Attribute] = builder := true
-  implicit def toProperty(builder: AttributeBuilder[Boolean, Prop]): IO[Property] = builder := true
+  implicit def toAttribute(builder: AttributeBuilder[Boolean, Attr]): Attribute = builder := true
+  implicit def toProperty(builder: AttributeBuilder[Boolean, Prop]): Property = builder := true
 }
 
 // Attr
@@ -98,27 +97,23 @@ final class AccumStyleBuilder[T](val name: String, reducer: (String, String) => 
 
 
 object KeyBuilder {
-  def :=(key: Key.Value): IO[Key] = IO.pure(Key(key))
+  def :=(key: Key.Value): Key = Key(key)
 }
 
 // Child / Children
 
 object ChildStreamReceiverBuilder {
-  def <--[T](valueStream: Observable[VDomModifier]): IO[ModifierStreamReceiver] = IO.pure(
+  def <--[T](valueStream: Observable[VDomModifier]): ModifierStreamReceiver =
     ModifierStreamReceiver(AsValueObservable.observable.as(valueStream))
-  )
 
-  def <--[T](valueStream: Observable[T])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
+  def <--[T](valueStream: Observable[T])(implicit r: AsVDomModifier[T]): ModifierStreamReceiver =
     ModifierStreamReceiver(AsValueObservable.observable.as(valueStream.map(r.asVDomModifier)))
-  )
 }
 
 object ChildrenStreamReceiverBuilder {
-  def <--(childrenStream: Observable[Seq[VDomModifier]]): IO[ModifierStreamReceiver] = IO.pure(
+  def <--(childrenStream: Observable[Seq[VDomModifier]]): ModifierStreamReceiver =
     ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map[VDomModifier](x => x)))
-  )
 
-  def <--[T](childrenStream: Observable[Seq[T]])(implicit r: AsVDomModifier[T]): IO[ModifierStreamReceiver] = IO.pure(
+  def <--[T](childrenStream: Observable[Seq[T]])(implicit r: AsVDomModifier[T]): ModifierStreamReceiver =
     ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map(_.map(r.asVDomModifier))))
-  )
 }

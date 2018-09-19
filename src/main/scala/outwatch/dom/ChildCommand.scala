@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.effect.IO
 import monix.reactive.Observable
 import org.scalajs.dom.Element
 import outwatch.AsVDomModifier
@@ -28,7 +27,7 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  private[outwatch] def stream(valueStream: ValueObservable[Seq[ChildCommand]]): IO[ValueObservable[VDomModifier]] = IO {
+  private[outwatch] def stream(valueStream: ValueObservable[Seq[ChildCommand]]): ValueObservable[VDomModifier] = {
     val children = new js.Array[VTree]
 
     valueStream.map { cmds =>
@@ -44,7 +43,7 @@ object ChildCommand {
       def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
 
       def replaceByIndex(index: Int, node: VNode): Unit = {
-        children(index) = node.unsafeRunSync
+        children(index) = node
       }
 
       def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
@@ -57,7 +56,7 @@ object ChildCommand {
 
       def insertByIndex(index: Int, node: VNode): Unit = {
         if (isSaneIndex(index)) {
-          children.insert(index, node.unsafeRunSync)
+          children.insert(index, node)
         }
       }
 
@@ -70,13 +69,13 @@ object ChildCommand {
 
       cmds foreach {
         case Append(node) =>
-          children.push(node.unsafeRunSync)
+          children.push(node)
           ()
         case Prepend(node) =>
-          children.prepend(node.unsafeRunSync)
+          children.prepend(node)
         case Set(list) =>
           children.clear()
-          children.push(list.map(_.unsafeRunSync): _*)
+          children.push(list: _*)
           ()
         case Insert(index, node) =>
           insertByIndex(index, node)
@@ -104,7 +103,7 @@ object ChildCommand {
           removeByIndex(idToIndex(id))
       }
 
-      IO.pure(CompositeModifier(children))
+      CompositeModifier(children)
     }
   }
 }

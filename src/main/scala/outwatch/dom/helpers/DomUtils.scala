@@ -116,6 +116,8 @@ private[outwatch] class SeparatedModifiers {
       hooks.postPatchHook = createHooksPair(hooks.postPatchHook, h)
     case h: DestroyHook =>
       hooks.destroyHook = createHooksSingle(hooks.destroyHook, h)
+    case EffectModifier(effect) =>
+      append(effect.unsafeRunSync())
   }
 
   private def setSpecialStyle(styleName: String)(title: String, value: String): Unit =
@@ -180,14 +182,14 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: Modifier]) 
   private val handleStreamedModifier: Modifier => ContentKind = {
     case ModifierStreamReceiver(modStream) =>
       val observable = modStream.observable.switchMap[Modifier] { mod =>
-        handleStreamedModifier(mod.unsafeRunSync) match {
+        handleStreamedModifier(mod) match {
           //TODO: why is startWith different and leaks a subscription? see tests with: stream.startWith(initialValue :: Nil)
           case ContentKind.Dynamic(stream, initialValue) => Observable.concat(Observable.now(initialValue), stream)
           case ContentKind.Static(mod) => Observable.now(mod)
         }
       }
 
-      handleStreamedModifier(modStream.value.fold[Modifier](EmptyModifier)(_.unsafeRunSync)) match {
+      handleStreamedModifier(modStream.value.getOrElse(EmptyModifier)) match {
         case ContentKind.Dynamic(initialObservable, mod) =>
           val combinedObservable = observable.publishSelector { observable =>
             Observable.merge(initialObservable.takeUntil(observable), observable)
@@ -207,6 +209,7 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: Modifier]) 
           CompositeModifier(streamableModifiers.initialModifiers))
       }
 
+    case EffectModifier(effect) => handleStreamedModifier(effect.unsafeRunSync())
 
     case mod => ContentKind.Static(mod)
   }

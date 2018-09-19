@@ -10,17 +10,17 @@ import snabbdom.patch
 object OutWatch {
 
   def renderInto(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
-    node <- vNode
+    node <- IO(vNode.toSnabbdom)
     _ <- IO {
       val elem = dom.document.createElement("app")
       element.appendChild(elem)
-      patch(elem, node.toSnabbdom)
+      patch(elem, node)
     }
   } yield ()
 
   def renderReplace(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
-    node <- vNode
-    _ <- IO(patch(element, node.toSnabbdom))
+    node <- IO(vNode.toSnabbdom)
+    _ <- IO(patch(element, node))
   } yield ()
 
   def renderInto(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] =

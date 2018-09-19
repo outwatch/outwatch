@@ -12,7 +12,7 @@ class DomEventSpec extends JSDomSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 
-    val vtree = Handler.create[MouseEvent].flatMap { handler =>
+    val vtree = Handler.create[MouseEvent].map { handler =>
 
       val buttonDisabled = handler.map(_ => true).startWith(Seq(false))
 
@@ -21,7 +21,7 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    vtree.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
     document.getElementById("btn").hasAttribute("disabled") shouldBe false
 
     val event = document.createEvent("Events")
@@ -35,13 +35,13 @@ class DomEventSpec extends JSDomSpec {
 
     val message = "ad"
 
-    val vtree = Handler.create[String].flatMap { handler =>
+    val vtree = Handler.create[String].map { handler =>
       div(id := "click", onClick(message) --> handler,
         span(id := "child", handler)
       )
     }
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    vtree.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -61,13 +61,13 @@ class DomEventSpec extends JSDomSpec {
 
     val messages = Handler.create[String].unsafeRunSync()
 
-    val vtree = Handler.create[String].flatMap { stream =>
+    val vtree = Handler.create[String].map { stream =>
       div(id := "click", onClick(messages) --> stream,
         span(id := "child", stream)
       )
     }
 
-    OutWatch.renderInto("#app", vtree).unsafeRunSync()
+    vtree.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     document.getElementById("child").innerHTML shouldBe ""
 
@@ -234,14 +234,14 @@ class DomEventSpec extends JSDomSpec {
 
     val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = Handler.create[(MouseEvent, Int)].flatMap { stream =>
+    val node = Handler.create[(MouseEvent, Int)].map { stream =>
       div(
         button(id := "click", onClick.map(toTuple) --> stream),
         span(id := "num", stream.map(_._2))
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -258,7 +258,7 @@ class DomEventSpec extends JSDomSpec {
 
     val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
 
-    val node = Handler.create[Int].flatMap { stream =>
+    val node = Handler.create[Int].map { stream =>
 
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
@@ -268,7 +268,7 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val event = document.createEvent("Events")
     initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -282,14 +282,14 @@ class DomEventSpec extends JSDomSpec {
 
     val number = 42
     val onInputValue = onInput.value
-    val node = Handler.create[Int].flatMap { stream =>
+    val node = Handler.create[Int].map { stream =>
       div(
         input(id := "input", onInputValue(number) --> stream),
         span(id := "num", stream)
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("input", false, true)
@@ -342,14 +342,14 @@ class DomEventSpec extends JSDomSpec {
     import outwatch.util.SyntaxSugar._
 
     val someClass = "some-class"
-    val node = Handler.create[Boolean].flatMap { stream =>
+    val node = Handler.create[Boolean].map { stream =>
       div(
         button(id := "input", tpe := "checkbox", onClick(true) --> stream),
         span(id := "toggled", stream ?= (className := someClass))
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val inputEvt = document.createEvent("HTMLEvents")
     initEvent(inputEvt)("click", true, false)
@@ -367,7 +367,7 @@ class DomEventSpec extends JSDomSpec {
 
       val state = submit.scan(List.empty[String])((l, s) => l :+ s)
 
-      Handler.create[String].flatMap { stream =>
+      Handler.create[String].map { stream =>
         div(
           input(id := "input", tpe := "text", onInput.value --> stream),
           button(id := "submit", onClick(stream) --> submit),
@@ -378,7 +378,7 @@ class DomEventSpec extends JSDomSpec {
       }
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val inputElement = document.getElementById("input").asInstanceOf[html.Input]
     val submitButton = document.getElementById("submit")
@@ -406,7 +406,7 @@ class DomEventSpec extends JSDomSpec {
 
   "Boolean Props" should "be handled corectly" in {
 
-    val node = Handler.create[Boolean].flatMap { checkValue =>
+    val node = Handler.create[Boolean].map { checkValue =>
       div(
         input(id := "checkbox", `type` := "Checkbox", checked <-- checkValue),
         button(id := "on_button", onClick(true) --> checkValue, "On"),
@@ -414,7 +414,7 @@ class DomEventSpec extends JSDomSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
     val onButton = document.getElementById("on_button")
@@ -468,7 +468,7 @@ class DomEventSpec extends JSDomSpec {
         boolStream <- Handler.create[Boolean]
         htmlElementStream <- Handler.create[html.Element]
         svgElementTupleStream <- Handler.create[(org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]
-        elem <- div(
+        elem = div(
           input(
             id := "input", tpe := "text",
 
@@ -493,7 +493,7 @@ class DomEventSpec extends JSDomSpec {
       } yield elem
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val element = document.getElementById("input")
     element should not be null
@@ -510,7 +510,7 @@ class DomEventSpec extends JSDomSpec {
       for {
         stream <- Handler.create[String]
         eventStream <- Handler.create[MouseEvent]
-        elem <- div(
+        elem = div(
           input(
             id := "input", tpe := "text",
 
@@ -524,7 +524,7 @@ class DomEventSpec extends JSDomSpec {
       } yield elem
     }
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
 
     val element = document.getElementById("input")
     element should not be null

@@ -12,7 +12,7 @@ class AttributeSpec extends JSDomSpec {
     val node = input(
       className := "class1",
       cls := "class2"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList shouldBe List("class" -> "class1 class2")
   }
@@ -22,7 +22,7 @@ class AttributeSpec extends JSDomSpec {
     val node = input(
       attr("id").accum(",") := "foo1",
       attr("id").accum(",") := "foo2"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList shouldBe List("id" -> "foo1,foo2")
   }
@@ -32,7 +32,7 @@ class AttributeSpec extends JSDomSpec {
     val node = input(
       data.foo.accum(",") := "foo1",
       data.foo.accum(",") := "foo2"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList shouldBe List("data-foo" -> "foo1,foo2")
   }
@@ -41,7 +41,7 @@ class AttributeSpec extends JSDomSpec {
     val node = input(
       data.geul := "bar",
       data.geuli.gurk := "barz"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data-geul" -> "bar",
@@ -53,7 +53,7 @@ class AttributeSpec extends JSDomSpec {
     val node = input(
       dataAttr("geul") := "bar",
       dataAttr("geuli-gurk") := "barz"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data-geul" -> "bar",
@@ -81,7 +81,7 @@ class AttributeSpec extends JSDomSpec {
       contentEditable := false,
       unselectable := false,
       disabled := false
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "foo" -> "foo",
@@ -104,7 +104,7 @@ class AttributeSpec extends JSDomSpec {
     val node = input(
       data.foo :=? Option("bar"),
       data.bar :=? Option.empty[String]
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data-foo" -> "bar"
@@ -118,7 +118,7 @@ class AttributeSpec extends JSDomSpec {
     )(
       data.a := "buh",
       data.a.tomate := "gisela"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.attrs.toList should contain theSameElementsAs List(
       "data-a" -> "buh",
@@ -134,7 +134,7 @@ class AttributeSpec extends JSDomSpec {
     )(
       style("color") := "blue",
       border := "1px solid black"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.style.toList should contain theSameElementsAs List(
       ("color", "blue"),
@@ -150,7 +150,7 @@ class AttributeSpec extends JSDomSpec {
     )(
       color.blue,
       border := "1px solid black"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.style.toList should contain theSameElementsAs List(
       ("color", "blue"),
@@ -161,18 +161,18 @@ class AttributeSpec extends JSDomSpec {
 
   it should "correctly merge keys" in {
 
-    val node = input( attributes.key := "bumm")( attributes.key := "klapp").map(_.toSnabbdom).unsafeRunSync()
+    val node = input( attributes.key := "bumm")( attributes.key := "klapp").toSnabbdom
     node.data.key.toList should contain theSameElementsAs List("klapp")
 
-    val node2 = input()( attributes.key := "klapp").map(_.toSnabbdom).unsafeRunSync()
+    val node2 = input()( attributes.key := "klapp").toSnabbdom
     node2.data.key.toList should contain theSameElementsAs List("klapp")
 
-    val node3 = input( attributes.key := "bumm")().map(_.toSnabbdom).unsafeRunSync()
+    val node3 = input( attributes.key := "bumm")().toSnabbdom
     node3.data.key.toList should contain theSameElementsAs List("bumm")
   }
 
   "style attribute" should "render correctly" in {
-    val node = input(color.red).map(_.toSnabbdom).unsafeRunSync()
+    val node = input(color.red).toSnabbdom
 
     node.data.style.toList should contain theSameElementsAs List(
       "color" -> "red"
@@ -186,7 +186,7 @@ class AttributeSpec extends JSDomSpec {
       opacity.delayed := 1,
       opacity.remove := 0,
       opacity.destroy := 0
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.style("opacity") shouldBe "0"
     node.data.style("delayed").asInstanceOf[js.Dictionary[String]].toMap shouldBe Map("opacity" -> "1")
@@ -198,7 +198,7 @@ class AttributeSpec extends JSDomSpec {
     val node = div(
       transition := "transform .2s ease-in-out",
       transition.accum(",") := "opacity .2s ease-in-out"
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.data.style.toMap shouldBe Map("transition" -> "transform .2s ease-in-out,opacity .2s ease-in-out")
   }
@@ -207,7 +207,7 @@ class AttributeSpec extends JSDomSpec {
     import outwatch.dom.dsl.svg._
     val node = svg(
       path(fill := "red", d := "M 100 100 L 300 100 L 200 300 z")
-    ).map(_.toSnabbdom).unsafeRunSync()
+    ).toSnabbdom
 
     node.children.get.head.data.attrs.toMap shouldBe Map("fill" -> "red", "d" -> "M 100 100 L 300 100 L 200 300 z")
   }

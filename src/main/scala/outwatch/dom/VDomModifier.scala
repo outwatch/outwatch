@@ -122,7 +122,11 @@ private[outwatch] final case class UpdateHook(trigger: ((Element, Element)) => U
 private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook[(Element, Element)]
 private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook[Element]
 
+
+case class EffectModifier(effect: IO[Modifier]) extends Modifier
+
 // Child Nodes
+
 
 private[outwatch] sealed trait StaticVNode extends ChildVNode {
   def toSnabbdom(implicit s: Scheduler): VNodeProxy
@@ -141,9 +145,7 @@ private[outwatch] final case class StringVNode(string: String) extends StaticVNo
 
 private[outwatch] final case class VTree(nodeType: String, modifiers: js.Array[Modifier]) extends StaticVNode {
 
-  def apply(args: VDomModifier*): VNode = IO {
-    copy(modifiers = modifiers ++ args.map(_.unsafeRunSync))
-  }
+  def apply(args: VDomModifier*): VTree = copy(modifiers = modifiers ++ args)
 
   private var _proxy: VNodeProxy = null
   private[outwatch] def proxy: Option[VNodeProxy] = Option(_proxy)
