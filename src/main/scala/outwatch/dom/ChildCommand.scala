@@ -4,6 +4,7 @@ import monix.reactive.Observable
 import org.scalajs.dom.Element
 import outwatch.AsVDomModifier
 import cats.syntax.functor._
+import monix.execution.Scheduler
 import outwatch.dom.helpers.SeparatedModifiers
 
 import scala.scalajs.js
@@ -27,23 +28,23 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  private[outwatch] def stream(valueStream: ValueObservable[Seq[ChildCommand]]): ValueObservable[VDomModifier] = {
-    val children = new js.Array[VNode]
+  private[outwatch] def stream(valueStream: ValueObservable[Seq[ChildCommand]])(implicit scheduler: Scheduler): ValueObservable[VDomModifier] = {
+    val children = new js.Array[VNodeProxyNode]
 
     valueStream.map { cmds =>
       val idToIndex: ChildId => Int = {
         case ChildId.Key(key) => children.indexWhere { tree =>
-          tree.proxy.fold(false)(_.key.fold(false)((k: Key.Value) => k == key))
+          tree.proxy.key.fold(false)((k: Key.Value) => k == key)
         }
         case ChildId.Element(element) => children.indexWhere { tree =>
-          tree.proxy.fold(false)(_.elm.fold(false)((e: Element) => e == element))
+          tree.proxy.elm.fold(false)((e: Element) => e == element)
         }
       }
 
       def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
 
       def replaceByIndex(index: Int, node: VNode): Unit = {
-        children(index) = node
+        children(index) = VNodeProxyNode(node.toSnabbdom)
       }
 
       def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
@@ -56,7 +57,7 @@ object ChildCommand {
 
       def insertByIndex(index: Int, node: VNode): Unit = {
         if (isSaneIndex(index)) {
-          children.insert(index, node)
+          children.insert(index, VNodeProxyNode(node.toSnabbdom))
         }
       }
 
@@ -69,13 +70,13 @@ object ChildCommand {
 
       cmds foreach {
         case Append(node) =>
-          children.push(node)
+          children.push(VNodeProxyNode(node.toSnabbdom))
           ()
         case Prepend(node) =>
-          children.prepend(node)
+          children.prepend(VNodeProxyNode(node.toSnabbdom))
         case Set(list) =>
           children.clear()
-          children.push(list: _*)
+          children.push(list.map(node => VNodeProxyNode(node.toSnabbdom)): _*)
           ()
         case Insert(index, node) =>
           insertByIndex(index, node)

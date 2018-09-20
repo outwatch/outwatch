@@ -2,6 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import cats.syntax.functor._
+import monix.execution.Scheduler
 import outwatch.dom.{AsValueObservable, ChildCommand, CompositeModifier, EffectModifier, ModifierStreamReceiver, StringVNode, VDomModifier, ValueObservable}
 
 import scala.scalajs.js
@@ -52,9 +53,9 @@ object AsVDomModifier {
   implicit def valueObservableRender[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) =>
     ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
 
-  implicit def childCommandObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) =>
+  implicit def childCommandObservableRender[F[_] : AsValueObservable](implicit scheduler: Scheduler): AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) =>
     ModifierStreamReceiver(ChildCommand.stream(ValueObservable(valueStream).map(Seq(_))))
 
-  implicit def childCommandSeqObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[Seq[ChildCommand]]] = (valueStream: F[Seq[ChildCommand]]) =>
+  implicit def childCommandSeqObservableRender[F[_] : AsValueObservable](implicit scheduler: Scheduler) = (valueStream: F[Seq[ChildCommand]]) =>
     ModifierStreamReceiver(ChildCommand.stream(ValueObservable(valueStream)))
 }

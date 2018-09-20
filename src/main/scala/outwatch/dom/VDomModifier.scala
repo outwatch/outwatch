@@ -132,7 +132,7 @@ private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) =
 private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook[Element]
 
 
-case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
+private[outwatch] case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 
 // Child Nodes
 
@@ -148,20 +148,17 @@ object StaticVNode {
 final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends ChildVNode
 
 // Static Nodes
+private[outwatch] final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVNode {
+  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = proxy
+}
+
 private[outwatch] final case class StringVNode(string: String) extends StaticVNode {
   override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
 }
 
-private[outwatch] final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends StaticVNode {
+final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends StaticVNode {
 
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
 
-  private var _proxy: VNodeProxy = null
-  private[outwatch] def proxy: Option[VNodeProxy] = Option(_proxy)
-  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = {
-    if (_proxy == null) {
-      _proxy = SnabbdomModifiers.toSnabbdom(modifiers, nodeType)
-    }
-    _proxy
-  }
+  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = SnabbdomModifiers.toSnabbdom(modifiers, nodeType)
 }

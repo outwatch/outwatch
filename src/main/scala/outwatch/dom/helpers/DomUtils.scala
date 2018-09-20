@@ -1,5 +1,6 @@
 package outwatch.dom.helpers
 
+import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
@@ -8,14 +9,14 @@ import snabbdom.Hooks
 import scala.scalajs.js
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: js.Array[_ <: VDomModifier]): SeparatedModifiers = {
+  def from(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler) = {
     val m = new SeparatedModifiers()
     modifiers.foreach(m.append)
     m
   }
 
 
-  def fromWithoutChildren(that: SeparatedModifiers): SeparatedModifiers = {
+  def fromWithoutChildren(that: SeparatedModifiers)(implicit scheduler: Scheduler) = {
     val m = new SeparatedModifiers()
     import m._
 
@@ -62,12 +63,15 @@ private[outwatch] class SeparatedModifiers {
   val hooks = new SeparatedHooks()
   var keyOption: js.UndefOr[Key.Value] = js.undefined
 
-  def append(modifier: VDomModifier): Unit = modifier match {
+  def append(modifier: VDomModifier)(implicit scheduler: Scheduler): Unit = modifier match {
     case EmptyModifier =>
       ()
     case cm: CompositeModifier =>
-      cm.modifiers.foreach(append)
+      cm.modifiers.foreach(append(_))
     case s: VNode =>
+      children.nodes += VNodeProxyNode(s.toSnabbdom)
+      children.hasVTree = true
+    case s: VNodeProxyNode =>
       children.nodes += s
       children.hasVTree = true
     case s: StringVNode =>
@@ -175,11 +179,11 @@ private[outwatch] object ContentKind {
 
 // StreamableModifiers takes a list of modifiers. It constructs an Observable
 // of updates from dynamic modifiers in this list.
-private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifier]) {
+private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler) {
 
   //TODO: hidden signature of this method (we need StaticModifier as a type)
   //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
-  private val handleStreamedModifier: VDomModifier => ContentKind = {
+  private def handleStreamedModifier(modifier: VDomModifier)(implicit scheduler: Scheduler): ContentKind = modifier match {
     case ModifierStreamReceiver(modStream) =>
       val observable = modStream.observable.switchMap[VDomModifier] { mod =>
         handleStreamedModifier(mod) match {
@@ -211,9 +215,10 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifie
 
     case EffectModifier(effect) => handleStreamedModifier(effect.unsafeRunSync())
 
+    case child: StaticVNode  => ContentKind.Static(VNodeProxyNode(child.toSnabbdom))
+
     case mod => ContentKind.Static(mod)
   }
-
 
   // the nodes array has a fixed size - each static child node is one element
   // and the dynamic nodes can place one element on each update and start with
@@ -224,42 +229,40 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifie
   // for each node which might be dynamic, we have an Observable of Modifier updates
   val updaterObservables = new js.Array[Observable[(Int, VDomModifier)]]
 
-  // an observable representing the current state of this VNode. We take all
-  // state update functions we have from dynamic modifiers and then scan over
-  // them starting with the initial state.
-  private val innerObservable = {
-    var i = 0;
-    var j = 0;
-    while (i < modifiers.size) {
-      val index = i
-      val jndex = j
-      handleStreamedModifier(modifiers(index)) match {
-        case ContentKind.Dynamic(stream, initialValue) =>
-          initialModifiers(index) = initialValue
-          updaterObservables(jndex) = stream.map { mod =>
-            (index, mod)
-          }
-          j += 1
-        case ContentKind.Static(mod) =>
-          initialModifiers(index) = mod
-      }
-      i += 1
-    }
-
-    Observable.merge(updaterObservables: _*)
-      .map { case (index, mod) =>
+  // fill the initial state and updater observables
+  var i = 0
+  var j = 0
+  while (i < modifiers.size) {
+    val index = i
+    val jndex = j
+    handleStreamedModifier(modifiers(index)) match {
+      case ContentKind.Dynamic(stream, initialValue) =>
+        initialModifiers(index) = initialValue
+        updaterObservables(jndex) = stream.map { mod =>
+          (index, mod)
+        }
+        j += 1
+      case ContentKind.Static(mod) =>
         initialModifiers(index) = mod
-      }
+    }
+    i += 1
   }
 
-  val observable = innerObservable.map(_ => initialModifiers)
+  // an observable representing the current state of this VNode. We take all
+  // state update functions we have from dynamic modifiers and then scan over
+  // them starting with the initial state. We do not actually, but mutate the
+  // initial modifiers because of performance considerations.
+  val observable = Observable.merge(updaterObservables: _*).map { case (index, mod) =>
+    initialModifiers(index) = mod
+    initialModifiers
+  }
 }
 
 // Receivers represent a VNode with its static/streamable children and its
 // attribute streams. it is about capturing the dynamic content of a node.
 // it is considered "empty" if it is only static. Otherwise it provides an
 // Observable to stream the current modifiers of this node.
-private[outwatch] final class Receivers(childNodes: js.Array[ChildVNode]) {
+private[outwatch] final class Receivers(childNodes: js.Array[ChildVNode])(implicit scheduler: Scheduler) {
   private val streamableModifiers = new StreamableModifiers(childNodes)
   def initialState: js.Array[VDomModifier] = streamableModifiers.initialModifiers
   def observable: Observable[js.Array[VDomModifier]] = streamableModifiers.observable
