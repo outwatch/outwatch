@@ -4,9 +4,11 @@ import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
-import snabbdom.Hooks
+import snabbdom.Hooks.{HookPairFn, HookSingleFn}
+import snabbdom.{Hooks, OutwatchState, VNodeProxy}
 
 import scala.scalajs.js
+import scala.scalajs.js.UndefOr
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler) = {
@@ -17,6 +19,7 @@ private[outwatch] object SeparatedModifiers {
 
 
   def fromWithoutChildren(that: SeparatedModifiers)(implicit scheduler: Scheduler) = {
+    //TODO: size hints for arrays in separated modifiers
     val m = new SeparatedModifiers()
     import m._
 
@@ -31,9 +34,6 @@ private[outwatch] object SeparatedModifiers {
     hooks.updateHook = that.hooks.updateHook
     hooks.postPatchHook = that.hooks.postPatchHook
     hooks.destroyHook = that.hooks.destroyHook
-    hooks.domMountHook = that.hooks.domMountHook
-    hooks.domUnmountHook = that.hooks.domUnmountHook
-    hooks.domUpdateHook = that.hooks.domUpdateHook
 
     that.attributes.attrs.foreach { case (k, v) =>
       attributes.attrs(k) = v
@@ -46,19 +46,21 @@ private[outwatch] object SeparatedModifiers {
       attributes.styles(k) = v
     }
 
-    keyOption = that.keyOption orElse keyOption
+    keyOption = that.keyOption
+
+    outwatchState = that.outwatchState
 
     m
   }
 }
 
 private[outwatch] class SeparatedModifiers {
-  //TODO: size hints for arrays
   val emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
   val children = new Children
   val attributes = new SeparatedAttributes()
   val hooks = new SeparatedHooks()
   var keyOption: js.UndefOr[Key.Value] = js.undefined
+  var outwatchState: js.UndefOr[OutwatchState] = js.undefined
 
   def append(modifier: VDomModifier)(implicit scheduler: Scheduler): Unit = modifier match {
     case EmptyModifier =>
@@ -104,23 +106,45 @@ private[outwatch] class SeparatedModifiers {
         emitters(em.eventType) = { ev => prev(ev); em.trigger(ev) }
       }
     case h: DomMountHook =>
-      hooks.domMountHook = createHooksSingle(hooks.domMountHook, h)
+      hooks.insertHook = createHooksSingle(hooks.insertHook, h.trigger)
+      hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldProxy, proxy) =>
+        if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
+          oldProxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldProxy)))
+          proxy.elm.foreach(h.trigger)
+        }
+      })
+      hooks.usesOutwatchState = true
     case h: DomUnmountHook =>
-      hooks.domUnmountHook = createHooksSingle(hooks.domUnmountHook, h)
+      hooks.destroyHook = createHooksSingle(hooks.destroyHook, h.trigger)
+      hooks.domUnmountHook = createHooksSingle(hooks.domUnmountHook, h.trigger)
     case h: DomUpdateHook =>
-      hooks.domUpdateHook = createHooksSingle(hooks.domUpdateHook, h)
+      hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldproxy, proxy) =>
+        if (proxy.outwatchState.map(_.id) == oldproxy.outwatchState.map(_.id)) {
+          oldproxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldproxy)))
+          proxy.elm.foreach(h.trigger)
+        }
+      })
+      hooks.usesOutwatchState = true
     case h: InsertHook =>
-      hooks.insertHook = createHooksSingle(hooks.insertHook, h)
+      hooks.insertHook = createHooksSingle(hooks.insertHook, h.trigger)
     case h: PrePatchHook =>
-      hooks.prePatchHook = createHooksPairOption(hooks.prePatchHook, h)
+      hooks.prePatchHook = createHooksPairOption(hooks.prePatchHook, h.trigger)
     case h: UpdateHook =>
-      hooks.updateHook = createHooksPair(hooks.updateHook, h)
+      hooks.updateHook = createHooksPair(hooks.updateHook, h.trigger)
     case h: PostPatchHook =>
-      hooks.postPatchHook = createHooksPair(hooks.postPatchHook, h)
+      hooks.postPatchHook = createHooksPair(hooks.postPatchHook, h.trigger)
     case h: DestroyHook =>
-      hooks.destroyHook = createHooksSingle(hooks.destroyHook, h)
+      hooks.destroyHook = createHooksSingle(hooks.destroyHook, h.trigger)
     case EffectModifier(effect) =>
       append(effect.unsafeRunSync())
+  }
+
+  def appendUnmountHook(): Unit = {
+    hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldProxy, proxy) =>
+      if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
+        oldProxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldProxy)))
+      }
+    })
   }
 
   private def setSpecialStyle(styleName: String)(title: String, value: String): Unit =
@@ -130,15 +154,21 @@ private[outwatch] class SeparatedModifiers {
       attributes.styles(styleName).asInstanceOf[js.Dictionary[String]](title) = value
     }
 
-  private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
-    if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
-    else { p => current.get(p); p.elm.foreach(hook.trigger) }
-  private def createHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: Hook[(dom.Element, dom.Element)]): Hooks.HookPairFn =
-    if (current.isEmpty) { (o,p) => for { oe <- o.elm; pe <- p.elm } hook.trigger((oe, pe)) }
-    else { (o,p) => current.get(o, p); for { oe <- o.elm; pe <- p.elm } hook.trigger((oe, pe)) }: Hooks.HookPairFn
-  private def createHooksPairOption(current: js.UndefOr[Hooks.HookPairFn], hook: Hook[(Option[dom.Element], Option[dom.Element])]): Hooks.HookPairFn =
-    if (current.isEmpty) { (o,p) => hook.trigger((o.elm.toOption, p.elm.toOption)) }
-    else { (o,p) => current.get(o, p); hook.trigger((o.elm.toOption, p.elm.toOption)) }
+  private def createProxyHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: VNodeProxy => Unit): Hooks.HookSingleFn =
+    if (current.isEmpty) hook
+    else { p => current.get(p); hook(p) }
+  private def createProxyHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: (VNodeProxy, VNodeProxy) => Unit): Hooks.HookPairFn =
+    if (current.isEmpty) hook
+    else { (o,p) => current.get(o, p); hook(o, p) }
+  private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: dom.Element => Unit): Hooks.HookSingleFn =
+    if (current.isEmpty) { p => p.elm.foreach(hook) }
+    else { p => current.get(p); p.elm.foreach(hook) }
+  private def createHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: ((dom.Element, dom.Element)) => Unit): Hooks.HookPairFn =
+    if (current.isEmpty) { (o,p) => for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) }
+    else { (o,p) => current.get(o, p); for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) }: Hooks.HookPairFn
+  private def createHooksPairOption(current: js.UndefOr[Hooks.HookPairFn], hook: ((Option[dom.Element], Option[dom.Element])) => Unit): Hooks.HookPairFn =
+    if (current.isEmpty) { (o,p) => hook((o.elm.toOption, p.elm.toOption)) }
+    else { (o,p) => current.get(o, p); hook((o.elm.toOption, p.elm.toOption)) }
 }
 
 private[outwatch] object StyleKey {
@@ -160,14 +190,13 @@ private[outwatch] class SeparatedAttributes {
 }
 
 private[outwatch] class SeparatedHooks {
+  var usesOutwatchState: Boolean = false
   var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
   var prePatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var updateHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var postPatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var domMountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var domUpdateHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var domUnmountHook: js.UndefOr[HookSingleFn] = js.undefined
 }
 
 private[outwatch] sealed trait ContentKind

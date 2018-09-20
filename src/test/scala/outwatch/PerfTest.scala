@@ -16,9 +16,9 @@ class PerfTest extends JSDomSpec {
     val vtree = div(
       id := elemId,
       span("Go!"),
-//      onClick handleWith {},
-//      onDomMount handleWith {},
-//      onDomUnmount handleWith {},
+      onClick handleWith {},
+      onDomMount handleWith {},
+      onDomUnmount handleWith {},
       handler.map { i =>
         input(tpe := "text", dsl.value := i.toString, styleAttr := "background:black;")
       },

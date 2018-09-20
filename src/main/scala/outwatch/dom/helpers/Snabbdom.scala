@@ -15,64 +15,20 @@ object OutwatchTracing {
   def patch: Observable[(VNodeProxy, VNodeProxy)] = patchSubject
 }
 
-private[outwatch] object SnabbdomHooks {
-
-  private def createPostPatchHook(hooks: SeparatedHooks): Hooks.HookPairFn = {
-    import hooks._
-
-    { (oldProxy: VNodeProxy, proxy: VNodeProxy) =>
-      if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
-        oldProxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldProxy)))
-        domMountHook.foreach(_(proxy))
-      } else {
-        domUpdateHook.foreach(_(proxy))
-      }
-      postPatchHook.foreach(_(oldProxy, proxy))
-    }
-  }
-
-  private def mergeHooksSingle[T](prevHook: js.UndefOr[Hooks.HookSingleFn], newHook: js.UndefOr[Hooks.HookSingleFn]): js.UndefOr[Hooks.HookSingleFn] = {
-    prevHook.map { prevHook =>
-      newHook.fold[Hooks.HookSingleFn](prevHook) { newHook => e =>
-        prevHook(e)
-        newHook(e)
-      }
-    }.orElse(newHook)
-  }
-  private def mergeHooksPair[T](prevHook: js.UndefOr[Hooks.HookPairFn], newHook: js.UndefOr[Hooks.HookPairFn]): js.UndefOr[Hooks.HookPairFn] = {
-    prevHook.map { prevHook =>
-      newHook.fold[Hooks.HookPairFn](prevHook) { newHook => (e1, e2) =>
-        prevHook(e1, e2)
-        newHook(e1, e2)
-      }
-    }.orElse(newHook)
-  }
-
-  def toOutwatchState(hooks: SeparatedHooks, vNodeId: Int): js.UndefOr[OutwatchState] = {
-    import hooks._
-
-    if (domMountHook.isEmpty && domUnmountHook.isEmpty && domUpdateHook.isEmpty) js.undefined
-    else OutwatchState(vNodeId, domUnmountHook)
-  }
-
-  def toSnabbdom(hooks: SeparatedHooks): Hooks = {
-    import hooks._
-    val insert = mergeHooksSingle(domMountHook, insertHook)
-    val destroy = mergeHooksSingle(domUnmountHook, destroyHook)
-    val postPatch: js.UndefOr[Hooks.HookPairFn] = createPostPatchHook(hooks)
-
-    Hooks(insert, prePatchHook, updateHook, postPatch, destroy)
-  }
-}
-
 private[outwatch] object SnabbdomModifiers {
+  private def toOutwatchState(hooks: SeparatedHooks, vNodeId: Int): js.UndefOr[OutwatchState] = {
+    import hooks._
+
+    if (usesOutwatchState || domUnmountHook.nonEmpty) OutwatchState(vNodeId, domUnmountHook)
+    else js.undefined
+  }
 
   private def createDataObject(modifiers: SeparatedModifiers): DataObject = {
     import modifiers._
 
     DataObject(
       attributes.attrs, attributes.props, attributes.styles, emitters,
-      SnabbdomHooks.toSnabbdom(hooks),
+      Hooks(hooks.insertHook, hooks.prePatchHook, hooks.updateHook, hooks.postPatchHook, hooks.destroyHook),
       keyOption
     )
   }
@@ -81,7 +37,7 @@ private[outwatch] object SnabbdomModifiers {
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
+  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
     val proxy = if (children.isEmpty) {
       hFunction(nodeType, dataObject)
     } else if (hasVTree) {
@@ -96,7 +52,7 @@ private[outwatch] object SnabbdomModifiers {
     proxy
   }
 
-  def updateSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
+  private def updateSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
 
     val newModifiers = SeparatedModifiers.fromWithoutChildren(initialModifiers)
     modifiersArray.foreach(newModifiers.append)
@@ -105,7 +61,7 @@ private[outwatch] object SnabbdomModifiers {
     // handle them with Receivers.
 
     val dataObject = createDataObject(newModifiers)
-    val state = SnabbdomHooks.toOutwatchState(newModifiers.hooks, vNodeId)
+    val state = toOutwatchState(newModifiers.hooks, vNodeId)
 
     createProxy(nodeType, state, dataObject, newModifiers.children.nodes, newModifiers.children.hasVTree)
   }
@@ -115,6 +71,7 @@ private[outwatch] object SnabbdomModifiers {
     import modifiers._
 
     val vNodeId = modifiers.hashCode
+    modifiers.appendUnmountHook()
 
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
@@ -177,7 +134,7 @@ private[outwatch] object SnabbdomModifiers {
       proxy = updateSnabbdom(receivers.initialState, nodeType, vNodeId, modifiers)
       proxy
     } else {
-      val state = SnabbdomHooks.toOutwatchState(hooks, vNodeId)
+      val state = toOutwatchState(hooks, vNodeId)
       val dataObject = createDataObject(modifiers)
       createProxy(nodeType, state, dataObject, children.nodes, children.hasVTree)
     }
