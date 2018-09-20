@@ -130,9 +130,6 @@ private[outwatch] class SeparatedModifiers {
       attributes.styles(styleName).asInstanceOf[js.Dictionary[String]](title) = value
     }
 
-  private def createEmitter(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
-    if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
-    else { p => current.get(p); p.elm.foreach(hook.trigger) }
   private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
     if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
     else { p => current.get(p); p.elm.foreach(hook.trigger) }
