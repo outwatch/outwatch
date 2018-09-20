@@ -81,7 +81,7 @@ private[outwatch] object SnabbdomModifiers {
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  private[outwatch] def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
+  def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
     val proxy = if (children.isEmpty) {
       hFunction(nodeType, dataObject)
     } else if (hasVTree) {
@@ -96,7 +96,7 @@ private[outwatch] object SnabbdomModifiers {
     proxy
   }
 
-  private[outwatch] def updateSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
+  def updateSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
 
     val newModifiers = SeparatedModifiers.fromWithoutChildren(initialModifiers)
     modifiersArray.foreach(newModifiers.append)
