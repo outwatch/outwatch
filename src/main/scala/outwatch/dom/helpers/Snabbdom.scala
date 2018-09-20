@@ -155,13 +155,21 @@ private[outwatch] object SnabbdomModifiers {
           .map(toProxy)
           .scan(proxy) { case (old, crt) =>
             OutwatchTracing.patchSubject.onNext((old, crt))
+
             val next = patch(old, crt)
+
+            // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
+            // if we are changing the content of this proxy via a stream, the parent will not see this change.
+            // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
+            // renders its children again. But it would not have the correct state of this proxy. Therefore,
+            // we mutate the initial proxy and thereby mutate the proxy the parent knows.
             proxy.sel = next.sel
             proxy.data = next.data
             proxy.children = next.children
             proxy.elm = next.elm
             proxy.text = next.text
             proxy.key = next.key
+
             next
           }.subscribe(
           _ => Continue,
