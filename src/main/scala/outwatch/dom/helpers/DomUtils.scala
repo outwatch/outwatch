@@ -21,10 +21,7 @@ private[outwatch] object SeparatedModifiers {
     import m._
 
     that.emitters.foreach { case (k, v) =>
-      if (!emitters.contains(k)) {
-        emitters(k) = new js.Array[js.Function1[dom.Event, Unit]]
-      }
-      emitters(k) ++= v
+      emitters(k) = v
     }
 
     // keep out children intentionally
@@ -57,7 +54,7 @@ private[outwatch] object SeparatedModifiers {
 
 private[outwatch] class SeparatedModifiers {
   //TODO: size hints for arrays
-  val emitters = js.Dictionary[js.Array[js.Function1[dom.Event, Unit]]]()
+  val emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
   val children = new Children
   val attributes = new SeparatedAttributes()
   val hooks = new SeparatedHooks()
@@ -85,11 +82,6 @@ private[outwatch] class SeparatedModifiers {
       attributes.attrs(a.title) = attributes.attrs.get(a.title).fold(a.value)(a.accum(_, a.value))
     case p : Prop =>
       attributes.props(p.title) = p.value
-    case em: Emitter =>
-      if (!emitters.contains(em.eventType)) {
-        emitters(em.eventType) = new js.Array[js.Function1[dom.Event, Unit]]
-      }
-      emitters(em.eventType) += em.trigger
     case s: BasicStyle =>
       attributes.styles(s.title) = s.value
     case s: DelayedStyle =>
@@ -104,6 +96,13 @@ private[outwatch] class SeparatedModifiers {
       )
     case key: Key =>
       keyOption = key.value
+    case em: Emitter =>
+      if (!emitters.contains(em.eventType)) {
+        emitters(em.eventType) = em.trigger
+      } else {
+        val prev = emitters(em.eventType)
+        emitters(em.eventType) = { ev => prev(ev); em.trigger(ev) }
+      }
     case h: DomMountHook =>
       hooks.domMountHook = createHooksSingle(hooks.domMountHook, h)
     case h: DomUnmountHook =>
@@ -131,6 +130,9 @@ private[outwatch] class SeparatedModifiers {
       attributes.styles(styleName).asInstanceOf[js.Dictionary[String]](title) = value
     }
 
+  private def createEmitter(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
+    if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
+    else { p => current.get(p); p.elm.foreach(hook.trigger) }
   private def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: Hook[dom.Element]): Hooks.HookSingleFn =
     if (current.isEmpty) { p => p.elm.foreach(hook.trigger) }
     else { p => current.get(p); p.elm.foreach(hook.trigger) }

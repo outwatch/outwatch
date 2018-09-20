@@ -65,29 +65,13 @@ private[outwatch] object SnabbdomHooks {
   }
 }
 
-private[outwatch] object SnabbdomEmitters {
-  def combineEmitters(triggers: js.Array[js.Function1[dom.Event, Unit]]): js.Function1[dom.Event, Unit] = { event =>
-    triggers.foreach(_(event))
-  }
-
-  def toSnabbdom(emitters: js.Dictionary[js.Array[js.Function1[dom.Event, Unit]]]): js.Dictionary[js.Function1[dom.Event, Unit]] = {
-    val newEmitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
-    emitters.foreach { case (k, v) =>
-      newEmitters(k) = combineEmitters(v)
-    }
-
-    newEmitters
-  }
-}
-
 private[outwatch] object SnabbdomModifiers {
 
   private def createDataObject(modifiers: SeparatedModifiers): DataObject = {
     import modifiers._
 
     DataObject(
-      attributes.attrs, attributes.props, attributes.styles,
-      SnabbdomEmitters.toSnabbdom(emitters),
+      attributes.attrs, attributes.props, attributes.styles, emitters,
       SnabbdomHooks.toSnabbdom(hooks),
       keyOption
     )

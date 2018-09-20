@@ -65,7 +65,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.values.flatten.size shouldBe 2
+    emitters.values.size shouldBe 1
     attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 5
     children.hasStream shouldBe true
@@ -88,7 +88,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.values.flatten.size shouldBe 3
+    emitters.values.size shouldBe 3
     attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
@@ -111,7 +111,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.values.flatten.size shouldBe 3
+    emitters.values.size shouldBe 3
     attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
@@ -139,7 +139,6 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.keys.toList shouldBe List("click", "input", "keyup")
-    emitters.values.flatten.size shouldBe 3
     hooks.insertHook.isDefined shouldBe true
     hooks.prePatchHook.isDefined shouldBe true
     hooks.updateHook.isDefined shouldBe true
