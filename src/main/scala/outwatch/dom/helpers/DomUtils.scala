@@ -232,22 +232,24 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifie
   val updaterObservables = new js.Array[Observable[(Int, VDomModifier)]]
 
   // fill the initial state and updater observables
-  var i = 0
-  var j = 0
-  while (i < modifiers.size) {
-    val index = i
-    val jndex = j
-    handleStreamedModifier(modifiers(index)) match {
-      case ContentKind.Dynamic(stream, initialValue) =>
-        initialModifiers(index) = initialValue
-        updaterObservables(jndex) = stream.map { mod =>
-          (index, mod)
-        }
-        j += 1
-      case ContentKind.Static(mod) =>
-        initialModifiers(index) = mod
+  {
+    var i = 0
+    var j = 0
+    while (i < modifiers.size) {
+      val index = i
+      val jndex = j
+      handleStreamedModifier(modifiers(index)) match {
+        case ContentKind.Dynamic(stream, initialValue) =>
+          initialModifiers(index) = initialValue
+          updaterObservables(jndex) = stream.map { mod =>
+            (index, mod)
+          }
+          j += 1
+        case ContentKind.Static(mod) =>
+          initialModifiers(index) = mod
+      }
+      i += 1
     }
-    i += 1
   }
 
   // an observable representing the current state of this VNode. We take all
