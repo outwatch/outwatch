@@ -11,18 +11,19 @@ class PerfTest extends JSDomSpec {
 
     val handler = Handler.create[Int](0).unsafeRunSync
     val handler2 = Handler.create[Int](0).unsafeRunSync
+    val handler3 = Handler.create[Int](0).unsafeRunSync
 
     val vtree = div(
       id := elemId,
       span("Go!"),
-      onClick handleWith {},
-      onDomMount handleWith {},
-      onDomUnmount handleWith {},
+//      onClick handleWith {},
+//      onDomMount handleWith {},
+//      onDomUnmount handleWith {},
       handler.map { i =>
         input(tpe := "text", dsl.value := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
-        div(dsl.key := "2", i, cls := i.toString, onClick handleWith {})
+        div(dsl.key := "2", i, cls := i.toString, onClick handleWith {}, handler3)
       }
     )
 

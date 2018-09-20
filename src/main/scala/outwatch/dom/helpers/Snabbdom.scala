@@ -131,16 +131,16 @@ private[outwatch] object SnabbdomModifiers {
       // needs var for forward referencing
       var proxy: VNodeProxy = null
 
-      def toProxy(newState: js.Array[VDomModifier]): VNodeProxy = {
-        updateSnabbdom(newState, nodeType, vNodeId, modifiers)
-      }
       def subscribe(): Cancelable = {
-        receivers.observable
-          .map(toProxy)
-          .scan(proxy) { case (old, crt) =>
-            OutwatchTracing.patchSubject.onNext((old, crt))
+        var currentProxy: VNodeProxy = proxy
+        receivers.observable.subscribe(
+          { newState =>
+            // update the current proxy with the new state
+            val newProxy = updateSnabbdom(newState, nodeType, vNodeId, modifiers)
 
-            val next = patch(old, crt)
+            // call the snabbdom patch method and get the resulting proxy
+            OutwatchTracing.patchSubject.onNext((currentProxy, newProxy))
+            val next = patch(currentProxy, newProxy)
 
             // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
             // if we are changing the content of this proxy via a stream, the parent will not see this change.
@@ -154,9 +154,9 @@ private[outwatch] object SnabbdomModifiers {
             proxy.text = next.text
             proxy.key = next.key
 
-            next
-          }.subscribe(
-          _ => Continue,
+            currentProxy = next
+            Continue
+          },
           error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
         )
       }
@@ -172,7 +172,8 @@ private[outwatch] object SnabbdomModifiers {
       modifiers.append(DomMountHook(_ => cancelable.enqueue(subscribe())))
       modifiers.append(DomUnmountHook(_ => cancelable.dequeue().cancel()))
 
-      // create initial proxy
+      // create initial proxy, we want to apply the initial state of the
+      // receivers to the node
       proxy = updateSnabbdom(receivers.initialState, nodeType, vNodeId, modifiers)
       proxy
     } else {
