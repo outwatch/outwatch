@@ -1,21 +1,21 @@
 package outwatch
 
 import cats.effect.IO
-import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import monix.reactive.Observable
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
+import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html}
-import outwatch.dom.helpers._
+import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.Deprecated.IgnoreWarnings.initEvent
+import outwatch.dom.helpers._
 import snabbdom.{DataObject, VNodeProxy, hFunction}
-import org.scalajs.dom.window.localStorage
 
 import scala.collection.immutable.Seq
-import scala.scalajs.js
-import scala.scalajs.js.JSON
 import scala.collection.mutable
+import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.JSON
 
 class OutWatchDomSpec extends JSDomSpec {
 
@@ -23,7 +23,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
   "Properties" should "be separated correctly" in {
     val properties = Seq(
-      Attribute("hidden", "true"),
+      BasicAttr("hidden", "true"),
       InsertHook(_ => ()),
       UpdateHook(_ => ()),
       InsertHook(_ => ()),
@@ -40,13 +40,13 @@ class OutWatchDomSpec extends JSDomSpec {
     hooks.updateHook.isDefined shouldBe true
     hooks.postPatchHook.isDefined shouldBe true
     hooks.destroyHook.isDefined shouldBe true
-    attributes.attrs.get.values.size shouldBe 1
+    attributes.attrs.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
   }
 
   "VDomModifiers" should "be separated correctly" in {
     val modifiers = Seq(
-      Attribute("class", "red"),
+      BasicAttr("class", "red"),
       EmptyModifier,
       Emitter("click", _ => ()),
       new StringVNode("Test"),
@@ -65,15 +65,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.get.values.size shouldBe 1
-    attributes.attrs.get.values.size shouldBe 1
-    children.nodes.get.length shouldBe 5
-    children.hasStream shouldBe true
+    emitters.values.size shouldBe 1
+    attributes.attrs.values.size shouldBe 1
+    children.streamable.get.modifiers.length shouldBe 4
   }
 
   it should "be separated correctly with children" in {
     val modifiers: Seq[VDomModifier] = Seq(
-      Attribute("class","red"),
+      BasicAttr("class","red"),
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
@@ -87,15 +86,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.get.values.size shouldBe 3
-    attributes.attrs.get.values.size shouldBe 1
-    children.nodes.get.length shouldBe 4
-    children.hasStream shouldBe true
+    emitters.values.size shouldBe 3
+    attributes.attrs.values.size shouldBe 1
+    children.streamable.get.modifiers.length shouldBe 4
   }
 
   it should "be separated correctly with string children" in {
     val modifiers: Seq[VDomModifier] = Seq(
-      Attribute("class","red"),
+      BasicAttr("class","red"),
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
@@ -109,15 +107,14 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.get.values.size shouldBe 3
-    attributes.attrs.get.values.size shouldBe 1
-    children.nodes.get.length shouldBe 4
-    children.hasStream shouldBe true
+    emitters.values.size shouldBe 3
+    attributes.attrs.values.size shouldBe 1
+    children.streamable.get.modifiers.length shouldBe 4
   }
 
   it should "be separated correctly with children and properties" in {
     val modifiers = Seq(
-      Attribute("class","red"),
+      BasicAttr("class","red"),
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
@@ -135,21 +132,20 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.get.keys.toList shouldBe List("click", "input", "keyup")
+    emitters.keys.toList shouldBe List("click", "input", "keyup")
     hooks.insertHook.isDefined shouldBe true
     hooks.prePatchHook.isDefined shouldBe true
     hooks.updateHook.isDefined shouldBe true
     hooks.postPatchHook.isDefined shouldBe true
     hooks.destroyHook.isDefined shouldBe false
-    attributes.attrs.get.values.size shouldBe 1
+    attributes.attrs.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
-    children.nodes.get.length shouldBe 4
-    children.hasStream shouldBe true
+    children.streamable.get.modifiers.length shouldBe 4
   }
 
   val fixture = new {
-    val proxy = hFunction("div", DataObject(js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg"), js.undefined), js.Array(
-      hFunction("span", DataObject(js.undefined, js.undefined), js.Array(VNodeProxy.fromString("Hello")))
+    val proxy = hFunction("div", DataObject(js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg")), js.Array(
+      hFunction("span", DataObject(), js.Array(VNodeProxy.fromString("Hello")))
     ))
   }
 
@@ -176,12 +172,12 @@ class OutWatchDomSpec extends JSDomSpec {
       div(
         IO {
           list += "attr1"
-          Attribute("attr1", "peter")
+          BasicAttr("attr1", "peter")
         },
         Seq(
           IO {
             list += "attr2"
-            Attribute("attr2", "hans")
+            BasicAttr("attr2", "hans")
           }
         )
       )
@@ -210,10 +206,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers =  SeparatedModifiers.from(mods)
     val children = modifiers.children
 
-    children.nodes.get.length shouldBe 3
-    children.hasStream shouldBe true
+    children.streamable.get.modifiers.length shouldBe 3
 
-    val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
+    val proxy = SnabbdomOps.toSnabbdom(div(mods))
     proxy.key.isDefined shouldBe false
 
     proxy.children.get.length shouldBe 2
@@ -235,10 +230,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers =  SeparatedModifiers.from(mods)
     val children = modifiers.children
 
-    children.nodes.get.length shouldBe 2
-    children.hasStream shouldBe true
+    children.streamable.get.modifiers.length shouldBe 2
 
-    val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
+    val proxy = SnabbdomOps.toSnabbdom(div(mods))
     proxy.key.toOption  shouldBe Some(1234)
 
     proxy.children.get(0).key.toOption shouldBe Some(5678)
@@ -246,24 +240,24 @@ class OutWatchDomSpec extends JSDomSpec {
 
   "VTrees" should "be constructed correctly" in {
 
-    val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
+    val attributes = List(BasicAttr("class", "red"), BasicAttr("id", "msg"))
     val message = "Hello"
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
 
     val proxy = fixture.proxy
 
-    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(proxy)
+    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(proxy)
 
   }
 
   it should "be correctly created with the HyperscriptHelper" in {
-    val attributes = List(Attribute("class", "red"), Attribute("id", "msg"))
+    val attributes = List(BasicAttr("class", "red"), BasicAttr("id", "msg"))
     val message = "Hello"
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
 
-    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
   }
 
 
@@ -279,7 +273,7 @@ class OutWatchDomSpec extends JSDomSpec {
       div(
         IO {
           ioCounter += 1
-          Attribute("hans", "")
+          BasicAttr("hans", "")
         }
       ),
       stringHandler
@@ -310,7 +304,7 @@ class OutWatchDomSpec extends JSDomSpec {
       div(Seq(
         IO {
           ioCounter += 1
-          Attribute("hans", "")
+          BasicAttr("hans", "")
         }
       )),
       stringHandler
@@ -332,7 +326,7 @@ class OutWatchDomSpec extends JSDomSpec {
   it should "be correctly patched into the DOM" in {
     val id = "msg"
     val cls = "red"
-    val attributes = List(Attribute("class", cls), Attribute("id", id))
+    val attributes = List(BasicAttr("class", cls), BasicAttr("id", id))
     val message = "Hello"
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
@@ -396,7 +390,7 @@ class OutWatchDomSpec extends JSDomSpec {
       span("Hello")
     )
 
-    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
   }
 
   it should "construct VTrees with optional children properly" in {
@@ -407,12 +401,11 @@ class OutWatchDomSpec extends JSDomSpec {
       Option.empty[VDomModifier]
     )
 
-    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
 
   }
 
   it should "construct VTrees with boolean attributes" in {
-    import outwatch.dom._
 
     def boolBuilder(name: String) = new BasicAttrBuilder[Boolean](name, identity)
     def stringBuilder(name: String) = new BasicAttrBuilder[Boolean](name, _.toString)
@@ -428,7 +421,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = hFunction("div", DataObject(attrs, js.undefined))
 
-    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(expected)
+    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(expected)
 
   }
 
@@ -1016,11 +1009,11 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 0
 
     val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(ValueObservable(innerHandler, Attribute("initial", "2")))
+    myHandler.onNext(ValueObservable(innerHandler, BasicAttr("initial", "2")))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     numPatches shouldBe 1
 
-    innerHandler.onNext(Attribute("attr", "3"))
+    innerHandler.onNext(BasicAttr("attr", "3"))
     element.innerHTML shouldBe """<div attr="3"></div>"""
     numPatches shouldBe 2
 
@@ -1093,11 +1086,11 @@ class OutWatchDomSpec extends JSDomSpec {
     numPatches shouldBe 1
 
     val innerHandler = Handler.create[VDomModifier].unsafeRunSync()
-    myHandler.onNext(innerHandler.startWith(Attribute("initial", "2") :: Nil))
+    myHandler.onNext(innerHandler.startWith(BasicAttr("initial", "2") :: Nil))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     numPatches shouldBe 3
 
-    innerHandler.onNext(Attribute("attr", "3"))
+    innerHandler.onNext(BasicAttr("attr", "3"))
     element.innerHTML shouldBe """<div attr="3"></div>"""
     numPatches shouldBe 4
 
@@ -1155,7 +1148,7 @@ class OutWatchDomSpec extends JSDomSpec {
     outerTriggers.size shouldBe 1
     innerTriggers.size shouldBe 1
 
-    myHandler.onNext(ValueObservable(Observable.empty, Attribute("initial", "2")))
+    myHandler.onNext(ValueObservable(Observable.empty, BasicAttr("initial", "2")))
     element.innerHTML shouldBe """<div initial="2"></div>"""
     outerTriggers.size shouldBe 2
     innerTriggers.size shouldBe 1
@@ -1170,7 +1163,7 @@ class OutWatchDomSpec extends JSDomSpec {
     outerTriggers.size shouldBe 3
     innerTriggers.size shouldBe 2
 
-    innerHandler.onNext(Attribute("attr", "3"))
+    innerHandler.onNext(BasicAttr("attr", "3"))
     element.innerHTML shouldBe """<div attr="3"></div>"""
     outerTriggers.size shouldBe 3
     innerTriggers.size shouldBe 3
@@ -1634,5 +1627,47 @@ class OutWatchDomSpec extends JSDomSpec {
 
     cmds.onNext(ChildCommand.Replace(1, b("yes")))
     element.innerHTML shouldBe """<div>huch</div><b>yes</b>"""
+  }
+
+  "Emitter subscription" should "be correctly subscribed" in {
+
+    val clicks = Handler.create[Int](0).unsafeRunSync()
+
+    var incCounter =  0
+//    val innerMod  = onClick.transform(_ => clicks) handleWith { incCounter += 1 }
+    val innerMod  = onClick.apply(clicks.map { c => incCounter += 1; c }) handleWith { }
+    val modHandler = Handler.create[VDomModifier](innerMod).unsafeRunSync()
+
+    val innerNode = div(modHandler)
+    val nodeHandler = Handler.create[VNode](innerNode).unsafeRunSync()
+
+    val node = div(
+      id := "strings",
+      nodeHandler
+    )
+
+    incCounter shouldBe 0
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    incCounter shouldBe 1
+
+    clicks.onNext(1)
+    incCounter shouldBe 2
+
+    modHandler.onNext(VDomModifier.empty)
+
+    clicks.onNext(2)
+    incCounter shouldBe 3 //2
+
+    modHandler.onNext(innerMod)
+
+    clicks.onNext(3)
+    incCounter shouldBe 4 //3
+
+    nodeHandler.onNext(span)
+
+    clicks.onNext(4)
+    incCounter shouldBe 4 //3
   }
 }

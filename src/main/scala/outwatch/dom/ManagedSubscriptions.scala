@@ -8,7 +8,7 @@ import outwatch.dom.helpers.QueuedCancelable
 
 trait ManagedSubscriptions {
 
-  def managed(subscription: IO[Cancelable])(implicit s: Scheduler): VDomModifier = {
+  def managed(subscription: IO[Cancelable])(implicit s: Scheduler): VDomModifier = IO {
     val cancelable = new QueuedCancelable()
     VDomModifier(
       lifecycle.onDomMount handleWith { cancelable.enqueue(subscription.unsafeRunSync()) },
@@ -17,8 +17,8 @@ trait ManagedSubscriptions {
   }
 
   def managed(sub1: IO[Cancelable], sub2: IO[Cancelable], subscriptions: IO[Cancelable]*)(implicit s: Scheduler): VDomModifier = {
-      val composite = IO(CompositeCancelable((sub1.unsafeRunSync :: sub2.unsafeRunSync :: subscriptions.map(_.unsafeRunSync).toList): _*))
-      managed(composite)
+    val composite = IO(CompositeCancelable((sub1.unsafeRunSync :: sub2.unsafeRunSync :: subscriptions.map(_.unsafeRunSync).toList): _*))
+    managed(composite)
   }
 }
 

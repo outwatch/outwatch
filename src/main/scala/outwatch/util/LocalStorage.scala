@@ -19,13 +19,12 @@ class Storage(domStorage: dom.Storage) {
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
-      h.transformHandler { input =>
-        input.foreach {
-          case Some(data) => storage.update(key, data)
-          case None => storage.remove(key)
-        }
-        input
-      }(o => transform(o).distinctUntilChanged)
+      h.foreach {
+        case Some(data) => storage.update(key, data)
+        case None => storage.remove(key)
+      }
+
+      h.transformObservable(o => transform(o).distinctUntilChanged)
     }
   }
 

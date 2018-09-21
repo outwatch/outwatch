@@ -3,9 +3,9 @@ package outwatch.dom.helpers
 import cats.syntax.functor._
 import monix.reactive.Observable
 import outwatch.AsVDomModifier
+import outwatch.dom._
 
 import scala.language.dynamics
-import outwatch.dom._
 
 trait AttributeBuilder[-T, +A <: Attribute] extends Any {
   protected def name: String
@@ -19,8 +19,7 @@ trait AttributeBuilder[-T, +A <: Attribute] extends Any {
 }
 
 object AttributeBuilder {
-  implicit def toAttribute(builder: AttributeBuilder[Boolean, Attr]): Attribute = builder := true
-  implicit def toProperty(builder: AttributeBuilder[Boolean, Prop]): Property = builder := true
+  implicit def toAttribute[A <: Attribute](builder: AttributeBuilder[Boolean, A]): A = builder := true
 }
 
 // Attr

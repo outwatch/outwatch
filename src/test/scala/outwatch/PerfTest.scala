@@ -15,15 +15,23 @@ class PerfTest extends JSDomSpec {
 
     val vtree = div(
       id := elemId,
-      span("Go!"),
-      onClick handleWith {},
-      onDomMount handleWith {},
-      onDomUnmount handleWith {},
+      span(id :=  "pete", "Go!"),
+      onClick handleWith   {},
+      onDomMount handleWith   {},
+      onDomUnmount handleWith   {},
+      dsl.cls <-- handler.map(_.toString),
+      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
-        input(tpe := "text", dsl.value := i.toString, styleAttr := "background:black;")
+        (0 to i).map { j =>
+          input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;")
+        }
+//        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
-        div(dsl.key := "2", i, cls := i.toString, onClick handleWith {}, handler3)
+        (0 to i).map { j =>
+          div(i, cls := j.toString, onClick handleWith {}, handler3)
+        }
+//        div(i, cls := i.toString, onClick --> {}, handler3)
       }
     )
 
@@ -34,12 +42,18 @@ class PerfTest extends JSDomSpec {
 
     OutWatch.renderInto(node, vtree).unsafeRunSync()
 
-    (0 to 1000000).foreach { i =>
+//     node.innerHTML shouldBe """<div id="msg"><span id="pete">Go!</span><input type="text" value="0" style="background:black;"><div class="0">00</div></div>"""
+
+     (0 to 100).foreach { i =>
       handler.onNext(i)
       handler2.onNext(i)
-    }
+     }
+
 
     val t2 = System.nanoTime()
+
+//    node.innerHTML shouldBe """<div id="msg"><span id="pete">Go!</span><input type="text" value="1000000" style="background:black;"><div class="1000000">10000000</div></div>"""
+  println(node.innerHTML)
 
     (t2 - t) shouldBe 1
   }

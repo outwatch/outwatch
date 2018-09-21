@@ -9,9 +9,12 @@ import snabbdom.{Hooks, OutwatchState, VNodeProxy}
 import scala.scalajs.js
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler) = {
+  def from(modifiers: js.Array[VDomModifier])(implicit scheduler: Scheduler) = {
     val m = new SeparatedModifiers()
-    modifiers.foreach(m.append)
+    modifiers.foreach { mod =>
+      val nativeMod = ModifierOps.toNativeModifier(mod)
+      m.append(nativeMod)
+    }
     m
   }
 
@@ -20,11 +23,8 @@ private[outwatch] object SeparatedModifiers {
     val m = new SeparatedModifiers()
     import m._
 
-    if (that.emitters.isDefined) {
-      emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
-      that.emitters.get.foreach { case (k, v) =>
-        emitters.get(k) = v
-      }
+    that.emitters.foreach { case (k, v) =>
+      emitters(k) = v
     }
 
     // keep out children intentionally
@@ -36,30 +36,21 @@ private[outwatch] object SeparatedModifiers {
     hooks.destroyHook = that.hooks.destroyHook
     hooks.domUnmountHook = that.hooks.domUnmountHook
 
-    if (that.attributes.attrs.isDefined) {
-      attributes.attrs = js.Dictionary[Attr.Value]()
-      that.attributes.attrs.get.foreach { case (k, v) =>
-        attributes.attrs.get(k) = v
-      }
+    that.attributes.attrs.foreach { case (k, v) =>
+      attributes.attrs(k) = v
     }
-    if (that.attributes.props.isDefined) {
-      attributes.props = js.Dictionary[Prop.Value]()
-      that.attributes.props.get.foreach { case (k, v) =>
-        attributes.props.get(k) = v
-      }
+    that.attributes.props.foreach { case (k, v) =>
+      attributes.props(k) = v
     }
-    if (that.attributes.styles.isDefined) {
-      attributes.styles = js.Dictionary[Style.Value]()
-      that.attributes.styles.get.foreach { case (k, v) =>
-        if (k == StyleKey.delayed || k == StyleKey.destroy || k == StyleKey.remove) {
-          val dict = js.Dictionary[String]()
-          attributes.styles.get(k) = dict: Style.Value
-          v.asInstanceOf[js.Dictionary[String]].foreach { case (k, v) =>
-            dict(k) = v
-          }
-        } else {
-          attributes.styles.get(k) = v
+    that.attributes.styles.foreach { case (k, v) =>
+      if (k == StyleKey.delayed || k == StyleKey.destroy || k == StyleKey.remove) {
+        val dict = js.Dictionary[String]()
+        attributes.styles(k) = dict: Style.Value
+        v.asInstanceOf[js.Dictionary[String]].foreach { case (k, v) =>
+          dict(k) = v
         }
+      } else {
+        attributes.styles(k) = v
       }
     }
 
@@ -72,44 +63,30 @@ private[outwatch] object SeparatedModifiers {
 }
 
 private[outwatch] class SeparatedModifiers {
-  var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
+  var emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
   val children = new Children
   val attributes = new SeparatedAttributes()
   val hooks = new SeparatedHooks()
   var keyOption: js.UndefOr[Key.Value] = js.undefined
   var outwatchState: js.UndefOr[OutwatchState] = js.undefined
 
-  def append(modifier: VDomModifier)(implicit scheduler: Scheduler): Unit = modifier match {
+  def append(modifier: NativeVDomModifier)(implicit scheduler: Scheduler): Unit = modifier match {
     case EmptyModifier =>
       ()
-    case cm: CompositeModifier =>
-      cm.modifiers.foreach(append(_))
-    case s: VNodeProxyNode =>
-      setProxy(s.proxy)
-      setNode(s)
-    case s: VNode =>
-      val proxy = SnabbdomModifiers.toSnabbdom(s)
+    case StaticCompositeModifier(modifiers) =>
+      modifiers.foreach(append(_))
+    case VNodeProxyNode(proxy) =>
       setProxy(proxy)
-      setNode(VNodeProxyNode(proxy))
-    case s: StringVNode =>
-      val proxy = VNodeProxy.fromString(s.string)
-      setProxy(proxy)
-      setNode(VNodeProxyNode(proxy))
-    case s: ModifierStreamReceiver =>
-      setNode(s)
-      children.hasStream = true
+    case NativeModifierStreamReceiver(stream) =>
+      setStream(stream)
     case a : BasicAttr =>
-      if (attributes.attrs.isEmpty) attributes.attrs = js.Dictionary(a.title -> a.value)
-      else attributes.attrs.get(a.title) = a.value
+      attributes.attrs(a.title) = a.value
     case a : AccumAttr =>
-      if (attributes.attrs.isEmpty) attributes.attrs = js.Dictionary(a.title -> a.value)
-      else attributes.attrs.get(a.title) = attributes.attrs.get.get(a.title).fold(a.value)(a.accum(_, a.value))
+      attributes.attrs(a.title) = attributes.attrs.get(a.title).fold(a.value)(a.accum(_, a.value))
     case p : Prop =>
-      if (attributes.props.isEmpty) attributes.props = js.Dictionary(p.title -> p.value)
-      else attributes.props.get(p.title) = p.value
+      attributes.props(p.title) = p.value
     case s: BasicStyle =>
-      if (attributes.styles.isEmpty) attributes.styles = js.Dictionary[Style.Value](s.title -> s.value)
-      else attributes.styles.get(s.title) = s.value
+      attributes.styles(s.title) = s.value
     case s: DelayedStyle =>
       setSpecialStyle(StyleKey.delayed)(s.title, s.value)
     case s: RemoveStyle =>
@@ -117,51 +94,46 @@ private[outwatch] class SeparatedModifiers {
     case s: DestroyStyle =>
       setSpecialStyle(StyleKey.destroy)(s.title, s.value)
     case a: AccumStyle =>
-      if (attributes.styles.isEmpty) attributes.styles = js.Dictionary[Style.Value](a.title -> a.value)
-      else attributes.styles.get(a.title) = attributes.styles.get.get(a.title).fold[Style.Value](a.value)(s =>
+      attributes.styles(a.title) = attributes.styles.get(a.title).fold[Style.Value](a.value)(s =>
         a.accum(s.asInstanceOf[String], a.value): Style.Value
       )
-    case key: Key =>
-      keyOption = key.value
-    case em: Emitter =>
-      if (emitters.isEmpty) {
-        emitters = js.Dictionary[js.Function1[dom.Event, Unit]](em.eventType -> em.trigger)
-      } else if (!emitters.get.contains(em.eventType)) {
-        emitters.get(em.eventType) = em.trigger
+    case Key(value) =>
+      keyOption = value
+    case Emitter(eventType, trigger) =>
+      if (!emitters.contains(eventType)) {
+        emitters(eventType) = trigger
       } else {
-        val prev = emitters.get(em.eventType)
-        emitters.get(em.eventType) = { ev => prev(ev); em.trigger(ev) }
+        val prev = emitters(eventType)
+        emitters(eventType) = { ev => prev(ev); trigger(ev) }
       }
-    case h: DomMountHook =>
-      hooks.insertHook = createHooksSingle(hooks.insertHook, h.trigger)
+    case DomMountHook(trigger) =>
+      hooks.insertHook = createHooksSingle(hooks.insertHook, trigger)
       hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldProxy, proxy) =>
         if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
-          proxy.elm.foreach(h.trigger)
+          proxy.elm.foreach(trigger)
         }
       })
       hooks.usesOutwatchState = true
-    case h: DomUnmountHook =>
-      hooks.destroyHook = createHooksSingle(hooks.destroyHook, h.trigger)
-      hooks.domUnmountHook = createHooksSingle(hooks.domUnmountHook, h.trigger)
-    case h: DomUpdateHook =>
+    case DomUnmountHook(trigger) =>
+      hooks.destroyHook = createHooksSingle(hooks.destroyHook, trigger)
+      hooks.domUnmountHook = createHooksSingle(hooks.domUnmountHook, trigger)
+    case DomUpdateHook(trigger) =>
       hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldproxy, proxy) =>
         if (proxy.outwatchState.map(_.id) == oldproxy.outwatchState.map(_.id)) {
-          proxy.elm.foreach(h.trigger)
+          proxy.elm.foreach(trigger)
         }
       })
       hooks.usesOutwatchState = true
-    case h: InsertHook =>
-      hooks.insertHook = createHooksSingle(hooks.insertHook, h.trigger)
-    case h: PrePatchHook =>
-      hooks.prePatchHook = createHooksPairOption(hooks.prePatchHook, h.trigger)
-    case h: UpdateHook =>
-      hooks.updateHook = createHooksPair(hooks.updateHook, h.trigger)
-    case h: PostPatchHook =>
-      hooks.postPatchHook = createHooksPair(hooks.postPatchHook, h.trigger)
-    case h: DestroyHook =>
-      hooks.destroyHook = createHooksSingle(hooks.destroyHook, h.trigger)
-    case EffectModifier(effect) =>
-      append(effect.unsafeRunSync())
+    case InsertHook(trigger) =>
+      hooks.insertHook = createHooksSingle(hooks.insertHook, trigger)
+    case PrePatchHook(trigger) =>
+      hooks.prePatchHook = createHooksPairOption(hooks.prePatchHook, trigger)
+    case UpdateHook(trigger) =>
+      hooks.updateHook = createHooksPair(hooks.updateHook, trigger)
+    case PostPatchHook(trigger) =>
+      hooks.postPatchHook = createHooksPair(hooks.postPatchHook, trigger)
+    case DestroyHook(trigger) =>
+      hooks.destroyHook = createHooksSingle(hooks.destroyHook, trigger)
   }
 
   def appendUnmountHook(): Unit = {
@@ -172,28 +144,29 @@ private[outwatch] class SeparatedModifiers {
     })
   }
 
-  private def setProxy(child: VNodeProxy): Unit =
-      if (children.proxies.isEmpty) {
-        children.proxies = new js.Array[VNodeProxy](1)
-        children.proxies.get(0) = child
-      } else children.proxies.get += child
-  private def setNode(child: ChildVNode): Unit =
-    if (children.nodes.isEmpty) {
-      children.nodes = new js.Array[ChildVNode](1)
-      children.nodes.get(0) = child
-    } else children.nodes.get += child
+  private def setProxy(child: VNodeProxy): Unit = {
+    children.proxies += child
+    if (children.streamable.isDefined) {
+      children.streamable.get.modifiers += VNodeProxyNode(child)
+    }
+  }
+  private def setStream(stream: ValueObservable[StaticVDomModifier])(implicit scheduler: Scheduler) = {
+    if (children.streamable.isEmpty) {
+      children.streamable = new ModifierOps
+      children.proxies.foreach { proxy =>
+        children.streamable.get.modifiers += VNodeProxyNode(proxy)
+      }
+    }
+    children.streamable.get.appendStream(stream)
+  }
+
   private def setSpecialStyle(styleName: String)(title: String, value: String): Unit =
-    if (attributes.styles.isEmpty) {
-      attributes.styles = js.Dictionary[Style.Value](styleName -> js.Dictionary(title -> value))
-    } else if (!attributes.styles.contains(styleName)) {
-      attributes.styles.get(styleName) = js.Dictionary[String](title -> value): Style.Value
+    if (!attributes.styles.contains(styleName)) {
+      attributes.styles(styleName) = js.Dictionary[String](title -> value): Style.Value
     } else {
-      attributes.styles.get(styleName).asInstanceOf[js.Dictionary[String]](title) = value
+      attributes.styles(styleName).asInstanceOf[js.Dictionary[String]](title) = value
     }
 
-  private def createProxyHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: VNodeProxy => Unit): Hooks.HookSingleFn =
-    if (current.isEmpty) hook
-    else { p => current.get(p); hook(p) }
   private def createProxyHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: (VNodeProxy, VNodeProxy) => Unit): Hooks.HookPairFn =
     if (current.isEmpty) hook
     else { (o,p) => current.get(o, p); hook(o, p) }
@@ -215,15 +188,14 @@ private[outwatch] object StyleKey {
 }
 
 private[outwatch] class Children {
-  var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
-  var nodes: js.UndefOr[js.Array[ChildVNode]] = js.undefined
-  var hasStream: Boolean = false
+  val proxies = new js.Array[VNodeProxy]
+  var streamable: js.UndefOr[ModifierOps] = js.undefined
 }
 
 private[outwatch] class SeparatedAttributes {
-  var attrs: js.UndefOr[js.Dictionary[Attr.Value]] = js.undefined
-  var props: js.UndefOr[js.Dictionary[Prop.Value]] = js.undefined
-  var styles: js.UndefOr[js.Dictionary[Style.Value]] = js.undefined
+  val attrs = js.Dictionary[Attr.Value]()
+  val props = js.Dictionary[Prop.Value]()
+  val styles = js.Dictionary[Style.Value]()
 }
 
 private[outwatch] class SeparatedHooks {
@@ -236,102 +208,104 @@ private[outwatch] class SeparatedHooks {
   var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
 
-private[outwatch] sealed trait ContentKind
-private[outwatch] object ContentKind {
-  case class Dynamic(observable: Observable[VDomModifier], initialValue: VDomModifier) extends ContentKind
-  case class Static(modifier: VDomModifier) extends ContentKind
-}
-
 // StreamableModifiers takes a list of modifiers. It constructs an Observable
 // of updates from dynamic modifiers in this list.
-private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler) {
-
-  //TODO: hidden signature of this method (we need StaticModifier as a type)
-  //handleStreamedModifier: Modifier => Either[StaticModifier, Observable[StaticModifier]]
-  private def handleStreamedModifier(modifier: VDomModifier)(implicit scheduler: Scheduler): ContentKind = modifier match {
-    case ModifierStreamReceiver(modStream) =>
-      val observable = modStream.observable.switchMap[VDomModifier] { mod =>
-        handleStreamedModifier(mod) match {
-          //TODO: why is startWith different and leaks a subscription? see tests with: stream.startWith(initialValue :: Nil)
-          case ContentKind.Dynamic(stream, initialValue) => Observable.concat(Observable.now(initialValue), stream)
-          case ContentKind.Static(mod) => Observable.now(mod)
-        }
-      }
-
-      handleStreamedModifier(modStream.value.getOrElse(EmptyModifier)) match {
-        case ContentKind.Dynamic(initialObservable, mod) =>
-          val combinedObservable = observable.publishSelector { observable =>
-            Observable.merge(initialObservable.takeUntil(observable), observable)
-          }
-          ContentKind.Dynamic(combinedObservable, mod)
-        case ContentKind.Static(mod) =>
-          ContentKind.Dynamic(observable, mod)
-      }
-
-    case CompositeModifier(modifiers) if (modifiers.nonEmpty) =>
-      val streamableModifiers = new StreamableModifiers(modifiers)
-      if (streamableModifiers.updaterObservables.isEmpty) {
-        ContentKind.Static(CompositeModifier(modifiers))
-      } else {
-        ContentKind.Dynamic(
-          streamableModifiers.observable.map(CompositeModifier(_)),
-          CompositeModifier(streamableModifiers.initialModifiers))
-      }
-
-    case child: VNode  => ContentKind.Static(VNodeProxyNode(SnabbdomModifiers.toSnabbdom(child)))
-    case child: StringVNode  => ContentKind.Static(VNodeProxyNode(VNodeProxy.fromString(child.string)))
-
-    case EffectModifier(effect) => handleStreamedModifier(effect.unsafeRunSync())
-
-    case mod => ContentKind.Static(mod)
-  }
+private[outwatch] class ModifierOps {
+  import ModifierOps._
 
   // the nodes array has a fixed size - each static child node is one element
   // and the dynamic nodes can place one element on each update and start with
   // EmptyModifier, and we reserve an array element for each attribute
   // receiver.
-  val initialModifiers = new js.Array[VDomModifier](modifiers.size)
+  val modifiers = new js.Array[StaticVDomModifier](1) // 1 reserved for new one time modifiers
+  modifiers(0) = EmptyModifier
 
   // for each node which might be dynamic, we have an Observable of Modifier updates
-  val updaterObservables = new js.Array[Observable[(Int, VDomModifier)]]
-
-  // fill the initial state and updater observables
-  {
-    var i = 0
-    var j = 0
-    while (i < modifiers.size) {
-      val index = i
-      val jndex = j
-      handleStreamedModifier(modifiers(index)) match {
-        case ContentKind.Dynamic(stream, initialValue) =>
-          initialModifiers(index) = initialValue
-          updaterObservables(jndex) = stream.map { mod =>
-            (index, mod)
-          }
-          j += 1
-        case ContentKind.Static(mod) =>
-          initialModifiers(index) = mod
-      }
-      i += 1
-    }
-  }
+  private val updaterObservables = new js.Array[Observable[Unit]]
 
   // an observable representing the current state of this VNode. We take all
   // state update functions we have from dynamic modifiers and then scan over
   // them starting with the initial state. We do not actually, but mutate the
   // initial modifiers because of performance considerations.
-  val observable = Observable.merge(updaterObservables: _*).map { case (index, mod) =>
-    initialModifiers(index) = mod
-    initialModifiers
+  def observable: Observable[js.Array[StaticVDomModifier]] = Observable.merge(updaterObservables: _*).map(_ => modifiers)
+
+  def appendStream(stream: ValueObservable[StaticVDomModifier])(implicit scheduler: Scheduler):Unit = {
+    val index = modifiers.length
+    val modStream = flattenModifierStream(stream)
+    modifiers += modStream.value getOrElse EmptyModifier
+    updaterObservables += modStream.observable.map { mod =>
+      val composite = new js.Array[StaticVDomModifier]()
+      modifiers(index) match {
+        case DomUnmountHook(trigger) =>
+          var done = false
+          composite += DomUpdateHook { e => if (!done) trigger(e); done = true }
+          composite += DomMountHook { e => done = true }
+        case _ => ()
+      }
+      mod match {
+        case DomMountHook(trigger) =>
+          var done = false
+          composite += DomUpdateHook { e => if (!done) trigger(e); done = true }
+          composite += DomMountHook { e => done = true }
+        case _ => ()
+      }
+      modifiers(0) = StaticCompositeModifier(composite)
+      modifiers(index) = mod
+    }
   }
 }
+private[outwatch] object ModifierOps {
 
-// Receivers represent a VNode with its static/streamable children and its
-// attribute streams. it is about capturing the dynamic content of a node.
-// it is considered "empty" if it is only static. Otherwise it provides an
-// Observable to stream the current modifiers of this node.
-private[outwatch] final class Receivers(childNodes: js.Array[ChildVNode])(implicit scheduler: Scheduler) {
-  private val streamableModifiers = new StreamableModifiers(childNodes)
-  def initialState: js.Array[VDomModifier] = streamableModifiers.initialModifiers
-  def observable: Observable[js.Array[VDomModifier]] = streamableModifiers.observable
+  def toNativeModifier(modifier: VDomModifier)(implicit scheduler: Scheduler): NativeVDomModifier = modifier match {
+    case ModifierStreamReceiver(modStream) => NativeModifierStreamReceiver(flattenModifierStream(modStream))
+    case CompositeModifier(modifiers) => compositeToNativeModifier(modifiers)
+    case child: VNode  => VNodeProxyNode(SnabbdomOps.toSnabbdom(child))
+    case child: StringVNode  => VNodeProxyNode(VNodeProxy.fromString(child.text))
+    case EffectModifier(effect) => toNativeModifier(effect.unsafeRunSync())
+    case SchedulerAction(action) => toNativeModifier(action(scheduler))
+    case mod: NativeVDomModifier => mod
+  }
+
+  def compositeToNativeModifier(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeVDomModifier = {
+    if (modifiers.isEmpty) EmptyModifier
+    else {
+      val streamableModifiers = new ModifierOps
+      modifiers.foreach { modifier =>
+        toNativeModifier(modifier) match {
+          case NativeModifierStreamReceiver(modStream) => streamableModifiers.appendStream(modStream)
+          case mod: StaticVDomModifier => streamableModifiers.modifiers += mod
+        }
+      }
+      if (streamableModifiers.updaterObservables.isEmpty) {
+        StaticCompositeModifier(streamableModifiers.modifiers)
+      } else {
+        NativeModifierStreamReceiver(ValueObservable(
+          streamableModifiers.observable.map(StaticCompositeModifier(_)),
+          StaticCompositeModifier(streamableModifiers.modifiers)
+        ))
+      }
+    }
+  }
+
+  def flattenModifierStream(modStream: ValueObservable[VDomModifier])(implicit scheduler: Scheduler): ValueObservable[StaticVDomModifier] = {
+    val observable = modStream.observable.switchMap[StaticVDomModifier] { mod =>
+      toNativeModifier(mod) match {
+        //TODO: why is startWith different and leaks a subscription? see tests with: stream.startWith(initialValue :: Nil)
+        case NativeModifierStreamReceiver(stream) => Observable.concat(Observable.now(stream.value getOrElse EmptyModifier), stream.observable)
+        case mod: StaticVDomModifier => Observable.now(mod)
+      }
+    }
+
+    modStream.value.fold[ValueObservable[StaticVDomModifier]](ValueObservable(observable, EmptyModifier)) { defaultValue =>
+      toNativeModifier(defaultValue) match {
+        case NativeModifierStreamReceiver(stream) =>
+          val combinedObservable = observable.publishSelector { observable =>
+            Observable.merge(stream.observable.takeUntil(observable), observable)
+          }
+          ValueObservable(combinedObservable, stream.value getOrElse EmptyModifier)
+        case mod: StaticVDomModifier =>
+          ValueObservable(observable, mod)
+      }
+    }
+  }
 }

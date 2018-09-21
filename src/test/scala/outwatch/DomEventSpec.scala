@@ -1,8 +1,8 @@
 package outwatch
 
 
-import monix.reactive.subjects.PublishSubject
 import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
@@ -309,10 +309,10 @@ class DomEventSpec extends JSDomSpec {
     val node = {
       div(
         button(id := "button",
-          onClick --> sideEffect(_ => triggeredEventFunction += 1),
-          onClick(1) --> sideEffect(triggeredIntFunction += _),
-          onClick --> sideEffect { triggeredFunction += 1 },
-          onSnabbdomUpdate --> sideEffect((old, current) => triggeredFunction2 += 1),
+          onClick handleWith (_ => triggeredEventFunction += 1),
+          onClick(1) handleWith (triggeredIntFunction += _),
+          onClick handleWith  { triggeredFunction += 1 },
+          onSnabbdomUpdate handleWith2 { (o, e) => triggeredFunction2 += 1 },
           stream
         )
       )

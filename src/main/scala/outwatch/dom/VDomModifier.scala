@@ -1,15 +1,12 @@
 package outwatch.dom
 
 import cats.effect.IO
-import monix.execution.{Ack, Scheduler}
-import monix.reactive.Observer
+import monix.execution.Scheduler
 import org.scalajs.dom._
 import outwatch.AsVDomModifier
-import outwatch.dom.helpers.{SeparatedModifiers, SnabbdomModifiers}
 import snabbdom.{DataObject, VNodeProxy}
 
 import scala.scalajs.js
-import scala.concurrent.Future
 
 sealed trait VDomModifier
 
@@ -21,33 +18,26 @@ object VDomModifier {
   def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
 }
 
-// Modifiers
+sealed trait NativeVDomModifier extends VDomModifier
 
-sealed trait Property extends VDomModifier
+final case class NativeModifierStreamReceiver(stream: ValueObservable[StaticVDomModifier]) extends NativeVDomModifier
 
-final case class Emitter(eventType: String, trigger: Event => Unit) extends VDomModifier
+sealed trait StaticVDomModifier extends NativeVDomModifier
 
-final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
+case object EmptyModifier extends StaticVDomModifier
 
-case object EmptyModifier extends VDomModifier
+final case class StaticCompositeModifier(modifiers: js.Array[_ <: StaticVDomModifier]) extends StaticVDomModifier
 
-sealed trait ChildVNode extends VDomModifier
+final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVDomModifier
 
-// Properties
-
-final case class Key(value: Key.Value) extends Property
+final case class Key(value: Key.Value) extends StaticVDomModifier
 object Key {
   type Value = DataObject.KeyValue
 }
 
-sealed trait Attribute extends Property {
-  val title: String
-}
-object Attribute {
-  def apply(title: String, value: Attr.Value): Attribute = BasicAttr(title, value)
-}
+final case class Emitter(eventType: String, trigger: Event => Unit) extends StaticVDomModifier
 
-// Attributes
+sealed trait Attribute extends StaticVDomModifier
 
 sealed trait Attr extends Attribute {
   val value: Attr.Value
@@ -55,12 +45,7 @@ sealed trait Attr extends Attribute {
 object Attr {
   type Value = DataObject.AttrValue
 }
-
 final case class BasicAttr(title: String, value: Attr.Value) extends Attr
-
-/**
-  * Attribute that accumulates the previous value in the same VNode with it's value
-  */
 final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value)=> Attr.Value) extends Attr
 
 final case class Prop(title: String, value: Prop.Value) extends Attribute
@@ -74,40 +59,29 @@ sealed trait Style extends Attribute {
 object Style {
   type Value = DataObject.StyleValue
 }
-
 final case class AccumStyle(title: String, value: String, accum: (String, String) => String) extends Style
-
 final case class BasicStyle(title: String, value: String) extends Style
 final case class DelayedStyle(title: String, value: String) extends Style
 final case class RemoveStyle(title: String, value: String) extends Style
 final case class DestroyStyle(title: String, value: String) extends Style
 
-// Hooks
-
-sealed trait Hook extends Property
-private[outwatch] final case class DomMountHook(trigger: Element => Unit) extends Hook
-private[outwatch] final case class DomUnmountHook(trigger: Element => Unit) extends Hook
-private[outwatch] final case class DomUpdateHook(trigger: Element => Unit) extends Hook
-
-private[outwatch] final case class InsertHook(trigger: Element => Unit) extends Hook
-private[outwatch] final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook
-private[outwatch] final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook
-private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook
-private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook
+sealed trait Hook extends StaticVDomModifier
+final case class DomMountHook(trigger: Element => Unit) extends Hook
+final case class DomUnmountHook(trigger: Element => Unit) extends Hook
+final case class DomUpdateHook(trigger: Element => Unit) extends Hook
+final case class InsertHook(trigger: Element => Unit) extends Hook
+final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook
+final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook
+final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook
+final case class DestroyHook(trigger: Element => Unit) extends Hook
 
 
-private[outwatch] case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
-
-// Child Nodes
-
-final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends ChildVNode
-
-// Static Nodes
-private[outwatch] final case class VNodeProxyNode(proxy: VNodeProxy) extends ChildVNode
-
-private[outwatch] final case class StringVNode(string: String) extends ChildVNode
-
-final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends ChildVNode {
-
+sealed trait DerivedVDomModifier extends VDomModifier
+final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends DerivedVDomModifier
+final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends DerivedVDomModifier
+final case class EffectModifier(effect: IO[VDomModifier]) extends DerivedVDomModifier
+final case class SchedulerAction(action: Scheduler => VDomModifier) extends DerivedVDomModifier
+final case class StringVNode(text: String) extends DerivedVDomModifier
+final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends DerivedVDomModifier {
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
 }

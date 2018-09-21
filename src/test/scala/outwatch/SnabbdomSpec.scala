@@ -9,7 +9,7 @@ import scala.scalajs.js
 class SnabbdomSpec extends JSDomSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
     val message = "Hello World"
-    val vNode = hFunction("span#msg", DataObject(js.undefined, js.undefined), message)
+    val vNode = hFunction("span#msg", DataObject(), message)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
@@ -19,7 +19,7 @@ class SnabbdomSpec extends JSDomSpec {
     document.getElementById("msg").innerHTML shouldBe message
 
     val newMessage = "Hello Snabbdom!"
-    val newNode = hFunction("div#new", DataObject(js.undefined, js.undefined), newMessage)
+    val newNode = hFunction("div#new", DataObject(), newMessage)
 
     patch(vNode, newNode)
 

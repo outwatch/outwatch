@@ -19,13 +19,11 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = sink.map { sink =>
-      div(onSnabbdomInsert --> sink)
-    }
+    val node = div(onSnabbdomInsert --> sink)
 
     switch shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -43,16 +41,12 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = for {
-      sink <- sink
-      sink2 <- sink2
-      node = div(onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
-    } yield node
+    val node = div(onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
 
     switch shouldBe false
     switch2 shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
     switch2 shouldBe true
@@ -68,13 +62,11 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = sink.map { sink =>
-      div(Observable(span(onSnabbdomDestroy --> sink), div("Hasdasd")))
-    }
+    val node = div(Observable(span(onSnabbdomDestroy --> sink), div("Hasdasd")))
 
     switch shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -93,16 +85,12 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = for {
-      sink <- sink
-      sink2 <- sink2
-      node = div(Observable(span(onSnabbdomDestroy --> sink)(onSnabbdomDestroy --> sink2), div("Hasdasd")))
-    } yield node
+    val node = div(Observable(span(onSnabbdomDestroy --> sink)(onSnabbdomDestroy --> sink2), div("Hasdasd")))
 
     switch shouldBe false
     switch2 shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
     switch2 shouldBe true
@@ -121,13 +109,10 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val message = PublishSubject[String]
-    val node = for {
-      sink1 <- sink1
-      sink2 <- sink2
-      node = div(message, onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
-    } yield node
+    val node = div(message, onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
     switch1 shouldBe false
     switch2 shouldBe false
 
@@ -145,13 +130,11 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = sink.map { sink =>
-      div(Observable(span(onSnabbdomUpdate --> sink, "Hello"), span(onSnabbdomUpdate --> sink, "Hey")))
-    }
+    val node = div(Observable(span(onSnabbdomUpdate --> sink, "Hello"), span(onSnabbdomUpdate --> sink, "Hey")))
 
     switch shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
 
@@ -165,13 +148,11 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = sink.map { sink =>
-      div(Observable(span("Hello")), span(attributes.key := "1", onSnabbdomPrePatch --> sink, "Hey"))
-    }
+    val node = div(Observable(span("Hello")), span(attributes.key := "1", onSnabbdomPrePatch --> sink, "Hey"))
 
     switch shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
   }
@@ -188,13 +169,10 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
     val message = PublishSubject[String]()
-    val node =  for {
-      sink1 <- sink1
-      sink2 <- sink2
-      node = div(message, onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
-    } yield node
+    val node = div(message, onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
     switch1 shouldBe false
     switch2 shouldBe false
 
@@ -212,13 +190,11 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = sink.map { sink =>
-      div(Observable.pure("message"), onSnabbdomPostPatch --> sink, "Hey")
-    }
+    val node = div(Observable.pure("message"), onSnabbdomPostPatch --> sink, "Hey")
 
     switch shouldBe false
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     switch shouldBe true
   }
@@ -236,13 +212,10 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
     val message = PublishSubject[String]()
-    val node = for {
-      sink1 <- sink1
-      sink2 <- sink2
-      node = div(message, onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
-    } yield node
+    val node = div(message, onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
     switch1 shouldBe false
     switch2 shouldBe false
 
@@ -278,24 +251,17 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val message = PublishSubject[String]()
-    val node = for {
-      insertSink <- insertSink
-      updateSink <- updateSink
-      destroySink <- destroySink
-      prepatchSink <- prepatchSink
-      postpatchSink <- postpatchSink
-      node = div(message,
-        onSnabbdomInsert --> insertSink,
-        onSnabbdomPrePatch --> prepatchSink,
-        onSnabbdomUpdate --> updateSink,
-        onSnabbdomPostPatch --> postpatchSink,
-        onSnabbdomDestroy --> destroySink
-      )
-    } yield node
+    val node = div(message,
+      onSnabbdomInsert --> insertSink,
+      onSnabbdomPrePatch --> prepatchSink,
+      onSnabbdomUpdate --> updateSink,
+      onSnabbdomPostPatch --> postpatchSink,
+      onSnabbdomDestroy --> destroySink
+    )
 
     hooks shouldBe empty
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     hooks.toList shouldBe List("insert")
 
@@ -316,18 +282,14 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val messageList = PublishSubject[Seq[String]]()
-    val node = for {
-      insertSink <- insertSink
-      updateSink <- updateSink
-      node = div("Hello", messageList.map(_.map(span(_))),
-        onSnabbdomInsert --> insertSink,
-        onSnabbdomUpdate --> updateSink
-      )
-    } yield node
+    val node = div("Hello", messageList.map(_.map(span(_))),
+      onSnabbdomInsert --> insertSink,
+      onSnabbdomUpdate --> updateSink
+    )
 
     hooks shouldBe empty
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     hooks.toList shouldBe  List("insert")
   }
@@ -348,18 +310,13 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val message = PublishSubject[String]()
-    val node = for {
-      insertSink <- insertSink
-      updateSink <- updateSink
-      destroySink <- destroySink
-      node = div(span("Hello", onSnabbdomInsert --> insertSink, onSnabbdomUpdate --> updateSink, onSnabbdomDestroy --> destroySink),
-        message.map(span(_))
-      )
-    } yield node
+    val node = div(span("Hello", onSnabbdomInsert --> insertSink, onSnabbdomUpdate --> updateSink, onSnabbdomDestroy --> destroySink),
+      message.map(span(_))
+    )
 
     hooks shouldBe empty
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     message.onNext("next")
 
@@ -382,18 +339,13 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val messageList = PublishSubject[Seq[String]]()
-    val node = for {
-      insertSink <- insertSink
-      updateSink <- updateSink
-      destroySink <- destroySink
-      node = div(messageList.map(_.map(span(_))),
-        span("Hello", onSnabbdomInsert --> insertSink, onSnabbdomUpdate --> updateSink, onSnabbdomDestroy --> destroySink)
-      )
-    } yield node
+    val node = div(messageList.map(_.map(span(_))),
+      span("Hello", onSnabbdomInsert --> insertSink, onSnabbdomUpdate --> updateSink, onSnabbdomDestroy --> destroySink)
+    )
 
     hooks shouldBe empty
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     messageList.onNext(Seq("one"))
 
@@ -403,7 +355,7 @@ class LifecycleHookSpec extends JSDomSpec {
   }
 
 
-  "Managed subscriptions" should "unsubscribe on destroy" in {
+  "Managed subscriptions" should "subscribe on insert and unsubscribe on destroy" in {
 
     val nodes = PublishSubject[VNode]
 
@@ -415,15 +367,14 @@ class LifecycleHookSpec extends JSDomSpec {
 
     val sub = PublishSubject[String]
 
-    val node = sink.map { sink =>
-      div(nodes.startWith(Seq(
-        span(managed(sink <-- sub))
-      )))
-    }
+    val node = div(nodes.startWith(Seq(
+      span(managed(sink <-- sub))
+    )))
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
-
+    sub.onNext("pre")
     latest shouldBe ""
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     sub.onNext("first")
     latest shouldBe "first"
@@ -434,6 +385,59 @@ class LifecycleHookSpec extends JSDomSpec {
     latest shouldBe "first"
   }
 
+  "DomMount/Unmount" should "should be called on streaming in and streaming out" in {
+
+    val modHandler = PublishSubject[VDomModifier]()
+    val otherHandler = PublishSubject[VDomModifier]()
+    val innerHandler = PublishSubject[VDomModifier]()
+    val node = div(modHandler, otherHandler)
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    var domHooks = List.empty[String]
+
+    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount" }, onDomUnmount handleWith { domHooks :+= "unmount" }, innerHandler))
+    domHooks shouldBe List("mount")
+
+    otherHandler.onNext("other")
+    domHooks shouldBe List("mount")
+
+    innerHandler.onNext("inner")
+    domHooks shouldBe List("mount")
+
+    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount2" }))
+    domHooks shouldBe List("mount", "unmount", "mount2")
+
+    modHandler.onNext(VDomModifier(onDomUnmount handleWith { domHooks :+= "unmount2" }))
+    domHooks shouldBe List("mount", "unmount", "mount2")
+
+    modHandler.onNext(VDomModifier.empty)
+    domHooks shouldBe List("mount", "unmount", "mount2", "unmount2")
+  }
+
+  it should "should be called for default and streaming out" in {
+
+    var domHooks = List.empty[String]
+
+    val modHandler = PublishSubject[VDomModifier]()
+    val node = div(ValueObservable(modHandler, VDomModifier(onDomMount handleWith { domHooks :+= "default-mount" }, onDomUnmount handleWith { domHooks :+= "default-unmount" })))
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    domHooks shouldBe List("default-mount")
+
+    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount" }, onDomUnmount handleWith { domHooks :+= "unmount" }))
+    domHooks shouldBe List("default-mount", "default-unmount", "mount")
+
+    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount2" }))
+    domHooks shouldBe List("default-mount", "default-unmount", "mount", "unmount", "mount2")
+
+    modHandler.onNext(VDomModifier(onDomUnmount handleWith { domHooks :+= "unmount2" }))
+    domHooks shouldBe List("default-mount", "default-unmount", "mount", "unmount", "mount2")
+
+    modHandler.onNext(VDomModifier.empty)
+    domHooks shouldBe List("default-mount", "default-unmount", "mount", "unmount", "mount2", "unmount2")
+  }
 
   "Hooks" should "support emitter operations" in {
 
@@ -446,14 +450,12 @@ class LifecycleHookSpec extends JSDomSpec {
 
     val divTagName = onSnabbdomInsert.map(_.tagName.toLowerCase).filter(_ == "div")
 
-    val node = sink.map { sink =>
-      div(onSnabbdomInsert("insert") --> sink,
-        div(divTagName --> sink),
-        span(divTagName --> sink)
-      )
-    }
+    val node = div(onSnabbdomInsert("insert") --> sink,
+      div(divTagName --> sink),
+      span(divTagName --> sink)
+    )
 
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
+    OutWatch.renderInto("#app", node).unsafeRunSync()
 
     operations.toList shouldBe List("div", "insert")
 

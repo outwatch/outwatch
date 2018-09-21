@@ -1,7 +1,6 @@
 package snabbdom
 
 import org.scalajs.dom._
-import snabbdom.DataObject.KeyValue
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
@@ -85,8 +84,8 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]],
-            on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]],
+  def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]] = js.Dictionary[AttrValue](),
+            on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = js.Dictionary[js.Function1[Event, Unit]](),
             hooks : Hooks = Hooks()
            ): DataObject = apply(attrs, js.undefined, js.undefined, on, hooks, js.undefined)
 

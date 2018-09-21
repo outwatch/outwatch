@@ -38,10 +38,11 @@ trait MonixOps {
 
     def collectObserver[I2](f: PartialFunction[I2, I])(implicit scheduler: Scheduler): ProHandler[I2, O] = ProHandler(self.redirect(_.collect(f)), self)
     def collectObservable[O2](f: PartialFunction[O, O2]): ProHandler[I, O2] = ProHandler(self, self.collect(f))
-    def collectHandler[I2, O2](f: PartialFunction[I2, I])(g: PartialFunction[O, O2])(implicit scheduler: Scheduler): ProHandler[I2, O2] = ProHandler(self.redirect(_.collect(f)), self.collect(g))
+    def collectProHandler[I2, O2](f: PartialFunction[I2, I])(g: PartialFunction[O, O2])(implicit scheduler: Scheduler): ProHandler[I2, O2] = ProHandler(self.redirect(_.collect(f)), self.collect(g))
 
     def filterObservable(f: O => Boolean): ProHandler[I, O] = ProHandler(self, self.filter(f))
     def filterObserver(f: I => Boolean)(implicit scheduler: Scheduler): ProHandler[I, O] = ProHandler(self.redirect(_.filter(f)), self)
+    def filterProHandler(f: I => Boolean)(g: O => Boolean)(implicit scheduler: Scheduler): ProHandler[I, O] = ProHandler(self.redirect(_.filter(f)), self.filter(g))
 
     def transformObservable[O2](f: Observable[O] => Observable[O2]): ProHandler[I,O2] = {
       ProHandler(self, f(self))
@@ -55,7 +56,7 @@ trait MonixOps {
       ProHandler(self.redirect(write), read(self))
     }
 
-    def handlerStartWith(seeds:Seq[O]):ProHandler[I,O] = {
+    def startWithProHandler(seeds:Seq[O]):ProHandler[I,O] = {
       transformObservable(_.startWith(seeds))
     }
 

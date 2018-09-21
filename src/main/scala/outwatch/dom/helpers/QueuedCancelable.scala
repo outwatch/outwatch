@@ -1,6 +1,7 @@
 package outwatch.dom.helpers
 
 import monix.execution.Cancelable
+
 import scala.scalajs.js
 
 class QueuedCancelable extends Cancelable {

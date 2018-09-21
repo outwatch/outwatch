@@ -15,7 +15,7 @@ object OutwatchTracing {
   def patch: Observable[(VNodeProxy, VNodeProxy)] = patchSubject
 }
 
-private[outwatch] object SnabbdomModifiers {
+object SnabbdomOps {
   private def toOutwatchState(hooks: SeparatedHooks, vNodeId: Int): js.UndefOr[OutwatchState] = {
     import hooks._
 
@@ -37,18 +37,18 @@ private[outwatch] object SnabbdomModifiers {
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.UndefOr[js.Array[VNodeProxy]])(implicit scheduler: Scheduler): VNodeProxy = {
+  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
     val proxy = if (children.isEmpty) {
       hFunction(nodeType, dataObject)
     } else {
-      hFunction(nodeType, dataObject, children.get)
+      hFunction(nodeType, dataObject, children)
     }
 
     proxy.outwatchState = state
     proxy
   }
 
-  private def updateSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
+  private def updateSnabbdom(modifiersArray: js.Array[StaticVDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
 
     val newModifiers = SeparatedModifiers.fromWithoutChildren(initialModifiers)
     modifiersArray.foreach(newModifiers.append)
@@ -62,7 +62,8 @@ private[outwatch] object SnabbdomModifiers {
     createProxy(nodeType, state, dataObject, newModifiers.children.proxies)
   }
 
-  private[outwatch] def toSnabbdom(modifiers: SeparatedModifiers, nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
+  private def toSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
+    val modifiers = SeparatedModifiers.from(modifiersArray)
     import modifiers._
 
     val vNodeId = modifiers.hashCode
@@ -71,15 +72,16 @@ private[outwatch] object SnabbdomModifiers {
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
     // initial state of the obseravbles.
-    if (children.hasStream) {
+    if (modifiers.children.streamable.isDefined) {
 
-      val receivers = new Receivers(children.nodes.get)
+      val initialModifiers = modifiers.children.streamable.get.modifiers
+      val observable = modifiers.children.streamable.get.observable
 
       // needs var for forward referencing
       var proxy: VNodeProxy = null
 
       def subscribe(): Cancelable = {
-        receivers.observable.subscribe(
+        observable.subscribe(
           { newState =>
             // update the current proxy with the new state
             val newProxy = updateSnabbdom(newState, nodeType, vNodeId, modifiers)
@@ -114,7 +116,7 @@ private[outwatch] object SnabbdomModifiers {
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      proxy = updateSnabbdom(receivers.initialState, nodeType, vNodeId, modifiers)
+      proxy = updateSnabbdom(initialModifiers, nodeType, vNodeId, modifiers)
       proxy
     } else {
       val state = toOutwatchState(hooks, vNodeId)
@@ -123,5 +125,5 @@ private[outwatch] object SnabbdomModifiers {
     }
   }
 
-  private[outwatch] def toSnabbdom(vNode: VNode)(implicit scheduler: Scheduler): VNodeProxy = toSnabbdom(SeparatedModifiers.from(vNode.modifiers), vNode.nodeType)
+  private[outwatch] def toSnabbdom(vNode: VNode)(implicit scheduler: Scheduler): VNodeProxy = toSnabbdom(vNode.modifiers, vNode.nodeType)
 }

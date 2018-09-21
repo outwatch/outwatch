@@ -2,7 +2,7 @@ package outwatch
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.SnabbdomModifiers
+import outwatch.dom.helpers.SnabbdomOps
 
 import scala.scalajs.js
 
@@ -10,7 +10,7 @@ class AttributeSpec extends JSDomSpec {
 
   "class attributes" should "be accumulated" in {
 
-    val node = SnabbdomModifiers.toSnabbdom(div(
+    val node = SnabbdomOps.toSnabbdom(div(
       className := "class1",
       cls := "class2"
     ))
@@ -20,7 +20,7 @@ class AttributeSpec extends JSDomSpec {
 
   "custom attributes" should "be able to be accumulated" in {
 
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       attr("id").accum(",") := "foo1",
       attr("id").accum(",") := "foo2"
     ))
@@ -30,7 +30,7 @@ class AttributeSpec extends JSDomSpec {
 
   "data attributes" should "be able to be accumulated" in {
 
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       data.foo.accum(",") := "foo1",
       data.foo.accum(",") := "foo2"
     ))
@@ -39,7 +39,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   "data attribute" should "correctly render only Data" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       data.geul := "bar",
       data.geuli.gurk := "barz"
     ))
@@ -51,7 +51,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   it should "correctly render only expanded data with dynamic content" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       dataAttr("geul") := "bar",
       dataAttr("geuli-gurk") := "barz"
     ))
@@ -72,7 +72,7 @@ class AttributeSpec extends JSDomSpec {
 //   }
 
   "attr/prop/style" should "correctly render type" in {
-    val node = SnabbdomModifiers.toSnabbdom(tag("input")(
+    val node = SnabbdomOps.toSnabbdom(tag("input")(
       attr("foo") := "foo",
       attr[Boolean]("boo", identity) := true,
       attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
@@ -102,7 +102,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   "optional attributes" should "correctly render" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       data.foo :=? Option("bar"),
       data.bar :=? Option.empty[String]
     ))
@@ -113,7 +113,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   "apply on vtree" should "correctly merge attributes" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       data.a := "bar",
       data.a.gurke := "franz"
     )(
@@ -129,7 +129,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   it should "correctly merge styles written with style" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       style("color") := "red",
       fontSize:= "5px"
     )(
@@ -145,7 +145,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   it should "correctly merge styles" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(
+    val node = SnabbdomOps.toSnabbdom(input(
       color.red,
       fontSize:= "5px"
     )(
@@ -162,18 +162,18 @@ class AttributeSpec extends JSDomSpec {
 
   it should "correctly merge keys" in {
 
-    val node = SnabbdomModifiers.toSnabbdom(input( attributes.key := "bumm")( attributes.key := "klapp"))
+    val node = SnabbdomOps.toSnabbdom(input( attributes.key := "bumm")( attributes.key := "klapp"))
     node.data.get.key.toOption shouldBe Some("klapp")
 
-    val node2 = SnabbdomModifiers.toSnabbdom(input()( attributes.key := "klapp"))
+    val node2 = SnabbdomOps.toSnabbdom(input()( attributes.key := "klapp"))
     node2.data.get.key.toOption shouldBe Some("klapp")
 
-    val node3 = SnabbdomModifiers.toSnabbdom(input( attributes.key := "bumm")())
+    val node3 = SnabbdomOps.toSnabbdom(input( attributes.key := "bumm")())
     node3.data.get.key.toOption shouldBe Some("bumm")
   }
 
   "style attribute" should "render correctly" in {
-    val node = SnabbdomModifiers.toSnabbdom(input(color.red))
+    val node = SnabbdomOps.toSnabbdom(input(color.red))
 
     node.data.get.style.get.toList should contain theSameElementsAs List(
       "color" -> "red"
@@ -182,7 +182,7 @@ class AttributeSpec extends JSDomSpec {
 
 
   "extended styles" should "convert correctly" in {
-    val node = SnabbdomModifiers.toSnabbdom(div(
+    val node = SnabbdomOps.toSnabbdom(div(
       opacity := 0,
       opacity.delayed := 1,
       opacity.remove := 0,
@@ -196,7 +196,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   "style accum" should "convert correctly" in {
-    val node = SnabbdomModifiers.toSnabbdom(div(
+    val node = SnabbdomOps.toSnabbdom(div(
       transition := "transform .2s ease-in-out",
       transition.accum(",") := "opacity .2s ease-in-out"
     ))
@@ -206,7 +206,7 @@ class AttributeSpec extends JSDomSpec {
 
   "svg" should "should work with tags and attributes" in {
     import outwatch.dom.dsl.svg._
-    val node = SnabbdomModifiers.toSnabbdom(svg(
+    val node = SnabbdomOps.toSnabbdom(svg(
       path(fill := "red", d := "M 100 100 L 300 100 L 200 300 z")
     ))
 

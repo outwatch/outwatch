@@ -1,27 +1,22 @@
 package outwatch.dom
 
-import com.raquo.domtypes.generic.builders
-import com.raquo.domtypes.generic.keys
-import com.raquo.domtypes.generic.codecs
-import com.raquo.domtypes.generic.defs.attrs
 import com.raquo.domtypes.generic.defs.complex.canonical
-import com.raquo.domtypes.generic.defs.reflectedAttrs
-import com.raquo.domtypes.generic.defs.props
-import com.raquo.domtypes.generic.defs.styles
-import com.raquo.domtypes.jsdom.defs.tags._
+import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
+import com.raquo.domtypes.generic.{builders, codecs, keys}
 import com.raquo.domtypes.jsdom.defs.eventProps
-import org.scalajs.dom
-import helpers._
+import com.raquo.domtypes.jsdom.defs.tags._
 import monix.execution.{Ack, Cancelable}
 import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
+import org.scalajs.dom
+import outwatch.dom.helpers._
 
 import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
   type Attribute[T, _] = helpers.AttributeBuilder[T, Attr]
   type Property[T, _] = helpers.PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder[E, Emitter]
+  type EventEmitter[E <: dom.Event] = SyncEmitterBuilder[E, VDomModifier]
 }
 
 private[outwatch] object CodecBuilder {
