@@ -107,7 +107,6 @@ private[outwatch] class SeparatedModifiers {
       hooks.insertHook = createHooksSingle(hooks.insertHook, h.trigger)
       hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldProxy, proxy) =>
         if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
-          oldProxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldProxy)))
           proxy.elm.foreach(h.trigger)
         }
       })
@@ -118,7 +117,6 @@ private[outwatch] class SeparatedModifiers {
     case h: DomUpdateHook =>
       hooks.postPatchHook = createProxyHooksPair(hooks.postPatchHook, { (oldproxy, proxy) =>
         if (proxy.outwatchState.map(_.id) == oldproxy.outwatchState.map(_.id)) {
-          oldproxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldproxy)))
           proxy.elm.foreach(h.trigger)
         }
       })
@@ -193,7 +191,7 @@ private[outwatch] class SeparatedHooks {
   var updateHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var postPatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var domUnmountHook: js.UndefOr[HookSingleFn] = js.undefined
+  var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
 
 private[outwatch] sealed trait ContentKind
