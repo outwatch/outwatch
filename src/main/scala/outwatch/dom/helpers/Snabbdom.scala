@@ -73,27 +73,20 @@ private[outwatch] object SnabbdomModifiers {
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
     // initial state of the obseravbles.
     if (children.hasStream) {
-      // if there is streamable content and static nodes, we give keys to all static nodes
-      val childrenWithKey = if (children.hasVTree) children.nodes.map {
-        case vtree: VNode => vtree.copy(modifiers = Key(vtree.hashCode) +: vtree.modifiers)
-        case other => other
-      } else children.nodes
-
-      val receivers = new Receivers(childrenWithKey)
+      val receivers = new Receivers(children.nodes)
 
       // needs var for forward referencing
       var proxy: VNodeProxy = null
 
       def subscribe(): Cancelable = {
-        var currentProxy: VNodeProxy = proxy
         receivers.observable.subscribe(
           { newState =>
             // update the current proxy with the new state
             val newProxy = updateSnabbdom(newState, nodeType, vNodeId, modifiers)
 
             // call the snabbdom patch method and get the resulting proxy
-            OutwatchTracing.patchSubject.onNext((currentProxy, newProxy))
-            val next = patch(currentProxy, newProxy)
+            OutwatchTracing.patchSubject.onNext((proxy, newProxy))
+            val next = patch(proxy, newProxy)
 
             // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
             // if we are changing the content of this proxy via a stream, the parent will not see this change.
@@ -106,18 +99,12 @@ private[outwatch] object SnabbdomModifiers {
             proxy.elm = next.elm
             proxy.text = next.text
             proxy.key = next.key
+            proxy.outwatchState = next.outwatchState
 
-            currentProxy = next
             Continue
           },
           error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
         )
-      }
-
-      // add a key if not existing. we want to have a key for each streaming
-      // node so it can be patched efficiently by snabbdom
-      if (keyOption.isEmpty) {
-        modifiers.append(Key(vNodeId))
       }
 
       // hooks for subscribing and unsubscribing the streamable content
