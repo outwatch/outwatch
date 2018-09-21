@@ -11,38 +11,6 @@ import snabbdom.{DataObject, VNodeProxy}
 import scala.scalajs.js
 import scala.concurrent.Future
 
-/*
-Modifier
-  Property
-    Attribute
-      Attr
-        BasicAttr
-        AccumAttr
-      Prop
-      Style
-        BasicStyle
-        DelayedStyle
-        RemoveStyle
-        DestroyStyle
-        AccumStyle
-    Hook
-      InsertHook
-      PrePatchHook
-      UpdateHook
-      PostPatchHook
-      DestroyHook
-    Key
-  ChildVNode
-    ModifierStreamReceiver
-    StaticVNode
-      StringVNode
-      VTree
-  Emitter
-  CompositeModifier
-  EmptyModifier
- */
-
-
 sealed trait VDomModifier
 
 object VDomModifier {
@@ -59,7 +27,7 @@ sealed trait Property extends VDomModifier
 
 final case class Emitter(eventType: String, trigger: Event => Unit) extends VDomModifier
 
-private[outwatch] final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
+final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
 
 case object EmptyModifier extends VDomModifier
 
