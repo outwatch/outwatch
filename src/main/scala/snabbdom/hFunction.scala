@@ -136,8 +136,8 @@ case class OutwatchState(id: Int, domUnmountHook: js.UndefOr[Hooks.HookSingleFn]
 
 @js.native
 trait VNodeProxy extends js.Object {
-  var sel: String
-  var data: DataObject
+  var sel: js.UndefOr[String]
+  var data: js.UndefOr[DataObject]
   var children: js.UndefOr[js.Array[VNodeProxy]]
   var elm: js.UndefOr[Element]
   var text: js.UndefOr[String]
@@ -147,7 +147,7 @@ trait VNodeProxy extends js.Object {
 }
 
 object VNodeProxy {
-  def fromString(string: String): VNodeProxy = string.asInstanceOf[VNodeProxy]
+  def fromString(string: String): VNodeProxy = js.Dynamic.literal(text = string).asInstanceOf[VNodeProxy]
 }
 
 

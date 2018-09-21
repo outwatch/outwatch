@@ -37,15 +37,12 @@ private[outwatch] object SnabbdomModifiers {
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode], hasVTree: Boolean)(implicit scheduler: Scheduler): VNodeProxy = {
+  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode])(implicit scheduler: Scheduler): VNodeProxy = {
     val proxy = if (children.isEmpty) {
       hFunction(nodeType, dataObject)
-    } else if (hasVTree) {
-      val childProxies = children.collect { case s: StaticVNode => s.toSnabbdom }
-      hFunction(nodeType, dataObject, childProxies)
     } else {
-      val textChildren = children.collect { case s: StringVNode => s.string }
-      hFunction(nodeType, dataObject, textChildren.mkString)
+      val childProxies = children.collect { case VNodeProxyNode(proxy) => proxy }
+      hFunction(nodeType, dataObject, childProxies)
     }
 
     proxy.outwatchState = state
@@ -63,11 +60,10 @@ private[outwatch] object SnabbdomModifiers {
     val dataObject = createDataObject(newModifiers)
     val state = toOutwatchState(newModifiers.hooks, vNodeId)
 
-    createProxy(nodeType, state, dataObject, newModifiers.children.nodes, newModifiers.children.hasVTree)
+    createProxy(nodeType, state, dataObject, newModifiers.children.nodes)
   }
 
-  private[outwatch] def toSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
-    val modifiers = SeparatedModifiers.from(modifiersArray)
+  private[outwatch] def toSnabbdom(modifiers: SeparatedModifiers, nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
     import modifiers._
 
     val vNodeId = modifiers.hashCode
@@ -136,7 +132,9 @@ private[outwatch] object SnabbdomModifiers {
     } else {
       val state = toOutwatchState(hooks, vNodeId)
       val dataObject = createDataObject(modifiers)
-      createProxy(nodeType, state, dataObject, children.nodes, children.hasVTree)
+      createProxy(nodeType, state, dataObject, children.nodes)
     }
   }
+
+  private[outwatch] def toSnabbdom(vNode: VNode)(implicit scheduler: Scheduler): VNodeProxy = toSnabbdom(SeparatedModifiers.from(vNode.modifiers), vNode.nodeType)
 }

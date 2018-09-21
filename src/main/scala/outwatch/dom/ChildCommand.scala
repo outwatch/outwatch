@@ -5,7 +5,7 @@ import org.scalajs.dom.Element
 import outwatch.AsVDomModifier
 import cats.syntax.functor._
 import monix.execution.Scheduler
-import outwatch.dom.helpers.SeparatedModifiers
+import outwatch.dom.helpers.{SeparatedModifiers, SnabbdomModifiers}
 
 import scala.scalajs.js
 
@@ -44,7 +44,7 @@ object ChildCommand {
       def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
 
       def replaceByIndex(index: Int, node: VNode): Unit = {
-        children(index) = VNodeProxyNode(node.toSnabbdom)
+        children(index) = VNodeProxyNode(SnabbdomModifiers.toSnabbdom(node))
       }
 
       def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
@@ -57,7 +57,7 @@ object ChildCommand {
 
       def insertByIndex(index: Int, node: VNode): Unit = {
         if (isSaneIndex(index)) {
-          children.insert(index, VNodeProxyNode(node.toSnabbdom))
+          children.insert(index, VNodeProxyNode(SnabbdomModifiers.toSnabbdom(node)))
         }
       }
 
@@ -70,13 +70,13 @@ object ChildCommand {
 
       cmds foreach {
         case Append(node) =>
-          children.push(VNodeProxyNode(node.toSnabbdom))
+          children.push(VNodeProxyNode(SnabbdomModifiers.toSnabbdom(node)))
           ()
         case Prepend(node) =>
-          children.prepend(VNodeProxyNode(node.toSnabbdom))
+          children.prepend(VNodeProxyNode(SnabbdomModifiers.toSnabbdom(node)))
         case Set(list) =>
           children.clear()
-          children.push(list.map(node => VNodeProxyNode(node.toSnabbdom)): _*)
+          children.push(list.map(node => VNodeProxyNode(SnabbdomModifiers.toSnabbdom(node))): _*)
           ()
         case Insert(index, node) =>
           insertByIndex(index, node)

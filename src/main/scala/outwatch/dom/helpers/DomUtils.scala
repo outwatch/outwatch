@@ -67,14 +67,12 @@ private[outwatch] class SeparatedModifiers {
       ()
     case cm: CompositeModifier =>
       cm.modifiers.foreach(append(_))
-    case s: VNode =>
-      children.nodes += VNodeProxyNode(s.toSnabbdom)
-      children.hasVTree = true
     case s: VNodeProxyNode =>
       children.nodes += s
-      children.hasVTree = true
+    case s: VNode =>
+      children.nodes += VNodeProxyNode(SnabbdomModifiers.toSnabbdom(s))
     case s: StringVNode =>
-      children.nodes += s
+      children.nodes += VNodeProxyNode(VNodeProxy.fromString(s.string))
     case s: ModifierStreamReceiver =>
       children.nodes += s
       children.hasStream = true
@@ -180,7 +178,6 @@ private[outwatch] object StyleKey {
 private[outwatch] class Children {
   val nodes = new js.Array[ChildVNode]()
   var hasStream: Boolean = false
-  var hasVTree: Boolean = false
 }
 
 private[outwatch] class SeparatedAttributes {
@@ -243,7 +240,8 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifie
 
     case EffectModifier(effect) => handleStreamedModifier(effect.unsafeRunSync())
 
-    case child: StaticVNode  => ContentKind.Static(VNodeProxyNode(child.toSnabbdom))
+    case child: VNode  => ContentKind.Static(VNodeProxyNode(SnabbdomModifiers.toSnabbdom(child)))
+    case child: StringVNode  => ContentKind.Static(VNodeProxyNode(VNodeProxy.fromString(child.string)))
 
     case mod => ContentKind.Static(mod)
   }

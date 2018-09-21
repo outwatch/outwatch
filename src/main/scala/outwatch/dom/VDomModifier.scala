@@ -79,11 +79,6 @@ object Attribute {
   def apply(title: String, value: Attr.Value): Attribute = BasicAttr(title, value)
 }
 
-
-sealed trait Hook[T] extends Property {
-  def trigger: T => Unit
-}
-
 // Attributes
 
 sealed trait Attr extends Attribute {
@@ -121,44 +116,30 @@ final case class DestroyStyle(title: String, value: String) extends Style
 
 // Hooks
 
-private[outwatch] final case class DomMountHook(trigger: Element => Unit) extends Hook[Element]
-private[outwatch] final case class DomUnmountHook(trigger: Element => Unit) extends Hook[Element]
-private[outwatch] final case class DomUpdateHook(trigger: Element => Unit) extends Hook[Element]
+sealed trait Hook extends Property
+private[outwatch] final case class DomMountHook(trigger: Element => Unit) extends Hook
+private[outwatch] final case class DomUnmountHook(trigger: Element => Unit) extends Hook
+private[outwatch] final case class DomUpdateHook(trigger: Element => Unit) extends Hook
 
-private[outwatch] final case class InsertHook(trigger: Element => Unit) extends Hook[Element]
-private[outwatch] final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook[(Option[Element], Option[Element])]
-private[outwatch] final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook[(Element, Element)]
-private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook[(Element, Element)]
-private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook[Element]
+private[outwatch] final case class InsertHook(trigger: Element => Unit) extends Hook
+private[outwatch] final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook
+private[outwatch] final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook
+private[outwatch] final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook
+private[outwatch] final case class DestroyHook(trigger: Element => Unit) extends Hook
 
 
 private[outwatch] case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 
 // Child Nodes
 
-
-private[outwatch] sealed trait StaticVNode extends ChildVNode {
-  def toSnabbdom(implicit s: Scheduler): VNodeProxy
-}
-object StaticVNode {
-  val empty: StaticVNode = StringVNode("")
-}
-
-
 final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends ChildVNode
 
 // Static Nodes
-private[outwatch] final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVNode {
-  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = proxy
-}
+private[outwatch] final case class VNodeProxyNode(proxy: VNodeProxy) extends ChildVNode
 
-private[outwatch] final case class StringVNode(string: String) extends StaticVNode {
-  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = VNodeProxy.fromString(string)
-}
+private[outwatch] final case class StringVNode(string: String) extends ChildVNode
 
-final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends StaticVNode {
+final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends ChildVNode {
 
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
-
-  override def toSnabbdom(implicit s: Scheduler): VNodeProxy = SnabbdomModifiers.toSnabbdom(modifiers, nodeType)
 }

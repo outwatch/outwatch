@@ -4,13 +4,14 @@ import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom._
+import outwatch.dom.helpers.{SeparatedModifiers, SnabbdomModifiers}
 import outwatch.util.Store
 import snabbdom.patch
 
 object OutWatch {
 
   def renderInto(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
-    node <- IO(vNode.toSnabbdom)
+    node <- IO(SnabbdomModifiers.toSnabbdom(vNode))
     _ <- IO {
       val elem = dom.document.createElement("app")
       element.appendChild(elem)
@@ -19,7 +20,7 @@ object OutWatch {
   } yield ()
 
   def renderReplace(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
-    node <- IO(vNode.toSnabbdom)
+    node <- IO(SnabbdomModifiers.toSnabbdom(vNode))
     _ <- IO(patch(element, node))
   } yield ()
 

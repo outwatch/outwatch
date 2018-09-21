@@ -69,7 +69,6 @@ class OutWatchDomSpec extends JSDomSpec {
     attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 5
     children.hasStream shouldBe true
-    children.hasVTree shouldBe true
   }
 
   it should "be separated correctly with children" in {
@@ -92,7 +91,6 @@ class OutWatchDomSpec extends JSDomSpec {
     attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
-    children.hasVTree shouldBe true
   }
 
   it should "be separated correctly with string children" in {
@@ -115,7 +113,6 @@ class OutWatchDomSpec extends JSDomSpec {
     attributes.attrs.values.size shouldBe 1
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
-    children.hasVTree shouldBe false
   }
 
   it should "be separated correctly with children and properties" in {
@@ -148,7 +145,6 @@ class OutWatchDomSpec extends JSDomSpec {
     keyOption.isEmpty shouldBe true
     children.nodes.length shouldBe 4
     children.hasStream shouldBe true
-    children.hasVTree shouldBe false
   }
 
   val fixture = new {
@@ -216,9 +212,8 @@ class OutWatchDomSpec extends JSDomSpec {
 
     children.nodes.length shouldBe 3
     children.hasStream shouldBe true
-    children.hasVTree shouldBe true
 
-    val proxy = SnabbdomModifiers.toSnabbdom(mods, "div")
+    val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
     proxy.key.isDefined shouldBe true
 
     proxy.children.get.length shouldBe 2
@@ -243,9 +238,8 @@ class OutWatchDomSpec extends JSDomSpec {
 
     children.nodes.length shouldBe 2
     children.hasStream shouldBe true
-    children.hasVTree shouldBe true
 
-    val proxy = SnabbdomModifiers.toSnabbdom(mods, "div")
+    val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
     proxy.key.toOption  shouldBe Some(1234)
 
     proxy.children.get(0).key.toOption shouldBe Some(5678)
@@ -260,7 +254,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val proxy = fixture.proxy
 
-    JSON.stringify(vtree.toSnabbdom) shouldBe JSON.stringify(proxy)
+    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(proxy)
 
   }
 
@@ -270,7 +264,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
 
-    JSON.stringify(vtree.toSnabbdom) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
   }
 
 
@@ -403,7 +397,7 @@ class OutWatchDomSpec extends JSDomSpec {
       span("Hello")
     )
 
-    JSON.stringify(vtree.toSnabbdom) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
   }
 
   it should "construct VTrees with optional children properly" in {
@@ -414,7 +408,7 @@ class OutWatchDomSpec extends JSDomSpec {
       Option.empty[VDomModifier]
     )
 
-    JSON.stringify(vtree.toSnabbdom) shouldBe JSON.stringify(fixture.proxy)
+    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
 
   }
 
@@ -435,7 +429,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = hFunction("div", DataObject(attrs, js.Dictionary()))
 
-    JSON.stringify(vtree.toSnabbdom) shouldBe JSON.stringify(expected)
+    JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(expected)
 
   }
 
