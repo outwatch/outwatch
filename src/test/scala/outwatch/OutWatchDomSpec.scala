@@ -199,7 +199,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
   }
 
-  it should "provide unique key for child nodes if stream is present" in {
+  it should "not provide unique key for child nodes if stream is present" in {
     val mods = Seq(
       ModifierStreamReceiver(ValueObservable(Observable())),
       div(id := "1"),
@@ -214,16 +214,15 @@ class OutWatchDomSpec extends JSDomSpec {
     children.hasStream shouldBe true
 
     val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
-    proxy.key.isDefined shouldBe true
+    proxy.key.isDefined shouldBe false
 
     proxy.children.get.length shouldBe 2
 
     val key1 = proxy.children.get(0).key
     val key2 = proxy.children.get(1).key
 
-    key1.isDefined shouldBe true
-    key2.isDefined shouldBe true
-    key1.get should not be key2.get
+    key1.isDefined shouldBe false
+    key2.isDefined shouldBe false
   }
 
   it should "keep existing key for child nodes" in {

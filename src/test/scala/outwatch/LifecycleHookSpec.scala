@@ -399,7 +399,7 @@ class LifecycleHookSpec extends JSDomSpec {
 
     messageList.onNext(Seq("one", "two"))
 
-    hooks.count(_ == "insert") shouldBe 1
+    hooks.count(_ == "insert") shouldBe 3
   }
 
 
@@ -529,7 +529,7 @@ class LifecycleHookSpec extends JSDomSpec {
     onSnabbdomUpdateCount shouldBe 1
     onSnabbdomDestroyCount shouldBe 0
     onDomMountList shouldBe List(1, 2)
-    //    onDomUnmountList shouldBe List(1)
+    onDomUnmountList shouldBe List(1)
     onDomUpdateList shouldBe Nil
 
     handler.onNext(("key", "dieter"))
@@ -655,70 +655,70 @@ class LifecycleHookSpec extends JSDomSpec {
 
     handler.onNext("golum")
     element.innerHTML shouldBe "<div>golum</div>"
-    onSnabbdomInsertCount shouldBe 2
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 1
-    onDomMountList shouldBe List(1,2)
+    onSnabbdomInsertCount shouldBe 1
+    onSnabbdomPrePatchCount shouldBe 1
+    onSnabbdomPostPatchCount shouldBe 1
+    onSnabbdomUpdateCount shouldBe 1
+    onSnabbdomDestroyCount shouldBe 0
+    onDomMountList shouldBe List(1, 2)
     onDomUnmountList shouldBe List(1)
     onDomUpdateList shouldBe Nil
 
     handler.onNext("dieter")
     element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1,2,3)
+    onSnabbdomInsertCount shouldBe 1
+    onSnabbdomPrePatchCount shouldBe 2
+    onSnabbdomPostPatchCount shouldBe 2
+    onSnabbdomUpdateCount shouldBe 2
+    onSnabbdomDestroyCount shouldBe 0
+    onDomMountList shouldBe List(1, 2, 3)
     onDomUnmountList shouldBe List(1,2)
     onDomUpdateList shouldBe Nil
 
     handler.onNext("dieter")
     element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 4
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 3
-    onDomMountList shouldBe List(1,2,3,4)
+    onSnabbdomInsertCount shouldBe 1
+    onSnabbdomPrePatchCount shouldBe 3
+    onSnabbdomPostPatchCount shouldBe 3
+    onSnabbdomUpdateCount shouldBe 3
+    onSnabbdomDestroyCount shouldBe 0
+    onDomMountList shouldBe List(1, 2 ,3, 4)
     onDomUnmountList shouldBe List(1,2,3)
     onDomUpdateList shouldBe Nil
 
     handler.onNext("peter")
     element.innerHTML shouldBe "<div>peter</div>"
-    onSnabbdomInsertCount shouldBe 5
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 4
-    onDomMountList shouldBe List(1,2,3,4,5)
-    onDomUnmountList shouldBe List(1,2,3,4)
+    onSnabbdomInsertCount shouldBe 1
+    onSnabbdomPrePatchCount shouldBe 4
+    onSnabbdomPostPatchCount shouldBe 4
+    onSnabbdomUpdateCount shouldBe 4
+    onSnabbdomDestroyCount shouldBe 0
+    onDomMountList shouldBe List(1, 2, 3, 4, 5)
+    onDomUnmountList shouldBe List(1, 2, 3, 4)
     onDomUpdateList shouldBe Nil
 
     otherHandler.onNext("hi")
     element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
-    onSnabbdomInsertCount shouldBe 5
-    onSnabbdomPrePatchCount shouldBe 1
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 4
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
+    onSnabbdomInsertCount shouldBe 2
+    onSnabbdomPrePatchCount shouldBe 4
+    onSnabbdomPostPatchCount shouldBe 4
+    onSnabbdomUpdateCount shouldBe 4
+    onSnabbdomDestroyCount shouldBe 0
+    onDomMountList shouldBe List(1, 2, 3, 4, 5, 5)
+    onDomUnmountList shouldBe List(1, 2, 3, 4, 5)
     onDomUpdateList shouldBe Nil
 
     innerHandlerCount shouldBe 0
 
     innerHandler.onNext(0)
     element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
-    onSnabbdomInsertCount shouldBe 5
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 1
-    onSnabbdomUpdateCount shouldBe 1
-    onSnabbdomDestroyCount shouldBe 4
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
+    onSnabbdomInsertCount shouldBe 2
+    onSnabbdomPrePatchCount shouldBe 5
+    onSnabbdomPostPatchCount shouldBe 5
+    onSnabbdomUpdateCount shouldBe 5
+    onSnabbdomDestroyCount shouldBe 0
+    onDomMountList shouldBe List(1, 2, 3, 4, 5, 5)
+    onDomUnmountList shouldBe List(1, 2, 3, 4, 5)
     onDomUpdateList shouldBe List(5)
 
     innerHandlerCount shouldBe 1
