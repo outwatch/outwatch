@@ -70,10 +70,10 @@ object Hooks {
 trait DataObject extends js.Object {
   import DataObject._
 
-  val attrs: js.Dictionary[AttrValue]
-  val props: js.Dictionary[PropValue]
-  val style: js.Dictionary[StyleValue]
-  val on: js.Dictionary[js.Function1[Event, Unit]]
+  val attrs: js.UndefOr[js.Dictionary[AttrValue]]
+  val props: js.UndefOr[js.Dictionary[PropValue]]
+  val style: js.UndefOr[js.Dictionary[StyleValue]]
+  val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]]
   val hook: Hooks
   val key: js.UndefOr[KeyValue]
 }
@@ -85,16 +85,16 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def apply(attrs: js.Dictionary[AttrValue],
-            on: js.Dictionary[js.Function1[Event, Unit]],
+  def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]],
+            on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]],
             hooks : Hooks = Hooks()
-           ): DataObject = apply(attrs, js.Dictionary.empty, js.Dictionary.empty, on, hooks, js.undefined)
+           ): DataObject = apply(attrs, js.undefined, js.undefined, on, hooks, js.undefined)
 
 
-  def apply(attrs: js.Dictionary[AttrValue],
-            props: js.Dictionary[PropValue],
-            style: js.Dictionary[StyleValue],
-            on: js.Dictionary[js.Function1[Event, Unit]],
+  def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]],
+            props: js.UndefOr[js.Dictionary[PropValue]],
+            style: js.UndefOr[js.Dictionary[StyleValue]],
+            on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]],
             hook: Hooks,
             key: js.UndefOr[KeyValue]
            ): DataObject = {
@@ -107,10 +107,10 @@ object DataObject {
     val _key = key
 
     new DataObject {
-      val attrs: js.Dictionary[AttrValue] = _attrs
-      val props: js.Dictionary[PropValue] = _props
-      val style: js.Dictionary[StyleValue] = _style
-      val on: js.Dictionary[js.Function1[Event, Unit]] = _on
+      val attrs: js.UndefOr[js.Dictionary[AttrValue]] = _attrs
+      val props: js.UndefOr[js.Dictionary[PropValue]] = _props
+      val style: js.UndefOr[js.Dictionary[StyleValue]] = _style
+      val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = _on
       val hook: Hooks = _hook
       val key: UndefOr[KeyValue] = _key
     }

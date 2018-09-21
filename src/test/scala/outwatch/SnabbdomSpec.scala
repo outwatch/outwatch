@@ -9,7 +9,7 @@ import scala.scalajs.js
 class SnabbdomSpec extends JSDomSpec {
   "The Snabbdom Facade" should "correctly patch the DOM" in {
     val message = "Hello World"
-    val vNode = hFunction("span#msg", DataObject(js.Dictionary(), js.Dictionary()), message)
+    val vNode = hFunction("span#msg", DataObject(js.undefined, js.undefined), message)
 
     val node = document.createElement("div")
     document.body.appendChild(node)
@@ -19,7 +19,7 @@ class SnabbdomSpec extends JSDomSpec {
     document.getElementById("msg").innerHTML shouldBe message
 
     val newMessage = "Hello Snabbdom!"
-    val newNode = hFunction("div#new", DataObject(js.Dictionary(), js.Dictionary()), newMessage)
+    val newNode = hFunction("div#new", DataObject(js.undefined, js.undefined), newMessage)
 
     patch(vNode, newNode)
 
@@ -95,7 +95,7 @@ class SnabbdomSpec extends JSDomSpec {
   it should "correctly handle boolean attributes" in {
     val message = "Hello World"
     val attributes = js.Dictionary[dom.Attr.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
-    val vNode = hFunction("span#msg", DataObject(attributes, js.Dictionary()), message)
+    val vNode = hFunction("span#msg", DataObject(attributes, js.undefined), message)
 
     val node = document.createElement("div")
     document.body.appendChild(node)

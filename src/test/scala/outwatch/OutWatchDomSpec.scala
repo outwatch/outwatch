@@ -8,7 +8,7 @@ import outwatch.dom.helpers._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import snabbdom.{DataObject, hFunction}
+import snabbdom.{DataObject, VNodeProxy, hFunction}
 import org.scalajs.dom.window.localStorage
 
 import scala.collection.immutable.Seq
@@ -40,7 +40,7 @@ class OutWatchDomSpec extends JSDomSpec {
     hooks.updateHook.isDefined shouldBe true
     hooks.postPatchHook.isDefined shouldBe true
     hooks.destroyHook.isDefined shouldBe true
-    attributes.attrs.values.size shouldBe 1
+    attributes.attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
   }
 
@@ -65,9 +65,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.values.size shouldBe 1
-    attributes.attrs.values.size shouldBe 1
-    children.nodes.length shouldBe 5
+    emitters.get.values.size shouldBe 1
+    attributes.attrs.get.values.size shouldBe 1
+    children.nodes.get.length shouldBe 5
     children.hasStream shouldBe true
   }
 
@@ -87,9 +87,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.values.size shouldBe 3
-    attributes.attrs.values.size shouldBe 1
-    children.nodes.length shouldBe 4
+    emitters.get.values.size shouldBe 3
+    attributes.attrs.get.values.size shouldBe 1
+    children.nodes.get.length shouldBe 4
     children.hasStream shouldBe true
   }
 
@@ -109,9 +109,9 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.values.size shouldBe 3
-    attributes.attrs.values.size shouldBe 1
-    children.nodes.length shouldBe 4
+    emitters.get.values.size shouldBe 3
+    attributes.attrs.get.values.size shouldBe 1
+    children.nodes.get.length shouldBe 4
     children.hasStream shouldBe true
   }
 
@@ -135,21 +135,21 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(modifiers)
     import seps._
 
-    emitters.keys.toList shouldBe List("click", "input", "keyup")
+    emitters.get.keys.toList shouldBe List("click", "input", "keyup")
     hooks.insertHook.isDefined shouldBe true
     hooks.prePatchHook.isDefined shouldBe true
     hooks.updateHook.isDefined shouldBe true
     hooks.postPatchHook.isDefined shouldBe true
     hooks.destroyHook.isDefined shouldBe false
-    attributes.attrs.values.size shouldBe 1
+    attributes.attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
-    children.nodes.length shouldBe 4
+    children.nodes.get.length shouldBe 4
     children.hasStream shouldBe true
   }
 
   val fixture = new {
-    val proxy = hFunction("div", DataObject(js.Dictionary("class" -> "red", "id" -> "msg"), js.Dictionary()), js.Array(
-      hFunction("span", DataObject(js.Dictionary(), js.Dictionary()), "Hello")
+    val proxy = hFunction("div", DataObject(js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg"), js.undefined), js.Array(
+      hFunction("span", DataObject(js.undefined, js.undefined), js.Array(VNodeProxy.fromString("Hello")))
     ))
   }
 
@@ -210,7 +210,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers =  SeparatedModifiers.from(mods)
     val children = modifiers.children
 
-    children.nodes.length shouldBe 3
+    children.nodes.get.length shouldBe 3
     children.hasStream shouldBe true
 
     val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
@@ -236,7 +236,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val modifiers =  SeparatedModifiers.from(mods)
     val children = modifiers.children
 
-    children.nodes.length shouldBe 2
+    children.nodes.get.length shouldBe 2
     children.hasStream shouldBe true
 
     val proxy = SnabbdomModifiers.toSnabbdom(SeparatedModifiers.from(mods), "div")
@@ -427,7 +427,7 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
-    val expected = hFunction("div", DataObject(attrs, js.Dictionary()))
+    val expected = hFunction("div", DataObject(attrs, js.undefined))
 
     JSON.stringify(SnabbdomModifiers.toSnabbdom(vtree)) shouldBe JSON.stringify(expected)
 

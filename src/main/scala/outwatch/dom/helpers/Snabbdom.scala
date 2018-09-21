@@ -37,12 +37,11 @@ private[outwatch] object SnabbdomModifiers {
   // dynamic modifier of this node yields a new VNodeState, this new state with
   // new modifiers and attributes needs to be applied to the current
   // VNodeProxy.
-  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[ChildVNode])(implicit scheduler: Scheduler): VNodeProxy = {
+  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.UndefOr[js.Array[VNodeProxy]])(implicit scheduler: Scheduler): VNodeProxy = {
     val proxy = if (children.isEmpty) {
       hFunction(nodeType, dataObject)
     } else {
-      val childProxies = children.collect { case VNodeProxyNode(proxy) => proxy }
-      hFunction(nodeType, dataObject, childProxies)
+      hFunction(nodeType, dataObject, children.get)
     }
 
     proxy.outwatchState = state
@@ -60,7 +59,7 @@ private[outwatch] object SnabbdomModifiers {
     val dataObject = createDataObject(newModifiers)
     val state = toOutwatchState(newModifiers.hooks, vNodeId)
 
-    createProxy(nodeType, state, dataObject, newModifiers.children.nodes)
+    createProxy(nodeType, state, dataObject, newModifiers.children.proxies)
   }
 
   private[outwatch] def toSnabbdom(modifiers: SeparatedModifiers, nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
@@ -73,7 +72,8 @@ private[outwatch] object SnabbdomModifiers {
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
     // initial state of the obseravbles.
     if (children.hasStream) {
-      val receivers = new Receivers(children.nodes)
+
+      val receivers = new Receivers(children.nodes.get)
 
       // needs var for forward referencing
       var proxy: VNodeProxy = null
@@ -119,7 +119,7 @@ private[outwatch] object SnabbdomModifiers {
     } else {
       val state = toOutwatchState(hooks, vNodeId)
       val dataObject = createDataObject(modifiers)
-      createProxy(nodeType, state, dataObject, children.nodes)
+      createProxy(nodeType, state, dataObject, children.proxies)
     }
   }
 

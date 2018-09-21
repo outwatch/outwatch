@@ -4,11 +4,9 @@ import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
-import snabbdom.Hooks.{HookPairFn, HookSingleFn}
 import snabbdom.{Hooks, OutwatchState, VNodeProxy}
 
 import scala.scalajs.js
-import scala.scalajs.js.UndefOr
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler) = {
@@ -19,12 +17,14 @@ private[outwatch] object SeparatedModifiers {
 
 
   def fromWithoutChildren(that: SeparatedModifiers)(implicit scheduler: Scheduler) = {
-    //TODO: size hints for arrays in separated modifiers
     val m = new SeparatedModifiers()
     import m._
 
-    that.emitters.foreach { case (k, v) =>
-      emitters(k) = v
+    if (that.emitters.isDefined) {
+      emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
+      that.emitters.get.foreach { case (k, v) =>
+        emitters.get(k) = v
+      }
     }
 
     // keep out children intentionally
@@ -34,16 +34,33 @@ private[outwatch] object SeparatedModifiers {
     hooks.updateHook = that.hooks.updateHook
     hooks.postPatchHook = that.hooks.postPatchHook
     hooks.destroyHook = that.hooks.destroyHook
+    hooks.domUnmountHook = that.hooks.domUnmountHook
 
-    that.attributes.attrs.foreach { case (k, v) =>
-      attributes.attrs(k) = v
+    if (that.attributes.attrs.isDefined) {
+      attributes.attrs = js.Dictionary[Attr.Value]()
+      that.attributes.attrs.get.foreach { case (k, v) =>
+        attributes.attrs.get(k) = v
+      }
     }
-    that.attributes.props.foreach { case (k, v) =>
-      attributes.props(k) = v
+    if (that.attributes.props.isDefined) {
+      attributes.props = js.Dictionary[Prop.Value]()
+      that.attributes.props.get.foreach { case (k, v) =>
+        attributes.props.get(k) = v
+      }
     }
-    that.attributes.styles.foreach { case (k, v) =>
-      //TODO: copy over js.Dictionary in styles
-      attributes.styles(k) = v
+    if (that.attributes.styles.isDefined) {
+      attributes.styles = js.Dictionary[Style.Value]()
+      that.attributes.styles.get.foreach { case (k, v) =>
+        if (k == StyleKey.delayed || k == StyleKey.destroy || k == StyleKey.remove) {
+          val dict = js.Dictionary[String]()
+          attributes.styles.get(k) = dict: Style.Value
+          v.asInstanceOf[js.Dictionary[String]].foreach { case (k, v) =>
+            dict(k) = v
+          }
+        } else {
+          attributes.styles.get(k) = v
+        }
+      }
     }
 
     keyOption = that.keyOption
@@ -55,7 +72,7 @@ private[outwatch] object SeparatedModifiers {
 }
 
 private[outwatch] class SeparatedModifiers {
-  val emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
+  var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
   val children = new Children
   val attributes = new SeparatedAttributes()
   val hooks = new SeparatedHooks()
@@ -68,22 +85,31 @@ private[outwatch] class SeparatedModifiers {
     case cm: CompositeModifier =>
       cm.modifiers.foreach(append(_))
     case s: VNodeProxyNode =>
-      children.nodes += s
+      setProxy(s.proxy)
+      setNode(s)
     case s: VNode =>
-      children.nodes += VNodeProxyNode(SnabbdomModifiers.toSnabbdom(s))
+      val proxy = SnabbdomModifiers.toSnabbdom(s)
+      setProxy(proxy)
+      setNode(VNodeProxyNode(proxy))
     case s: StringVNode =>
-      children.nodes += VNodeProxyNode(VNodeProxy.fromString(s.string))
+      val proxy = VNodeProxy.fromString(s.string)
+      setProxy(proxy)
+      setNode(VNodeProxyNode(proxy))
     case s: ModifierStreamReceiver =>
-      children.nodes += s
+      setNode(s)
       children.hasStream = true
     case a : BasicAttr =>
-      attributes.attrs(a.title) = a.value
+      if (attributes.attrs.isEmpty) attributes.attrs = js.Dictionary(a.title -> a.value)
+      else attributes.attrs.get(a.title) = a.value
     case a : AccumAttr =>
-      attributes.attrs(a.title) = attributes.attrs.get(a.title).fold(a.value)(a.accum(_, a.value))
+      if (attributes.attrs.isEmpty) attributes.attrs = js.Dictionary(a.title -> a.value)
+      else attributes.attrs.get(a.title) = attributes.attrs.get.get(a.title).fold(a.value)(a.accum(_, a.value))
     case p : Prop =>
-      attributes.props(p.title) = p.value
+      if (attributes.props.isEmpty) attributes.props = js.Dictionary(p.title -> p.value)
+      else attributes.props.get(p.title) = p.value
     case s: BasicStyle =>
-      attributes.styles(s.title) = s.value
+      if (attributes.styles.isEmpty) attributes.styles = js.Dictionary[Style.Value](s.title -> s.value)
+      else attributes.styles.get(s.title) = s.value
     case s: DelayedStyle =>
       setSpecialStyle(StyleKey.delayed)(s.title, s.value)
     case s: RemoveStyle =>
@@ -91,17 +117,20 @@ private[outwatch] class SeparatedModifiers {
     case s: DestroyStyle =>
       setSpecialStyle(StyleKey.destroy)(s.title, s.value)
     case a: AccumStyle =>
-      attributes.styles(a.title) = attributes.styles.get(a.title).fold[Style.Value](a.value)(s =>
+      if (attributes.styles.isEmpty) attributes.styles = js.Dictionary[Style.Value](a.title -> a.value)
+      else attributes.styles.get(a.title) = attributes.styles.get.get(a.title).fold[Style.Value](a.value)(s =>
         a.accum(s.asInstanceOf[String], a.value): Style.Value
       )
     case key: Key =>
       keyOption = key.value
     case em: Emitter =>
-      if (!emitters.contains(em.eventType)) {
-        emitters(em.eventType) = em.trigger
+      if (emitters.isEmpty) {
+        emitters = js.Dictionary[js.Function1[dom.Event, Unit]](em.eventType -> em.trigger)
+      } else if (!emitters.get.contains(em.eventType)) {
+        emitters.get(em.eventType) = em.trigger
       } else {
-        val prev = emitters(em.eventType)
-        emitters(em.eventType) = { ev => prev(ev); em.trigger(ev) }
+        val prev = emitters.get(em.eventType)
+        emitters.get(em.eventType) = { ev => prev(ev); em.trigger(ev) }
       }
     case h: DomMountHook =>
       hooks.insertHook = createHooksSingle(hooks.insertHook, h.trigger)
@@ -143,11 +172,23 @@ private[outwatch] class SeparatedModifiers {
     })
   }
 
+  private def setProxy(child: VNodeProxy): Unit =
+      if (children.proxies.isEmpty) {
+        children.proxies = new js.Array[VNodeProxy](1)
+        children.proxies.get(0) = child
+      } else children.proxies.get += child
+  private def setNode(child: ChildVNode): Unit =
+    if (children.nodes.isEmpty) {
+      children.nodes = new js.Array[ChildVNode](1)
+      children.nodes.get(0) = child
+    } else children.nodes.get += child
   private def setSpecialStyle(styleName: String)(title: String, value: String): Unit =
-    if (!attributes.styles.contains(styleName)) {
-      attributes.styles(styleName) = js.Dictionary[String](title -> value): Style.Value
+    if (attributes.styles.isEmpty) {
+      attributes.styles = js.Dictionary[Style.Value](styleName -> js.Dictionary(title -> value))
+    } else if (!attributes.styles.contains(styleName)) {
+      attributes.styles.get(styleName) = js.Dictionary[String](title -> value): Style.Value
     } else {
-      attributes.styles(styleName).asInstanceOf[js.Dictionary[String]](title) = value
+      attributes.styles.get(styleName).asInstanceOf[js.Dictionary[String]](title) = value
     }
 
   private def createProxyHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: VNodeProxy => Unit): Hooks.HookSingleFn =
@@ -174,14 +215,15 @@ private[outwatch] object StyleKey {
 }
 
 private[outwatch] class Children {
-  val nodes = new js.Array[ChildVNode]()
+  var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
+  var nodes: js.UndefOr[js.Array[ChildVNode]] = js.undefined
   var hasStream: Boolean = false
 }
 
 private[outwatch] class SeparatedAttributes {
-  val attrs = js.Dictionary[Attr.Value]()
-  val props = js.Dictionary[Prop.Value]()
-  val styles = js.Dictionary[Style.Value]()
+  var attrs: js.UndefOr[js.Dictionary[Attr.Value]] = js.undefined
+  var props: js.UndefOr[js.Dictionary[Prop.Value]] = js.undefined
+  var styles: js.UndefOr[js.Dictionary[Style.Value]] = js.undefined
 }
 
 private[outwatch] class SeparatedHooks {
@@ -236,10 +278,10 @@ private[outwatch] class StreamableModifiers(modifiers: js.Array[_ <: VDomModifie
           CompositeModifier(streamableModifiers.initialModifiers))
       }
 
-    case EffectModifier(effect) => handleStreamedModifier(effect.unsafeRunSync())
-
     case child: VNode  => ContentKind.Static(VNodeProxyNode(SnabbdomModifiers.toSnabbdom(child)))
     case child: StringVNode  => ContentKind.Static(VNodeProxyNode(VNodeProxy.fromString(child.string)))
+
+    case EffectModifier(effect) => handleStreamedModifier(effect.unsafeRunSync())
 
     case mod => ContentKind.Static(mod)
   }
