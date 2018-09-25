@@ -81,21 +81,20 @@ object EmitterBuilder {
 }
 
 final case class TransformingEmitterBuilder[E, +O, +R](
-  handler: ProHandler[E, O],
+  transformer: Observable[E] => Observable[O],
   create: (Scheduler => (E => Unit)) => R
 ) extends EmitterBuilder[O, R] {
 
-  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = copy(handler = handler.transformObservable(tr))
+  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = copy(transformer = transformer andThen tr)
 
   def map[T](f: O => T): EmitterBuilder[T, R] = transform(_.map(f))
   def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
   def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transform(_.collect(f))
 
   def handleWith(action: O => Unit): R = -->(Sink.fromFunction(action))
-  def handleWith(observer: Observer[O]): R = create { implicit s =>
-    val cancelable = handler.subscribe(observer)
-
-    (e: E) => handler.onNext(e)
+  def handleWith(observer: Observer[O]): R = {
+    val redirected = observer.redirect(transformer)
+    create(implicit s => (e: E) => redirected.onNext(e))
   }
 }
 
@@ -111,7 +110,7 @@ final case class FunctionEmitterBuilder[E, +O, +R](
  create: (Scheduler => (E => Unit)) => R
 ) extends SyncEmitterBuilder[O, R] {
 
-  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[O, T, R](PublishSubject[O].transformObservable(tr), f => create { s => val g = f(s); (e: E) => transformer(Some(e)).foreach(g) })
+  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[O, T, R](tr, f => create { s => val g = f(s); (e: E) => transformer(Some(e)).foreach(g) })
   def transformSync[T](tr: Option[O] => Option[T]): SyncEmitterBuilder[T, R] = copy(transformer = (e: Option[E]) => tr(transformer(e)))
 
   def handleWith(action: Observer[O]): R = handleWith(action.onNext(_))
@@ -121,7 +120,7 @@ final case class FunctionEmitterBuilder[E, +O, +R](
 }
 
 final case class CustomEmitterBuilder[+E, +R](create: (Scheduler => (E => Unit)) => R) extends AnyVal with SyncEmitterBuilder[E, R] {
-  def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[E, T, R](PublishSubject[E].transformObservable(tr), create)
+  def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[E, T, R](tr, create)
   def transformSync[T](tr: Option[E] => Option[T]): SyncEmitterBuilder[T, R] = FunctionEmitterBuilder[E, T, R](tr, create)
 
   def handleWith(observer: Observer[E]): R = handleWith(observer.onNext(_))
