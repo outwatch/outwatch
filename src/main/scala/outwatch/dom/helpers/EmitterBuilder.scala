@@ -1,10 +1,9 @@
 package outwatch.dom.helpers
 
-import monix.execution.Scheduler
-import monix.reactive.subjects.PublishSubject
+import cats.effect.IO
 import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
-import outwatch.ProHandler
+import outwatch.ConnectableObserver
 import outwatch.dom._
 
 import scala.concurrent.duration.FiniteDuration
@@ -42,11 +41,14 @@ trait EmitterBuilder[+O, +R] extends Any {
 object EmitterBuilder {
   def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](f => Emitter(eventType, event => f(event.asInstanceOf[E])))
 
-  def withScheduler[E](create: (E => Unit) => VDomModifier)(implicit scheduler: Scheduler): CustomEmitterBuilder[E, VDomModifier] =
-    CustomEmitterBuilder[E, VDomModifier] { f => SchedulerAction(s => create(f(s))) }
-
   def ofModifier[E](create: (E => Unit) => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
-    CustomEmitterBuilder[E, VDomModifier] { f => SchedulerAction(s => create(f(s))) }
+    CustomEmitterBuilder[E, VDomModifier] {
+      case f: EmitterReceiver.Function[E] => create(f.next)
+      case o: EmitterReceiver.Observer[E] => println("CREATE OBSI"); VDomModifier(
+        managed(implicit scheduler => IO { println("RUNNING"); o.observer.connect() }),
+        create(o.observer.onNext(_))
+      )
+    }
 
   implicit class EventActions[O <: Event, R](val builder: SyncEmitterBuilder[O, R]) extends AnyVal {
     def preventDefault: SyncEmitterBuilder[O, R] = builder.map { e => e.preventDefault; e }
@@ -82,7 +84,7 @@ object EmitterBuilder {
 
 final case class TransformingEmitterBuilder[E, +O, +R](
   transformer: Observable[E] => Observable[O],
-  create: (Scheduler => (E => Unit)) => R
+  create: EmitterReceiver.Observer[E] => R
 ) extends EmitterBuilder[O, R] {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = copy(transformer = transformer andThen tr)
@@ -93,8 +95,7 @@ final case class TransformingEmitterBuilder[E, +O, +R](
 
   def handleWith(action: O => Unit): R = -->(Sink.fromFunction(action))
   def handleWith(observer: Observer[O]): R = {
-    val redirected = observer.redirect(transformer)
-    create(implicit s => (e: E) => redirected.onNext(e))
+    create(EmitterReceiver.Observer(observer.redirect(transformer)))
   }
 }
 
@@ -103,26 +104,27 @@ trait SyncEmitterBuilder[+O, +R] extends Any with EmitterBuilder[O, R] {
   def map[T](f: O => T): SyncEmitterBuilder[T, R] = transformSync(_.map(f))
   def collect[T](f: PartialFunction[O, T]): SyncEmitterBuilder[T, R] = transformSync(_.collect(f))
   def filter(predicate: O => Boolean): SyncEmitterBuilder[O, R] = transformSync(_.filter(predicate))
+  def handleWith(observer: Observer[O]): R = handleWith(observer.onNext(_))
 }
 
 final case class FunctionEmitterBuilder[E, +O, +R](
  transformer: Option[E] => Option[O],
- create: (Scheduler => (E => Unit)) => R
+ create: EmitterReceiver[E] => R
 ) extends SyncEmitterBuilder[O, R] {
 
-  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[O, T, R](tr, f => create { s => val g = f(s); (e: E) => transformer(Some(e)).foreach(g) })
+  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[O, T, R](tr, observer => create(EmitterReceiver.Observer(new ConnectableObserver[E](Sink.fromFunction(e => transformer(Some(e)).foreach(observer.observer.onNext(_))), observer.observer.connect()(_)))))
   def transformSync[T](tr: Option[O] => Option[T]): SyncEmitterBuilder[T, R] = copy(transformer = (e: Option[E]) => tr(transformer(e)))
-
-  def handleWith(action: Observer[O]): R = handleWith(action.onNext(_))
-  def handleWith(action: O => Unit): R = create { _ =>
-    (e: E) => transformer(Some(e)).foreach(action)
-  }
+  def handleWith(action: O => Unit): R = create(EmitterReceiver.Function((e: E) => transformer(Some(e)).foreach(action)))
 }
 
-final case class CustomEmitterBuilder[+E, +R](create: (Scheduler => (E => Unit)) => R) extends AnyVal with SyncEmitterBuilder[E, R] {
+final case class CustomEmitterBuilder[E, +R](create: EmitterReceiver[E] => R) extends AnyVal with SyncEmitterBuilder[E, R] {
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[E, T, R](tr, create)
   def transformSync[T](tr: Option[E] => Option[T]): SyncEmitterBuilder[T, R] = FunctionEmitterBuilder[E, T, R](tr, create)
+  def handleWith(action: E => Unit): R = create(EmitterReceiver.Function(action))
+}
 
-  def handleWith(observer: Observer[E]): R = handleWith(observer.onNext(_))
-  def handleWith(action: E => Unit): R = create(_ => action)
+sealed trait EmitterReceiver[E]
+object EmitterReceiver {
+  case class Function[E](next: E => Unit) extends EmitterReceiver[E]
+  case class Observer[E](observer: ConnectableObserver[E]) extends EmitterReceiver[E]
 }

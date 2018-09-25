@@ -1,6 +1,5 @@
 package outwatch
 
-import cats.effect.IO
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.Observer
 
@@ -29,11 +28,5 @@ class ConnectableObserver[T](observer: Observer[T], connection: Scheduler => Can
   override def onNext(elem: T): Future[Ack] = observer.onNext(elem)
   override def onError(ex: Throwable): Unit = observer.onError(ex)
   override def onComplete(): Unit = observer.onComplete()
-
-  private var isConnected = false
-  override def connect()(implicit scheduler: Scheduler): Cancelable  =
-    if (!isConnected) {
-      isConnected = true
-      connection(scheduler)
-    } else Cancelable.empty
+  override def connect()(implicit scheduler: Scheduler): Cancelable = connection(scheduler)
 }
