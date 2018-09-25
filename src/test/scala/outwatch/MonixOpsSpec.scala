@@ -153,7 +153,7 @@ class MonixOpsSpec extends JSDomSpec {
 
   it should "mapSubject" in {
     val handler = Handler.create[Int].unsafeRunSync()
-    val lensed = handler.mapHandler[Int](_ - 1)(_ + 1)
+    val lensed = handler.mapHandler[Int](_ + 1)(_ - 1)
     lensed.connect()
 
     var handlerValue: Int = -100
@@ -173,7 +173,7 @@ class MonixOpsSpec extends JSDomSpec {
 
   it should "transformSubject" in {
     val handler = Handler.create[Int].unsafeRunSync()
-    val lensed = handler.transformHandler[Int](_.map(_ - 1))(_.map(_ + 1))
+    val lensed = handler.transformHandler[Int](_.map(_ + 1))(_.map(_ - 1))
     lensed.connect()
 
     var handlerValue: Int = -100
