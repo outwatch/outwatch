@@ -218,8 +218,7 @@ private[outwatch] class ModifierOps {
   // and the dynamic nodes can place one element on each update and start with
   // EmptyModifier, and we reserve an array element for each attribute
   // receiver.
-  val modifiers = new js.Array[StaticVDomModifier](1) // 1 reserved for new one time modifiers
-  modifiers(0) = EmptyModifier
+  val modifiers = new js.Array[StaticVDomModifier]()
 
   // for each node which might be dynamic, we have an Observable of Modifier updates
   private val updaterObservables = new js.Array[Observable[Unit]]
@@ -235,22 +234,6 @@ private[outwatch] class ModifierOps {
     val modStream = flattenModifierStream(stream)
     modifiers += modStream.value getOrElse EmptyModifier
     updaterObservables += modStream.observable.map { mod =>
-      val composite = new js.Array[StaticVDomModifier]()
-      modifiers(index) match {
-        case DomUnmountHook(trigger) =>
-          var done = false
-          composite += DomUpdateHook { e => if (!done) trigger(e); done = true }
-          composite += DomMountHook { e => done = true }
-        case _ => ()
-      }
-      mod match {
-        case DomMountHook(trigger) =>
-          var done = false
-          composite += DomUpdateHook { e => if (!done) trigger(e); done = true }
-          composite += DomMountHook { e => done = true }
-        case _ => ()
-      }
-      modifiers(0) = StaticCompositeModifier(composite)
       modifiers(index) = mod
     }
   }
