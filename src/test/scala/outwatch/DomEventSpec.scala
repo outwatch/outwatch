@@ -338,29 +338,6 @@ class DomEventSpec extends JSDomSpec {
     triggeredFunction2 shouldBe 2
   }
 
-  it should "be able to toggle attributes with a boolean observer" in {
-    import outwatch.util.SyntaxSugar._
-
-    val someClass = "some-class"
-    val node = Handler.create[Boolean].map { stream =>
-      div(
-        button(id := "input", tpe := "checkbox", onClick(true) --> stream),
-        span(id := "toggled", stream ?= (className := someClass))
-      )
-    }
-
-    node.flatMap(OutWatch.renderInto("#app", _)).unsafeRunSync()
-
-    val inputEvt = document.createEvent("HTMLEvents")
-    initEvent(inputEvt)("click", true, false)
-
-
-    document.getElementById("input").dispatchEvent(inputEvt)
-
-    document.getElementById("toggled").classList.contains(someClass) shouldBe true
-  }
-
-
   it should "correctly be transformed from latest in observable" in {
 
     val node = Handler.create[String].flatMap { submit =>
