@@ -10,6 +10,7 @@ class MonixOpsSpec extends JSDomSpec {
     subject.foreach{currentValue = _}
 
     val redirected = subject.redirect[Int](_.map(_ + 1))
+    redirected.connect()
 
     subject.onNext(5)
     assert(currentValue == 5)
@@ -24,6 +25,7 @@ class MonixOpsSpec extends JSDomSpec {
     subject.foreach{currentValue = _}
 
     val redirected = subject.redirectMap[Int](_ + 1)
+    redirected.connect()
 
     subject.onNext(5)
     assert(currentValue == 5)
@@ -50,6 +52,7 @@ class MonixOpsSpec extends JSDomSpec {
   "Subject" should "lens" in {
     val handler = Handler.create[(String, Int)].unsafeRunSync()
     val lensed = handler.lens[Int](("harals", 0))(_._2)((tuple, num) => (tuple._1, num))
+    lensed.connect()
 
     var handlerValue: (String, Int) = null
     var lensedValue: Int = -100
@@ -111,6 +114,7 @@ class MonixOpsSpec extends JSDomSpec {
   it should "mapObserver" in {
     val handler = Handler.create[Int].unsafeRunSync()
     val lensed = handler.mapObserver[Int](_ + 1)
+    lensed.connect()
 
     var handlerValue: Int = -100
     var lensedValue: Int = -100
@@ -130,6 +134,7 @@ class MonixOpsSpec extends JSDomSpec {
   it should "transformObserver" in {
     val handler = Handler.create[Int].unsafeRunSync()
     val lensed = handler.transformObserver[Int](_.map(_ + 1))
+    lensed.connect()
 
     var handlerValue: Int = -100
     var lensedValue: Int = -100
@@ -148,7 +153,8 @@ class MonixOpsSpec extends JSDomSpec {
 
   it should "mapSubject" in {
     val handler = Handler.create[Int].unsafeRunSync()
-    val lensed = handler.mapHandler(_ - 1)(_ + 1)
+    val lensed = handler.mapHandler[Int](_ - 1)(_ + 1)
+    lensed.connect()
 
     var handlerValue: Int = -100
     var lensedValue: Int = -100
@@ -167,7 +173,8 @@ class MonixOpsSpec extends JSDomSpec {
 
   it should "transformSubject" in {
     val handler = Handler.create[Int].unsafeRunSync()
-    val lensed = handler.transformHandler(_.map(_ - 1))(_.map(_ + 1))
+    val lensed = handler.transformHandler[Int](_.map(_ - 1))(_.map(_ + 1))
+    lensed.connect()
 
     var handlerValue: Int = -100
     var lensedValue: Int = -100

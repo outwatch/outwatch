@@ -2,6 +2,7 @@ package outwatch.dom.helpers
 
 import monix.execution.Scheduler
 import monix.reactive.Observable
+import monix.reactive.observables.ConnectableObservable
 import org.scalajs.dom
 import outwatch.dom._
 import snabbdom.{Hooks, OutwatchState, VNodeProxy}

@@ -1,6 +1,7 @@
 package outwatch
 
-import monix.execution.Ack
+import cats.effect.IO
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.Observer
 
 import scala.concurrent.Future
@@ -21,4 +22,18 @@ object Sink {
   def fromFunction[T](next: T => Unit): Observer[T] = Sink.create[T]{ t => next(t); Ack.Continue }
 }
 
+trait ReactiveConnectable {
+  def connect()(implicit scheduler: Scheduler): Cancelable
+}
+class ConnectableObserver[T](observer: Observer[T], connection: Scheduler => Cancelable) extends Observer[T] with ReactiveConnectable {
+  override def onNext(elem: T): Future[Ack] = observer.onNext(elem)
+  override def onError(ex: Throwable): Unit = observer.onError(ex)
+  override def onComplete(): Unit = observer.onComplete()
 
+  private var isConnected = false
+  override def connect()(implicit scheduler: Scheduler): Cancelable  =
+    if (!isConnected) {
+      isConnected = true
+      connection(scheduler)
+    } else Cancelable.empty
+}
