@@ -64,7 +64,7 @@ trait LocalStorageMock {
   }
 }
 
-abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock {
+abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock with SnabbdomTestHelper {
 
   implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 

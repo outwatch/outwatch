@@ -84,12 +84,6 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]] = js.Dictionary[AttrValue](),
-            on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = js.Dictionary[js.Function1[Event, Unit]](),
-            hooks : Hooks = Hooks()
-           ): DataObject = apply(attrs, js.undefined, js.undefined, on, hooks, js.undefined)
-
-
   def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]],
             props: js.UndefOr[js.Dictionary[PropValue]],
             style: js.UndefOr[js.Dictionary[StyleValue]],

@@ -18,15 +18,7 @@ object VDomModifier {
   def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
 }
 
-sealed trait NativeVDomModifier extends VDomModifier
-
-final case class NativeModifierStreamReceiver(stream: ValueObservable[StaticVDomModifier]) extends NativeVDomModifier
-
-sealed trait StaticVDomModifier extends NativeVDomModifier
-
-case object EmptyModifier extends StaticVDomModifier
-
-final case class StaticCompositeModifier(modifiers: js.Array[_ <: StaticVDomModifier]) extends StaticVDomModifier
+sealed trait StaticVDomModifier extends VDomModifier
 
 final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVDomModifier
 
@@ -76,12 +68,12 @@ final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Ho
 final case class DestroyHook(trigger: Element => Unit) extends Hook
 
 
-sealed trait DerivedVDomModifier extends VDomModifier
-final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends DerivedVDomModifier
-final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends DerivedVDomModifier
-final case class EffectModifier(effect: IO[VDomModifier]) extends DerivedVDomModifier
-final case class SchedulerAction(action: Scheduler => VDomModifier) extends DerivedVDomModifier
-final case class StringVNode(text: String) extends DerivedVDomModifier
-final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends DerivedVDomModifier {
+case object EmptyModifier extends VDomModifier
+final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
+final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends VDomModifier
+final case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
+final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
+final case class StringVNode(text: String) extends VDomModifier
+final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VDomModifier {
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
 }

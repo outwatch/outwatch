@@ -44,8 +44,10 @@ object EmitterBuilder {
   def ofModifier[E](create: (E => Unit) => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
     CustomEmitterBuilder[E, VDomModifier] {
       case f: EmitterReceiver.Function[E] => create(f.next)
-      case o: EmitterReceiver.Observer[E] => println("CREATE OBSI"); VDomModifier(
-        managed(implicit scheduler => IO { println("RUNNING"); o.observer.connect() }),
+      case o: EmitterReceiver.Observer[E] =>
+        VDomModifier(
+          SchedulerAction(implicit scheduler => {o.observer.connect(); EmptyModifier}),
+//        managed(implicit scheduler => IO { o.observer.connect() }),
         create(o.observer.onNext(_))
       )
     }

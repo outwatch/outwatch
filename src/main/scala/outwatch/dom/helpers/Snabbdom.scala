@@ -16,75 +16,49 @@ object OutwatchTracing {
 }
 
 object SnabbdomOps {
-  private def toOutwatchState(hooks: SeparatedHooks, vNodeId: Int): js.UndefOr[OutwatchState] = {
-    import hooks._
-
-    if (usesOutwatchState || domUnmountHook.nonEmpty) OutwatchState(vNodeId, domUnmountHook)
+  private def toOutwatchState(modifiers: SeparatedModifiers, vNodeId: Int): js.UndefOr[OutwatchState] =
+    if (modifiers.usesOutwatchState || modifiers.domUnmountHook.nonEmpty) OutwatchState(vNodeId, modifiers.domUnmountHook)
     else js.undefined
-  }
 
-  private def createDataObject(modifiers: SeparatedModifiers): DataObject = {
-    import modifiers._
-
+  private def createDataObject(modifiers: SeparatedModifiers): DataObject =
     DataObject(
-      attributes.attrs, attributes.props, attributes.styles, emitters,
-      Hooks(hooks.insertHook, hooks.prePatchHook, hooks.updateHook, hooks.postPatchHook, hooks.destroyHook),
-      keyOption
+      modifiers.attrs, modifiers.props, modifiers.styles, modifiers.emitters,
+      Hooks(modifiers.insertHook, modifiers.prePatchHook, modifiers.updateHook, modifiers.postPatchHook, modifiers.destroyHook),
+      modifiers.keyOption
     )
-  }
 
-  // This is called initially once the VNode is constructed. Every time a
-  // dynamic modifier of this node yields a new VNodeState, this new state with
-  // new modifiers and attributes needs to be applied to the current
-  // VNodeProxy.
-  private def createProxy(nodeType: String, state: js.UndefOr[OutwatchState], dataObject: DataObject, children: js.Array[VNodeProxy])(implicit scheduler: Scheduler): VNodeProxy = {
-    val proxy = if (children.isEmpty) {
+  private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int)(implicit scheduler: Scheduler): VNodeProxy = {
+    val dataObject = createDataObject(modifiers)
+    val state = toOutwatchState(modifiers, vNodeId)
+
+    val proxy = if (modifiers.proxies.isEmpty) {
       hFunction(nodeType, dataObject)
     } else {
-      hFunction(nodeType, dataObject, children)
+      hFunction(nodeType, dataObject, modifiers.proxies)
     }
 
     proxy.outwatchState = state
     proxy
   }
 
-  private def updateSnabbdom(modifiersArray: js.Array[StaticVDomModifier], nodeType: String, vNodeId: Int, initialModifiers: SeparatedModifiers)(implicit scheduler: Scheduler): VNodeProxy = {
-
-    val newModifiers = SeparatedModifiers.fromWithoutChildren(initialModifiers)
-    modifiersArray.foreach(newModifiers.append)
-
-    // Updates never contain streamable content and therefore we do not need to
-    // handle them with Receivers.
-
-    val dataObject = createDataObject(newModifiers)
-    val state = toOutwatchState(newModifiers.hooks, vNodeId)
-
-    createProxy(nodeType, state, dataObject, newModifiers.children.proxies)
-  }
-
   private def toSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
-    val modifiers = SeparatedModifiers.from(modifiersArray)
-    import modifiers._
-
-    val vNodeId = modifiers.hashCode
-    modifiers.appendUnmountHook()
+    val streamableModifiers = NativeModifiers.from(modifiersArray)
+    val vNodeId = streamableModifiers.hashCode()
 
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
     // initial state of the obseravbles.
-    if (modifiers.children.streamable.isDefined) {
-
-      val initialModifiers = modifiers.children.streamable.get.modifiers
-      val observable = modifiers.children.streamable.get.observable
-
+    if (streamableModifiers.observable.isEmpty) {
+      createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), nodeType, vNodeId)
+    } else {
       // needs var for forward referencing
       var proxy: VNodeProxy = null
 
       def subscribe(): Cancelable = {
-        observable.subscribe(
+        streamableModifiers.observable.get.subscribe(
           { newState =>
             // update the current proxy with the new state
-            val newProxy = updateSnabbdom(newState, nodeType, vNodeId, modifiers)
+            val newProxy = createProxy(SeparatedModifiers.from(newState), nodeType, vNodeId)
 
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext((proxy, newProxy))
@@ -102,6 +76,7 @@ object SnabbdomOps {
             proxy.text = next.text
             proxy.key = next.key
             proxy.outwatchState = next.outwatchState
+            proxy.asInstanceOf[js.Dynamic].listener = next.asInstanceOf[js.Dynamic].listener
 
             Continue
           },
@@ -111,17 +86,13 @@ object SnabbdomOps {
 
       // hooks for subscribing and unsubscribing the streamable content
       val cancelable = new QueuedCancelable()
-      modifiers.append(DomMountHook(_ => cancelable.enqueue(subscribe())))
-      modifiers.append(DomUnmountHook(_ => cancelable.dequeue().cancel()))
+      streamableModifiers.modifiers += DomMountHook(_ => cancelable.enqueue(subscribe()))
+      streamableModifiers.modifiers += DomUnmountHook(_ => cancelable.dequeue().cancel())
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      proxy = updateSnabbdom(initialModifiers, nodeType, vNodeId, modifiers)
+      proxy = createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), nodeType, vNodeId)
       proxy
-    } else {
-      val state = toOutwatchState(hooks, vNodeId)
-      val dataObject = createDataObject(modifiers)
-      createProxy(nodeType, state, dataObject, children.proxies)
     }
   }
 

@@ -11,7 +11,7 @@ class PerfTest extends JSDomSpec {
 
     val handler = Handler.create[Int](0).unsafeRunSync
     val handler2 = Handler.create[Int](0).unsafeRunSync
-    val handler3 = Handler.create[Int](0).unsafeRunSync
+    val handler3 = Handler.create[Int].unsafeRunSync
 
     val vtree = div(
       id := elemId,
@@ -31,7 +31,6 @@ class PerfTest extends JSDomSpec {
         (0 to i).map { j =>
           div(i, cls := j.toString, onClick handleWith {}, handler3)
         }
-//        div(i, cls := i.toString, onClick --> {}, handler3)
       }
     )
 
@@ -44,10 +43,12 @@ class PerfTest extends JSDomSpec {
 
 //     node.innerHTML shouldBe """<div id="msg"><span id="pete">Go!</span><input type="text" value="0" style="background:black;"><div class="0">00</div></div>"""
 
+//    val i = 9
      (0 to 100).foreach { i =>
       handler.onNext(i)
       handler2.onNext(i)
      }
+
 
 
     val t2 = System.nanoTime()
