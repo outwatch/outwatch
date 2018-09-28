@@ -45,11 +45,11 @@ object Hooks {
   type HookPairFn = js.Function2[VNodeProxy, VNodeProxy, Unit]
 
   def apply(
-    insert: js.UndefOr[HookSingleFn] = js.undefined,
-    prepatch: js.UndefOr[HookPairFn] = js.undefined,
-    update: js.UndefOr[HookPairFn] = js.undefined,
-    postpatch: js.UndefOr[HookPairFn] = js.undefined,
-    destroy: js.UndefOr[HookSingleFn] = js.undefined
+    insert: js.UndefOr[HookSingleFn],
+    prepatch: js.UndefOr[HookPairFn],
+    update: js.UndefOr[HookPairFn],
+    postpatch: js.UndefOr[HookPairFn],
+    destroy: js.UndefOr[HookSingleFn]
   ): Hooks = {
     val _insert = insert
     val _prepatch = prepatch
@@ -73,7 +73,7 @@ trait DataObject extends js.Object {
   val props: js.UndefOr[js.Dictionary[PropValue]]
   val style: js.UndefOr[js.Dictionary[StyleValue]]
   val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]]
-  val hook: Hooks
+  val hook: js.UndefOr[Hooks]
   val key: js.UndefOr[KeyValue]
 }
 
@@ -84,11 +84,13 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
+  def empty: DataObject = apply(js.undefined, js.undefined, js.undefined, js.undefined, js.undefined, js.undefined)
+
   def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]],
             props: js.UndefOr[js.Dictionary[PropValue]],
             style: js.UndefOr[js.Dictionary[StyleValue]],
             on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]],
-            hook: Hooks,
+            hook: js.UndefOr[Hooks],
             key: js.UndefOr[KeyValue]
            ): DataObject = {
 
@@ -104,8 +106,8 @@ object DataObject {
       val props: js.UndefOr[js.Dictionary[PropValue]] = _props
       val style: js.UndefOr[js.Dictionary[StyleValue]] = _style
       val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = _on
-      val hook: Hooks = _hook
-      val key: UndefOr[KeyValue] = _key
+      val hook: js.UndefOr[Hooks] = _hook
+      val key: js.UndefOr[KeyValue] = _key
     }
   }
 }
@@ -141,6 +143,13 @@ trait VNodeProxy extends js.Object {
 
 object VNodeProxy {
   def fromString(string: String): VNodeProxy = js.Dynamic.literal(text = string).asInstanceOf[VNodeProxy]
+
+  def fromElement(element: Element): VNodeProxy = js.Dynamic.literal(
+    sel = element.tagName.toLowerCase,
+    elm = element,
+    text = "",
+    data = DataObject.empty
+  ).asInstanceOf[VNodeProxy]
 }
 
 

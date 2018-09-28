@@ -829,6 +829,9 @@ class OutWatchDomSpec extends JSDomSpec {
     OutWatch.renderReplace(node, div(Some("one"))).unsafeRunSync()
     node.innerHTML shouldBe "one"
 
+    OutWatch.renderReplace(node, div(span("one"))).unsafeRunSync()
+    node.innerHTML shouldBe "<span>one</span>"
+
     val node2 = document.createElement("div")
     OutWatch.renderReplace(node2, div(None:Option[Int])).unsafeRunSync()
     node2.innerHTML shouldBe ""

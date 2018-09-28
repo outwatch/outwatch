@@ -25,7 +25,10 @@ object OutWatch {
 
   def renderReplace(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
     node <- toSnabbdom(vNode)
-    _ <- IO(patch(element, node))
+    _ <- IO {
+      val elementNode = VNodeProxy.fromElement(element)
+      patch(elementNode, node)
+    }
   } yield ()
 
   def renderInto(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] =
