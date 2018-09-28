@@ -29,9 +29,7 @@ object Key {
 
 final case class Emitter(eventType: String, trigger: Event => Unit) extends StaticVDomModifier
 
-sealed trait Attribute extends StaticVDomModifier
-
-sealed trait Attr extends Attribute {
+sealed trait Attr extends StaticVDomModifier {
   val value: Attr.Value
 }
 object Attr {
@@ -40,12 +38,12 @@ object Attr {
 final case class BasicAttr(title: String, value: Attr.Value) extends Attr
 final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value)=> Attr.Value) extends Attr
 
-final case class Prop(title: String, value: Prop.Value) extends Attribute
+final case class Prop(title: String, value: Prop.Value) extends StaticVDomModifier
 object Prop {
   type Value = DataObject.PropValue
 }
 
-sealed trait Style extends Attribute {
+sealed trait Style extends StaticVDomModifier {
   val value: String
 }
 object Style {

@@ -7,19 +7,19 @@ import outwatch.dom._
 
 import scala.language.dynamics
 
-trait AttributeBuilder[-T, +A <: Attribute] extends Any {
+trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
   protected def name: String
   private[outwatch] def assign(value: T): A
 
   def :=(value: T): A = assign(value)
-  def :=?(value: Option[T]): Option[VDomModifier] = value.map(assign)
+  def :=?(value: Option[T]): Option[A] = value.map(assign)
   def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): ModifierStreamReceiver = {
     ModifierStreamReceiver(ValueObservable(valueStream).map(assign))
   }
 }
 
 object AttributeBuilder {
-  implicit def toAttribute[A <: Attribute](builder: AttributeBuilder[Boolean, A]): A = builder := true
+  implicit def toAttribute[A <: VDomModifier](builder: AttributeBuilder[Boolean, A]): A = builder := true
 }
 
 // Attr
