@@ -39,7 +39,7 @@ class OutWatchDomSpec extends JSDomSpec {
     updateHook.isDefined shouldBe true
     postPatchHook.isDefined shouldBe true
     destroyHook.isDefined shouldBe true
-    attrs.values.size shouldBe 1
+    attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
   }
 
@@ -66,7 +66,7 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.values.size shouldBe 1
-    attrs.values.size shouldBe 1
+    attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
     proxies.length shouldBe 3
   }
@@ -89,7 +89,7 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.values.size shouldBe 3
-    attrs.values.size shouldBe 1
+    attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
     proxies.length shouldBe 2
   }
@@ -112,7 +112,7 @@ class OutWatchDomSpec extends JSDomSpec {
     import seps._
 
     emitters.values.size shouldBe 3
-    attrs.values.size shouldBe 1
+    attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
     proxies.length shouldBe 2
   }
@@ -144,7 +144,7 @@ class OutWatchDomSpec extends JSDomSpec {
     updateHook.isDefined shouldBe true
     postPatchHook.isDefined shouldBe true
     destroyHook.isDefined shouldBe false
-    attrs.values.size shouldBe 1
+    attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
     streamable.observable.isEmpty shouldBe false
     proxies.length shouldBe 1
