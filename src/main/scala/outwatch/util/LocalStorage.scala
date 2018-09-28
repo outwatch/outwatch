@@ -19,12 +19,16 @@ class Storage(domStorage: dom.Storage) {
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
-      h.foreach {
-        case Some(data) => storage.update(key, data)
-        case None => storage.remove(key)
+      val connectable = h.transformHandler[Option[String]](o => transform(o).distinctUntilChanged) { input =>
+        input.doOnNext {
+          case Some(data) => storage.update(key, data)
+          case None => storage.remove(key)
+        }
       }
 
-      h.transformObservable(o => transform(o).distinctUntilChanged)
+      connectable.connect()
+
+      connectable
     }
   }
 
