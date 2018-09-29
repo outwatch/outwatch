@@ -34,7 +34,9 @@ object SnabbdomOps {
     val proxy = if (modifiers.proxies.isEmpty) {
       hFunction(nodeType, dataObject)
     } else {
-      hFunction(nodeType, dataObject, modifiers.proxies)
+      val copy = new js.Array[VNodeProxy]()
+      copy ++= modifiers.proxies
+      hFunction(nodeType, dataObject, copy)
     }
 
     proxy.outwatchState = state
@@ -55,28 +57,31 @@ object SnabbdomOps {
       var proxy: VNodeProxy = null
 
       def subscribe(): Cancelable = {
+        var currentProxy: VNodeProxy = proxy
         streamableModifiers.observable.get.subscribe(
           { newState =>
             // update the current proxy with the new state
             val newProxy = createProxy(SeparatedModifiers.from(newState), nodeType, vNodeId)
 
             // call the snabbdom patch method and get the resulting proxy
-            OutwatchTracing.patchSubject.onNext((proxy, newProxy))
-            val next = patch(proxy, newProxy)
+//            OutwatchTracing.patchSubject.onNext((currentProxy, newProxy))
+            dom.console.log("Snabbdom Patch\n " + currentProxy.children.map(_.length))
+            dom.console.log("Snabbdom Patch\n", currentProxy, newProxy)
+            currentProxy = patch(currentProxy, newProxy)
 
             // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
             // if we are changing the content of this proxy via a stream, the parent will not see this change.
             // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
             // renders its children again. But it would not have the correct state of this proxy. Therefore,
             // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-            proxy.sel = next.sel
-            proxy.data = next.data
-            proxy.children = next.children
-            proxy.elm = next.elm
-            proxy.text = next.text
-            proxy.key = next.key
-            proxy.outwatchState = next.outwatchState
-            proxy.asInstanceOf[js.Dynamic].listener = next.asInstanceOf[js.Dynamic].listener
+            proxy.sel = currentProxy.sel
+            proxy.data = currentProxy.data
+            proxy.children = currentProxy.children
+            proxy.elm = currentProxy.elm
+            proxy.text = currentProxy.text
+            proxy.key = currentProxy.key
+            proxy.outwatchState = currentProxy.outwatchState
+            proxy.asInstanceOf[js.Dynamic].listener = currentProxy.asInstanceOf[js.Dynamic].listener
 
             Continue
           },

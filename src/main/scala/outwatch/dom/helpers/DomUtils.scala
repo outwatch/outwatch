@@ -194,12 +194,13 @@ private[outwatch] object NativeModifiers {
     }
     def appendStream(stream: ValueObservable[js.Array[StaticVDomModifier]]): Unit = {
       if (lengths.isEmpty) {
-        lengths = new js.Array[Int](modifiers.length)
+        val lengthsArr = new js.Array[Int](modifiers.length)
         var i = 0
         while (i < modifiers.length) {
-          lengths.get(i) = 1
+          lengthsArr(i) = 1
           i += 1
         }
+        lengths = lengthsArr
         updaterObservables = new js.Array[Observable[js.Array[StaticVDomModifier]]]()
       }
 
@@ -246,9 +247,9 @@ private[outwatch] object NativeModifiers {
       case mod: StaticVDomModifier => Observable.now(js.Array(mod))
       case EmptyModifier => Observable.now(js.Array())
       case mod =>
-        val streamableModifiers = from(mod)
-        if (streamableModifiers.observable.isEmpty) Observable.now(streamableModifiers.modifiers)
-        else Observable.concat(Observable.now(streamableModifiers.modifiers), streamableModifiers.observable.get)
+        val nativeModifiers = from(mod)
+        if (nativeModifiers.observable.isEmpty) Observable.now(nativeModifiers.modifiers)
+        else Observable.concat(Observable.now(nativeModifiers.modifiers), nativeModifiers.observable.get)
     }
 
     modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array())) {
@@ -256,13 +257,13 @@ private[outwatch] object NativeModifiers {
 
       case EmptyModifier => ValueObservable(observable, js.Array())
       case defaultValue =>
-        val streamableModifiers = from(defaultValue)
-        val initialObservable = if (streamableModifiers.observable.isEmpty) observable
+        val nativeModifiers = from(defaultValue)
+        val initialObservable = if (nativeModifiers.observable.isEmpty) observable
         else observable.publishSelector { observable =>
-          Observable.merge(streamableModifiers.observable.get.takeUntil(observable), observable)
+          Observable.merge(nativeModifiers.observable.get.takeUntil(observable), observable)
         }
 
-        ValueObservable(initialObservable, streamableModifiers.modifiers)
+        ValueObservable(initialObservable, nativeModifiers.modifiers)
     }
   }
 }
