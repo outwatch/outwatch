@@ -59,6 +59,7 @@ sealed trait Hook extends StaticVDomModifier
 final case class DomMountHook(trigger: Element => Unit) extends Hook
 final case class DomUnmountHook(trigger: Element => Unit) extends Hook
 final case class DomUpdateHook(trigger: Element => Unit) extends Hook
+final case class DomPreUpdateHook(trigger: Element => Unit) extends Hook
 final case class InsertHook(trigger: Element => Unit) extends Hook
 final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook
 final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook

@@ -134,6 +134,13 @@ private[outwatch] object SeparatedModifiers {
           }
         })
         usesOutwatchState = true
+      case h: DomPreUpdateHook =>
+        prePatchHook = createProxyHooksPair(prePatchHook, { (oldproxy, proxy) =>
+          if (proxy.outwatchState.map(_.id) == oldproxy.outwatchState.map(_.id)) {
+            oldproxy.elm.foreach(h.trigger)
+          }
+        })
+        usesOutwatchState = true
       case h: InsertHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
       case h: PrePatchHook =>
