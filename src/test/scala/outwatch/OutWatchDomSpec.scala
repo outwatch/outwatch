@@ -65,7 +65,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    emitters.values.size shouldBe 1
+    emitters.get.values.size shouldBe 1
     attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
     proxies.get.length shouldBe 3
@@ -88,7 +88,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    emitters.values.size shouldBe 3
+    emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
     proxies.get.length shouldBe 2
@@ -111,7 +111,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    emitters.values.size shouldBe 3
+    emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
     proxies.get.length shouldBe 2
@@ -138,7 +138,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    emitters.keys.toList shouldBe List("click", "input", "keyup")
+    emitters.get.keys.toList shouldBe List("click", "input", "keyup")
     insertHook.isDefined shouldBe true
     prePatchHook.isDefined shouldBe true
     updateHook.isDefined shouldBe true

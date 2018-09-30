@@ -27,7 +27,7 @@ private[outwatch] object SeparatedModifiers {
     var attrs: js.UndefOr[js.Dictionary[Attr.Value]] = js.undefined
     var props: js.UndefOr[js.Dictionary[Prop.Value]] = js.undefined
     var styles: js.UndefOr[js.Dictionary[Style.Value]] = js.undefined
-    val emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
+    var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
     var keyOption: js.UndefOr[Key.Value] = js.undefined
     var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
     var prePatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
@@ -38,6 +38,7 @@ private[outwatch] object SeparatedModifiers {
     var usesOutwatchState: Boolean = false
 
     @inline def assureProxies(): Unit = if (proxies.isEmpty) proxies = new js.Array[VNodeProxy]()
+    @inline def assureEmitters(): Unit = if (emitters.isEmpty) emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
     @inline def assureAttrs(): Unit = if (attrs.isEmpty) attrs = js.Dictionary[Attr.Value]()
     @inline def assureProps(): Unit = if (props.isEmpty) props = js.Dictionary[Prop.Value]()
     @inline def assureStyles(): Unit = if (styles.isEmpty) styles = js.Dictionary[Style.Value]()
@@ -103,20 +104,23 @@ private[outwatch] object SeparatedModifiers {
         setSpecialStyle(StyleKey.destroy)(s.title, s.value)
       case a: AccumStyle =>
         assureStyles()
-        val style = styles.get.raw(a.title)
+        val stylesDict = styles.get
+        val style = stylesDict.raw(a.title)
         if (style.isEmpty) {
-          styles.get(a.title) = a.value
+          stylesDict(a.title) = a.value
         } else {
-          styles.get(a.title) = a.accum(style.get.asInstanceOf[String], a.value): Style.Value
+          stylesDict(a.title) = a.accum(style.get.asInstanceOf[String], a.value): Style.Value
         }
       case k: Key =>
         keyOption = k.value
       case e: Emitter =>
-        val emitter = emitters.raw(e.eventType)
+        assureEmitters()
+        val emittersDict = emitters.get
+        val emitter = emittersDict.raw(e.eventType)
         if (emitter.isEmpty) {
-          emitters(e.eventType) = e.trigger
+          emittersDict(e.eventType) = e.trigger
         } else {
-          emitters(e.eventType) = { ev => emitter.get(ev); e.trigger(ev) }
+          emittersDict(e.eventType) = { ev => emitter.get(ev); e.trigger(ev) }
         }
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
@@ -165,7 +169,7 @@ private[outwatch] class SeparatedModifiers(
   val props: js.UndefOr[js.Dictionary[Prop.Value]],
   val styles: js.UndefOr[js.Dictionary[Style.Value]],
   val keyOption: js.UndefOr[Key.Value],
-  val emitters: js.Dictionary[js.Function1[dom.Event, Unit]],
+  val emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]],
   val usesOutwatchState: Boolean,
   val insertHook: js.UndefOr[Hooks.HookSingleFn],
   val prePatchHook: js.UndefOr[Hooks.HookPairFn],
