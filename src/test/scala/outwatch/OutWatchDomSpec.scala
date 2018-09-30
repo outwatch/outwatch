@@ -68,7 +68,7 @@ class OutWatchDomSpec extends JSDomSpec {
     emitters.values.size shouldBe 1
     attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
-    proxies.length shouldBe 3
+    proxies.get.length shouldBe 3
   }
 
   it should "be separated correctly with children" in {
@@ -91,7 +91,7 @@ class OutWatchDomSpec extends JSDomSpec {
     emitters.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
-    proxies.length shouldBe 2
+    proxies.get.length shouldBe 2
   }
 
   it should "be separated correctly with string children" in {
@@ -114,7 +114,7 @@ class OutWatchDomSpec extends JSDomSpec {
     emitters.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
     streamable.observable.isEmpty shouldBe false
-    proxies.length shouldBe 2
+    proxies.get.length shouldBe 2
   }
 
   it should "be separated correctly with children and properties" in {
@@ -147,7 +147,7 @@ class OutWatchDomSpec extends JSDomSpec {
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
     streamable.observable.isEmpty shouldBe false
-    proxies.length shouldBe 1
+    proxies.get.length shouldBe 1
   }
 
   val fixture = new {
@@ -214,7 +214,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps =  SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    proxies.length shouldBe 2
+    proxies.get.length shouldBe 2
     streamable.observable.isEmpty shouldBe false
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods))
@@ -240,7 +240,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    proxies.length shouldBe 1
+    proxies.get.length shouldBe 1
     streamable.observable.isEmpty shouldBe false
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods))

@@ -23,7 +23,7 @@ import outwatch.dom.helpers.DictionaryRawApply._
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
-    val proxies = new js.Array[VNodeProxy]()
+    var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
     var attrs: js.UndefOr[js.Dictionary[Attr.Value]] = js.undefined
     var props: js.UndefOr[js.Dictionary[Prop.Value]] = js.undefined
     var styles: js.UndefOr[js.Dictionary[Style.Value]] = js.undefined
@@ -37,6 +37,7 @@ private[outwatch] object SeparatedModifiers {
     var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
     var usesOutwatchState: Boolean = false
 
+    @inline def assureProxies(): Unit = if (proxies.isEmpty) proxies = new js.Array[VNodeProxy]()
     @inline def assureAttrs(): Unit = if (attrs.isEmpty) attrs = js.Dictionary[Attr.Value]()
     @inline def assureProps(): Unit = if (props.isEmpty) props = js.Dictionary[Prop.Value]()
     @inline def assureStyles(): Unit = if (styles.isEmpty) styles = js.Dictionary[Style.Value]()
@@ -75,7 +76,8 @@ private[outwatch] object SeparatedModifiers {
     // append modifiers
     modifiers.foreach {
       case VNodeProxyNode(proxy) =>
-        proxies += proxy
+        assureProxies()
+        proxies.get += proxy
       case a : BasicAttr =>
         assureAttrs()
         attrs.get(a.title) = a.value
@@ -158,7 +160,7 @@ private[outwatch] object SeparatedModifiers {
 }
 
 private[outwatch] class SeparatedModifiers(
-  val proxies: js.Array[VNodeProxy],
+  val proxies: js.UndefOr[js.Array[VNodeProxy]],
   val attrs: js.UndefOr[js.Dictionary[Attr.Value]],
   val props: js.UndefOr[js.Dictionary[Prop.Value]],
   val styles: js.UndefOr[js.Dictionary[Style.Value]],

@@ -34,9 +34,7 @@ object SnabbdomOps {
     val proxy = if (modifiers.proxies.isEmpty) {
       hFunction(nodeType, dataObject)
     } else {
-      val copy = new js.Array[VNodeProxy]()
-      copy ++= modifiers.proxies
-      hFunction(nodeType, dataObject, copy)
+      hFunction(nodeType, dataObject, modifiers.proxies.get)
     }
 
     proxy.outwatchState = state
