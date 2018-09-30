@@ -1,7 +1,9 @@
 package outwatch.dom.helpers
 
-import monix.execution.Scheduler
+import monix.execution.cancelables.CompositeCancelable
+import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
+import monix.reactive.observers.Subscriber
 import org.scalajs.dom
 import outwatch.dom._
 import snabbdom.{Hooks, VNodeProxy}
@@ -245,7 +247,7 @@ private[outwatch] object NativeModifiers {
 
     inner(modifier)
 
-    new NativeModifiers(modifiers, updaterObservables.map(obs => Observable.merge(obs: _*)))
+    new NativeModifiers(modifiers, updaterObservables.map(obs => new CollectionObservable[js.Array[StaticVDomModifier]](obs)))
   }
 
   private def flattenModifierStream(modStream: ValueObservable[VDomModifier])(implicit scheduler: Scheduler): ValueObservable[js.Array[StaticVDomModifier]] = {
@@ -278,4 +280,15 @@ private object StyleKey {
   def delayed = "delayed"
   def remove = "remove"
   def destroy = "destroy"
+}
+
+private class CollectionObservable[A](observables: js.Array[Observable[A]]) extends Observable[A] {
+  override def unsafeSubscribeFn(subscriber: Subscriber[A]): Cancelable = {
+    val cancelable = CompositeCancelable()
+    observables.foreach { observable =>
+      // we only pass onNext and onError and not onComplete.
+      cancelable += observable.unsafeSubscribeFn(Sink.create(subscriber.onNext, subscriber.onError))(subscriber.scheduler)
+    }
+    cancelable
+  }
 }
