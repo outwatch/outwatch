@@ -12,8 +12,8 @@ import snabbdom._
 import scala.scalajs.js
 
 object OutwatchTracing {
-  private[outwatch] val patchSubject = PublishSubject[(VNodeProxy, VNodeProxy)]()
-  def patch: Observable[(VNodeProxy, VNodeProxy)] = patchSubject
+  private[outwatch] val patchSubject = PublishSubject[VNodeProxy]()
+  def patch: Observable[VNodeProxy] = patchSubject
 }
 
 object SnabbdomOps {
@@ -56,15 +56,14 @@ object SnabbdomOps {
       var proxy: VNodeProxy = null
 
       def subscribe(): Cancelable = {
-        var currentProxy: VNodeProxy = proxy
         streamableModifiers.observable.get.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
             // update the current proxy with the new state
             val newProxy = createProxy(SeparatedModifiers.from(newState), nodeType, vNodeId)
 
             // call the snabbdom patch method and get the resulting proxy
-            OutwatchTracing.patchSubject.onNext((currentProxy, newProxy))
-            currentProxy = patch(currentProxy, newProxy)
+            OutwatchTracing.patchSubject.onNext(newProxy)
+            val currentProxy = patch(proxy, newProxy)
 
             // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
             // if we are changing the content of this proxy via a stream, the parent will not see this change.
