@@ -3,6 +3,7 @@ package outwatch.dom.helpers
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
+import monix.reactive.observers.Subscriber
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
@@ -56,7 +57,7 @@ object SnabbdomOps {
 
       def subscribe(): Cancelable = {
         var currentProxy: VNodeProxy = proxy
-        streamableModifiers.observable.get.subscribe(
+        streamableModifiers.observable.get.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
             // update the current proxy with the new state
             val newProxy = createProxy(SeparatedModifiers.from(newState), nodeType, vNodeId)
@@ -82,7 +83,7 @@ object SnabbdomOps {
             Continue
           },
           error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
-        )
+        ))
       }
 
       // hooks for subscribing and unsubscribing the streamable content
