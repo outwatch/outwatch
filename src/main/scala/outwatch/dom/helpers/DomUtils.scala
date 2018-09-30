@@ -254,6 +254,8 @@ private[outwatch] object NativeModifiers {
     val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]] {
       case mod: StaticVDomModifier => Observable.now(js.Array(mod))
       case EmptyModifier => Observable.now(js.Array())
+      case child: VNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: StringVNode  => Observable.now(js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mod =>
         val nativeModifiers = from(mod)
         if (nativeModifiers.observable.isEmpty) Observable.now(nativeModifiers.modifiers)
@@ -262,8 +264,9 @@ private[outwatch] object NativeModifiers {
 
     modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array())) {
       case defaultValue: StaticVDomModifier => ValueObservable(observable, js.Array(defaultValue))
-
       case EmptyModifier => ValueObservable(observable, js.Array())
+      case child: VNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: StringVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case defaultValue =>
         val nativeModifiers = from(defaultValue)
         val initialObservable = if (nativeModifiers.observable.isEmpty) observable
