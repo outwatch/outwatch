@@ -10,7 +10,7 @@ class QueuedCancelable extends Cancelable {
   def enqueue(cancelable: Cancelable): Unit = queue.push(cancelable)
   def dequeue(): Cancelable = if (queue.isEmpty) Cancelable.empty else queue.shift()
 
-  def cancel() = {
+  def cancel(): Unit = {
     queue.foreach(_.cancel())
     queue.clear()
   }
