@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.implicits._
 import monix.execution.{Cancelable, Scheduler}
 import monix.execution.cancelables.CompositeCancelable
+import org.scalajs.dom
 import outwatch.dom.dsl.attributes.lifecycle
 import outwatch.dom.helpers.QueuedCancelable
 
@@ -22,7 +23,33 @@ trait ManagedSubscriptions {
     managed(composite)
   }
 
-  def managed(action: Scheduler => IO[Cancelable]): VDomModifier = SchedulerAction(scheduler => managed(action(scheduler)))
+  def managedAction(action: Scheduler => IO[Cancelable]): VDomModifier = SchedulerAction(scheduler => managed(action(scheduler)))
+
+  object managedElement {
+    def apply(subscription: dom.Element => Cancelable): VDomModifier = IO {
+      val cancelable = new QueuedCancelable()
+      VDomModifier(
+        dsl.onDomMount handleWith { elem => cancelable.enqueue(subscription(elem)) },
+        dsl.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+      )
+    }
+
+    def asHtml(subscription: dom.html.Element => Cancelable): VDomModifier = IO {
+      val cancelable = new QueuedCancelable()
+      VDomModifier(
+        dsl.onDomMount.asHtml handleWith { elem => cancelable.enqueue(subscription(elem)) },
+        dsl.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+      )
+    }
+
+    def asSvg(subscription: dom.svg.Element => Cancelable): VDomModifier = IO {
+      val cancelable = new QueuedCancelable()
+      VDomModifier(
+        dsl.onDomMount.asSvg handleWith { elem => cancelable.enqueue(subscription(elem)) },
+        dsl.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+      )
+    }
+  }
 }
 
 object ManagedSubscriptions extends ManagedSubscriptions
