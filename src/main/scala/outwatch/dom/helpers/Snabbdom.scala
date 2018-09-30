@@ -64,9 +64,7 @@ object SnabbdomOps {
             val newProxy = createProxy(SeparatedModifiers.from(newState), nodeType, vNodeId)
 
             // call the snabbdom patch method and get the resulting proxy
-//            OutwatchTracing.patchSubject.onNext((currentProxy, newProxy))
-            dom.console.log("Snabbdom Patch\n " + currentProxy.children.map(_.length))
-            dom.console.log("Snabbdom Patch\n", currentProxy, newProxy)
+            OutwatchTracing.patchSubject.onNext((currentProxy, newProxy))
             currentProxy = patch(currentProxy, newProxy)
 
             // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
