@@ -37,7 +37,6 @@ private[outwatch] object SeparatedModifiers {
     var postPatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
     var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
     var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-    var usesOutwatchState: Boolean = false
 
     @inline def assureProxies(): Unit = if (proxies.isEmpty) proxies = new js.Array[VNodeProxy]()
     @inline def assureEmitters(): Unit = if (emitters.isEmpty) emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
@@ -71,8 +70,8 @@ private[outwatch] object SeparatedModifiers {
     // the proxies will then have different OutwatchStates and we then need to
     // call the unmount hook of the oldProxy.
     postPatchHook = { (oldProxy, proxy) =>
-      if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
-        oldProxy.outwatchState.foreach(_.domUnmountHook.foreach(_(oldProxy)))
+      if (proxy.outwatchId != oldProxy.outwatchId) {
+        oldProxy.outwatchDomUnmountHook.foreach(_(oldProxy))
       }
     }: Hooks.HookPairFn
 
@@ -127,28 +126,25 @@ private[outwatch] object SeparatedModifiers {
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
         postPatchHook = createProxyHooksPair(postPatchHook, { (oldProxy, proxy) =>
-          if (proxy.outwatchState.map(_.id) != oldProxy.outwatchState.map(_.id)) {
+          if (proxy.outwatchId != oldProxy.outwatchId) {
             proxy.elm.foreach(h.trigger)
           }
         })
-        usesOutwatchState = true
       case h: DomUnmountHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
         domUnmountHook = createHooksSingle(domUnmountHook, h.trigger)
       case h: DomUpdateHook =>
         postPatchHook = createProxyHooksPair(postPatchHook, { (oldproxy, proxy) =>
-          if (proxy.outwatchState.map(_.id) == oldproxy.outwatchState.map(_.id)) {
+          if (proxy.outwatchId == oldproxy.outwatchId) {
             proxy.elm.foreach(h.trigger)
           }
         })
-        usesOutwatchState = true
       case h: DomPreUpdateHook =>
         prePatchHook = createProxyHooksPair(prePatchHook, { (oldproxy, proxy) =>
-          if (proxy.outwatchState.map(_.id) == oldproxy.outwatchState.map(_.id)) {
+          if (proxy.outwatchId == oldproxy.outwatchId) {
             oldproxy.elm.foreach(h.trigger)
           }
         })
-        usesOutwatchState = true
       case h: InsertHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
       case h: PrePatchHook =>
@@ -161,7 +157,7 @@ private[outwatch] object SeparatedModifiers {
         destroyHook = createHooksSingle(destroyHook, h.trigger)
     }
 
-    new SeparatedModifiers(proxies, attrs, props, styles, keyOption, emitters, usesOutwatchState, insertHook, prePatchHook, updateHook, postPatchHook, destroyHook, domUnmountHook)
+    new SeparatedModifiers(proxies, attrs, props, styles, keyOption, emitters, insertHook, prePatchHook, updateHook, postPatchHook, destroyHook, domUnmountHook)
   }
 }
 
@@ -172,7 +168,6 @@ private[outwatch] class SeparatedModifiers(
   val styles: js.UndefOr[js.Dictionary[Style.Value]],
   val keyOption: js.UndefOr[Key.Value],
   val emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]],
-  val usesOutwatchState: Boolean,
   val insertHook: js.UndefOr[Hooks.HookSingleFn],
   val prePatchHook: js.UndefOr[Hooks.HookPairFn],
   val updateHook: js.UndefOr[Hooks.HookPairFn],

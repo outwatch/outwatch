@@ -6,15 +6,14 @@ import monix.execution.{Cancelable, Scheduler}
 import monix.execution.cancelables.CompositeCancelable
 import org.scalajs.dom
 import outwatch.dom.dsl.attributes.lifecycle
-import outwatch.dom.helpers.QueuedCancelable
 
 trait ManagedSubscriptions {
 
   def managed(subscription: IO[Cancelable]): VDomModifier = IO {
-    val cancelable = new QueuedCancelable()
+    var cancelable: Cancelable = null
     VDomModifier(
-      lifecycle.onDomMount handleWith { cancelable.enqueue(subscription.unsafeRunSync()) },
-      lifecycle.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+      lifecycle.onDomMount handleWith { cancelable = subscription.unsafeRunSync() },
+      lifecycle.onDomUnmount handleWith { cancelable.cancel() }
     )
   }
 
@@ -27,26 +26,26 @@ trait ManagedSubscriptions {
 
   object managedElement {
     def apply(subscription: dom.Element => Cancelable): VDomModifier = IO {
-      val cancelable = new QueuedCancelable()
+      var cancelable: Cancelable = null
       VDomModifier(
-        dsl.onDomMount handleWith { elem => cancelable.enqueue(subscription(elem)) },
-        dsl.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+        dsl.onDomMount handleWith { elem => cancelable = subscription(elem) },
+        dsl.onDomUnmount handleWith { cancelable.cancel() }
       )
     }
 
     def asHtml(subscription: dom.html.Element => Cancelable): VDomModifier = IO {
-      val cancelable = new QueuedCancelable()
+      var cancelable: Cancelable = null
       VDomModifier(
-        dsl.onDomMount.asHtml handleWith { elem => cancelable.enqueue(subscription(elem)) },
-        dsl.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+        dsl.onDomMount.asHtml handleWith { elem => cancelable = subscription(elem) },
+        dsl.onDomUnmount handleWith { cancelable.cancel() }
       )
     }
 
     def asSvg(subscription: dom.svg.Element => Cancelable): VDomModifier = IO {
-      val cancelable = new QueuedCancelable()
+      var cancelable: Cancelable = null
       VDomModifier(
-        dsl.onDomMount.asSvg handleWith { elem => cancelable.enqueue(subscription(elem)) },
-        dsl.onDomUnmount handleWith { cancelable.dequeue().cancel() }
+        dsl.onDomMount.asSvg handleWith { elem => cancelable = subscription(elem) },
+        dsl.onDomUnmount handleWith { cancelable.cancel() }
       )
     }
   }

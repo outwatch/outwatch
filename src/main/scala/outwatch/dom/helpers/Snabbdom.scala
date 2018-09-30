@@ -17,10 +17,6 @@ object OutwatchTracing {
 }
 
 object SnabbdomOps {
-  private def toOutwatchState(modifiers: SeparatedModifiers, vNodeId: Int): js.UndefOr[OutwatchState] =
-    if (modifiers.usesOutwatchState || modifiers.domUnmountHook.nonEmpty) OutwatchState(vNodeId, modifiers.domUnmountHook)
-    else js.undefined
-
   private def createDataObject(modifiers: SeparatedModifiers): DataObject =
     DataObject(
       modifiers.attrs, modifiers.props, modifiers.styles, modifiers.emitters,
@@ -30,7 +26,6 @@ object SnabbdomOps {
 
   private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int)(implicit scheduler: Scheduler): VNodeProxy = {
     val dataObject = createDataObject(modifiers)
-    val state = toOutwatchState(modifiers, vNodeId)
 
     val proxy = if (modifiers.proxies.isEmpty) {
       hFunction(nodeType, dataObject)
@@ -38,7 +33,8 @@ object SnabbdomOps {
       hFunction(nodeType, dataObject, modifiers.proxies.get)
     }
 
-    proxy.outwatchState = state
+    proxy.outwatchId = vNodeId
+    proxy.outwatchDomUnmountHook = modifiers.domUnmountHook
     proxy
   }
 
@@ -76,7 +72,8 @@ object SnabbdomOps {
             proxy.elm = currentProxy.elm
             proxy.text = currentProxy.text
             proxy.key = currentProxy.key
-            proxy.outwatchState = currentProxy.outwatchState
+            proxy.outwatchId = currentProxy.outwatchId
+            proxy.outwatchDomUnmountHook = currentProxy.outwatchDomUnmountHook
             proxy.asInstanceOf[js.Dynamic].listener = currentProxy.asInstanceOf[js.Dynamic].listener
 
             Continue
@@ -86,9 +83,9 @@ object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      val cancelable = new QueuedCancelable()
-      streamableModifiers.modifiers += DomMountHook(_ => cancelable.enqueue(subscribe()))
-      streamableModifiers.modifiers += DomUnmountHook(_ => cancelable.dequeue().cancel())
+      var cancelable: Cancelable = null
+      streamableModifiers.modifiers += DomMountHook(_ => cancelable = subscribe())
+      streamableModifiers.modifiers += DomUnmountHook(_ => cancelable.cancel())
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
