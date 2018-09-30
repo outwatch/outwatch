@@ -43,7 +43,7 @@ object SnabbdomOps {
 
   private def toSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
     val streamableModifiers = NativeModifiers.from(modifiersArray)
-    val vNodeId = streamableModifiers.hashCode()
+    val vNodeId = streamableModifiers.##
 
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
