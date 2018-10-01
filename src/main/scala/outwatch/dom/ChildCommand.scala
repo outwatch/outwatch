@@ -47,9 +47,8 @@ object ChildCommand {
       }
 
       def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
-        if (isSaneIndex(fromIndex) && isSaneIndex(toIndex)) {
-          val tree = children(fromIndex)
-          children.remove(fromIndex)
+        if (isSaneIndex(fromIndex) && isSaneIndex(toIndex) && fromIndex != toIndex) {
+          val tree = children.remove(fromIndex)
           children.insert(toIndex, tree)
         }
       }
