@@ -1555,7 +1555,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
     element.innerHTML shouldBe ""
 
-    cmds.onNext(ChildCommand.Set(b("Hello World") :: span("!") :: Nil))
+    cmds.onNext(ChildCommand.ReplaceAll(b("Hello World") :: span("!") :: Nil))
     element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
 
     cmds.onNext(ChildCommand.Insert(1, p("and friends", dsl.key := 42)))
@@ -1587,7 +1587,7 @@ class OutWatchDomSpec extends JSDomSpec {
         ) ::
         Nil
 
-    val cmds = Handler.create[ChildCommand](ChildCommand.Set(initialChildren)).unsafeRunSync()
+    val cmds = Handler.create[ChildCommand](ChildCommand.ReplaceAll(initialChildren)).unsafeRunSync()
 
     val node = div(
       "Questions?",
@@ -1624,7 +1624,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val node = div(
       id := "strings",
-      ValueObservable(cmds, ChildCommand.Set(div("huch") :: Nil))
+      ValueObservable(cmds, ChildCommand.ReplaceAll(div("huch") :: Nil))
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()

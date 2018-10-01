@@ -13,7 +13,7 @@ object ChildCommand {
 
   case class Append(node: VNode) extends ChildCommand
   case class Prepend(node: VNode) extends ChildCommand
-  case class Set(list: List[VNode]) extends ChildCommand
+  case class ReplaceAll(list: js.Array[VNode]) extends ChildCommand
   case class Insert(index: Int, node: VNode) extends ChildCommand
   case class Replace(index: Int, node: VNode) extends ChildCommand
   case class Move(fromIndex: Int, toIndex: Int) extends ChildCommand
@@ -73,7 +73,7 @@ object ChildCommand {
           ()
         case Prepend(node) =>
           children.prepend(VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
-        case Set(list) =>
+        case ReplaceAll(list) =>
           children.clear()
           children.push(list.map(node => VNodeProxyNode(SnabbdomOps.toSnabbdom(node))): _*)
           ()
