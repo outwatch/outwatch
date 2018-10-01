@@ -16,6 +16,7 @@ trait OutwatchAttributes
 trait OutWatchLifeCycleAttributes {
   lazy val onDomMount = EmitterBuilder.ofModifier(DomMountHook)
   lazy val onDomUnmount = EmitterBuilder.ofModifier(DomUnmountHook)
+  lazy val onDomPreUpdate = EmitterBuilder.ofModifier(DomPreUpdateHook)
   lazy val onDomUpdate = EmitterBuilder.ofModifier(DomUpdateHook)
 
   /**
@@ -29,7 +30,7 @@ trait OutWatchLifeCycleAttributes {
   lazy val onSnabbdomInsert   = EmitterBuilder.ofModifier(InsertHook)
 
   /** Lifecycle hook for component prepatch. */
-  @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPrePatch.", "")
+  @deprecated("Consider using onDomPreUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPrePatch.", "")
   lazy val onPrePatch   = onSnabbdomPrePatch
   lazy val onSnabbdomPrePatch   = EmitterBuilder.ofModifier(PrePatchHook)
 
