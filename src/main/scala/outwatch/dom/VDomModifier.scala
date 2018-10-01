@@ -73,6 +73,15 @@ final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) e
 final case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
-final case class VNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VDomModifier {
+
+sealed trait VNode extends VDomModifier {
+  def nodeType: String
+  def modifiers: js.Array[VDomModifier]
+  def apply(args: VDomModifier*): VNode
+}
+final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
+  def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
+}
+final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
 }

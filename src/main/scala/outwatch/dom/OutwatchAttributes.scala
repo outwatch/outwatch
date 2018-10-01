@@ -76,5 +76,8 @@ trait AttributeHelpers { self: Attributes =>
 }
 
 trait TagHelpers { self: Tags =>
-  def tag(name: String): VNode= VNode(name, js.Array())
+  @deprecated("Use htmlTag(name) instead. For svg, you can use svgTag(name).", "")
+  def tag(name: String): VNode= HtmlVNode(name, js.Array())
+  def htmlTag(name: String): VNode = HtmlVNode(name, js.Array())
+  def svgTag(name: String): VNode = SvgVNode(name, js.Array())
 }

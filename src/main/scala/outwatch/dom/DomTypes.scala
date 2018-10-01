@@ -9,6 +9,8 @@ import monix.execution.{Ack, Cancelable}
 import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom
+import org.scalajs.dom.html.Element
+import outwatch.dom.TagBuilder.Tag
 import outwatch.dom.helpers._
 
 import scala.scalajs.js
@@ -34,8 +36,8 @@ private[outwatch] object CodecBuilder {
 private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[TagBuilder.Tag, dom.html.Element] with builders.SvgTagBuilder[TagBuilder.Tag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VNode = VNode(tagName, js.Array())
-  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VNode = VNode(tagName, js.Array())
+  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VNode = HtmlVNode(tagName, js.Array())
+  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VNode = SvgVNode(tagName, js.Array())
 }
 
 private[outwatch] object TagBuilder {

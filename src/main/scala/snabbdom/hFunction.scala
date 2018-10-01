@@ -50,20 +50,7 @@ object Hooks {
     update: js.UndefOr[HookPairFn],
     postpatch: js.UndefOr[HookPairFn],
     destroy: js.UndefOr[HookSingleFn]
-  ): Hooks = {
-    val _insert = insert
-    val _prepatch = prepatch
-    val _update = update
-    val _postpatch = postpatch
-    val _destroy = destroy
-    new Hooks {
-      val insert = _insert
-      val prepatch = _prepatch
-      val update = _update
-      val postpatch = _postpatch
-      val destroy = _destroy
-    }
-  }
+  ): Hooks = js.Dynamic.literal(insert = insert, prepatch = prepatch, update = update, postpatch = postpatch, destroy = destroy).asInstanceOf[Hooks]
 }
 
 trait DataObject extends js.Object {
@@ -75,6 +62,7 @@ trait DataObject extends js.Object {
   val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]]
   val hook: js.UndefOr[Hooks]
   val key: js.UndefOr[KeyValue]
+  val ns: js.UndefOr[String]
 }
 
 object DataObject {
@@ -84,32 +72,16 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def empty: DataObject = apply(js.undefined, js.undefined, js.undefined, js.undefined, js.undefined, js.undefined)
+  def empty: DataObject = js.Dynamic.literal().asInstanceOf[DataObject]
 
   def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]],
-            props: js.UndefOr[js.Dictionary[PropValue]],
-            style: js.UndefOr[js.Dictionary[StyleValue]],
-            on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]],
-            hook: js.UndefOr[Hooks],
-            key: js.UndefOr[KeyValue]
-           ): DataObject = {
-
-    val _attrs = attrs
-    val _props = props
-    val _style = style
-    val _on = on
-    val _hook = hook
-    val _key = key
-
-    new DataObject {
-      val attrs: js.UndefOr[js.Dictionary[AttrValue]] = _attrs
-      val props: js.UndefOr[js.Dictionary[PropValue]] = _props
-      val style: js.UndefOr[js.Dictionary[StyleValue]] = _style
-      val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = _on
-      val hook: js.UndefOr[Hooks] = _hook
-      val key: js.UndefOr[KeyValue] = _key
-    }
-  }
+    props: js.UndefOr[js.Dictionary[PropValue]],
+    style: js.UndefOr[js.Dictionary[StyleValue]],
+    on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]],
+    hook: js.UndefOr[Hooks],
+    key: js.UndefOr[KeyValue],
+    ns: js.UndefOr[String] = js.undefined
+   ): DataObject = js.Dynamic.literal(attrs = attrs, props = props, style = style, on = on, hook = hook, key = key.asInstanceOf[js.Any], ns = ns).asInstanceOf[DataObject]
 }
 
 object patch {
@@ -149,6 +121,15 @@ object VNodeProxy {
     text = "",
     data = DataObject.empty
   ).asInstanceOf[VNodeProxy]
+
+  def apply(
+    sel: js.UndefOr[String],
+    data: js.UndefOr[DataObject],
+    children: js.UndefOr[js.Array[VNodeProxy]],
+    key: js.UndefOr[DataObject.KeyValue],
+    outwatchId: js.UndefOr[Int],
+    outwatchDomUnmountHook: js.UndefOr[Hooks.HookSingleFn]): VNodeProxy =
+    js.Dynamic.literal(sel = sel, data = data, children = children, key = key.asInstanceOf[js.Any], outwatchId = outwatchId, outwatchDomUnmountHook = outwatchDomUnmountHook).asInstanceOf[VNodeProxy]
 }
 
 

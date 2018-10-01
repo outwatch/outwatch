@@ -17,36 +17,38 @@ object OutwatchTracing {
 }
 
 object SnabbdomOps {
-  private def createDataObject(modifiers: SeparatedModifiers): DataObject =
+  private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
     DataObject(
       modifiers.attrs, modifiers.props, modifiers.styles, modifiers.emitters,
       Hooks(modifiers.insertHook, modifiers.prePatchHook, modifiers.updateHook, modifiers.postPatchHook, modifiers.destroyHook),
-      modifiers.keyOption
+      modifiers.keyOption, vNodeNS)
+
+  private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int, vNodeNS: js.UndefOr[String])(implicit scheduler: Scheduler): VNodeProxy = {
+    val dataObject = createDataObject(modifiers, vNodeNS)
+
+    VNodeProxy(
+      sel = nodeType,
+      data = dataObject,
+      children = modifiers.proxies,
+      key = modifiers.keyOption,
+      outwatchId = vNodeId,
+      outwatchDomUnmountHook = modifiers.domUnmountHook
     )
-
-  private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int)(implicit scheduler: Scheduler): VNodeProxy = {
-    val dataObject = createDataObject(modifiers)
-
-    val proxy = if (modifiers.proxies.isEmpty) {
-      hFunction(nodeType, dataObject)
-    } else {
-      hFunction(nodeType, dataObject, modifiers.proxies.get)
-    }
-
-    proxy.outwatchId = vNodeId
-    proxy.outwatchDomUnmountHook = modifiers.domUnmountHook
-    proxy
   }
 
-  private def toSnabbdom(modifiersArray: js.Array[VDomModifier], nodeType: String)(implicit scheduler: Scheduler): VNodeProxy = {
-    val streamableModifiers = NativeModifiers.from(modifiersArray)
+  private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = {
+    val streamableModifiers = NativeModifiers.from(node.modifiers)
     val vNodeId = streamableModifiers.##
+    val vNodeNS = node match {
+      case _: SvgVNode => "http://www.w3.org/2000/svg": js.UndefOr[String]
+      case _ => js.undefined
+    }
 
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
     // initial state of the obseravbles.
     if (streamableModifiers.observable.isEmpty) {
-      createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), nodeType, vNodeId)
+      createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
     } else {
       // needs var for forward referencing
       var proxy: VNodeProxy = null
@@ -55,7 +57,7 @@ object SnabbdomOps {
         streamableModifiers.observable.get.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
             // update the current proxy with the new state
-            val newProxy = createProxy(SeparatedModifiers.from(newState), nodeType, vNodeId)
+            val newProxy = createProxy(SeparatedModifiers.from(newState), node.nodeType, vNodeId, vNodeNS)
 
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)
@@ -89,10 +91,8 @@ object SnabbdomOps {
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      proxy = createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), nodeType, vNodeId)
+      proxy = createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
       proxy
     }
   }
-
-  private[outwatch] def toSnabbdom(vNode: VNode)(implicit scheduler: Scheduler): VNodeProxy = toSnabbdom(vNode.modifiers, vNode.nodeType)
 }
