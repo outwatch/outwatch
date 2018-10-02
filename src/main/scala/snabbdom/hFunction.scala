@@ -31,7 +31,7 @@ object hFunction {
   }
 }
 
-
+@js.native
 trait Hooks extends js.Object {
   val insert: js.UndefOr[Hooks.HookSingleFn]
   val prepatch: js.UndefOr[Hooks.HookPairFn]
@@ -53,6 +53,7 @@ object Hooks {
   ): Hooks = js.Dynamic.literal(insert = insert, prepatch = prepatch, update = update, postpatch = postpatch, destroy = destroy).asInstanceOf[Hooks]
 }
 
+@js.native
 trait DataObject extends js.Object {
   import DataObject._
 
