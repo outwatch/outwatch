@@ -47,14 +47,14 @@ object SnabbdomOps {
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
     // initial state of the obseravbles.
-    if (streamableModifiers.observable.isEmpty) {
+    streamableModifiers.observable.fold {
       createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
-    } else {
+    } { observable =>
       // needs var for forward referencing
       var proxy: VNodeProxy = null
 
       def subscribe(): Cancelable = {
-        streamableModifiers.observable.get.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
+        observable.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
             // update the current proxy with the new state
             val newProxy = createProxy(SeparatedModifiers.from(newState), node.nodeType, vNodeId, vNodeNS)

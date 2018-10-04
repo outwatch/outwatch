@@ -38,32 +38,27 @@ private[outwatch] object SeparatedModifiers {
     var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
     var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 
-    @inline def assureProxies(): Unit = if (proxies.isEmpty) proxies = new js.Array[VNodeProxy]()
-    @inline def assureEmitters(): Unit = if (emitters.isEmpty) emitters = js.Dictionary[js.Function1[dom.Event, Unit]]()
-    @inline def assureAttrs(): Unit = if (attrs.isEmpty) attrs = js.Dictionary[Attr.Value]()
-    @inline def assureProps(): Unit = if (props.isEmpty) props = js.Dictionary[Prop.Value]()
-    @inline def assureStyles(): Unit = if (styles.isEmpty) styles = js.Dictionary[Style.Value]()
+    @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
+    @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
+    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[Attr.Value]())(attrs = _)
+    @inline def assureProps() = props getOrElse assign(js.Dictionary[Prop.Value]())(props = _)
+    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[Style.Value]())(styles = _)
     @inline def setSpecialStyle(styleName: String)(title: String, value: String): Unit = {
-      assureStyles()
-      val style = styles.get.raw(styleName)
-      if (style.isEmpty) {
-        styles.get(styleName) = js.Dictionary[String](title -> value): Style.Value
-      } else {
-        style.get.asInstanceOf[js.Dictionary[String]](title) = value
+      val styles = assureStyles()
+      styles.raw(styleName).fold {
+        styles(styleName) = js.Dictionary[String](title -> value): Style.Value
+      } { style =>
+        style.asInstanceOf[js.Dictionary[String]](title) = value
       }
     }
     @inline def createProxyHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: (VNodeProxy, VNodeProxy) => Unit): Hooks.HookPairFn =
-      if (current.isEmpty) hook
-      else { (o,p) => current.get(o, p); hook(o, p) }
+      current.fold[Hooks.HookPairFn](hook)(current => { (o,p) => current(o, p); hook(o, p) })
     @inline def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: dom.Element => Unit): Hooks.HookSingleFn =
-      if (current.isEmpty) { p => p.elm.foreach(hook) }
-      else { p => current.get(p); p.elm.foreach(hook) }
+      current.fold[Hooks.HookSingleFn]({ p => p.elm.foreach(hook) })(current => { p => current(p); p.elm.foreach(hook) })
     @inline def createHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: ((dom.Element, dom.Element)) => Unit): Hooks.HookPairFn =
-      if (current.isEmpty) { (o,p) => for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) }
-      else { (o,p) => current.get(o, p); for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) }: Hooks.HookPairFn
+      current.fold[Hooks.HookPairFn]({ (o,p) => for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) })(current => { (o,p) => current(o, p); for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) })
     @inline def createHooksPairOption(current: js.UndefOr[Hooks.HookPairFn], hook: ((Option[dom.Element], Option[dom.Element])) => Unit): Hooks.HookPairFn =
-      if (current.isEmpty) { (o,p) => hook((o.elm.toOption, p.elm.toOption)) }
-      else { (o,p) => current.get(o, p); hook((o.elm.toOption, p.elm.toOption)) }
+      current.fold[Hooks.HookPairFn]({ (o,p) => hook((o.elm.toOption, p.elm.toOption)) })(current => { (o,p) => current(o, p); hook((o.elm.toOption, p.elm.toOption)) })
 
 
     // append unmount hook for when patching a different proxy out of the dom.
@@ -78,25 +73,25 @@ private[outwatch] object SeparatedModifiers {
     // append modifiers
     modifiers.foreach {
       case VNodeProxyNode(proxy) =>
-        assureProxies()
-        proxies.get += proxy
+        val proxies = assureProxies()
+        proxies += proxy
       case a : BasicAttr =>
-        assureAttrs()
-        attrs.get(a.title) = a.value
+        val attrs = assureAttrs()
+        attrs(a.title) = a.value
       case a : AccumAttr =>
-        assureAttrs()
-        val attr = attrs.get.raw(a.title)
-        if (attr.isEmpty) {
-          attrs.get(a.title) = a.value
-        } else {
-          attrs.get(a.title) = a.accum(attr.get, a.value)
+        val attrs = assureAttrs()
+        val attr = attrs.raw(a.title)
+        attr.fold {
+          attrs(a.title) = a.value
+        } { attr =>
+          attrs(a.title) = a.accum(attr, a.value)
         }
       case p : Prop =>
-        assureProps()
-        props.get(p.title) = p.value
+        val props = assureProps()
+        props(p.title) = p.value
       case s: BasicStyle =>
-        assureStyles()
-        styles.get(s.title) = s.value
+        val styles = assureStyles()
+        styles(s.title) = s.value
       case s: DelayedStyle =>
         setSpecialStyle(StyleKey.delayed)(s.title, s.value)
       case s: RemoveStyle =>
@@ -104,24 +99,22 @@ private[outwatch] object SeparatedModifiers {
       case s: DestroyStyle =>
         setSpecialStyle(StyleKey.destroy)(s.title, s.value)
       case a: AccumStyle =>
-        assureStyles()
-        val stylesDict = styles.get
-        val style = stylesDict.raw(a.title)
-        if (style.isEmpty) {
-          stylesDict(a.title) = a.value
-        } else {
-          stylesDict(a.title) = a.accum(style.get.asInstanceOf[String], a.value): Style.Value
+        val styles = assureStyles()
+        val style = styles.raw(a.title)
+        style.fold {
+          styles(a.title) = a.value
+        } { style =>
+          styles(a.title) = a.accum(style.asInstanceOf[String], a.value): Style.Value
         }
       case k: Key =>
         keyOption = k.value
       case e: Emitter =>
-        assureEmitters()
-        val emittersDict = emitters.get
-        val emitter = emittersDict.raw(e.eventType)
-        if (emitter.isEmpty) {
-          emittersDict(e.eventType) = e.trigger
-        } else {
-          emittersDict(e.eventType) = { ev => emitter.get(ev); e.trigger(ev) }
+        val emitters = assureEmitters()
+        val emitter = emitters.raw(e.eventType)
+        emitter.fold {
+          emitters(e.eventType) = e.trigger
+        } { emitter =>
+          emitters(e.eventType) = { ev => emitter(ev); e.trigger(ev) }
         }
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
@@ -159,6 +152,8 @@ private[outwatch] object SeparatedModifiers {
 
     new SeparatedModifiers(proxies, attrs, props, styles, keyOption, emitters, insertHook, prePatchHook, updateHook, postPatchHook, destroyHook, domUnmountHook)
   }
+
+  @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 }
 
 private[outwatch] class SeparatedModifiers(
@@ -182,6 +177,8 @@ private[outwatch] class NativeModifiers(
 )
 
 private[outwatch] object NativeModifiers {
+  import SeparatedModifiers.assign
+
   def from(modifiers: js.Array[VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(CompositeModifier(modifiers))
 
   def from(modifier: VDomModifier)(implicit scheduler: Scheduler): NativeModifiers = {
@@ -191,12 +188,10 @@ private[outwatch] object NativeModifiers {
 
     def appendModifier(mod: StaticVDomModifier): Unit = {
       modifiers += mod
-      if (lengths.isDefined) {
-        lengths.get += 1
-      }
+      lengths.foreach { _ += 1 }
     }
     def appendStream(stream: ValueObservable[js.Array[StaticVDomModifier]]): Unit = {
-      if (lengths.isEmpty) {
+      val lengthsArr = lengths getOrElse {
         val lengthsArr = new js.Array[Int](modifiers.length)
         var i = 0
         while (i < modifiers.length) {
@@ -204,10 +199,9 @@ private[outwatch] object NativeModifiers {
           i += 1
         }
         lengths = lengthsArr
-        updaterObservables = new js.Array[Observable[js.Array[StaticVDomModifier]]]()
+        lengthsArr
       }
-
-      val lengthsArr = lengths.get
+      val observables = updaterObservables getOrElse assign(new js.Array[Observable[js.Array[StaticVDomModifier]]]())(updaterObservables = _)
       val index = lengthsArr.length
       stream.value match {
         case Some(value) =>
@@ -216,7 +210,7 @@ private[outwatch] object NativeModifiers {
         case None =>
           lengthsArr += 0
       }
-      updaterObservables.get += stream.observable.map { mods =>
+      observables += stream.observable.map { mods =>
         var i = 0
         var lengthBefore = 0
         while (i < index) {
@@ -253,8 +247,9 @@ private[outwatch] object NativeModifiers {
       case child: StringVNode  => Observable.now(js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mod =>
         val nativeModifiers = from(mod)
-        if (nativeModifiers.observable.isEmpty) Observable.now(nativeModifiers.modifiers)
-        else Observable.concat(Observable.now(nativeModifiers.modifiers), nativeModifiers.observable.get)
+        nativeModifiers.observable.fold(Observable.now(nativeModifiers.modifiers)) { obs =>
+          Observable.concat(Observable.now(nativeModifiers.modifiers), obs)
+        }
     }
 
     modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array())) {
@@ -264,9 +259,10 @@ private[outwatch] object NativeModifiers {
       case child: StringVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case defaultValue =>
         val nativeModifiers = from(defaultValue)
-        val initialObservable = if (nativeModifiers.observable.isEmpty) observable
-        else observable.publishSelector { observable =>
-          Observable.merge(nativeModifiers.observable.get.takeUntil(observable), observable)
+        val initialObservable = nativeModifiers.observable.fold(observable) { obs =>
+          observable.publishSelector { observable =>
+            Observable.merge(obs.takeUntil(observable), observable)
+          }
         }
 
         ValueObservable(initialObservable, nativeModifiers.modifiers)
