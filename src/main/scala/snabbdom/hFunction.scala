@@ -66,7 +66,7 @@ trait DataObject extends js.Object {
   val hook: js.UndefOr[Hooks]
   val key: js.UndefOr[KeyValue]
   val ns: js.UndefOr[String]
-  val args: js.UndefOr[js.Array[Any]]
+  val args: js.UndefOr[js.Array[js.Any]]
   val fn: js.UndefOr[js.Function]
 }
 
@@ -124,18 +124,31 @@ object thunk {
       data <- thunk.data
       fn <- data.fn
       newArgs <- data.args
-    } copyToThunk(fn.call(null, newArgs.map(_.asInstanceOf[js.Any]): _*).asInstanceOf[VNodeProxy], thunk)
+    } copyToThunk(fn.call(null, newArgs: _*).asInstanceOf[VNodeProxy], thunk)
 
   private def prepatch(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
     for {
       data <- thunk.data
       fn <- data.fn
       newArgs <- data.args
-    } oldVNode.data.flatMap(_.args).toOption match {
-      case Some(oldArgs) if oldArgs.length == newArgs.length && (oldArgs zip newArgs).forall { case (o,n) => o == n } =>
-        copyToThunk(oldVNode, thunk)
-      case _ =>
-        copyToThunk(fn.call(null, newArgs.map(_.asInstanceOf[js.Any]): _*).asInstanceOf[VNodeProxy], thunk)
+    } {
+      @inline def update() = copyToThunk(fn.call(null, newArgs.toSeq: _*).asInstanceOf[VNodeProxy], thunk)
+      @inline def keep() = copyToThunk(oldVNode, thunk)
+
+      val oldArgs = oldVNode.data.flatMap(_.args)
+      oldArgs.fold(keep()) { oldArgs =>
+        if (oldArgs.length == newArgs.length) {
+          var i = 0
+          var isDifferent = false
+          while (!isDifferent && i < oldArgs.length) {
+            if (oldArgs(i) != newArgs(i)) isDifferent = true
+            i += 1
+          }
+
+          if (isDifferent) update()
+          else keep()
+        } else update()
+      }
     }
 
   def apply(selector: String, renderFn: js.Function, args: js.Array[Any]): VNodeProxy =
