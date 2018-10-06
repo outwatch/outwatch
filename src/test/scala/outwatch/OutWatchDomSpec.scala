@@ -1695,7 +1695,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id := "bla").thunk(myString)(renderFn)
+        b(id := "bla").thunk("component", myString)(renderFn)
       },
       b("something else")
     )
@@ -1745,7 +1745,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id := "bla").thunk(new Wrap(myString))(renderFn)
+        b(id := "bla").thunk("component", new Wrap(myString))(renderFn)
       },
       b("something else")
     )
@@ -1785,7 +1785,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id <-- myId).thunk(myString)(renderFn)
+        b(id <-- myId).thunk("component", myString)(renderFn)
       },
       b("something else")
     )

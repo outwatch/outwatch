@@ -85,13 +85,13 @@ class PerfTest extends JSDomSpec {
         //      dsl.value <-- handler.map(_.toString),
         handler.map { i =>
           (0 to i).map { j =>
-            input.thunk(j)(j => VDomModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
+            input.thunk("handler", j)(j => VDomModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
           }
           //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
         },
         handler2.map { i =>
           (0 to i).map { j =>
-            div.thunk(j)(j => VDomModifier(
+            div.thunk("handler2", j)(j => VDomModifier(
               div("hans", cls := j.toString, onClick handleWith {}, handler3),
               p(p),
               handler3

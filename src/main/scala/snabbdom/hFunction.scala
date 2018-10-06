@@ -110,11 +110,11 @@ object thunk {
   private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
     vnode.data.asInstanceOf[js.Dynamic].fn = thunk.data.flatMap(_.fn)
     vnode.data.asInstanceOf[js.Dynamic].args = thunk.data.flatMap(_.args)
+    vnode.data.asInstanceOf[js.Dynamic].key = thunk.key.asInstanceOf[js.Any]
     thunk.asInstanceOf[js.Dynamic].data = vnode.data
     thunk.asInstanceOf[js.Dynamic].children = vnode.children
     thunk.asInstanceOf[js.Dynamic].text = vnode.text
     thunk.asInstanceOf[js.Dynamic].elm = vnode.elm
-    thunk.asInstanceOf[js.Dynamic].key = vnode.key.asInstanceOf[js.Any]
     thunk.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = vnode.outwatchDomUnmountHook
     thunk.asInstanceOf[js.Dynamic].outwatchId = vnode.outwatchId
   }
@@ -163,9 +163,6 @@ object thunk {
         } else update()
       }
     }
-
-  def apply(selector: String, renderFn: js.Function, args: js.Array[Any]): VNodeProxy =
-    VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatch _): Hooks.HookPairFn), fn = renderFn, args = args))
 
   def apply(selector: String, key: DataObject.KeyValue, renderFn: js.Function, args: js.Array[Any]): VNodeProxy =
     VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatch _): Hooks.HookPairFn), key = key, fn = renderFn, args = args), key = key)
