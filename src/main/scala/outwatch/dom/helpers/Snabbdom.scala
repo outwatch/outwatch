@@ -72,14 +72,14 @@ object SnabbdomOps {
             // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
             // renders its children again. But it would not have the correct state of this proxy. Therefore,
             // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-            proxy.sel = currentProxy.sel
-            proxy.data = currentProxy.data
-            proxy.children = currentProxy.children
-            proxy.elm = currentProxy.elm
-            proxy.text = currentProxy.text
-            proxy.key = currentProxy.key
-            proxy.outwatchId = currentProxy.outwatchId
-            proxy.outwatchDomUnmountHook = currentProxy.outwatchDomUnmountHook
+            proxy.asInstanceOf[js.Dynamic].sel = currentProxy.sel
+            proxy.asInstanceOf[js.Dynamic].data = currentProxy.data
+            proxy.asInstanceOf[js.Dynamic].children = currentProxy.children
+            proxy.asInstanceOf[js.Dynamic].elm = currentProxy.elm
+            proxy.asInstanceOf[js.Dynamic].text = currentProxy.text
+            proxy.asInstanceOf[js.Dynamic].key = currentProxy.key.asInstanceOf[js.Any]
+            proxy.asInstanceOf[js.Dynamic].outwatchId = currentProxy.outwatchId
+            proxy.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = currentProxy.outwatchDomUnmountHook
             proxy.asInstanceOf[js.Dynamic].listener = currentProxy.asInstanceOf[js.Dynamic].listener
 
             Continue

@@ -110,13 +110,13 @@ object thunk {
   private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
     vnode.data.asInstanceOf[js.Dynamic].fn = thunk.data.flatMap(_.fn)
     vnode.data.asInstanceOf[js.Dynamic].args = thunk.data.flatMap(_.args)
-    thunk.data = vnode.data
-    thunk.children = vnode.children
-    thunk.text = vnode.text
-    thunk.elm = vnode.elm
-    thunk.key = vnode.key
-    thunk.outwatchDomUnmountHook = vnode.outwatchDomUnmountHook
-    thunk.outwatchId = vnode.outwatchId
+    thunk.asInstanceOf[js.Dynamic].data = vnode.data
+    thunk.asInstanceOf[js.Dynamic].children = vnode.children
+    thunk.asInstanceOf[js.Dynamic].text = vnode.text
+    thunk.asInstanceOf[js.Dynamic].elm = vnode.elm
+    thunk.asInstanceOf[js.Dynamic].key = vnode.key.asInstanceOf[js.Any]
+    thunk.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = vnode.outwatchDomUnmountHook
+    thunk.asInstanceOf[js.Dynamic].outwatchId = vnode.outwatchId
   }
 
   private def init(thunk: VNodeProxy): Unit =
@@ -175,15 +175,15 @@ object patch {
 
 @js.native
 trait VNodeProxy extends js.Object {
-  var sel: js.UndefOr[String]
-  var data: js.UndefOr[DataObject]
-  var children: js.UndefOr[js.Array[VNodeProxy]]
-  var elm: js.UndefOr[Element]
-  var text: js.UndefOr[String]
-  var key: js.UndefOr[DataObject.KeyValue]
+  val sel: js.UndefOr[String]
+  val data: js.UndefOr[DataObject]
+  val children: js.UndefOr[js.Array[VNodeProxy]]
+  val elm: js.UndefOr[Element]
+  val text: js.UndefOr[String]
+  val key: js.UndefOr[DataObject.KeyValue]
 
-  var outwatchId: js.UndefOr[Int]
-  var outwatchDomUnmountHook: js.UndefOr[Hooks.HookSingleFn]
+  val outwatchId: js.UndefOr[Int]
+  val outwatchDomUnmountHook: js.UndefOr[Hooks.HookSingleFn]
 }
 
 object VNodeProxy {
