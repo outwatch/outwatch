@@ -117,13 +117,6 @@ object thunk {
     thunk.asInstanceOf[js.Dynamic].key = vnode.key.asInstanceOf[js.Any]
     thunk.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = vnode.outwatchDomUnmountHook
     thunk.asInstanceOf[js.Dynamic].outwatchId = vnode.outwatchId
-
-    thunk.data.foreach { data =>
-      data.hook.foreach { hook =>
-        val prevInsert = hook.insert
-        hook.asInstanceOf[js.Dynamic].insert = { (p: VNodeProxy) => prevInsert.foreach(_(p)); vnode.asInstanceOf[js.Dynamic].elm = thunk.elm }
-      }
-    }
   }
 
   private def init(thunk: VNodeProxy): Unit =
@@ -131,7 +124,20 @@ object thunk {
       data <- thunk.data
       fn <- data.fn
       newArgs <- data.args
-    } copyToThunk(fn.call(null, newArgs: _*).asInstanceOf[VNodeProxy], thunk)
+    } {
+      val newProxy = fn.call(null, newArgs: _*).asInstanceOf[VNodeProxy]
+      copyToThunk(newProxy, thunk)
+      thunk.data.foreach { data =>
+        data.hook.foreach { hook =>
+          val prevInsert = hook.insert
+          hook.asInstanceOf[js.Dynamic].insert = { (p: VNodeProxy) =>
+            prevInsert.foreach(_(p))
+            newProxy.asInstanceOf[js.Dynamic].elm = thunk.elm
+            hook.asInstanceOf[js.Dynamic].insert = prevInsert
+          }
+        }
+      }
+    }
 
   private def prepatch(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
     for {
