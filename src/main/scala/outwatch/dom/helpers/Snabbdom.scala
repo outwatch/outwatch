@@ -36,6 +36,10 @@ object SnabbdomOps {
     )
   }
 
+  private[outwatch] def toSnabbdom(thunkNode: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
+    thunk.conditional(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, thunkNode.shouldRender)
+  }
+
   private[outwatch] def toSnabbdom(thunkNode: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     thunk(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, js.Array(thunkNode.argument))
   }
@@ -67,7 +71,7 @@ object SnabbdomOps {
             // new proxy, then a succeeding patch operation can use args for diffing and fn for updating.
             proxy.data.foreach { data =>
               newProxy.data.asInstanceOf[js.Dynamic].fn = data.fn
-              newProxy.data.asInstanceOf[js.Dynamic].args = data.args
+              newProxy.data.asInstanceOf[js.Dynamic].args = data.args.asInstanceOf[js.Any]
             }
 
             // call the snabbdom patch method and get the resulting proxy

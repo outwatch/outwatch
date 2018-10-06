@@ -109,7 +109,7 @@ class SnabbdomSpec extends JSDomSpec {
   it should "correctly use thunks for updating" in {
     var renderFnCounter = 0
 
-    val renderFn: js.Function1[String, VNodeProxy] = { message =>
+    val renderFn: String => VNodeProxy = { message =>
       renderFnCounter += 1
       hFunction("span#msg", createDataObject(), message)
     }
@@ -122,14 +122,14 @@ class SnabbdomSpec extends JSDomSpec {
     renderFnCounter shouldBe 0
 
 
-    val vNode1 = thunk("span#msg", "key", renderFn, js.Array(message))
+    val vNode1 = thunk("span#msg", "key", () => renderFn(message), js.Array(message))
     val p1 = patch(node, vNode1)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
 
 
-    val vNode2 = thunk("span#msg", "key", renderFn, js.Array(message))
+    val vNode2 = thunk("span#msg", "key", () => renderFn(message), js.Array(message))
     val p2 = patch(p1, vNode2)
 
     renderFnCounter shouldBe 1
@@ -137,7 +137,45 @@ class SnabbdomSpec extends JSDomSpec {
 
 
     val newMessage = "Hello Snabbdom!"
-    val vNode3 = thunk("span#msg", "key", renderFn, js.Array(newMessage))
+    val vNode3 = thunk("span#msg", "key", () => renderFn(newMessage), js.Array(newMessage))
+    val p3 = patch(p2, vNode3)
+
+    renderFnCounter shouldBe 2
+    document.getElementById("msg").innerHTML shouldBe newMessage
+  }
+
+  it should "correctly use conditional thunks for updating" in {
+    var renderFnCounter = 0
+
+    val renderFn: String => VNodeProxy = { message =>
+      renderFnCounter += 1
+      hFunction("span#msg", createDataObject(), message)
+    }
+
+    val message = "Hello World"
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    renderFnCounter shouldBe 0
+
+
+    val vNode1 = thunk.conditional("span#msg", "key", () => renderFn(message), shouldRender = true)
+    val p1 = patch(node, vNode1)
+
+    renderFnCounter shouldBe 1
+    document.getElementById("msg").innerHTML shouldBe message
+
+
+    val vNode2 = thunk.conditional("span#msg", "key", () => renderFn(message), shouldRender = false)
+    val p2 = patch(p1, vNode2)
+
+    renderFnCounter shouldBe 1
+    document.getElementById("msg").innerHTML shouldBe message
+
+
+    val newMessage = "Hello Snabbdom!"
+    val vNode3 = thunk.conditional("span#msg", "key", () => renderFn(newMessage), shouldRender = true)
     val p3 = patch(p2, vNode3)
 
     renderFnCounter shouldBe 2

@@ -229,6 +229,7 @@ private[outwatch] object NativeModifiers {
       case mod: StaticVDomModifier => appendModifier(mod)
       case child: VNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
       case thunk: ThunkVNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(thunk)))
+      case thunk: ConditionalVNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(thunk)))
       case child: StringVNode  => appendModifier(VNodeProxyNode(VNodeProxy.fromString(child.text)))
       case m: ModifierStreamReceiver => appendStream(flattenModifierStream(m.stream))
       case m: EffectModifier => inner(m.effect.unsafeRunSync())

@@ -66,8 +66,8 @@ trait DataObject extends js.Object {
   val hook: js.UndefOr[Hooks]
   val key: js.UndefOr[KeyValue]
   val ns: js.UndefOr[String]
-  val args: js.UndefOr[js.Array[js.Any]]
-  val fn: js.UndefOr[js.Function]
+  val args: js.UndefOr[js.Array[js.Any] | Boolean]
+  val fn: js.UndefOr[js.Function0[VNodeProxy]]
 }
 
 object DataObject {
@@ -86,9 +86,9 @@ object DataObject {
     hook: js.UndefOr[Hooks] = js.undefined,
     key: js.UndefOr[KeyValue] = js.undefined,
     ns: js.UndefOr[String] = js.undefined,
-    args: js.UndefOr[js.Array[Any]] = js.undefined,
-    fn: js.UndefOr[js.Function] = js.undefined
-   ): DataObject = js.Dynamic.literal(attrs = attrs, props = props, style = style, on = on, hook = hook, key = key.asInstanceOf[js.Any], ns = ns, args = args, fn = fn).asInstanceOf[DataObject]
+    args: js.UndefOr[js.Array[Any] | Boolean] = js.undefined,
+    fn: js.UndefOr[js.Function0[VNodeProxy]] = js.undefined
+   ): DataObject = js.Dynamic.literal(attrs = attrs, props = props, style = style, on = on, hook = hook, key = key.asInstanceOf[js.Any], ns = ns, args = args.asInstanceOf[js.Any], fn = fn).asInstanceOf[DataObject]
 
 }
 
@@ -109,7 +109,7 @@ object thunk {
 
   private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
     vnode.data.asInstanceOf[js.Dynamic].fn = thunk.data.flatMap(_.fn)
-    vnode.data.asInstanceOf[js.Dynamic].args = thunk.data.flatMap(_.args)
+    vnode.data.asInstanceOf[js.Dynamic].args = thunk.data.flatMap(_.args).asInstanceOf[js.Any]
     vnode.data.asInstanceOf[js.Dynamic].key = thunk.key.asInstanceOf[js.Any]
     thunk.asInstanceOf[js.Dynamic].data = vnode.data
     thunk.asInstanceOf[js.Dynamic].children = vnode.children
@@ -123,9 +123,8 @@ object thunk {
     for {
       data <- thunk.data
       fn <- data.fn
-      newArgs <- data.args
     } {
-      val newProxy = fn.call(null, newArgs: _*).asInstanceOf[VNodeProxy]
+      val newProxy = fn()
       copyToThunk(newProxy, thunk)
       thunk.data.foreach { data =>
         data.hook.foreach { hook =>
@@ -139,16 +138,17 @@ object thunk {
       }
     }
 
-  private def prepatch(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
+
+  private def prepatchArray(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
     for {
       data <- thunk.data
       fn <- data.fn
-      newArgs <- data.args
+      newArgs <- data.args.asInstanceOf[js.UndefOr[js.Array[Any]]]
     } {
-      @inline def update() = copyToThunk(fn.call(null, newArgs.toSeq: _*).asInstanceOf[VNodeProxy], thunk)
+      @inline def update() = copyToThunk(fn(), thunk)
       @inline def keep() = copyToThunk(oldVNode, thunk)
 
-      val oldArgs = oldVNode.data.flatMap(_.args)
+      val oldArgs = oldVNode.data.flatMap(_.args).asInstanceOf[js.UndefOr[js.Array[Any]]]
       oldArgs.fold(keep()) { oldArgs =>
         if (oldArgs.length == newArgs.length) {
           var i = 0
@@ -164,8 +164,23 @@ object thunk {
       }
     }
 
-  def apply(selector: String, key: DataObject.KeyValue, renderFn: js.Function, args: js.Array[Any]): VNodeProxy =
-    VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatch _): Hooks.HookPairFn), key = key, fn = renderFn, args = args), key = key)
+  private def prepatchBoolean(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
+    for {
+      data <- thunk.data
+      fn <- data.fn
+      shouldRender <- data.args.asInstanceOf[js.UndefOr[Boolean]]
+    } {
+      @inline def update() = copyToThunk(fn(), thunk)
+      @inline def keep() = copyToThunk(oldVNode, thunk)
+
+      if (shouldRender) update() else keep()
+    }
+
+  def apply(selector: String, key: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], args: js.Array[Any]): VNodeProxy =
+    VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatchArray _): Hooks.HookPairFn), key = key, fn = renderFn, args = args), key = key)
+
+  def conditional(selector: String, key: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
+    VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatchBoolean _): Hooks.HookPairFn), key = key, fn = renderFn, args = shouldRender), key = key)
 }
 
 object patch {

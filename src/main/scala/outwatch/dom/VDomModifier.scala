@@ -76,11 +76,14 @@ final case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
 final case class ThunkVNode(nodeType: String, key: Key.Value, argument: Any, renderFn: () => VNodeProxy) extends VDomModifier
+final case class ConditionalVNode(nodeType: String, key: Key.Value, shouldRender: Boolean, renderFn: () => VNodeProxy) extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
   def nodeType: String
   def modifiers: js.Array[VDomModifier]
   def apply(args: VDomModifier*): VNode
+  def conditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier)(implicit scheduler: Scheduler): ConditionalVNode =
+    ConditionalVNode(nodeType, key, shouldRender, () => SnabbdomOps.toSnabbdom(apply(renderFn)))
   def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode =
     ThunkVNode(nodeType, key, arguments, () => SnabbdomOps.toSnabbdom(apply(renderFn)))
 }
