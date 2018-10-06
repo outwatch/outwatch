@@ -75,18 +75,22 @@ final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) e
 final case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
-final case class ThunkVNode[T] private(node: VNode, argument: T, renderFn: T => VNodeProxy) extends VDomModifier
-object ThunkVNode {
-  def apply[T](node: VNode, argument: T, renderFn: T => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode[T] =
-    new ThunkVNode(node, argument, arg => SnabbdomOps.toSnabbdom(node(renderFn(arg))))
-
-}
+final case class ThunkVNode[T](nodeType: String, argument: T, renderFn: T => VNodeProxy) extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
   def nodeType: String
   def modifiers: js.Array[VDomModifier]
   def apply(args: VDomModifier*): VNode
-  def thunk[T](argument: T)(renderFn: T => VDomModifier)(implicit scheduler: Scheduler) = ThunkVNode(this, argument, renderFn)
+  def thunk[T](argument: T)(renderFn: T => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode[T] =
+    ThunkVNode(nodeType, argument, arg => SnabbdomOps.toSnabbdom(apply(renderFn(arg))))
+  def thunk[A,B](argument1: A, argument2: B)(renderFn: (A,B) => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode[(A,B)] =
+    ThunkVNode(nodeType, (argument1, argument2), { case (arg1, arg2) => SnabbdomOps.toSnabbdom(apply(renderFn(arg1, arg2))) })
+  def thunk[A,B,C](argument1: A, argument2: B, argument3: C)(renderFn: (A,B,C) => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode[(A,B,C)] =
+    ThunkVNode(nodeType, (argument1, argument2, argument3), { case (arg1, arg2, arg3) => SnabbdomOps.toSnabbdom(apply(renderFn(arg1, arg2, arg3))) })
+  def thunk[A,B,C,D](argument1: A, argument2: B, argument3: C, argument4: D)(renderFn: (A,B,C,D) => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode[(A,B,C,D)] =
+    ThunkVNode(nodeType, (argument1, argument2, argument3, argument4), { case (arg1, arg2, arg3, arg4) => SnabbdomOps.toSnabbdom(apply(renderFn(arg1, arg2, arg3, arg4))) })
+  def thunk[A,B,C,D,E](argument1: A, argument2: B, argument3: C, argument4: D, argument5: E)(renderFn: (A,B,C,D,E) => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode[(A,B,C,D,E)] =
+    ThunkVNode(nodeType, (argument1, argument2, argument3, argument4, argument5), { case (arg1, arg2, arg3, arg4, arg5) => SnabbdomOps.toSnabbdom(apply(renderFn(arg1, arg2, arg3, arg4, arg5))) })
 }
 final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
   def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)

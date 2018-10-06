@@ -1717,6 +1717,10 @@ class OutWatchDomSpec extends JSDomSpec {
     myString.onNext("hai!")
     renderFnCounter shouldBe 2
     element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+
+    myString.onNext("fuchs.")
+    renderFnCounter shouldBe 3
+    element.innerHTML shouldBe """<b id="bla" class="b">fuchs.</b><b>something else</b>"""
   }
 
   it should "work with equals" in {
@@ -1767,5 +1771,49 @@ class OutWatchDomSpec extends JSDomSpec {
     renderFnCounter shouldBe 2
     equalsCounter shouldBe 2
     element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+  }
+
+  it should "work with streams" in {
+    val myString: Handler[String] = Handler.create.unsafeRunSync()
+    val myId: Handler[String] = Handler.create.unsafeRunSync()
+
+    var renderFnCounter = 0
+    val renderFn: String => VDomModifier = { str =>
+      renderFnCounter += 1
+      Seq[VDomModifier](cls := "b", str)
+    }
+    val node = div(
+      id := "strings",
+      myString.map { myString =>
+        b(id <-- myId).thunk(myString)(renderFn)
+      },
+      b("something else")
+    )
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+    val element = document.getElementById("strings")
+
+    renderFnCounter shouldBe 0
+    element.innerHTML shouldBe "<b>something else</b>"
+
+    myString.onNext("wal?")
+    renderFnCounter shouldBe 1
+    element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
+
+    myId.onNext("tier")
+    renderFnCounter shouldBe 1
+    element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+
+    myString.onNext("wal?")
+    renderFnCounter shouldBe 1
+    element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+
+    myString.onNext("hai!")
+    renderFnCounter shouldBe 2
+    element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
+
+    myId.onNext("nope")
+    renderFnCounter shouldBe 2
+    element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
   }
 }

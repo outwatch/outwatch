@@ -117,6 +117,13 @@ object thunk {
     thunk.asInstanceOf[js.Dynamic].key = vnode.key.asInstanceOf[js.Any]
     thunk.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = vnode.outwatchDomUnmountHook
     thunk.asInstanceOf[js.Dynamic].outwatchId = vnode.outwatchId
+
+    thunk.data.foreach { data =>
+      data.hook.foreach { hook =>
+        val prevInsert = hook.insert
+        hook.asInstanceOf[js.Dynamic].insert = { (p: VNodeProxy) => prevInsert.foreach(_(p)); vnode.asInstanceOf[js.Dynamic].elm = thunk.elm }
+      }
+    }
   }
 
   private def init(thunk: VNodeProxy): Unit =

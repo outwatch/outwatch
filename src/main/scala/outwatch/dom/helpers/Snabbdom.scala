@@ -37,7 +37,7 @@ object SnabbdomOps {
   }
 
   private[outwatch] def toSnabbdom(thunkNode: ThunkVNode[_])(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk(thunkNode.node.nodeType, thunkNode.renderFn, js.Array(thunkNode.argument))
+    thunk(thunkNode.nodeType, thunkNode.renderFn, js.Array(thunkNode.argument))
   }
 
   private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = {
@@ -62,6 +62,13 @@ object SnabbdomOps {
           { newState =>
             // update the current proxy with the new state
             val newProxy = createProxy(SeparatedModifiers.from(newState), node.nodeType, vNodeId, vNodeNS)
+
+            // the initial proxy might have been a thunk. therefore, we need to keep the fn and args in our
+            // new proxy, then a succeeding patch operation can use args for diffing and fn for updating.
+            proxy.data.foreach { data =>
+              newProxy.data.asInstanceOf[js.Dynamic].fn = data.fn
+              newProxy.data.asInstanceOf[js.Dynamic].args = data.args
+            }
 
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)
