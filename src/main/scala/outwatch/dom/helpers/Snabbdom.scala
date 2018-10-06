@@ -36,7 +36,7 @@ object SnabbdomOps {
     )
   }
 
-  private[outwatch] def toSnabbdom(thunkNode: ThunkVNode[_])(implicit scheduler: Scheduler): VNodeProxy = {
+  private[outwatch] def toSnabbdom(thunkNode: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     thunk(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, js.Array(thunkNode.argument))
   }
 

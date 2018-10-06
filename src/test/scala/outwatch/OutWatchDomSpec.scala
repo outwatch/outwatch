@@ -1688,14 +1688,13 @@ class OutWatchDomSpec extends JSDomSpec {
     val myString: Handler[String] = Handler.create.unsafeRunSync()
 
     var renderFnCounter = 0
-    val renderFn: String => VDomModifier = { str =>
-      renderFnCounter += 1
-      Seq[VDomModifier](cls := "b", str)
-    }
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id := "bla").thunk("component", myString)(renderFn)
+        b(id := "bla").thunk("component")(myString) {
+          renderFnCounter += 1
+          VDomModifier(cls := "b", myString)
+        }
       },
       b("something else")
     )
@@ -1738,14 +1737,13 @@ class OutWatchDomSpec extends JSDomSpec {
     }
 
     var renderFnCounter = 0
-    val renderFn: Wrap => VDomModifier = { str =>
-      renderFnCounter += 1
-      Seq[VDomModifier](cls := "b", str.s)
-    }
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id := "bla").thunk("component", new Wrap(myString))(renderFn)
+        b(id := "bla").thunk("component")(new Wrap(myString)) {
+          renderFnCounter += 1
+          Seq[VDomModifier](cls := "b", myString)
+        }
       },
       b("something else")
     )
@@ -1778,14 +1776,13 @@ class OutWatchDomSpec extends JSDomSpec {
     val myId: Handler[String] = Handler.create.unsafeRunSync()
 
     var renderFnCounter = 0
-    val renderFn: String => VDomModifier = { str =>
-      renderFnCounter += 1
-      Seq[VDomModifier](cls := "b", str)
-    }
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id <-- myId).thunk("component", myString)(renderFn)
+        b(id <-- myId).thunk("component")(myString) {
+          renderFnCounter += 1
+          Seq[VDomModifier](cls := "b", myString)
+        }
       },
       b("something else")
     )

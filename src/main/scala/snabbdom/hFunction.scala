@@ -4,7 +4,7 @@ import org.scalajs.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
-import scala.scalajs.js.{UndefOr, |}
+import scala.scalajs.js.|
 
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
