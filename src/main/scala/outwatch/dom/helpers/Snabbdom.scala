@@ -17,13 +17,13 @@ object OutwatchTracing {
 }
 
 object SnabbdomOps {
-  private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
+  @inline private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
     DataObject(
       modifiers.attrs, modifiers.props, modifiers.styles, modifiers.emitters,
       Hooks(js.undefined, modifiers.insertHook, modifiers.prePatchHook, modifiers.updateHook, modifiers.postPatchHook, modifiers.destroyHook),
       modifiers.keyOption, vNodeNS)
 
-  private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int, vNodeNS: js.UndefOr[String])(implicit scheduler: Scheduler): VNodeProxy = {
+  @inline private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int, vNodeNS: js.UndefOr[String])(implicit scheduler: Scheduler): VNodeProxy = {
     val dataObject = createDataObject(modifiers, vNodeNS)
 
     VNodeProxy(
@@ -36,11 +36,11 @@ object SnabbdomOps {
     )
   }
 
-  private[outwatch] def toSnabbdom(thunkNode: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
+  @inline private[outwatch] def toSnabbdom(thunkNode: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     thunk.conditional(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, thunkNode.shouldRender)
   }
 
-  private[outwatch] def toSnabbdom(thunkNode: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
+  @inline private[outwatch] def toSnabbdom(thunkNode: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     thunk(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, js.Array(thunkNode.argument))
   }
 

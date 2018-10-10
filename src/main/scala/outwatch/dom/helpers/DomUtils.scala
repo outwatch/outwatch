@@ -8,20 +8,24 @@ import org.scalajs.dom
 import outwatch.dom._
 import snabbdom.{Hooks, VNodeProxy}
 
+import scala.annotation.tailrec
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSBracketAccess
+import scala.scalajs.js.|
 
 @js.native
 private trait DictionaryRawApply[A] extends js.Object {
   @JSBracketAccess
   def apply(key: String): js.UndefOr[A] = js.native
 }
-private object DictionaryRawApply {
+private object Helpers {
   implicit class WithRaw[A](val dict: js.Dictionary[A]) extends AnyVal {
     def raw: DictionaryRawApply[A] = dict.asInstanceOf[DictionaryRawApply[A]]
   }
+
+  @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 }
-import outwatch.dom.helpers.DictionaryRawApply._
+import Helpers._
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
@@ -152,8 +156,6 @@ private[outwatch] object SeparatedModifiers {
 
     new SeparatedModifiers(proxies, attrs, props, styles, keyOption, emitters, insertHook, prePatchHook, updateHook, postPatchHook, destroyHook, domUnmountHook)
   }
-
-  @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 }
 
 private[outwatch] class SeparatedModifiers(
@@ -177,30 +179,18 @@ private[outwatch] class NativeModifiers(
 )
 
 private[outwatch] object NativeModifiers {
-  import SeparatedModifiers.assign
 
-  def from(modifiers: js.Array[VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(CompositeModifier(modifiers))
-
-  def from(modifier: VDomModifier)(implicit scheduler: Scheduler): NativeModifiers = {
-    var lengths: js.UndefOr[js.Array[Int]] = js.undefined
+  def from(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = {
+    var lengths: js.UndefOr[js.Array[js.UndefOr[Int]]] = js.undefined
     var updaterObservables: js.UndefOr[js.Array[Observable[js.Array[StaticVDomModifier]]]] = js.undefined
     val modifiers = new js.Array[StaticVDomModifier]()
 
-    def appendModifier(mod: StaticVDomModifier): Unit = {
+    @inline def appendModifier(mod: StaticVDomModifier): Unit = {
       modifiers += mod
       lengths.foreach { _ += 1 }
     }
-    def appendStream(stream: ValueObservable[js.Array[StaticVDomModifier]]): Unit = {
-      val lengthsArr = lengths getOrElse {
-        val lengthsArr = new js.Array[Int](modifiers.length)
-        var i = 0
-        while (i < modifiers.length) {
-          lengthsArr(i) = 1
-          i += 1
-        }
-        lengths = lengthsArr
-        lengthsArr
-      }
+    @inline def appendStream(stream: ValueObservable[js.Array[StaticVDomModifier]]): Unit = {
+      val lengthsArr = lengths getOrElse assign(new js.Array[js.UndefOr[Int]](modifiers.length))(lengths = _)
       val observables = updaterObservables getOrElse assign(new js.Array[Observable[js.Array[StaticVDomModifier]]]())(updaterObservables = _)
       val index = lengthsArr.length
       stream.value match {
@@ -214,10 +204,10 @@ private[outwatch] object NativeModifiers {
         var i = 0
         var lengthBefore = 0
         while (i < index) {
-          lengthBefore += lengthsArr(i)
+          lengthBefore += lengthsArr(i) getOrElse 1
           i += 1
         }
-        modifiers.splice(lengthBefore, lengthsArr(index), mods: _*)
+        modifiers.splice(lengthBefore, lengthsArr(index) getOrElse 1, mods: _*)
         lengthsArr(index) = mods.length
         modifiers
       }
@@ -236,46 +226,64 @@ private[outwatch] object NativeModifiers {
       case m: SchedulerAction => inner(m.action(scheduler))
     }
 
-    inner(modifier)
+    appendModifiers.foreach(inner)
 
     new NativeModifiers(modifiers, updaterObservables.map(obs => new CollectionObservable[js.Array[StaticVDomModifier]](obs)))
   }
 
   private def flattenModifierStream(modStream: ValueObservable[VDomModifier])(implicit scheduler: Scheduler): ValueObservable[js.Array[StaticVDomModifier]] = {
-    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]] {
+    @tailrec def findObservable(modifier: VDomModifier): Observable[js.Array[StaticVDomModifier]] = modifier match {
       case mod: StaticVDomModifier => Observable.now(js.Array(mod))
       case EmptyModifier => Observable.now(js.Array())
       case child: VNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: ThunkVNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: ConditionalVNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
       case child: StringVNode  => Observable.now(js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
-      case mod =>
-        val nativeModifiers = from(mod)
+      case mods: CompositeModifier =>
+        val nativeModifiers = from(mods.modifiers)
         nativeModifiers.observable.fold(Observable.now(nativeModifiers.modifiers)) { obs =>
           Observable.concat(Observable.now(nativeModifiers.modifiers), obs)
         }
+      case m: ModifierStreamReceiver =>
+        val stream = flattenModifierStream(m.stream)
+        Observable.concat(Observable.now(stream.value.getOrElse(js.Array())), stream.observable)
+      case m: EffectModifier => findObservable(m.effect.unsafeRunSync())
+      case m: SchedulerAction => findObservable(m.action(scheduler))
     }
+    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable)
 
-    modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array())) {
-      case defaultValue: StaticVDomModifier => ValueObservable(observable, js.Array(defaultValue))
+    @tailrec def findDefaultObservable(modifier: VDomModifier): ValueObservable[js.Array[StaticVDomModifier]] = modifier match {
+      case mod: StaticVDomModifier => ValueObservable(observable, js.Array(mod))
       case EmptyModifier => ValueObservable(observable, js.Array())
       case child: VNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: ThunkVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: ConditionalVNode => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
       case child: StringVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
-      case defaultValue =>
-        val nativeModifiers = from(defaultValue)
+      case mods: CompositeModifier =>
+        val nativeModifiers = from(mods.modifiers)
         val initialObservable = nativeModifiers.observable.fold(observable) { obs =>
           observable.publishSelector { observable =>
             Observable.merge(obs.takeUntil(observable), observable)
           }
         }
-
         ValueObservable(initialObservable, nativeModifiers.modifiers)
+      case m: ModifierStreamReceiver =>
+        val stream = flattenModifierStream(m.stream)
+        val initialObservable = observable.publishSelector { observable =>
+          Observable.merge(stream.observable.takeUntil(observable), observable)
+        }
+        ValueObservable(initialObservable, stream.value.getOrElse(js.Array()))
+      case m: EffectModifier => findDefaultObservable(m.effect.unsafeRunSync())
+      case m: SchedulerAction => findDefaultObservable(m.action(scheduler))
     }
+    modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array()))(findDefaultObservable)
   }
 }
 
 private object StyleKey {
-  def delayed = "delayed"
-  def remove = "remove"
-  def destroy = "destroy"
+  @inline def delayed = "delayed"
+  @inline def remove = "remove"
+  @inline def destroy = "destroy"
 }
 
 private class CollectionObservable[A](observables: js.Array[Observable[A]]) extends Observable[A] {
