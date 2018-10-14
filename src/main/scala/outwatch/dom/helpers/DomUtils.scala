@@ -236,8 +236,6 @@ private[outwatch] object NativeModifiers {
       case c: CompositeModifier => c.modifiers.foreach(inner)
       case mod: StaticVDomModifier => appendModifier(mod)
       case child: VNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
-      case thunk: ThunkVNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(thunk)))
-      case thunk: ConditionalVNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(thunk)))
       case child: StringVNode  => appendModifier(VNodeProxyNode(VNodeProxy.fromString(child.text)))
       case m: ModifierStreamReceiver => appendStream(flattenModifierStream(m.stream))
       case m: EffectModifier => inner(m.effect.unsafeRunSync())
@@ -254,8 +252,6 @@ private[outwatch] object NativeModifiers {
       case mod: StaticVDomModifier => Observable.now(js.Array(mod))
       case EmptyModifier => Observable.now(js.Array())
       case child: VNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
-      case child: ThunkVNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
-      case child: ConditionalVNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
       case child: StringVNode  => Observable.now(js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mods: CompositeModifier =>
         val nativeModifiers = from(mods.modifiers)
@@ -274,8 +270,6 @@ private[outwatch] object NativeModifiers {
       case mod: StaticVDomModifier => ValueObservable(observable, js.Array(mod))
       case EmptyModifier => ValueObservable(observable, js.Array())
       case child: VNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
-      case child: ThunkVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
-      case child: ConditionalVNode => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
       case child: StringVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mods: CompositeModifier =>
         val nativeModifiers = from(mods.modifiers)

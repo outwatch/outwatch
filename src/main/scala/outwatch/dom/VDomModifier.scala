@@ -7,6 +7,7 @@ import outwatch.AsVDomModifier
 import outwatch.dom.helpers.{SnabbdomOps, NativeHelpers}
 import snabbdom.{DataObject, VNodeProxy}
 import snabbdom.{DataObject, VNodeProxy, thunk}
+import scala.scalajs.js.JSConverters._
 
 import scala.scalajs.js
 
@@ -75,21 +76,27 @@ final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) e
 final case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
 final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
-final case class ThunkVNode(nodeType: String, key: Key.Value, argument: Any, renderFn: () => VNodeProxy) extends VDomModifier
-final case class ConditionalVNode(nodeType: String, key: Key.Value, shouldRender: Boolean, renderFn: () => VNodeProxy) extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
+  def apply(args: VDomModifier*): VNode
+}
+sealed trait BasicVNode extends VNode {
   def nodeType: String
   def modifiers: js.Array[VDomModifier]
-  def apply(args: VDomModifier*): VNode
-  def conditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier)(implicit scheduler: Scheduler): ConditionalVNode =
-    ConditionalVNode(nodeType, key, shouldRender, () => SnabbdomOps.toSnabbdom(apply(renderFn)))
-  def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VDomModifier)(implicit scheduler: Scheduler): ThunkVNode =
-    ThunkVNode(nodeType, key, arguments, () => SnabbdomOps.toSnabbdom(apply(renderFn)))
+  def apply(args: VDomModifier*): BasicVNode
+  def conditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
+  def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VDomModifier): ThunkVNode = ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
 }
-final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
-  def apply(args: VDomModifier*): VNode = copy(modifiers = NativeHelpers.arrayConcat(modifiers, args))
+
+final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VDomModifier) extends VNode {
+  def apply(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode(args))
 }
-final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
-  def apply(args: VDomModifier*): VNode = copy(modifiers = NativeHelpers.arrayConcat(modifiers, args))
+final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRender: Boolean, renderFn: () => VDomModifier) extends VNode {
+  def apply(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args))
+}
+final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
+  def apply(args: VDomModifier*): HtmlVNode = copy(modifiers = NativeHelpers.arrayConcat(modifiers, args))
+}
+final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
+  def apply(args: VDomModifier*): SvgVNode = copy(modifiers = NativeHelpers.arrayConcat(modifiers, args))
 }

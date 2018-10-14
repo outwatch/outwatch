@@ -36,12 +36,12 @@ private[outwatch] object CodecBuilder {
 private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[TagBuilder.Tag, dom.html.Element] with builders.SvgTagBuilder[TagBuilder.Tag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VNode = HtmlVNode(tagName, js.Array())
-  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VNode = SvgVNode(tagName, js.Array())
+  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): BasicVNode = HtmlVNode(tagName, js.Array())
+  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): BasicVNode = SvgVNode(tagName, js.Array())
 }
 
 private[outwatch] object TagBuilder {
-  type Tag[T] = VNode
+  type Tag[T] = BasicVNode
 }
 
 trait Tags

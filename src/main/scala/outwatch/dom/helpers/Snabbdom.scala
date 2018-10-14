@@ -36,15 +36,21 @@ object SnabbdomOps {
     )
   }
 
-  @inline private[outwatch] def toSnabbdom(thunkNode: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk.conditional(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, thunkNode.shouldRender)
+  private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = node match {
+    case node: BasicVNode => toSnabbdomProxy(node)
+    case node: ConditionalVNode => toSnabbdomProxy(node)
+    case node: ThunkVNode => toSnabbdomProxy(node)
   }
 
-  @inline private[outwatch] def toSnabbdom(thunkNode: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk(thunkNode.nodeType, thunkNode.key, thunkNode.renderFn, js.Array(thunkNode.argument))
+  @inline private def toSnabbdomProxy(node: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
+    thunk.conditional(node.baseNode.nodeType, node.key, () => SnabbdomOps.toSnabbdom(node.baseNode(node.renderFn())), node.shouldRender)
   }
 
-  private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = {
+  @inline private def toSnabbdomProxy(node: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
+    thunk(node.baseNode.nodeType, node.key, () => SnabbdomOps.toSnabbdom(node.baseNode(node.renderFn())), node.arguments)
+  }
+
+  def toSnabbdomProxy(node: BasicVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     val streamableModifiers = NativeModifiers.from(node.modifiers)
     val vNodeId = streamableModifiers.##
     val vNodeNS = node match {
