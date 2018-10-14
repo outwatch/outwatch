@@ -4,7 +4,7 @@ import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom._
 import outwatch.AsVDomModifier
-import outwatch.dom.helpers.SnabbdomOps
+import outwatch.dom.helpers.{SnabbdomOps, NativeHelpers}
 import snabbdom.{DataObject, VNodeProxy}
 import snabbdom.{DataObject, VNodeProxy, thunk}
 
@@ -88,8 +88,8 @@ sealed trait VNode extends VDomModifier {
     ThunkVNode(nodeType, key, arguments, () => SnabbdomOps.toSnabbdom(apply(renderFn)))
 }
 final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
-  def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
+  def apply(args: VDomModifier*): VNode = copy(modifiers = NativeHelpers.arrayConcat(modifiers, args))
 }
 final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends VNode {
-  def apply(args: VDomModifier*): VNode = copy(modifiers = modifiers ++ args)
+  def apply(args: VDomModifier*): VNode = copy(modifiers = NativeHelpers.arrayConcat(modifiers, args))
 }
