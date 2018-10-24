@@ -11,11 +11,11 @@ import scala.concurrent.Future
 object Handler {
   def empty[T]:IO[Handler[T]] = create[T]
 
-  def create[T]:IO[Handler[T]] = IO(created[T])
-  def create[T](seed:T):IO[Handler[T]] = IO(created[T](seed))
+  def create[T]:IO[Handler[T]] = IO(unsafe[T])
+  def create[T](seed:T):IO[Handler[T]] = IO(unsafe[T](seed))
 
-  def created[T]:Handler[T] = ReplaySubject.createLimited(1)
-  def created[T](seed:T):Handler[T] = BehaviorSubject[T](seed)
+  def unsafe[T]:Handler[T] = ReplaySubject.createLimited(1)
+  def unsafe[T](seed:T):Handler[T] = BehaviorSubject[T](seed)
 }
 
 object ProHandler {
