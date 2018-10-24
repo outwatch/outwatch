@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -11,8 +12,13 @@ import scala.concurrent.Future
 
 class LifecycleHookSpec extends JSDomAsyncSpec {
 
-  def renderUnsafe(node: dom.VNode): Future[Unit] =
-    OutWatch.renderInto("#app", node).unsafeToFuture()
+  def render(node: dom.VNode): IO[Unit] =
+    OutWatch.renderInto("#app", node)
+
+  def toIO[T](f: => Future[T]): IO[T] =
+    IO.fromFuture(IO(f))
+
+  ///
 
   "Insertion hooks" should "be called correctly" in {
 
@@ -28,7 +34,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     switch shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
     }
   }
@@ -55,7 +61,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     switch shouldBe false
     switch2 shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
       switch2 shouldBe true
     }
@@ -77,7 +83,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     switch shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
     }
 
@@ -105,7 +111,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     switch shouldBe false
     switch2 shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
       switch2 shouldBe true
     }
@@ -132,19 +138,16 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       node <- div(message, onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
     } yield node
 
-    val res1 = for {
-      _ <- renderUnsafe(node)
-    } yield {
+    render(node).flatMap { _ =>
+
       switch1 shouldBe false
       switch2 shouldBe false
-    }
 
-    for {
-      _ <- res1
-      _ <- message.onNext("wursi")
-    } yield {
-      switch1 shouldBe true
-      switch2 shouldBe true
+      toIO(message.onNext("next")).map { _ =>
+
+        switch1 shouldBe true
+        switch2 shouldBe true
+      }
     }
 
   }
@@ -164,7 +167,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     switch shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
     }
   }
@@ -183,7 +186,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     switch shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
     }
   }
@@ -207,19 +210,16 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       node <- div(message, onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
     } yield node
 
-    val res1 = for {
-      _ <- renderUnsafe(node)
-    } yield {
+    render(node).flatMap { _ =>
+
       switch1 shouldBe false
       switch2 shouldBe false
-    }
 
-    for {
-      _ <- res1
-      _ <- message.onNext("wursi")
-    } yield {
-      switch1 shouldBe true
-      switch2 shouldBe true
+      toIO(message.onNext("next")).map { _ =>
+
+        switch1 shouldBe true
+        switch2 shouldBe true
+      }
     }
 
   }
@@ -238,7 +238,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     switch shouldBe false
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       switch shouldBe true
     }
 
@@ -263,20 +263,18 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       node <- div(message, onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
     } yield node
 
-    val res1 = for {
-      _ <- renderUnsafe(node)
-    } yield {
+    render(node).flatMap { _ =>
+
       switch1 shouldBe false
       switch2 shouldBe false
+
+      toIO(message.onNext("next")).map { _ =>
+
+        switch1 shouldBe true
+        switch2 shouldBe true
+      }
     }
 
-    for {
-      _ <- res1
-      _ <- message.onNext("wursi")
-    } yield {
-      switch1 shouldBe true
-      switch2 shouldBe true
-    }
   }
 
 
@@ -323,17 +321,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     hooks shouldBe empty
 
-    val res1 = for {
-      _ <- renderUnsafe(node)
-    } yield {
+    render(node).flatMap { _ =>
       hooks.toList shouldBe List("insert")
-    }
-
-    for {
-      _ <- res1
-      _ <- message.onNext("next")
-    } yield {
-      hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
+      toIO(message.onNext("next")).map { _ =>
+        hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
+      }
     }
 
   }
@@ -362,7 +354,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     hooks shouldBe empty
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       hooks.toList shouldBe  List("insert")
     }
   }
@@ -396,8 +388,8 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     hooks shouldBe empty
 
     for {
-      _ <- renderUnsafe(node)
-      _ <- message.onNext("next")
+      _ <- render(node)
+      _ <- toIO(message.onNext("next"))
     } yield {
      hooks.contains("destroy") shouldBe false
     }
@@ -433,9 +425,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     hooks shouldBe empty
 
     for {
-      _ <- renderUnsafe(node)
-      _ <- messageList.onNext(Seq("one"))
-      _ <- messageList.onNext(Seq("one", "two"))
+      _ <- render(node)
+      _ <- toIO(messageList.onNext(Seq("one")))
+      _ <- toIO(messageList.onNext(Seq("one", "two")))
     } yield {
       hooks.count(_ == "insert") shouldBe 1
     }
@@ -460,26 +452,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       )))
     }
 
-    val res1 = for {
-      _ <- renderUnsafe(node)
-    } yield {
-      latest shouldBe ""
-    }
-
-    val res2 = for {
-      _ <- res1
-      _ <- sub.onNext("first")
-    } yield {
-      latest shouldBe "first"
-    }
-
     for {
-      _ <- nodes.onNext(div()) // this triggers child destroy and subscription cancelation
-      _ <- res2
-      _ <- sub.onNext("second")
-    } yield {
-      latest shouldBe "first"
-    }
+
+      _ ← render(node)
+      _ = latest shouldBe ""
+      _ ← toIO(sub.onNext("first"))
+      _ = latest shouldBe "first"
+      _ ← toIO(nodes.onNext(div()))
+      _ ← toIO(sub.onNext("second"))
+
+    } yield latest shouldBe "first"
+
   }
 
 
@@ -501,10 +484,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       )
     }
 
-    for(_ <- renderUnsafe(node)) yield {
+    for(_ <- render(node)) yield {
       operations.toList shouldBe List("div", "insert")
     }
-
 
   }
 
@@ -548,7 +530,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       )
 
 
-      OutWatch.renderInto("#app", node).map { _ =>
+      render(node).map { _ =>
 
         val element = document.getElementById("strings")
 
@@ -684,7 +666,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
         }
       )
 
-      OutWatch.renderInto("#app", node).map { _ =>
+      render(node).map { _ =>
 
         val element = document.getElementById("strings")
 
