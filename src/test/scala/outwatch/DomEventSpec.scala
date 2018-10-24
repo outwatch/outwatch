@@ -309,10 +309,10 @@ class DomEventSpec extends JSDomSpec {
     val node = {
       div(
         button(id := "button",
-          onClick handleWith (_ => triggeredEventFunction += 1),
-          onClick(1) handleWith (triggeredIntFunction += _),
-          onClick handleWith  { triggeredFunction += 1 },
-          onSnabbdomUpdate handleWith2 { (o, e) => triggeredFunction2 += 1 },
+          onClick foreach (_ => triggeredEventFunction += 1),
+          onClick(1) foreach (triggeredIntFunction += _),
+          onClick foreach  { triggeredFunction += 1 },
+          onSnabbdomUpdate foreach { triggeredFunction2 += 1 },
           stream
         )
       )

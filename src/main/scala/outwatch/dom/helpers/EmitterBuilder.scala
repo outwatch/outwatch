@@ -13,10 +13,9 @@ trait EmitterBuilder[+O, +R] extends Any {
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R]
 
-  def -->(observer: Observer[O]): R = handleWith(observer)
-  def handleWith(observer: Observer[O]): R
-  def handleWith(action: O => Unit): R
-  def handleWith(action: => Unit): R = handleWith(_ => action)
+  def -->(observer: Observer[O]): R
+  def foreach(action: O => Unit): R
+  def foreach(action: => Unit): R = foreach(_ => action)
 
   def apply[T](value: T): EmitterBuilder[T, R] = map(_ => value)
 
@@ -78,10 +77,6 @@ object EmitterBuilder {
     def asHtml: EmitterBuilder[(html.Element, html.Element), R] = builder.map(_.asInstanceOf[(html.Element, html.Element)])
     def asSvg: EmitterBuilder[(svg.Element, svg.Element), R] = builder.map(_.asInstanceOf[(svg.Element, svg.Element)])
   }
-
-  implicit class TupleActions[A,B, R](val builder: EmitterBuilder[(A,B), R]) {
-    def handleWith2(f: (A,B) => Unit): R = builder handleWith ({ case (a,b) => f(a,b) }: ((A, B)) => Unit)
-  }
 }
 
 final case class TransformingEmitterBuilder[E, +O, +R](
@@ -95,8 +90,8 @@ final case class TransformingEmitterBuilder[E, +O, +R](
   def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
   def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transform(_.collect(f))
 
-  def handleWith(action: O => Unit): R = -->(Sink.fromFunction(action))
-  def handleWith(observer: Observer[O]): R = {
+  def foreach(action: O => Unit): R = -->(Sink.fromFunction(action))
+  def -->(observer: Observer[O]): R = {
     create(EmitterReceiver.Observer(observer.redirect(transformer)))
   }
 }
@@ -106,7 +101,7 @@ trait SyncEmitterBuilder[+O, +R] extends Any with EmitterBuilder[O, R] {
   def map[T](f: O => T): SyncEmitterBuilder[T, R] = transformSync(_.map(f))
   def collect[T](f: PartialFunction[O, T]): SyncEmitterBuilder[T, R] = transformSync(_.collect(f))
   def filter(predicate: O => Boolean): SyncEmitterBuilder[O, R] = transformSync(_.filter(predicate))
-  def handleWith(observer: Observer[O]): R = handleWith(observer.onNext(_))
+  def -->(observer: Observer[O]): R = foreach(observer.onNext(_))
 }
 
 final case class FunctionEmitterBuilder[E, +O, +R](
@@ -116,13 +111,13 @@ final case class FunctionEmitterBuilder[E, +O, +R](
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[O, T, R](tr, observer => create(EmitterReceiver.Observer(new ConnectableObserver[E](Sink.fromFunction(e => transformer(Some(e)).foreach(observer.observer.onNext(_))), observer.observer.connect()(_)))))
   def transformSync[T](tr: Option[O] => Option[T]): SyncEmitterBuilder[T, R] = copy(transformer = (e: Option[E]) => tr(transformer(e)))
-  def handleWith(action: O => Unit): R = create(EmitterReceiver.Function((e: E) => transformer(Some(e)).foreach(action)))
+  def foreach(action: O => Unit): R = create(EmitterReceiver.Function((e: E) => transformer(Some(e)).foreach(action)))
 }
 
 final case class CustomEmitterBuilder[E, +R](create: EmitterReceiver[E] => R) extends AnyVal with SyncEmitterBuilder[E, R] {
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = TransformingEmitterBuilder[E, T, R](tr, create)
   def transformSync[T](tr: Option[E] => Option[T]): SyncEmitterBuilder[T, R] = FunctionEmitterBuilder[E, T, R](tr, create)
-  def handleWith(action: E => Unit): R = create(EmitterReceiver.Function(action))
+  def foreach(action: E => Unit): R = create(EmitterReceiver.Function(action))
 }
 
 sealed trait EmitterReceiver[E]

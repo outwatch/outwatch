@@ -12,8 +12,8 @@ trait ManagedSubscriptions {
   def managed(subscription: IO[Cancelable]): VDomModifier = IO {
     var cancelable: Cancelable = null
     VDomModifier(
-      lifecycle.onDomMount handleWith { cancelable = subscription.unsafeRunSync() },
-      lifecycle.onDomUnmount handleWith { cancelable.cancel() }
+      lifecycle.onDomMount foreach { cancelable = subscription.unsafeRunSync() },
+      lifecycle.onDomUnmount foreach { cancelable.cancel() }
     )
   }
 
@@ -28,24 +28,24 @@ trait ManagedSubscriptions {
     def apply(subscription: dom.Element => Cancelable): VDomModifier = IO {
       var cancelable: Cancelable = null
       VDomModifier(
-        dsl.onDomMount handleWith { elem => cancelable = subscription(elem) },
-        dsl.onDomUnmount handleWith { cancelable.cancel() }
+        dsl.onDomMount foreach { elem => cancelable = subscription(elem) },
+        dsl.onDomUnmount foreach { cancelable.cancel() }
       )
     }
 
     def asHtml(subscription: dom.html.Element => Cancelable): VDomModifier = IO {
       var cancelable: Cancelable = null
       VDomModifier(
-        dsl.onDomMount.asHtml handleWith { elem => cancelable = subscription(elem) },
-        dsl.onDomUnmount handleWith { cancelable.cancel() }
+        dsl.onDomMount.asHtml foreach { elem => cancelable = subscription(elem) },
+        dsl.onDomUnmount foreach { cancelable.cancel() }
       )
     }
 
     def asSvg(subscription: dom.svg.Element => Cancelable): VDomModifier = IO {
       var cancelable: Cancelable = null
       VDomModifier(
-        dsl.onDomMount.asSvg handleWith { elem => cancelable = subscription(elem) },
-        dsl.onDomUnmount handleWith { cancelable.cancel() }
+        dsl.onDomMount.asSvg foreach { elem => cancelable = subscription(elem) },
+        dsl.onDomUnmount foreach { cancelable.cancel() }
       )
     }
   }

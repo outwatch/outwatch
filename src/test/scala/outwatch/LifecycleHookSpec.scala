@@ -396,7 +396,7 @@ class LifecycleHookSpec extends JSDomSpec {
 
     var domHooks = List.empty[String]
 
-    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount" }, onDomUnmount handleWith { domHooks :+= "unmount" }, innerHandler))
+    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
     domHooks shouldBe List("mount")
 
     otherHandler.onNext("other")
@@ -405,10 +405,10 @@ class LifecycleHookSpec extends JSDomSpec {
     innerHandler.onNext("inner")
     domHooks shouldBe List("mount")
 
-    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount2" }))
+    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount2" }))
     domHooks shouldBe List("mount", "unmount", "mount2")
 
-    modHandler.onNext(VDomModifier(onDomUnmount handleWith { domHooks :+= "unmount2" }))
+    modHandler.onNext(VDomModifier(onDomUnmount foreach { domHooks :+= "unmount2" }))
     domHooks shouldBe List("mount", "unmount", "mount2")
 
     modHandler.onNext(VDomModifier.empty)
@@ -420,19 +420,19 @@ class LifecycleHookSpec extends JSDomSpec {
     var domHooks = List.empty[String]
 
     val modHandler = PublishSubject[VDomModifier]()
-    val node = div(ValueObservable(modHandler, VDomModifier(onDomMount handleWith { domHooks :+= "default-mount" }, onDomUnmount handleWith { domHooks :+= "default-unmount" })))
+    val node = div(ValueObservable(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomUnmount foreach { domHooks :+= "default-unmount" })))
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
     domHooks shouldBe List("default-mount")
 
-    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount" }, onDomUnmount handleWith { domHooks :+= "unmount" }))
+    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }))
     domHooks shouldBe List("default-mount", "default-unmount", "mount")
 
-    modHandler.onNext(VDomModifier(onDomMount handleWith { domHooks :+= "mount2" }))
+    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount2" }))
     domHooks shouldBe List("default-mount", "default-unmount", "mount", "unmount", "mount2")
 
-    modHandler.onNext(VDomModifier(onDomUnmount handleWith { domHooks :+= "unmount2" }))
+    modHandler.onNext(VDomModifier(onDomUnmount foreach { domHooks :+= "unmount2" }))
     domHooks shouldBe List("default-mount", "default-unmount", "mount", "unmount", "mount2")
 
     modHandler.onNext(VDomModifier.empty)

@@ -1647,7 +1647,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val clicks = Handler.create[Int](0).unsafeRunSync()
 
     var incCounter =  0
-    val innerMod  = onClick.transform(_ => clicks) handleWith { incCounter += 1 }
+    val innerMod  = onClick.transform(_ => clicks) foreach { incCounter += 1 }
 //    val innerMod  = onClick.apply(clicks.map { c => incCounter += 1; c }) handleWith { }
     val modHandler = Handler.create[VDomModifier](innerMod).unsafeRunSync()
 

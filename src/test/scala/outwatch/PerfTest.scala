@@ -19,9 +19,9 @@ class PerfTest extends JSDomSpec {
       val vtree = div(
         id := elemId,
         span(id := "pete", "Go!"),
-        onClick handleWith {},
-        onDomMount handleWith {},
-        onDomUnmount handleWith {},
+        onClick foreach {},
+        onDomMount foreach {},
+        onDomUnmount foreach {},
         //      dsl.cls <-- handler.map(_.toString),
         //      dsl.value <-- handler.map(_.toString),
         handler.map { i =>
@@ -33,7 +33,7 @@ class PerfTest extends JSDomSpec {
         handler2.map { i =>
           (0 to i).map { j =>
             div(
-              div("hans", cls := j.toString, onClick handleWith {}, handler3),
+              div("hans", cls := j.toString, onClick foreach {}, handler3),
               p(p),
               handler3
             )
@@ -78,9 +78,9 @@ class PerfTest extends JSDomSpec {
       val vtree = div(
         id := elemId,
         span(id := "pete", "Go!"),
-        onClick handleWith {},
-        onDomMount handleWith {},
-        onDomUnmount handleWith {},
+        onClick foreach {},
+        onDomMount foreach {},
+        onDomUnmount foreach {},
         //      dsl.cls <-- handler.map(_.toString),
         //      dsl.value <-- handler.map(_.toString),
         handler.map { i =>
@@ -92,7 +92,7 @@ class PerfTest extends JSDomSpec {
         handler2.map { i =>
           (0 to i).map { j =>
             div.thunk("handler2")(j)(VDomModifier(
-              div("hans", cls := j.toString, onClick handleWith {}, handler3),
+              div("hans", cls := j.toString, onClick foreach {}, handler3),
               p(p),
               handler3
             ))
@@ -136,7 +136,7 @@ class PerfTest extends JSDomSpec {
 
       def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;")
       def node2(j: Int) = div(
-        div("hans", cls := j.toString, onClick handleWith {}, handler3),
+        div("hans", cls := j.toString, onClick foreach {}, handler3),
         p(p),
         handler3
       )
@@ -147,9 +147,9 @@ class PerfTest extends JSDomSpec {
       val vtree = div(
         id := elemId,
         span(id :=  "pete", "Go!"),
-        onClick handleWith   {},
-        onDomMount handleWith   {},
-        onDomUnmount handleWith   {},
+        onClick foreach   {},
+        onDomMount foreach   {},
+        onDomUnmount foreach   {},
   //      dsl.cls <-- handler.map(_.toString),
   //      dsl.value <-- handler.map(_.toString),
         handler,
