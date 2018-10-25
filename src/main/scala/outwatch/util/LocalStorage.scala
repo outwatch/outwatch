@@ -52,7 +52,7 @@ class Storage(domStorage: dom.Storage) {
 
   def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    subjectWithTransform(key, Observable.merge(_, storageEvents))
+    subjectWithTransform(key, Observable(_, storageEvents).merge)
   }
 }
 
