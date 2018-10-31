@@ -1,17 +1,20 @@
 package outwatch
 
 import cats.effect.IO
-import monix.reactive.Observable
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
+import monix.execution.Ack.Continue
+import monix.reactive.{Observable, Observer}
+import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import snabbdom.{DataObject, Hooks, hFunction}
 import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
+
 import scala.collection.immutable.Seq
 import scala.collection.mutable
 import scala.scalajs.js
@@ -2875,5 +2878,43 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         _ <- monix.eval.Task.unit.delayResult(1 seconds).runToFuture
       } yield succeed
     }
+  }
+
+  "Custom Emitter builder" should "work with events" in {
+    import scala.concurrent.duration._
+
+    val clickableView: EmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier { sink: Observer[Boolean] =>
+      VDomModifier(
+        display.flex,
+        minWidth := "0px",
+
+        onMouseDown(true) --> sink,
+        onMouseUp(false) --> sink
+      )
+    }
+
+    for {
+      handler <- Handler.create[String]
+      node = div(
+        id := "strings",
+        clickableView.map {
+          case true => "yes"
+          case false => "no"
+        } --> handler,
+        handler
+      )
+      _ <- OutWatch.renderInto("#app", node)
+
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe ""
+
+      _ = sendEvent(element, "mousedown")
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ = element.innerHTML shouldBe "yes"
+
+      _ = sendEvent(element, "mouseup")
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ = element.innerHTML shouldBe "no"
+    } yield succeed
   }
 }
