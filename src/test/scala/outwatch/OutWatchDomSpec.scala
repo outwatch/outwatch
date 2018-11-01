@@ -1661,8 +1661,8 @@ class OutWatchDomSpec extends JSDomSpec {
     val clicks = Handler.create[Int](0).unsafeRunSync()
 
     var incCounter =  0
-    val innerMod  = onClick.transform(_ => clicks) foreach { incCounter += 1 }
-//    val innerMod  = onClick.apply(clicks.map { c => incCounter += 1; c }) handleWith { }
+    var mapCounter = 0
+    val innerMod  = onClick.transform(_ => clicks.map { c => mapCounter += 1; c }) foreach { incCounter += 1 }
     val modHandler = Handler.create[VDomModifier](innerMod).unsafeRunSync()
 
     val innerNode = div(modHandler)
@@ -1674,28 +1674,40 @@ class OutWatchDomSpec extends JSDomSpec {
     )
 
     incCounter shouldBe 0
+    mapCounter shouldBe 0
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
     incCounter shouldBe 1
+    mapCounter shouldBe 1
 
     clicks.onNext(1)
     incCounter shouldBe 2
+    mapCounter shouldBe 2
 
     modHandler.onNext(VDomModifier.empty)
+    incCounter shouldBe 2
+    mapCounter shouldBe 2
 
     clicks.onNext(2)
-    incCounter shouldBe 3 //2
+    incCounter shouldBe 2
+    mapCounter shouldBe 2
 
     modHandler.onNext(innerMod)
+    incCounter shouldBe 3
+    mapCounter shouldBe 3
 
     clicks.onNext(3)
-    incCounter shouldBe 4 //3
+    incCounter shouldBe 4
+    mapCounter shouldBe 4
 
     nodeHandler.onNext(span)
+    incCounter shouldBe 4
+    mapCounter shouldBe 4
 
     clicks.onNext(4)
-    incCounter shouldBe 4 //3
+    incCounter shouldBe 4
+    mapCounter shouldBe 4
   }
 
   "Thunk" should "work" in {

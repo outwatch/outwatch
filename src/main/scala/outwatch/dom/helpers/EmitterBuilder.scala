@@ -32,10 +32,8 @@ object EmitterBuilder {
 
   def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
     new CustomEmitterBuilder[E, VDomModifier]({
-      case o: ConnectableObserver[E] =>
-        VDomModifier(
-          SchedulerAction(implicit scheduler => {o.connect(); EmptyModifier}),
-//        managed(implicit scheduler => IO { o.connect() }),
+      case o: ConnectableObserver[E] => VDomModifier(
+        managedAction(implicit scheduler => o.connect()),
         create(o)
       )
       case o: Observer[E] => create(o)
