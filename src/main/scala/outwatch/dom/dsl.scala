@@ -9,7 +9,6 @@ object dsl extends Attributes with Tags with Styles {
     object attrs extends HtmlAttrs
     object events extends Events
     object outwatch extends OutwatchAttributes
-    object lifecycle extends OutWatchLifeCycleAttributes
     object svg extends SvgAttrs
   }
   object svg extends SvgAttrs with TagsSvg
