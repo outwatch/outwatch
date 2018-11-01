@@ -28,11 +28,13 @@ trait MonixOps {
       override def onError(ex: Throwable): Unit = observer.onError(ex)
       override def onComplete(): Unit = observer.onComplete()
     }
+
     def redirectMapMaybe[I2](f: I2 => Option[I]): Observer[I2] = new Observer[I2] {
       override def onNext(elem: I2): Future[Ack] = f(elem).fold[Future[Ack]](Ack.Continue)(observer.onNext(_))
       override def onError(ex: Throwable): Unit = observer.onError(ex)
       override def onComplete(): Unit = observer.onComplete()
     }
+
     def redirectCollect[I2](f: PartialFunction[I2, I]): Observer[I2] = redirectMapMaybe(f.lift)
     def redirectFilter(f: I => Boolean): Observer[I] = redirectMapMaybe(e => Some(e).filter(f))
 
