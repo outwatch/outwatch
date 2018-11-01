@@ -37,14 +37,21 @@ object SnabbdomOps {
   @inline private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int, vNodeNS: js.UndefOr[String])(implicit scheduler: Scheduler): VNodeProxy = {
     val dataObject = createDataObject(modifiers, vNodeNS)
 
-    new VNodeProxy {
+    @inline def newProxy(childProxies: js.UndefOr[js.Array[VNodeProxy]], string: js.UndefOr[String]) = new VNodeProxy {
       sel = nodeType
       data = dataObject
-      children = modifiers.proxies
+      children = childProxies
+      text = string
       key = modifiers.keyOption
       _id = vNodeId
       _unmount = modifiers.domUnmountHook
     }
+
+    if (modifiers.hasOnlyTextChildren) {
+      modifiers.proxies.fold(newProxy(js.undefined, js.undefined)) { proxies =>
+        newProxy(js.undefined, proxies.foldLeft("")(_ + _.text))
+      }
+    } else newProxy(modifiers.proxies, js.undefined)
   }
 
   private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = node match {

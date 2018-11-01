@@ -157,7 +157,7 @@ class OutWatchDomSpec extends JSDomSpec {
         attrs = js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg")
         hook = Hooks.empty
       },
-      js.Array(hFunction("span", new DataObject { hook = Hooks.empty }, js.Array(VNodeProxy.fromString("Hello"))))
+      js.Array(hFunction("span", new DataObject { hook = Hooks.empty }, "Hello"))
     )
   }
 

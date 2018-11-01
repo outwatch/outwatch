@@ -15,6 +15,7 @@ import NativeHelpers._
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
+    var hasOnlyTextChildren = true
     var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
     var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]] = js.undefined
     var props: js.UndefOr[js.Dictionary[DataObject.PropValue]] = js.undefined
@@ -63,6 +64,7 @@ private[outwatch] object SeparatedModifiers {
     // append modifiers
     modifiers.foreach {
       case VNodeProxyNode(proxy) =>
+        hasOnlyTextChildren = hasOnlyTextChildren && proxy.data.isEmpty && proxy.text.isDefined
         val proxies = assureProxies()
         proxies += proxy
       case a : BasicAttr =>
@@ -140,7 +142,7 @@ private[outwatch] object SeparatedModifiers {
         destroyHook = createHooksSingle(destroyHook, h.trigger)
     }
 
-    new SeparatedModifiers(proxies, attrs, props, styles, keyOption, emitters, insertHook, prePatchHook, updateHook, postPatchHook, destroyHook, domUnmountHook)
+    new SeparatedModifiers(proxies = proxies, attrs = attrs, props = props, styles = styles, keyOption = keyOption, emitters = emitters, insertHook = insertHook, prePatchHook = prePatchHook, updateHook = updateHook, postPatchHook = postPatchHook, destroyHook = destroyHook, domUnmountHook = domUnmountHook, hasOnlyTextChildren = hasOnlyTextChildren)
   }
 }
 
@@ -156,7 +158,8 @@ private[outwatch] class SeparatedModifiers(
   val updateHook: js.UndefOr[Hooks.HookPairFn],
   val postPatchHook: js.UndefOr[Hooks.HookPairFn],
   val destroyHook: js.UndefOr[Hooks.HookSingleFn],
-  val domUnmountHook: js.UndefOr[Hooks.HookSingleFn])
+  val domUnmountHook: js.UndefOr[Hooks.HookSingleFn],
+  val hasOnlyTextChildren: Boolean)
 
 
 private[outwatch] class NativeModifiers(
