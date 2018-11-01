@@ -4,7 +4,7 @@ import org.scalajs.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
-import scala.scalajs.js.|
+import scala.scalajs.js.{Dictionary, UndefOr, |}
 
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
@@ -31,43 +31,34 @@ object hFunction {
   }
 }
 
-@js.native
 trait Hooks extends js.Object {
-  val init: js.UndefOr[Hooks.HookSingleFn]
-  val insert: js.UndefOr[Hooks.HookSingleFn]
-  val prepatch: js.UndefOr[Hooks.HookPairFn]
-  val update: js.UndefOr[Hooks.HookPairFn]
-  val postpatch: js.UndefOr[Hooks.HookPairFn]
-  val destroy: js.UndefOr[Hooks.HookSingleFn]
+  var init: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var insert: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var prepatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var update: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var postpatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var destroy: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
 
 object Hooks {
   type HookSingleFn = js.Function1[VNodeProxy, Unit]
   type HookPairFn = js.Function2[VNodeProxy, VNodeProxy, Unit]
 
-  def apply(
-    init: js.UndefOr[HookSingleFn] = js.undefined,
-    insert: js.UndefOr[HookSingleFn] = js.undefined,
-    prepatch: js.UndefOr[HookPairFn] = js.undefined,
-    update: js.UndefOr[HookPairFn] = js.undefined,
-    postpatch: js.UndefOr[HookPairFn] = js.undefined,
-    destroy: js.UndefOr[HookSingleFn] = js.undefined
-  ): Hooks = js.Dynamic.literal(init = init, insert = insert, prepatch = prepatch, update = update, postpatch = postpatch, destroy = destroy).asInstanceOf[Hooks]
+  def empty: Hooks = new Hooks {}
 }
 
-@js.native
 trait DataObject extends js.Object {
   import DataObject._
 
-  val attrs: js.UndefOr[js.Dictionary[AttrValue]]
-  val props: js.UndefOr[js.Dictionary[PropValue]]
-  val style: js.UndefOr[js.Dictionary[StyleValue]]
-  val on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]]
-  val hook: js.UndefOr[Hooks]
-  val key: js.UndefOr[KeyValue]
-  val ns: js.UndefOr[String]
-  val args: js.UndefOr[js.Array[js.Any] | Boolean]
-  val fn: js.UndefOr[js.Function0[VNodeProxy]]
+  var attrs: js.UndefOr[js.Dictionary[AttrValue]] = js.undefined
+  var props: js.UndefOr[js.Dictionary[PropValue]] = js.undefined
+  var style: js.UndefOr[js.Dictionary[StyleValue]] = js.undefined
+  var on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = js.undefined
+  var hook: js.UndefOr[Hooks] = js.undefined
+  var key: js.UndefOr[KeyValue] = js.undefined
+  var ns: js.UndefOr[String] = js.undefined
+  var args: js.UndefOr[js.Array[Any] | Boolean] = js.undefined
+  var fn: js.UndefOr[js.Function0[VNodeProxy]] = js.undefined
 }
 
 object DataObject {
@@ -77,19 +68,7 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def empty: DataObject = js.Dynamic.literal().asInstanceOf[DataObject]
-
-  def apply(attrs: js.UndefOr[js.Dictionary[AttrValue]] = js.undefined,
-    props: js.UndefOr[js.Dictionary[PropValue]] = js.undefined,
-    style: js.UndefOr[js.Dictionary[StyleValue]] = js.undefined,
-    on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = js.undefined,
-    hook: js.UndefOr[Hooks] = js.undefined,
-    key: js.UndefOr[KeyValue] = js.undefined,
-    ns: js.UndefOr[String] = js.undefined,
-    args: js.UndefOr[js.Array[Any] | Boolean] = js.undefined,
-    fn: js.UndefOr[js.Function0[VNodeProxy]] = js.undefined
-   ): DataObject = js.Dynamic.literal(attrs = attrs, props = props, style = style, on = on, hook = hook, key = key.asInstanceOf[js.Any], ns = ns, args = args.asInstanceOf[js.Any], fn = fn).asInstanceOf[DataObject]
-
+  def empty: DataObject = new DataObject { }
 }
 
 // @js.native
@@ -108,18 +87,23 @@ object thunk {
   //does respect equality. snabbdom thunk does not: https://github.com/snabbdom/snabbdom/issues/143
 
   private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    vnode.data.asInstanceOf[js.Dynamic].fn = thunk.data.flatMap(_.fn)
-    vnode.data.asInstanceOf[js.Dynamic].args = thunk.data.flatMap(_.args).asInstanceOf[js.Any]
-    vnode.data.asInstanceOf[js.Dynamic].key = thunk.key.asInstanceOf[js.Any]
-    thunk.asInstanceOf[js.Dynamic].data = vnode.data
-    thunk.asInstanceOf[js.Dynamic].children = vnode.children
-    thunk.asInstanceOf[js.Dynamic].text = vnode.text
-    thunk.asInstanceOf[js.Dynamic].elm = vnode.elm
-    thunk.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = vnode.outwatchDomUnmountHook
-    thunk.asInstanceOf[js.Dynamic].outwatchId = vnode.outwatchId
+    val vnodeData = vnode.data.getOrElse {
+      val data = DataObject.empty
+      vnode.data = data
+      data
+    }
+    vnodeData.fn = thunk.data.flatMap(_.fn)
+    vnodeData.args = thunk.data.flatMap(_.args)
+    vnodeData.key = thunk.key
+    thunk.data = vnode.data
+    thunk.children = vnode.children
+    thunk.text = vnode.text
+    thunk.elm = vnode.elm
+    thunk._id = vnode._id
+    thunk._unmount = vnode._unmount
   }
 
-  private def init(thunk: VNodeProxy): Unit =
+  private def initThunk(thunk: VNodeProxy): Unit =
     for {
       data <- thunk.data
       fn <- data.fn
@@ -176,11 +160,35 @@ object thunk {
       if (shouldRender) update() else keep()
     }
 
-  def apply(selector: String, key: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], args: js.Array[Any]): VNodeProxy =
-    VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatchArray _): Hooks.HookPairFn), key = key, fn = renderFn, args = args), key = key)
+  def apply(selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
+    new VNodeProxy {
+      sel = selector
+      data = new DataObject {
+        hook = new Hooks {
+          init = (initThunk _): Hooks.HookSingleFn
+          prepatch = (prepatchArray _): Hooks.HookPairFn
+        }
+        key = keyValue
+        fn = renderFn
+        args = renderArgs
+      }
+      key = keyValue
+    }
 
-  def conditional(selector: String, key: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
-    VNodeProxy(selector, DataObject(hook = Hooks(init = (init ): Hooks.HookSingleFn, prepatch = (prepatchBoolean _): Hooks.HookPairFn), key = key, fn = renderFn, args = shouldRender), key = key)
+  def conditional(selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
+    new VNodeProxy {
+      sel = selector
+      data = new DataObject {
+        hook = new Hooks {
+          init = (initThunk _): Hooks.HookSingleFn
+          prepatch = (prepatchBoolean _): Hooks.HookPairFn
+        }
+        key = keyValue
+        fn = renderFn
+        args = shouldRender
+      }
+      key = keyValue
+    }
 }
 
 object patch {
@@ -198,37 +206,30 @@ object patch {
   def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 }
 
-@js.native
 trait VNodeProxy extends js.Object {
-  val sel: js.UndefOr[String]
-  val data: js.UndefOr[DataObject]
-  val children: js.UndefOr[js.Array[VNodeProxy]]
-  val elm: js.UndefOr[Element]
-  val text: js.UndefOr[String]
-  val key: js.UndefOr[DataObject.KeyValue]
+  var sel: js.UndefOr[String] = js.undefined
+  var data: js.UndefOr[DataObject] = js.undefined
+  var children: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
+  var elm: js.UndefOr[Element] = js.undefined
+  var text: js.UndefOr[String] = js.undefined
+  var key: js.UndefOr[DataObject.KeyValue] = js.undefined
+  var listener: js.UndefOr[js.Any] = js.undefined
 
-  val outwatchId: js.UndefOr[Int]
-  val outwatchDomUnmountHook: js.UndefOr[Hooks.HookSingleFn]
+  var _id: js.UndefOr[Int] = js.undefined
+  var _unmount: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
 
 object VNodeProxy {
-  def fromString(string: String): VNodeProxy = js.Dynamic.literal(text = string).asInstanceOf[VNodeProxy]
+  def fromString(string: String): VNodeProxy = new VNodeProxy {
+    text = string
+  }
 
-  def fromElement(element: Element): VNodeProxy = js.Dynamic.literal(
-    sel = element.tagName.toLowerCase,
-    elm = element,
-    text = "",
+  def fromElement(element: Element): VNodeProxy = new VNodeProxy {
+    sel = element.tagName.toLowerCase
+    elm = element
+    text = ""
     data = DataObject.empty
-  ).asInstanceOf[VNodeProxy]
-
-  def apply(
-    sel: js.UndefOr[String] = js.undefined,
-    data: js.UndefOr[DataObject] = js.undefined,
-    children: js.UndefOr[js.Array[VNodeProxy]] = js.undefined,
-    key: js.UndefOr[DataObject.KeyValue] = js.undefined,
-    outwatchId: js.UndefOr[Int] = js.undefined,
-    outwatchDomUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined): VNodeProxy =
-    js.Dynamic.literal(sel = sel, data = data, children = children, key = key.asInstanceOf[js.Any], outwatchId = outwatchId, outwatchDomUnmountHook = outwatchDomUnmountHook).asInstanceOf[VNodeProxy]
+  }
 }
 
 

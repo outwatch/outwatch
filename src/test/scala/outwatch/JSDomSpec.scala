@@ -9,11 +9,6 @@ import monix.reactive.Observable
 import org.scalajs.dom.{Event, document, window}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import snabbdom.{DataObject, Hooks}
-import snabbdom.DataObject.{AttrValue, PropValue, StyleValue}
-
-import scala.scalajs.js
-
 
 trait EasySubscribe {
 
@@ -23,13 +18,6 @@ trait EasySubscribe {
       Continue
     }
   }
-}
-
-trait SnabbdomTestHelper {
-  def createDataObject(attrs: js.UndefOr[js.Dictionary[AttrValue]] = js.Dictionary[AttrValue](),
-                       on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = js.Dictionary[js.Function1[Event, Unit]](),
-                      ): DataObject = DataObject(attrs, js.Dictionary[PropValue](), js.Dictionary[StyleValue](), js.Dictionary[js.Function1[Event, Unit]](), Hooks(js.undefined, js.undefined, js.undefined, js.undefined, js.undefined), js.undefined)
-
 }
 
 // TODO: We need this mock until localStorage is implemented in jsdom (https://github.com/tmpvar/jsdom/pull/2076)
@@ -75,7 +63,7 @@ trait LocalStorageMock {
   }
 }
 
-abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock with SnabbdomTestHelper {
+abstract class JSDomSpec extends FlatSpec with Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock {
 
   implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 

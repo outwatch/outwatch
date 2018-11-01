@@ -18,22 +18,33 @@ object OutwatchTracing {
 
 object SnabbdomOps {
   @inline private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
-    DataObject(
-      modifiers.attrs, modifiers.props, modifiers.styles, modifiers.emitters,
-      Hooks(js.undefined, modifiers.insertHook, modifiers.prePatchHook, modifiers.updateHook, modifiers.postPatchHook, modifiers.destroyHook),
-      modifiers.keyOption, vNodeNS)
+    new DataObject {
+      attrs = modifiers.attrs
+      props = modifiers.props
+      style = modifiers.styles
+      on = modifiers.emitters
+      hook = new Hooks {
+        insert = modifiers.insertHook
+        prepatch = modifiers.prePatchHook
+        update = modifiers.updateHook
+        postpatch = modifiers.postPatchHook
+        destroy = modifiers.destroyHook
+      }
+      key = modifiers.keyOption
+      ns = vNodeNS
+    }
 
   @inline private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: Int, vNodeNS: js.UndefOr[String])(implicit scheduler: Scheduler): VNodeProxy = {
     val dataObject = createDataObject(modifiers, vNodeNS)
 
-    VNodeProxy(
-      sel = nodeType,
-      data = dataObject,
-      children = modifiers.proxies,
-      key = modifiers.keyOption,
-      outwatchId = vNodeId,
-      outwatchDomUnmountHook = modifiers.domUnmountHook
-    )
+    new VNodeProxy {
+      sel = nodeType
+      data = dataObject
+      children = modifiers.proxies
+      key = modifiers.keyOption
+      _id = vNodeId
+      _unmount = modifiers.domUnmountHook
+    }
   }
 
   private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = node match {
@@ -89,15 +100,15 @@ object SnabbdomOps {
             // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
             // renders its children again. But it would not have the correct state of this proxy. Therefore,
             // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-            proxy.asInstanceOf[js.Dynamic].sel = currentProxy.sel
-            proxy.asInstanceOf[js.Dynamic].data = currentProxy.data
-            proxy.asInstanceOf[js.Dynamic].children = currentProxy.children
-            proxy.asInstanceOf[js.Dynamic].elm = currentProxy.elm
-            proxy.asInstanceOf[js.Dynamic].text = currentProxy.text
-            proxy.asInstanceOf[js.Dynamic].key = currentProxy.key.asInstanceOf[js.Any]
-            proxy.asInstanceOf[js.Dynamic].outwatchId = currentProxy.outwatchId
-            proxy.asInstanceOf[js.Dynamic].outwatchDomUnmountHook = currentProxy.outwatchDomUnmountHook
-            proxy.asInstanceOf[js.Dynamic].listener = currentProxy.asInstanceOf[js.Dynamic].listener
+            proxy.sel = currentProxy.sel
+            proxy.data = currentProxy.data
+            proxy.children = currentProxy.children
+            proxy.elm = currentProxy.elm
+            proxy.text = currentProxy.text
+            proxy.key = currentProxy.key
+            proxy._id = currentProxy._id
+            proxy._unmount = currentProxy._unmount
+            proxy.listener = currentProxy.listener
 
             Continue
           },

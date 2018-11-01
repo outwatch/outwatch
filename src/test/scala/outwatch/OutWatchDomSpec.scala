@@ -4,12 +4,12 @@ import cats.effect.IO
 import monix.reactive.Observable
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.{document, html}
+import org.scalajs.dom.{Element, document, html}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
-import snabbdom.{DataObject, VNodeProxy, hFunction}
+import snabbdom.{DataObject, Hooks, VNodeProxy, hFunction}
 
 import scala.collection.immutable.Seq
 import scala.collection.mutable
@@ -151,9 +151,14 @@ class OutWatchDomSpec extends JSDomSpec {
   }
 
   val fixture = new {
-    val proxy = hFunction("div", createDataObject(js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg")), js.Array(
-      hFunction("span", createDataObject(), js.Array(VNodeProxy.fromString("Hello")))
-    ))
+    val proxy = hFunction(
+      "div",
+      new DataObject {
+        attrs = js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg")
+        hook = Hooks.empty
+      },
+      js.Array(hFunction("span", new DataObject { hook = Hooks.empty }, js.Array(VNodeProxy.fromString("Hello"))))
+    )
   }
 
   it should "run effect modifiers once" in {
@@ -258,7 +263,10 @@ class OutWatchDomSpec extends JSDomSpec {
 
     val proxy = fixture.proxy
 
-    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(proxy)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    snabbdomNode._id = js.undefined
+    snabbdomNode.children.get.head._id = js.undefined
+    JSON.stringify(snabbdomNode) shouldBe JSON.stringify(proxy)
   }
 
   it should "be correctly created with the HyperscriptHelper" in {
@@ -267,7 +275,10 @@ class OutWatchDomSpec extends JSDomSpec {
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
 
-    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    snabbdomNode._id = js.undefined
+    snabbdomNode.children.get.head._id = js.undefined
+    JSON.stringify(snabbdomNode) shouldBe JSON.stringify(fixture.proxy)
   }
 
 
@@ -400,7 +411,10 @@ class OutWatchDomSpec extends JSDomSpec {
       span("Hello")
     )
 
-    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    snabbdomNode._id = js.undefined
+    snabbdomNode.children.get.head._id = js.undefined
+    JSON.stringify(snabbdomNode) shouldBe JSON.stringify(fixture.proxy)
   }
 
   it should "construct VTrees with optional children properly" in {
@@ -411,8 +425,10 @@ class OutWatchDomSpec extends JSDomSpec {
       Option.empty[VDomModifier]
     )
 
-    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(fixture.proxy)
-
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    snabbdomNode._id = js.undefined
+    snabbdomNode.children.get.head._id = js.undefined
+    JSON.stringify(snabbdomNode) shouldBe JSON.stringify(fixture.proxy)
   }
 
   it should "construct VTrees with boolean attributes" in {
@@ -428,10 +444,12 @@ class OutWatchDomSpec extends JSDomSpec {
       stringBuilder("f") := false
     )
 
-    val attrs = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
-    val expected = hFunction("div", createDataObject(attrs))
+    val attributes = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
+    val expected = hFunction("div", new DataObject { attrs = attributes; hook = Hooks.empty })
 
-    JSON.stringify(SnabbdomOps.toSnabbdom(vtree)) shouldBe JSON.stringify(expected)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    snabbdomNode._id = js.undefined
+    JSON.stringify(snabbdomNode) shouldBe JSON.stringify(expected)
 
   }
 

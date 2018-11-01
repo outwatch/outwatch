@@ -55,8 +55,8 @@ private[outwatch] object SeparatedModifiers {
     // the proxies will then have different OutwatchStates and we then need to
     // call the unmount hook of the oldProxy.
     postPatchHook = { (oldProxy, proxy) =>
-      if (proxy.outwatchId != oldProxy.outwatchId) {
-        oldProxy.outwatchDomUnmountHook.foreach(_(oldProxy))
+      if (proxy._id != oldProxy._id) {
+        oldProxy._unmount.foreach(_(oldProxy))
       }
     }: Hooks.HookPairFn
 
@@ -109,7 +109,7 @@ private[outwatch] object SeparatedModifiers {
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
         postPatchHook = createProxyHooksPair(postPatchHook, { (oldProxy, proxy) =>
-          if (proxy.outwatchId != oldProxy.outwatchId) {
+          if (proxy._id != oldProxy._id) {
             proxy.elm.foreach(h.trigger)
           }
         })
@@ -118,13 +118,13 @@ private[outwatch] object SeparatedModifiers {
         domUnmountHook = createHooksSingle(domUnmountHook, h.trigger)
       case h: DomUpdateHook =>
         postPatchHook = createProxyHooksPair(postPatchHook, { (oldproxy, proxy) =>
-          if (proxy.outwatchId == oldproxy.outwatchId) {
+          if (proxy._id == oldproxy._id) {
             proxy.elm.foreach(h.trigger)
           }
         })
       case h: DomPreUpdateHook =>
         prePatchHook = createProxyHooksPair(prePatchHook, { (oldproxy, proxy) =>
-          if (proxy.outwatchId == oldproxy.outwatchId) {
+          if (proxy._id == oldproxy._id) {
             oldproxy.elm.foreach(h.trigger)
           }
         })
