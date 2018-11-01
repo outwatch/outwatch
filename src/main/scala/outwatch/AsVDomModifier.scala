@@ -6,6 +6,7 @@ import outwatch.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import scala.collection.breakOut
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
@@ -13,43 +14,76 @@ trait AsVDomModifier[-T] {
 
 object AsVDomModifier {
 
-  implicit def jsArrayModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[js.Array[T]] =
-    (value: js.Array[T]) => CompositeModifier(value.map(v => vm.asVDomModifier(v)))
+  implicit object JsArrayModifier extends AsVDomModifier[js.Array[VDomModifier]] {
+    @inline def asVDomModifier(value: js.Array[VDomModifier]): VDomModifier = CompositeModifier(value)
+  }
 
-  implicit def seqModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[Seq[T]] =
-    (value: Seq[T]) => CompositeModifier(value.map(v => vm.asVDomModifier(v)).toJSArray)
+  implicit def jsArrayModifier[T : AsVDomModifier]: AsVDomModifier[js.Array[T]] = (value: js.Array[T]) =>
+    CompositeModifier(value.map(VDomModifier(_)))
 
-  implicit def optionModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[Option[T]] =
-    (value: Option[T]) => value.fold(VDomModifier.empty)(vm.asVDomModifier)
+  implicit object ArrayModifier extends AsVDomModifier[Array[VDomModifier]] {
+    @inline def asVDomModifier(value: Array[VDomModifier]): VDomModifier = CompositeModifier(value.toJSArray)
+  }
+
+  implicit def arrayModifier[T : AsVDomModifier]: AsVDomModifier[Array[T]] = (value: Array[T]) =>
+    CompositeModifier(value.map(VDomModifier(_))(breakOut) : js.Array[VDomModifier])
+
+  implicit object SeqModifier extends AsVDomModifier[Seq[VDomModifier]] {
+    @inline def asVDomModifier(value: Seq[VDomModifier]): VDomModifier = CompositeModifier(value.toJSArray)
+  }
+
+  implicit def seqModifier[T : AsVDomModifier]: AsVDomModifier[Seq[T]] = (value: Seq[T]) =>
+    CompositeModifier(value.map(VDomModifier(_))(breakOut) : js.Array[VDomModifier])
+
+  implicit object OptionModifier extends AsVDomModifier[Option[VDomModifier]] {
+    @inline def asVDomModifier(value: Option[VDomModifier]): VDomModifier = value.getOrElse(VDomModifier.empty)
+  }
+
+  implicit def optionModifier[T : AsVDomModifier]: AsVDomModifier[Option[T]] = (value: Option[T]) =>
+    value.fold(VDomModifier.empty)(VDomModifier(_))
+
+  implicit object UndefinedModifier extends AsVDomModifier[js.UndefOr[VDomModifier]] {
+    @inline def asVDomModifier(value: js.UndefOr[VDomModifier]): VDomModifier = value.getOrElse(VDomModifier.empty)
+  }
+
+  implicit def undefinedModifier[T : AsVDomModifier]: AsVDomModifier[js.UndefOr[T]] = (value: js.UndefOr[T]) =>
+    value.fold(VDomModifier.empty)(VDomModifier(_))
 
   implicit object VDomModifierAsVDomModifier extends AsVDomModifier[VDomModifier] {
-    def asVDomModifier(value: VDomModifier): VDomModifier = value
+    @inline def asVDomModifier(value: VDomModifier): VDomModifier = value
   }
 
   implicit object StringAsVDomModifier extends AsVDomModifier[String] {
-    def asVDomModifier(value: String): VDomModifier = StringVNode(value)
+    @inline def asVDomModifier(value: String): VDomModifier = StringVNode(value)
   }
 
   implicit object IntAsVDomModifier extends AsVDomModifier[Int] {
-    def asVDomModifier(value: Int): VDomModifier = StringVNode(value.toString)
+    @inline def asVDomModifier(value: Int): VDomModifier = StringVNode(value.toString)
   }
 
   implicit object DoubleAsVDomModifier extends AsVDomModifier[Double] {
-    def asVDomModifier(value: Double): VDomModifier = StringVNode(value.toString)
+    @inline def asVDomModifier(value: Double): VDomModifier = StringVNode(value.toString)
   }
 
   implicit object LongAsVDomModifier extends AsVDomModifier[Long] {
-    def asVDomModifier(value: Long): VDomModifier = StringVNode(value.toString)
+    @inline def asVDomModifier(value: Long): VDomModifier = StringVNode(value.toString)
   }
 
   implicit object BooleanAsVDomModifier extends AsVDomModifier[Boolean] {
-    def asVDomModifier(value: Boolean): VDomModifier = StringVNode(value.toString)
+    @inline def asVDomModifier(value: Boolean): VDomModifier = StringVNode(value.toString)
+  }
+
+  implicit object EffectRender extends AsVDomModifier[IO[VDomModifier]] {
+    @inline def asVDomModifier(value: IO[VDomModifier]): VDomModifier = EffectModifier(value)
   }
 
   implicit def effectRender[T : AsVDomModifier]: AsVDomModifier[IO[T]] = (effect: IO[T]) =>
     EffectModifier(effect.map(VDomModifier(_)))
 
-  implicit def valueObservableRender[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) =>
+  implicit def valueObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[VDomModifier]] = (valueStream: F[VDomModifier]) =>
+    ModifierStreamReceiver(ValueObservable(valueStream))
+
+  implicit def valueObservableRenderAs[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) =>
     ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
 
   implicit def childCommandObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) =>

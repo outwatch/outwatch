@@ -18,7 +18,7 @@ trait AsValueObservableInstances0 {
 
 object AsValueObservable extends AsValueObservableInstances0  {
   implicit object valueObservable extends AsValueObservable[ValueObservable] {
-    def as[T](stream: ValueObservable[T]): ValueObservable[T] = stream
+    @inline def as[T](stream: ValueObservable[T]): ValueObservable[T] = stream
   }
 
   implicit object variable extends AsValueObservable[Var] {

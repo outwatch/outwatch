@@ -6,7 +6,7 @@ import monix.reactive.Observable
 import monix.reactive.observers.Subscriber
 import org.scalajs.dom
 import outwatch.dom._
-import snabbdom.{Hooks, VNodeProxy}
+import snabbdom.{DataObject, Hooks, VNodeProxy}
 
 import scala.annotation.tailrec
 import scala.scalajs.js
@@ -48,9 +48,9 @@ import NativeHelpers._
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
     var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
-    var attrs: js.UndefOr[js.Dictionary[Attr.Value]] = js.undefined
-    var props: js.UndefOr[js.Dictionary[Prop.Value]] = js.undefined
-    var styles: js.UndefOr[js.Dictionary[Style.Value]] = js.undefined
+    var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]] = js.undefined
+    var props: js.UndefOr[js.Dictionary[DataObject.PropValue]] = js.undefined
+    var styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]] = js.undefined
     var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
     var keyOption: js.UndefOr[Key.Value] = js.undefined
     var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
@@ -62,13 +62,13 @@ private[outwatch] object SeparatedModifiers {
 
     @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
     @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
-    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[Attr.Value]())(attrs = _)
-    @inline def assureProps() = props getOrElse assign(js.Dictionary[Prop.Value]())(props = _)
-    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[Style.Value]())(styles = _)
+    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
+    @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
+    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[DataObject.StyleValue]())(styles = _)
     @inline def setSpecialStyle(styleName: String)(title: String, value: String): Unit = {
       val styles = assureStyles()
       styles.raw(styleName).fold {
-        styles(styleName) = js.Dictionary[String](title -> value): Style.Value
+        styles(styleName) = js.Dictionary[String](title -> value): DataObject.StyleValue
       } { style =>
         style.asInstanceOf[js.Dictionary[String]](title) = value
       }
@@ -126,7 +126,7 @@ private[outwatch] object SeparatedModifiers {
         style.fold {
           styles(a.title) = a.value
         } { style =>
-          styles(a.title) = a.accum(style.asInstanceOf[String], a.value): Style.Value
+          styles(a.title) = a.accum(style.asInstanceOf[String], a.value): DataObject.StyleValue
         }
       case k: Key =>
         keyOption = k.value
@@ -178,9 +178,9 @@ private[outwatch] object SeparatedModifiers {
 
 private[outwatch] class SeparatedModifiers(
   val proxies: js.UndefOr[js.Array[VNodeProxy]],
-  val attrs: js.UndefOr[js.Dictionary[Attr.Value]],
-  val props: js.UndefOr[js.Dictionary[Prop.Value]],
-  val styles: js.UndefOr[js.Dictionary[Style.Value]],
+  val attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]],
+  val props: js.UndefOr[js.Dictionary[DataObject.PropValue]],
+  val styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]],
   val keyOption: js.UndefOr[Key.Value],
   val emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]],
   val insertHook: js.UndefOr[Hooks.HookSingleFn],

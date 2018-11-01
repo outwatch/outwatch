@@ -14,11 +14,12 @@ import scala.scalajs.js
 sealed trait VDomModifier
 
 object VDomModifier {
-  val empty: VDomModifier = EmptyModifier
+  @inline def empty: VDomModifier = EmptyModifier
+
+  @inline def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
 
   def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
     CompositeModifier(js.Array(modifier, modifier2) ++ modifiers)
-  def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
 }
 
 sealed trait StaticVDomModifier extends VDomModifier
@@ -32,9 +33,7 @@ object Key {
 
 final case class Emitter(eventType: String, trigger: Event => Unit) extends StaticVDomModifier
 
-sealed trait Attr extends StaticVDomModifier {
-  val value: Attr.Value
-}
+sealed trait Attr extends StaticVDomModifier
 object Attr {
   type Value = DataObject.AttrValue
 }
@@ -46,12 +45,7 @@ object Prop {
   type Value = DataObject.PropValue
 }
 
-sealed trait Style extends StaticVDomModifier {
-  val value: String
-}
-object Style {
-  type Value = DataObject.StyleValue
-}
+sealed trait Style extends StaticVDomModifier
 final case class AccumStyle(title: String, value: String, accum: (String, String) => String) extends Style
 final case class BasicStyle(title: String, value: String) extends Style
 final case class DelayedStyle(title: String, value: String) extends Style

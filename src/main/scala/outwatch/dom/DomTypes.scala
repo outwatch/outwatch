@@ -96,7 +96,7 @@ trait HtmlAttrs
     propKey: String,
     attrCodec: codecs.Codec[V, String],
     propCodec: codecs.Codec[V, DomPropV]
-  ) = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+  ): BasicAttrBuilder[V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
   //or: new PropertyBuilder(propKey, propCodec.encode)
 
   override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
@@ -104,7 +104,7 @@ trait HtmlAttrs
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
   override lazy val className = new AccumAttrBuilder[String]("class",
-    stringReflectedAttr(attrKey = "class", propKey = "className"),
+    reflectedAttr(attrKey = "class", propKey = "className", attrCodec = codecs.StringAsIsCodec, propCodec = codecs.StringAsIsCodec),
     _ + " " + _
   )
 }
