@@ -48,7 +48,7 @@ class PerfTest extends JSDomSpec {
 
       OutWatch.renderInto(node, vtree).unsafeRunSync()
 
-      (0 to 1000).foreach { i =>
+      (0 to 100).foreach { i =>
         handler.onNext(i)
         handler2.onNext(i)
       }
@@ -56,9 +56,9 @@ class PerfTest extends JSDomSpec {
 //      println(node.innerHTML)
 
       val t2 = System.nanoTime()
-      handler.onNext(1001)
+      handler.onNext(101)
       val t3 = System.nanoTime()
-      handler2.onNext(1001)
+      handler2.onNext(101)
       val t4 = System.nanoTime()
 
       println("TOOK =====> " + (t2 - t))
@@ -107,7 +107,7 @@ class PerfTest extends JSDomSpec {
 
       OutWatch.renderInto(node, vtree).unsafeRunSync()
 
-      (0 to 1000).foreach { i =>
+      (0 to 100).foreach { i =>
         handler.onNext(i)
         handler2.onNext(i)
       }
@@ -115,9 +115,9 @@ class PerfTest extends JSDomSpec {
 //      println(node.innerHTML)
 
       val t2 = System.nanoTime()
-      handler.onNext(1001)
+      handler.onNext(101)
       val t3 = System.nanoTime()
-      handler2.onNext(1001)
+      handler2.onNext(101)
       val t4 = System.nanoTime()
 
       println("TOOK =====> " + (t2 - t))
@@ -165,7 +165,7 @@ class PerfTest extends JSDomSpec {
 
       var node1Counter = 0
       var node2Counter = 0
-      (0 to 1000).foreach { i =>
+      (0 to 100).foreach { i =>
         handler.onNext(ChildCommand.Append(node1(node1Counter)))
         handler2.onNext(ChildCommand.Append(node2(node2Counter)))
 
