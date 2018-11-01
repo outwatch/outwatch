@@ -84,12 +84,15 @@ object SnabbdomOps {
     } { observable =>
       // needs var for forward referencing
       var proxy: VNodeProxy = null
+      var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = null
 
       def subscribe(): Cancelable = {
         observable.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
             // update the current proxy with the new state
-            val newProxy = createProxy(SeparatedModifiers.from(newState), node.nodeType, vNodeId, vNodeNS)
+            val separatedModifiers = SeparatedModifiers.from(nextModifiers.fold(newState)(newState ++ _))
+            nextModifiers = separatedModifiers.nextModifiers
+            val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
             // the initial proxy might have been a thunk. therefore, we need to keep the fn and args in our
             // new proxy, then a succeeding patch operation can use args for diffing and fn for updating.
@@ -130,7 +133,9 @@ object SnabbdomOps {
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      proxy = createProxy(SeparatedModifiers.from(streamableModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
+      val separatedModifiers = SeparatedModifiers.from(streamableModifiers.modifiers)
+      nextModifiers = separatedModifiers.nextModifiers
+      proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
       proxy
     }
   }

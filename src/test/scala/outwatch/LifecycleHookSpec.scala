@@ -386,7 +386,7 @@ class LifecycleHookSpec extends JSDomSpec {
     latest shouldBe "first"
   }
 
-  "DomMount/Unmount" should "be called on static nodes" in {
+  "DomHook" should "be called on static nodes" in {
 
     val modHandler = PublishSubject[VDomModifier]
 
@@ -399,14 +399,43 @@ class LifecycleHookSpec extends JSDomSpec {
     modHandler.onNext(div(onDomMount foreach { domHooks :+= "mount" }, p(onDomUnmount foreach { domHooks :+= "unmount" })))
     domHooks shouldBe List("mount")
 
-    modHandler.onNext(div("meh", p(onDomMount foreach { domHooks :+= "mount2" }), onDomUnmount foreach { domHooks :+= "unmount2" }))
-    domHooks shouldBe List("mount", "unmount", "mount2")
+    modHandler.onNext(div("meh", p(onDomMount foreach { domHooks :+= "mount2" }), onDomPreUpdate foreach { domHooks :+= "preupdate2" }, onDomUpdate foreach { domHooks :+= "update2" }, onDomUnmount foreach { domHooks :+= "unmount2" }, Observable.now("distract")))
+    domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2")
 
-    modHandler.onNext(span("muh", onDomMount foreach { domHooks :+= "mount3" }, onDomUnmount foreach { domHooks :+= "unmount3" }))
-    domHooks shouldBe List("mount", "unmount", "mount2", "unmount2", "mount3")
+    modHandler.onNext(span("muh", onDomMount foreach { domHooks :+= "mount3" }, onDomPreUpdate foreach { domHooks :+= "preupdate3" }, onDomUpdate foreach { domHooks :+= "update3" }, onDomUnmount foreach { domHooks :+= "unmount3" }))
+    domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3")
 
     modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("mount", "unmount", "mount2", "unmount2", "mount3", "unmount3")
+    domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3", "unmount3")
+  }
+
+  it should "be called on nested streaming" in {
+
+    val modHandler = PublishSubject[VDomModifier]()
+    val innerHandler = PublishSubject[VDomModifier]()
+    val node = div(modHandler)
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    var domHooks = List.empty[String]
+
+    modHandler.onNext(VDomModifier(innerHandler))
+    domHooks shouldBe List()
+
+    innerHandler.onNext("inner")
+    domHooks shouldBe List()
+
+    innerHandler.onNext(onDomMount foreach { domHooks :+= "inner-mount" })
+    domHooks shouldBe List("inner-mount")
+
+    innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount" })
+    domHooks shouldBe List("inner-mount")
+
+    innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount2" })
+    domHooks shouldBe List("inner-mount", "inner-unmount")
+
+    modHandler.onNext(VDomModifier.empty)
+    domHooks shouldBe List("inner-mount", "inner-unmount", "inner-unmount2")
   }
 
   it should "be called on streaming in and streaming out" in {
@@ -420,32 +449,38 @@ class LifecycleHookSpec extends JSDomSpec {
 
     var domHooks = List.empty[String]
 
-    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
+    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomPreUpdate foreach { domHooks :+= "preupdate" }, onDomUpdate foreach { domHooks :+= "update" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
     domHooks shouldBe List("mount")
 
     otherHandler.onNext("other")
-    domHooks shouldBe List("mount")
+    domHooks shouldBe List("mount", "preupdate", "update")
 
     innerHandler.onNext("inner")
-    domHooks shouldBe List("mount")
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update")
 
-    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }, Observable.now("distract")))
-    domHooks shouldBe List("mount", "inner-mount")
+    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }, Observable.now("distract")))
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update")
 
-    innerHandler.onNext("inner")
-    domHooks shouldBe List("mount", "inner-mount", "inner-unmount")
+    otherHandler.onNext(span("hi!"))
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update")
+
+    innerHandler.onNext(VDomModifier(onDomPreUpdate foreach { domHooks :+= "inner-preupdate2" }, onDomUpdate foreach { domHooks :+= "inner-update2" }))
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount")
+
+    innerHandler.onNext(VDomModifier(Observable("inner")))
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update")
 
     innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount2" }, onDomUnmount foreach { domHooks :+= "inner-unmount2" }, "something-else"))
-    domHooks shouldBe List("mount", "inner-mount", "inner-unmount", "inner-mount2")
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2")
 
     modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
-    domHooks shouldBe List("mount", "inner-mount", "inner-unmount", "inner-mount2", "inner-unmount2", "unmount", "mount2")
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2")
 
     modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
-    domHooks shouldBe List("mount", "inner-mount", "inner-unmount", "inner-mount2", "inner-unmount2", "unmount", "mount2")
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2")
 
     modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("mount", "inner-mount", "inner-unmount", "inner-mount2", "inner-unmount2", "unmount", "mount2", "unmount2")
+    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2", "unmount2")
   }
 
   it should "be called for default and streaming out" in {
@@ -454,26 +489,30 @@ class LifecycleHookSpec extends JSDomSpec {
 
     val modHandler = PublishSubject[VDomModifier]()
     val innerHandler = PublishSubject[VDomModifier]()
-    val node = div(ValueObservable(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
+    val otherHandler = PublishSubject[VDomModifier]()
+    val node = div(otherHandler, ValueObservable(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomPreUpdate foreach { domHooks :+= "default-preupdate" }, onDomUpdate foreach { domHooks :+= "default-update" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
 
     domHooks shouldBe List("default-mount")
 
-    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }))
-    domHooks shouldBe List("default-mount", "inner-mount")
+    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }))
+    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount")
+
+    otherHandler.onNext(span("hi!"))
+    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update")
 
     modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }))
-    domHooks shouldBe List("default-mount", "inner-mount", "inner-unmount", "default-unmount", "mount")
+    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount")
 
     modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
-    domHooks shouldBe List("default-mount", "inner-mount", "inner-unmount", "default-unmount", "mount", "unmount", "mount2")
+    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount")
 
     modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
-    domHooks shouldBe List("default-mount", "inner-mount", "inner-unmount", "default-unmount", "mount", "unmount", "mount2")
+    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount")
 
     modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("default-mount", "inner-mount", "inner-unmount", "default-unmount", "mount", "unmount", "mount2", "unmount2")
+    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount", "unmount2")
   }
 
   "Hooks" should "support emitter operations" in {

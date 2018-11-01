@@ -52,17 +52,20 @@ final case class DelayedStyle(title: String, value: String) extends Style
 final case class RemoveStyle(title: String, value: String) extends Style
 final case class DestroyStyle(title: String, value: String) extends Style
 
-sealed trait Hook extends StaticVDomModifier
-final case class DomMountHook(trigger: Element => Unit) extends Hook
-final case class DomUnmountHook(trigger: Element => Unit) extends Hook
-final case class DomUpdateHook(trigger: Element => Unit) extends Hook
-final case class DomPreUpdateHook(trigger: Element => Unit) extends Hook
-final case class InsertHook(trigger: Element => Unit) extends Hook
-final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends Hook
-final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends Hook
-final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends Hook
-final case class DestroyHook(trigger: Element => Unit) extends Hook
+sealed trait SnabbdomHook extends StaticVDomModifier
+final case class InsertHook(trigger: Element => Unit) extends SnabbdomHook
+final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends SnabbdomHook
+final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends SnabbdomHook
+final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends SnabbdomHook
+final case class DestroyHook(trigger: Element => Unit) extends SnabbdomHook
 
+sealed trait DomHook extends SnabbdomHook
+final case class DomMountHook(trigger: Element => Unit) extends DomHook
+final case class DomUnmountHook(trigger: Element => Unit) extends DomHook
+final case class DomUpdateHook(trigger: Element => Unit) extends DomHook
+final case class DomPreUpdateHook(trigger: Element => Unit) extends DomHook
+
+final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVDomModifier
 
 case object EmptyModifier extends VDomModifier
 final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier

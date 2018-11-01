@@ -10,12 +10,12 @@ import snabbdom.{DataObject, Hooks, VNodeProxy}
 
 import scala.annotation.tailrec
 import scala.scalajs.js
-
 import NativeHelpers._
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
     var hasOnlyTextChildren = true
+    var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
     var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
     var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]] = js.undefined
     var props: js.UndefOr[js.Dictionary[DataObject.PropValue]] = js.undefined
@@ -30,6 +30,7 @@ private[outwatch] object SeparatedModifiers {
     var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 
     @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
+    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVDomModifier])(nextModifiers = _)
     @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
     @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
     @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
@@ -60,6 +61,7 @@ private[outwatch] object SeparatedModifiers {
         oldProxy._unmount.foreach(_(oldProxy))
       }
     }: Hooks.HookPairFn
+
 
     // append modifiers
     modifiers.foreach {
@@ -140,9 +142,12 @@ private[outwatch] object SeparatedModifiers {
         postPatchHook = createHooksPair(postPatchHook, h.trigger)
       case h: DestroyHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
+      case n: NextVDomModifier =>
+        val nextModifiers = assureNextModifiers()
+        nextModifiers += n.modifier
     }
 
-    new SeparatedModifiers(proxies = proxies, attrs = attrs, props = props, styles = styles, keyOption = keyOption, emitters = emitters, insertHook = insertHook, prePatchHook = prePatchHook, updateHook = updateHook, postPatchHook = postPatchHook, destroyHook = destroyHook, domUnmountHook = domUnmountHook, hasOnlyTextChildren = hasOnlyTextChildren)
+    new SeparatedModifiers(proxies = proxies, attrs = attrs, props = props, styles = styles, keyOption = keyOption, emitters = emitters, insertHook = insertHook, prePatchHook = prePatchHook, updateHook = updateHook, postPatchHook = postPatchHook, destroyHook = destroyHook, domUnmountHook = domUnmountHook, hasOnlyTextChildren = hasOnlyTextChildren, nextModifiers = nextModifiers)
   }
 }
 
@@ -159,7 +164,8 @@ private[outwatch] class SeparatedModifiers(
   val postPatchHook: js.UndefOr[Hooks.HookPairFn],
   val destroyHook: js.UndefOr[Hooks.HookSingleFn],
   val domUnmountHook: js.UndefOr[Hooks.HookSingleFn],
-  val hasOnlyTextChildren: Boolean)
+  val hasOnlyTextChildren: Boolean,
+  val nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]])
 
 
 private[outwatch] class NativeModifiers(
@@ -169,7 +175,10 @@ private[outwatch] class NativeModifiers(
 
 private[outwatch] object NativeModifiers {
 
-  def from(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = {
+  @inline def from(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(appendModifiers, false)
+  @inline def fromInStream(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(appendModifiers, true)
+
+  private def from(appendModifiers: js.Array[_ <: VDomModifier], inStream: Boolean)(implicit scheduler: Scheduler): NativeModifiers = {
     var lengths: js.UndefOr[js.Array[js.UndefOr[Int]]] = js.undefined
     var updaterObservables: js.UndefOr[js.Array[Observable[js.Array[StaticVDomModifier]]]] = js.undefined
     val modifiers = new js.Array[StaticVDomModifier]()
@@ -205,6 +214,7 @@ private[outwatch] object NativeModifiers {
     def inner(modifier: VDomModifier): Unit = modifier match {
       case EmptyModifier => ()
       case c: CompositeModifier => c.modifiers.foreach(inner)
+      case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendModifier)
       case mod: StaticVDomModifier => appendModifier(mod)
       case child: VNode  => appendModifier(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
       case child: StringVNode  => appendModifier(VNodeProxyNode(VNodeProxy.fromString(child.text)))
@@ -220,12 +230,13 @@ private[outwatch] object NativeModifiers {
 
   private def flattenModifierStream(modStream: ValueObservable[VDomModifier])(implicit scheduler: Scheduler): ValueObservable[js.Array[StaticVDomModifier]] = {
     @tailrec def findObservable(modifier: VDomModifier): Observable[js.Array[StaticVDomModifier]] = modifier match {
+      case h: DomHook =>  Observable.now(mirrorStreamedDomHook(h))
       case mod: StaticVDomModifier => Observable.now(js.Array(mod))
       case EmptyModifier => Observable.now(js.Array())
       case child: VNode  => Observable.now(js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
       case child: StringVNode  => Observable.now(js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mods: CompositeModifier =>
-        val nativeModifiers = from(mods.modifiers)
+        val nativeModifiers = fromInStream(mods.modifiers)
         nativeModifiers.observable.fold(Observable.now(nativeModifiers.modifiers)) { obs =>
           Observable.concat(Observable.now(nativeModifiers.modifiers), obs)
         }
@@ -235,15 +246,16 @@ private[outwatch] object NativeModifiers {
       case m: EffectModifier => findObservable(m.effect.unsafeRunSync())
       case m: SchedulerAction => findObservable(m.action(scheduler))
     }
-    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable)
+    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable).share
 
     @tailrec def findDefaultObservable(modifier: VDomModifier): ValueObservable[js.Array[StaticVDomModifier]] = modifier match {
+      case h: DomHook =>  ValueObservable(observable, mirrorStreamedDomHook(h))
       case mod: StaticVDomModifier => ValueObservable(observable, js.Array(mod))
       case EmptyModifier => ValueObservable(observable, js.Array())
       case child: VNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
       case child: StringVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mods: CompositeModifier =>
-        val nativeModifiers = from(mods.modifiers)
+        val nativeModifiers = fromInStream(mods.modifiers)
         val initialObservable = nativeModifiers.observable.fold(observable) { obs =>
           observable.publishSelector { observable =>
             Observable.merge(obs.takeUntil(observable), observable)
@@ -260,6 +272,59 @@ private[outwatch] object NativeModifiers {
       case m: SchedulerAction => findDefaultObservable(m.action(scheduler))
     }
     modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array()))(findDefaultObservable)
+  }
+
+  // if a dom mount hook is streamed, we want to emulate an intuitive interface as if they were static.
+  private def mirrorStreamedDomHook(h: DomHook): js.Array[StaticVDomModifier] = h match {
+    case h: DomMountHook =>
+      var triggered = false
+      js.Array(
+        DomMountHook { e =>
+          triggered = true
+          h.trigger(e)
+        },
+        DomUpdateHook { e =>
+          if (!triggered) h.trigger(e)
+          triggered = true
+        })
+    case h: DomPreUpdateHook =>
+      var triggered = false
+      js.Array(
+        DomMountHook { _ => triggered = true },
+        DomPreUpdateHook { e =>
+          if (triggered) h.trigger(e)
+          triggered = true
+        }
+      )
+    case h: DomUpdateHook =>
+      var triggered = false
+      js.Array(
+        DomMountHook { _ => triggered = true },
+        DomUpdateHook { e =>
+          if (triggered) h.trigger(e)
+          triggered = true
+        }
+      )
+    case h: DomUnmountHook =>
+      var triggered = false
+      var isOpen = true
+      js.Array(
+        DomUnmountHook { e =>
+          h.trigger(e)
+          isOpen = true
+        },
+        DomUpdateHook { _ =>
+          if (triggered) isOpen = false
+          triggered = true
+        },
+        DomMountHook { _ =>
+          isOpen = false
+        },
+        NextVDomModifier(DomUpdateHook { e =>
+          if (isOpen) h.trigger(e)
+          isOpen = true
+        })
+      )
   }
 }
 
