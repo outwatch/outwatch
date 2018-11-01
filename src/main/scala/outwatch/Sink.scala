@@ -8,7 +8,7 @@ import scala.concurrent.Future
 object Sink {
 
   def create[T](next: T => Future[Ack],
-    error: Throwable => Unit = _ => (),
+    error: Throwable => Unit = ex => throw ex,
     complete: () => Unit = () => ()
    ): Observer[T] = new Observer[T] {
     override def onNext(t: T): Future[Ack] = next(t)
