@@ -576,8 +576,8 @@ class DomEventSpec extends JSDomSpec {
   "Emitterbuilder" should "preventDefault (compile only)" in {
     val node = div(
       id := "click",
-      onClick.filter(_ => true).preventDefault.map(_ => 4) --> sideEffect{()},
-      onClick.preventDefault.map(_ => 3) --> sideEffect{()}
+      onClick.filter(_ => true).preventDefault.map(_ => 4) foreach {()},
+      onClick.preventDefault.map(_ => 3) foreach {()}
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -591,10 +591,10 @@ class DomEventSpec extends JSDomSpec {
     var triggeredFirst = false
     var triggeredSecond = false
     val node = div(
-      onClick --> sideEffect{triggeredSecond = true},
+      onClick foreach {triggeredSecond = true},
       div(
         id := "click",
-        onClick.stopPropagation --> sideEffect{triggeredFirst = true}
+        onClick.stopPropagation foreach {triggeredFirst = true}
       )
     )
 
@@ -617,8 +617,8 @@ class DomEventSpec extends JSDomSpec {
     var triggeredSecond = false
     val node = div(
       id := "click",
-      onClick.stopImmediatePropagation --> sideEffect{triggeredFirst = true},
-      onClick --> sideEffect{triggeredSecond = true}
+      onClick.stopImmediatePropagation foreach {triggeredFirst = true},
+      onClick foreach {triggeredSecond = true}
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()

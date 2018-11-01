@@ -619,14 +619,14 @@ class LifecycleHookSpec extends JSDomSpec {
         div(
           text,
           innerHandler.map { i => innerHandlerCount += 1; i },
-          onSnabbdomInsert --> sideEffect { onSnabbdomInsertCount += 1 },
-          onSnabbdomPrePatch --> sideEffect { onSnabbdomPrePatchCount += 1 },
-          onSnabbdomPostPatch --> sideEffect { onSnabbdomPostPatchCount += 1 },
-          onSnabbdomUpdate --> sideEffect { onSnabbdomUpdateCount += 1 },
-          onSnabbdomDestroy --> sideEffect { onSnabbdomDestroyCount += 1 },
-          onDomMount --> sideEffect { onDomMountList :+= c },
-          onDomUnmount --> sideEffect { onDomUnmountList :+= c },
-          onDomUpdate --> sideEffect { onDomUpdateList :+= c }
+          onSnabbdomInsert foreach { onSnabbdomInsertCount += 1 },
+          onSnabbdomPrePatch foreach { onSnabbdomPrePatchCount += 1 },
+          onSnabbdomPostPatch foreach { onSnabbdomPostPatchCount += 1 },
+          onSnabbdomUpdate foreach { onSnabbdomUpdateCount += 1 },
+          onSnabbdomDestroy foreach { onSnabbdomDestroyCount += 1 },
+          onDomMount foreach { onDomMountList :+= c },
+          onDomUnmount foreach { onDomUnmountList :+= c },
+          onDomUpdate foreach { onDomUpdateList :+= c }
         )
       }
     )

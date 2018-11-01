@@ -54,7 +54,7 @@ class OutWatchDomSpec extends JSDomSpec {
         Seq(
           div(),
           attributes.`class` := "blue",
-          attributes.onClick(1) --> sideEffect{},
+          attributes.onClick(1) foreach {},
           attributes.hidden <-- Observable(false)
         )
       ),
@@ -1008,9 +1008,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val myHandler = Handler.create[VDomModifier].unsafeRunSync()
     val node = div(id := "strings",
       div(
-        onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
-          numPatches += 1
-        },
+        onSnabbdomPrePatch foreach  { numPatches += 1 },
         ValueObservable(myHandler, VDomModifier("initial"))
       )
     )
@@ -1085,9 +1083,7 @@ class OutWatchDomSpec extends JSDomSpec {
     val myHandler = Handler.create[VDomModifier]("initial").unsafeRunSync()
     val node = div(id := "strings",
       div(
-        onSnabbdomPrePatch --> sideEffect { (e1, e2) =>
-          numPatches += 1
-        },
+        onSnabbdomPrePatch foreach { numPatches += 1 },
         myHandler
       )
     )
@@ -1350,7 +1346,7 @@ class OutWatchDomSpec extends JSDomSpec {
     element.innerHTML shouldBe """<div id="click"></div>"""
 
     var clickCounter = 0
-    myHandler.onNext(onClick --> sideEffect(_ => clickCounter += 1))
+    myHandler.onNext(onClick foreach ( clickCounter += 1))
     element.innerHTML shouldBe """<div id="click"></div>"""
 
     clickCounter shouldBe 0
@@ -1460,9 +1456,9 @@ class OutWatchDomSpec extends JSDomSpec {
       myHandler,
       cls <-- clsHandler,
       onClick(0) --> myHandler,
-      onDomMount --> sideEffect { mounts += 1 },
-      onDomUnmount --> sideEffect { unmounts += 1 },
-      onDomUpdate --> sideEffect { updates += 1 }
+      onDomMount foreach { mounts += 1 },
+      onDomUnmount foreach { unmounts += 1 },
+      onDomUpdate foreach { updates += 1 }
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
@@ -1507,9 +1503,9 @@ class OutWatchDomSpec extends JSDomSpec {
       myHandler,
       cls <-- clsHandler,
       onClick(0) --> myHandler,
-      onDomMount --> sideEffect { mounts += 1 },
-      onDomUnmount --> sideEffect { unmounts += 1 },
-      onDomUpdate --> sideEffect { updates += 1 }
+      onDomMount foreach { mounts += 1 },
+      onDomUnmount foreach { unmounts += 1 },
+      onDomUpdate foreach { updates += 1 }
     )
 
     OutWatch.renderInto("#app", node).unsafeRunSync()
