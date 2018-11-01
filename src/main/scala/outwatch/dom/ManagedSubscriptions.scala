@@ -12,8 +12,8 @@ trait ManagedSubscriptions {
   def managed(subscription: IO[Cancelable]): VDomModifier = IO {
     var cancelable: Cancelable = null
     VDomModifier(
-      lifecycle.onDomMount foreach { cancelable = subscription.unsafeRunSync() },
-      lifecycle.onDomUnmount foreach { cancelable.cancel() }
+      dsl.onDomMount foreach { cancelable = subscription.unsafeRunSync() },
+      dsl.onDomUnmount foreach { cancelable.cancel() }
     )
   }
 
@@ -22,7 +22,7 @@ trait ManagedSubscriptions {
     managed(composite)
   }
 
-  def managedAction(action: Scheduler => IO[Cancelable]): VDomModifier = SchedulerAction(scheduler => managed(action(scheduler)))
+  def managedAction(action: Scheduler => Cancelable): VDomModifier = SchedulerAction(scheduler => managed(IO(action(scheduler))))
 
   object managedElement {
     def apply(subscription: dom.Element => Cancelable): VDomModifier = IO {
