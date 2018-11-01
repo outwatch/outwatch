@@ -1,9 +1,11 @@
 package outwatch
 
 import cats.effect.IO
-import monix.execution.{Cancelable, Scheduler}
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
+
+import scala.concurrent.Future
 
 trait MonixOps {
   type ProHandler[-I, +O] = Observable[O] with Observer[I]
@@ -21,7 +23,18 @@ trait MonixOps {
       new ConnectableObserver[I2](subject, implicit scheduler => transformed.subscribe(observer))
     }
 
-    def redirectMap[I2](f: I2 => I): ConnectableObserver[I2] = redirect(_.map(f))
+    def redirectMap[I2](f: I2 => I): Observer[I2] = new Observer[I2] {
+      override def onNext(elem: I2): Future[Ack] = observer.onNext(f(elem))
+      override def onError(ex: Throwable): Unit = observer.onError(ex)
+      override def onComplete(): Unit = observer.onComplete()
+    }
+    def redirectMapMaybe[I2](f: I2 => Option[I]): Observer[I2] = new Observer[I2] {
+      override def onNext(elem: I2): Future[Ack] = f(elem).fold[Future[Ack]](Ack.Continue)(observer.onNext(_))
+      override def onError(ex: Throwable): Unit = observer.onError(ex)
+      override def onComplete(): Unit = observer.onComplete()
+    }
+    def redirectCollect[I2](f: PartialFunction[I2, I]): Observer[I2] = redirectMapMaybe(f.lift)
+    def redirectFilter(f: I => Boolean): Observer[I] = redirectMapMaybe(e => Some(e).filter(f))
 
     @deprecated("use onNext instead.", "")
     def unsafeOnNext(nextValue: I) = observer.onNext(nextValue)
@@ -32,17 +45,17 @@ trait MonixOps {
   }
 
   implicit class RichProHandler[I,O](self: ProHandler[I,O]) {
-    def mapObservable[O2](f: O => O2): ProHandler[I, O2] = transformObservable(_.map(f))
-    def mapObserver[I2](f: I2 => I): ProHandler[I2, O] with ReactiveConnectable = transformObserver(_.map(f))
-    def mapProHandler[I2, O2](write: I2 => I)(read: O => O2): ProHandler[I2, O2] with ReactiveConnectable = transformProHandler[I2, O2](_.map(write))(_.map(read))
+    def mapObservable[O2](f: O => O2): ProHandler[I, O2] = ProHandler(self, self.map(f))
+    def mapObserver[I2](f: I2 => I): ProHandler[I2, O] = ProHandler(self.redirectMap(f), self)
+    def mapProHandler[I2, O2](write: I2 => I)(read: O => O2): ProHandler[I2, O2] = ProHandler(self.redirectMap(write), self.map(read))
 
-    def collectObservable[O2](f: PartialFunction[O, O2]): ProHandler[I, O2] = transformObservable(_.collect(f))
-    def collectObserver[I2](f: PartialFunction[I2, I]): ProHandler[I2, O] with ReactiveConnectable = transformObserver(_.collect(f))
-    def collectProHandler[I2, O2](write: PartialFunction[I2, I])(read: PartialFunction[O, O2]): ProHandler[I2, O2] with ReactiveConnectable = transformProHandler[I2, O2](_.collect(write))(_.collect(read))
+    def collectObservable[O2](f: PartialFunction[O, O2]): ProHandler[I, O2] = ProHandler(self, self.collect(f))
+    def collectObserver[I2](f: PartialFunction[I2, I]): ProHandler[I2, O] = ProHandler(self.redirectCollect(f), self)
+    def collectProHandler[I2, O2](write: PartialFunction[I2, I])(read: PartialFunction[O, O2]): ProHandler[I2, O2] = ProHandler(self.redirectCollect(write), self.collect(read))
 
-    def filterObservable(f: O => Boolean): ProHandler[I, O] = transformObservable(_.filter(f))
-    def filterObserver(f: I => Boolean): ProHandler[I, O] with ReactiveConnectable = transformObserver(_.filter(f))
-    def filterProHandler(write: I => Boolean)(read: O => Boolean): ProHandler[I, O] with ReactiveConnectable = transformProHandler[I, O](_.filter(write))(_.filter(read))
+    def filterObservable(f: O => Boolean): ProHandler[I, O] = ProHandler(self, self.filter(f))
+    def filterObserver(f: I => Boolean): ProHandler[I, O] = ProHandler(self.redirectFilter(f), self)
+    def filterProHandler(write: I => Boolean)(read: O => Boolean): ProHandler[I, O] = ProHandler(self.redirectFilter(write), self.filter(read))
 
     def transformObservable[O2](f: Observable[O] => Observable[O2]): ProHandler[I,O2] = ProHandler(self, f(self))
     def transformObserver[I2](f: Observable[I2] => Observable[I]): ProHandler[I2,O] with ReactiveConnectable = ProHandler.connectable(self.redirect(f), self)
@@ -60,10 +73,9 @@ trait MonixOps {
       ProHandler.connectable(redirected, self.map(read))
     }
 
-    def mapHandler[T2](write: T2 => T)(read: T => T2)(implicit scheduler: Scheduler): Handler[T2] with ReactiveConnectable = ProHandler.connectable(self.redirectMap(write), self.map(read))
-    def collectHandler[T2](write: PartialFunction[T2, T])(read: PartialFunction[T, T2])(implicit scheduler: Scheduler): Handler[T2] with ReactiveConnectable = ProHandler.connectable(self.redirect(_.collect(write)), self.collect(read))
-    def filterHandler(write: T => Boolean)(read: T => Boolean)(implicit scheduler: Scheduler): Handler[T] with ReactiveConnectable = ProHandler.connectable(self.redirect(_.filter(write)), self.filter(read))
-
+    def mapHandler[T2](write: T2 => T)(read: T => T2): Handler[T2] = ProHandler(self.redirectMap(write), self.map(read))
+    def collectHandler[T2](write: PartialFunction[T2, T])(read: PartialFunction[T, T2]): Handler[T2] = ProHandler(self.redirectCollect(write), self.collect(read))
+    def filterHandler(write: T => Boolean)(read: T => Boolean): Handler[T] = ProHandler(self.redirectFilter(write), self.filter(read))
     def transformHandler[T2](write: Observable[T2] => Observable[T])(read: Observable[T] => Observable[T2]): Handler[T2] with ReactiveConnectable = ProHandler.connectable(self.redirect(write), read(self))
   }
 
