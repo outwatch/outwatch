@@ -16,10 +16,10 @@ trait OutwatchAttributes
 
 /** Outwatch component life cycle hooks. */
 trait OutWatchLifeCycleAttributes {
-  lazy val onDomMount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(o => DomMountHook(o.onNext(_)))
-  lazy val onDomUnmount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(o => DomUnmountHook(o.onNext(_)))
-  lazy val onDomPreUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(o => DomPreUpdateHook(o.onNext(_)))
-  lazy val onDomUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(o => DomUpdateHook(o.onNext(_)))
+  lazy val onDomMount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomMountHook)
+  lazy val onDomUnmount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomUnmountHook)
+  lazy val onDomPreUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomPreUpdateHook)
+  lazy val onDomUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomUpdateHook)
 
   /**
     * Lifecycle hook for component insertion.
@@ -29,17 +29,17 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomMount instead for getting realiably notified whenever the element is mounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomInsert.", "")
   lazy val onInsert   = onSnabbdomInsert
-  lazy val onSnabbdomInsert: SyncEmitterBuilder[Element, VDomModifier] = EmitterBuilder.ofModifier(o => InsertHook(o.onNext(_)))
+  lazy val onSnabbdomInsert: SyncEmitterBuilder[Element, VDomModifier] = EmitterBuilder.ofModifierFunction(InsertHook)
 
   /** Lifecycle hook for component prepatch. */
   @deprecated("Consider using onDomPreUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPrePatch.", "")
   lazy val onPrePatch   = onSnabbdomPrePatch
-  lazy val onSnabbdomPrePatch: SyncEmitterBuilder[(Option[dom.Element],Option[dom.Element]), VDomModifier] = EmitterBuilder.ofModifier(o => PrePatchHook(o.onNext(_)))
+  lazy val onSnabbdomPrePatch: SyncEmitterBuilder[(Option[dom.Element],Option[dom.Element]), VDomModifier] = EmitterBuilder.ofModifierFunction(PrePatchHook)
 
   /** Lifecycle hook for component updates. */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomUpdate.", "")
   lazy val onUpdate   = onSnabbdomUpdate
-  lazy val onSnabbdomUpdate: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifier(o => UpdateHook(o.onNext(_)))
+  lazy val onSnabbdomUpdate: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifierFunction(UpdateHook)
 
   /**
     * Lifecycle hook for component postpatch.
@@ -48,7 +48,7 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPostPatch.", "")
   lazy val onPostPatch   = onSnabbdomPostPatch
-  lazy val onSnabbdomPostPatch: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifier(o => PostPatchHook(o.onNext(_)))
+  lazy val onSnabbdomPostPatch: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifierFunction(PostPatchHook)
 
   /**
     * Lifecycle hook for component destruction.
@@ -58,7 +58,7 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomUnmount instead for getting realiably notified whenever an element is unmounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomDestroy.", "")
   lazy val onDestroy  = onSnabbdomDestroy
-  lazy val onSnabbdomDestroy: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(o => DestroyHook(o.onNext(_)))
+  lazy val onSnabbdomDestroy: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DestroyHook)
 }
 
 /** Snabbdom Key Attribute */

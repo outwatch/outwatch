@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import cats.syntax.functor._
 import monix.reactive.Observable
 import outwatch.AsVDomModifier
 import outwatch.dom._

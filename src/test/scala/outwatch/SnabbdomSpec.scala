@@ -1,8 +1,8 @@
 package outwatch
 
-import org.scalajs.dom.{document, html, console}
+import org.scalajs.dom.{document, html}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import snabbdom.{DataObject, hFunction, patch, thunk, VNodeProxy}
+import snabbdom._
 
 import scala.scalajs.js
 
@@ -140,6 +140,7 @@ class SnabbdomSpec extends JSDomSpec {
     val vNode3 = thunk("span#msg", "key", () => renderFn(newMessage), js.Array(newMessage))
     val p3 = patch(p2, vNode3)
 
+    p3 should not be null
     renderFnCounter shouldBe 2
     document.getElementById("msg").innerHTML shouldBe newMessage
   }
@@ -178,6 +179,7 @@ class SnabbdomSpec extends JSDomSpec {
     val vNode3 = thunk.conditional("span#msg", "key", () => renderFn(newMessage), shouldRender = true)
     val p3 = patch(p2, vNode3)
 
+    p3 should not be null
     renderFnCounter shouldBe 2
     document.getElementById("msg").innerHTML shouldBe newMessage
   }

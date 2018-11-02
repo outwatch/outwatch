@@ -209,6 +209,7 @@ private[outwatch] object NativeModifiers {
         lengthsArr(index) = mods.length
         modifiers
       }
+      ()
     }
 
     def inner(modifier: VDomModifier): Unit = modifier match {
@@ -238,11 +239,11 @@ private[outwatch] object NativeModifiers {
       case mods: CompositeModifier =>
         val nativeModifiers = fromInStream(mods.modifiers)
         nativeModifiers.observable.fold(Observable.now(nativeModifiers.modifiers)) { obs =>
-          Observable.concat(Observable.now(nativeModifiers.modifiers), obs)
+          Observable(Observable.now(nativeModifiers.modifiers), obs).concat
         }
       case m: ModifierStreamReceiver =>
         val stream = flattenModifierStream(m.stream)
-        Observable.concat(Observable.now(stream.value.getOrElse(js.Array())), stream.observable)
+        Observable(Observable.now(stream.value.getOrElse(js.Array())), stream.observable).concat
       case m: EffectModifier => findObservable(m.effect.unsafeRunSync())
       case m: SchedulerAction => findObservable(m.action(scheduler))
     }
@@ -258,14 +259,14 @@ private[outwatch] object NativeModifiers {
         val nativeModifiers = fromInStream(mods.modifiers)
         val initialObservable = nativeModifiers.observable.fold(observable) { obs =>
           observable.publishSelector { observable =>
-            Observable.merge(obs.takeUntil(observable), observable)
+            Observable(obs.takeUntil(observable), observable).merge
           }
         }
         ValueObservable(initialObservable, nativeModifiers.modifiers)
       case m: ModifierStreamReceiver =>
         val stream = flattenModifierStream(m.stream)
         val initialObservable = observable.publishSelector { observable =>
-          Observable.merge(stream.observable.takeUntil(observable), observable)
+          Observable(stream.observable.takeUntil(observable), observable).merge
         }
         ValueObservable(initialObservable, stream.value.getOrElse(js.Array()))
       case m: EffectModifier => findDefaultObservable(m.effect.unsafeRunSync())

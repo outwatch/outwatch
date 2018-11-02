@@ -4,12 +4,11 @@ import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom._
 import outwatch.AsVDomModifier
-import outwatch.dom.helpers.{SnabbdomOps, NativeHelpers}
+import outwatch.dom.helpers.NativeHelpers
 import snabbdom.{DataObject, VNodeProxy}
-import snabbdom.{DataObject, VNodeProxy, thunk}
-import scala.scalajs.js.JSConverters._
 
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 sealed trait VDomModifier
 

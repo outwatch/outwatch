@@ -9,8 +9,6 @@ import monix.execution.{Ack, Cancelable}
 import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom
-import org.scalajs.dom.html.Element
-import outwatch.dom.TagBuilder.Tag
 import outwatch.dom.helpers._
 
 import scala.scalajs.js

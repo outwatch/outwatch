@@ -3,7 +3,6 @@ package outwatch.dom.helpers
 import monix.execution.Ack.Continue
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
-import monix.reactive.observers.Subscriber
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._

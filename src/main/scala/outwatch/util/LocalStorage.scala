@@ -2,6 +2,7 @@ package outwatch.util
 
 import cats.effect.IO
 import cats.implicits._
+import monix.eval.Task
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.scalajs.dom
@@ -21,8 +22,8 @@ class Storage(domStorage: dom.Storage) {
       // and pass the written value through to the underlying subject h
       val connectable = h.transformHandler[Option[String]](o => transform(o).distinctUntilChanged) { input =>
         input.doOnNext {
-          case Some(data) => storage.update(key, data)
-          case None => storage.remove(key)
+          case Some(data) => Task(storage.update(key, data))
+          case None => Task(storage.remove(key))
         }
       }
 
@@ -55,7 +56,7 @@ class Storage(domStorage: dom.Storage) {
 
   def handler(key: String)(implicit scheduler: Scheduler): IO[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    subjectWithTransform(key, Observable.merge(_, storageEvents))
+    subjectWithTransform(key, Observable(_, storageEvents).merge)
   }
 }
 

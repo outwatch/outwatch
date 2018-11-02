@@ -4,12 +4,12 @@ import cats.effect.IO
 import monix.reactive.Observable
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.{Element, document, html}
+import org.scalajs.dom.{document, html}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
-import snabbdom.{DataObject, Hooks, VNodeProxy, hFunction}
+import snabbdom.{DataObject, Hooks, hFunction}
 
 import scala.collection.immutable.Seq
 import scala.collection.mutable
@@ -811,7 +811,7 @@ class OutWatchDomSpec extends JSDomSpec {
 
   it should "work with custom tags" in {
 
-    val vNode = div(tag("main")())
+    val vNode = div(htmlTag("main")())
 
     val node = document.createElement("div")
     document.body.appendChild(node)
