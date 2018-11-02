@@ -1,16 +1,14 @@
 package outwatch.dom.helpers
 
-import monix.execution.cancelables.CompositeCancelable
-import monix.execution.{Cancelable, Scheduler}
+import monix.execution.Scheduler
 import monix.reactive.Observable
-import monix.reactive.observers.Subscriber
 import org.scalajs.dom
 import outwatch.dom._
+import outwatch.dom.helpers.NativeHelpers._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
 
 import scala.annotation.tailrec
 import scala.scalajs.js
-import NativeHelpers._
 
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
@@ -175,8 +173,8 @@ private[outwatch] class NativeModifiers(
 
 private[outwatch] object NativeModifiers {
 
-  @inline def from(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(appendModifiers, false)
-  @inline def fromInStream(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(appendModifiers, true)
+  @inline def from(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(appendModifiers, inStream = false)
+  @inline def fromInStream(appendModifiers: js.Array[_ <: VDomModifier])(implicit scheduler: Scheduler): NativeModifiers = from(appendModifiers, inStream = true)
 
   private def from(appendModifiers: js.Array[_ <: VDomModifier], inStream: Boolean)(implicit scheduler: Scheduler): NativeModifiers = {
     var lengths: js.UndefOr[js.Array[js.UndefOr[Int]]] = js.undefined
@@ -226,7 +224,7 @@ private[outwatch] object NativeModifiers {
 
     appendModifiers.foreach(inner)
 
-    new NativeModifiers(modifiers, updaterObservables.map(obs => new CollectionObservable[js.Array[StaticVDomModifier]](obs)))
+    new NativeModifiers(modifiers, updaterObservables.map(obs => Observable(obs: _*).merge))
   }
 
   private def flattenModifierStream(modStream: ValueObservable[VDomModifier])(implicit scheduler: Scheduler): ValueObservable[js.Array[StaticVDomModifier]] = {
@@ -335,13 +333,3 @@ private object StyleKey {
   @inline def destroy = "destroy"
 }
 
-private class CollectionObservable[A](observables: js.Array[Observable[A]]) extends Observable[A] {
-  override def unsafeSubscribeFn(subscriber: Subscriber[A]): Cancelable = {
-    val cancelable = CompositeCancelable()
-    observables.foreach { observable =>
-      // we only pass onNext and onError and not onComplete.
-      cancelable += observable.unsafeSubscribeFn(Sink.create(subscriber.onNext, subscriber.onError))(subscriber.scheduler)
-    }
-    cancelable
-  }
-}
