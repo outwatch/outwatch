@@ -307,10 +307,7 @@ private[outwatch] object NativeModifiers {
       var triggered = false
       var isOpen = true
       js.Array(
-        DomUnmountHook { e =>
-          h.trigger(e)
-          isOpen = true
-        },
+        h,
         DomUpdateHook { _ =>
           if (triggered) isOpen = false
           triggered = true
