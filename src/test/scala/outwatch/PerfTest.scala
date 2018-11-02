@@ -9,7 +9,7 @@ import scala.scalajs.js
 class PerfTest extends JSDomSpec {
 
   "Perf" should "be" in {
-    (0 to 10) foreach { _ =>
+    (0 to 10) foreach { round =>
       val elemId = "msg"
 
       val handler = Handler.create[Int](0).unsafeRunSync
@@ -61,14 +61,14 @@ class PerfTest extends JSDomSpec {
       handler2.onNext(101)
       val t4 = System.nanoTime()
 
-      println("TOOK =====> " + (t2 - t))
+      println(s"NORMAL $round =====> " + (t2 - t))
       println("SINGLE1 TOOK =====> " + (t3 - t2))
       println("SINGLE2 TOOK =====> " + (t4 - t3))
     }
   }
 
   it should "thunk" in {
-    (0 to 10) foreach { _ =>
+    (0 to 10) foreach { round =>
       val elemId = "msg"
 
       val handler = Handler.create[Int](0).unsafeRunSync
@@ -120,7 +120,7 @@ class PerfTest extends JSDomSpec {
       handler2.onNext(101)
       val t4 = System.nanoTime()
 
-      println("TOOK =====> " + (t2 - t))
+      println(s"THUNK $round =====> " + (t2 - t))
       println("SINGLE1 TOOK =====> " + (t3 - t2))
       println("SINGLE2 TOOK =====> " + (t4 - t3))
 
@@ -128,7 +128,7 @@ class PerfTest extends JSDomSpec {
   }
 
   it should "cmd" in {
-    (0 to 10) foreach { _ =>
+    (0 to 10) foreach { round =>
 
       val elemId = "msg"
 
@@ -181,7 +181,7 @@ class PerfTest extends JSDomSpec {
       handler2.onNext(ChildCommand.Append(node2(node2Counter)))
       val t4 = System.nanoTime()
 
-      println("TOOK =====> " + (t2 - t))
+      println(s"COMMAND $round =====> " + (t2 - t))
       println("SINGLE1 TOOK =====> " + (t3 - t2))
       println("SINGLE2 TOOK =====> " + (t4 - t3))
     }
