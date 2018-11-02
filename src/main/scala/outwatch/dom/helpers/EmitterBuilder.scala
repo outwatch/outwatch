@@ -76,19 +76,19 @@ trait SyncEmitterBuilder[+O, +R] extends EmitterBuilder[O, R] {
   @inline def filter(predicate: O => Boolean): SyncEmitterBuilder[O, R] = transformSync(_.filter(predicate))
 }
 
-private[outwatch] final class CustomEmitterBuilder[E, +R](create: Observer[E] => R) extends SyncEmitterBuilder[E, R] {
+final class CustomEmitterBuilder[E, +R] private[outwatch](create: Observer[E] => R) extends SyncEmitterBuilder[E, R] {
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder[E, T, R](tr, create)
   def transformSync[T](tr: Option[E] => Option[T]): SyncEmitterBuilder[T, R] = new FunctionEmitterBuilder[E, T, R](tr, create)
   def -->(observer: Observer[E]): R = create(observer)
 }
 
-private[outwatch] final class FunctionEmitterBuilder[E, +O, +R](transformer: Option[E] => Option[O], create: Observer[E] => R) extends SyncEmitterBuilder[O, R] {
+final class FunctionEmitterBuilder[E, +O, +R] private[outwatch](transformer: Option[E] => Option[O], create: Observer[E] => R) extends SyncEmitterBuilder[O, R] {
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder[O, T, R](tr, observer => create(new ConnectableObserver[E](Sink.fromFunction(e => transformer(Some(e)).foreach(observer.onNext(_))), observer.connect()(_))))
   def transformSync[T](tr: Option[O] => Option[T]): SyncEmitterBuilder[T, R] = new FunctionEmitterBuilder(transformer andThen tr, create)
   def -->(observer: Observer[O]): R = create(observer.redirectMapMaybe(e => transformer(Some(e))))
 }
 
-private[outwatch] final class TransformingEmitterBuilder[E, +O, +R](transformer: Observable[E] => Observable[O], create: ConnectableObserver[E] => R) extends EmitterBuilder[O, R] {
+final class TransformingEmitterBuilder[E, +O, +R] private[outwatch](transformer: Observable[E] => Observable[O], create: ConnectableObserver[E] => R) extends EmitterBuilder[O, R] {
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder(transformer andThen tr, create)
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transform(_.map(f))
   @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
