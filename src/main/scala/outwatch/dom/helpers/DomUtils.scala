@@ -10,6 +10,22 @@ import snabbdom.{DataObject, Hooks, VNodeProxy}
 import scala.annotation.tailrec
 import scala.scalajs.js
 
+private[outwatch] class SeparatedModifiers(
+  val proxies: js.UndefOr[js.Array[VNodeProxy]],
+  val attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]],
+  val props: js.UndefOr[js.Dictionary[DataObject.PropValue]],
+  val styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]],
+  val keyOption: js.UndefOr[Key.Value],
+  val emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]],
+  val insertHook: js.UndefOr[Hooks.HookSingleFn],
+  val prePatchHook: js.UndefOr[Hooks.HookPairFn],
+  val updateHook: js.UndefOr[Hooks.HookPairFn],
+  val postPatchHook: js.UndefOr[Hooks.HookPairFn],
+  val destroyHook: js.UndefOr[Hooks.HookSingleFn],
+  val domUnmountHook: js.UndefOr[Hooks.HookSingleFn],
+  val hasOnlyTextChildren: Boolean,
+  val nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]])
+
 private[outwatch] object SeparatedModifiers {
   def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
     var hasOnlyTextChildren = true
@@ -148,23 +164,6 @@ private[outwatch] object SeparatedModifiers {
     new SeparatedModifiers(proxies = proxies, attrs = attrs, props = props, styles = styles, keyOption = keyOption, emitters = emitters, insertHook = insertHook, prePatchHook = prePatchHook, updateHook = updateHook, postPatchHook = postPatchHook, destroyHook = destroyHook, domUnmountHook = domUnmountHook, hasOnlyTextChildren = hasOnlyTextChildren, nextModifiers = nextModifiers)
   }
 }
-
-private[outwatch] class SeparatedModifiers(
-  val proxies: js.UndefOr[js.Array[VNodeProxy]],
-  val attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]],
-  val props: js.UndefOr[js.Dictionary[DataObject.PropValue]],
-  val styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]],
-  val keyOption: js.UndefOr[Key.Value],
-  val emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]],
-  val insertHook: js.UndefOr[Hooks.HookSingleFn],
-  val prePatchHook: js.UndefOr[Hooks.HookPairFn],
-  val updateHook: js.UndefOr[Hooks.HookPairFn],
-  val postPatchHook: js.UndefOr[Hooks.HookPairFn],
-  val destroyHook: js.UndefOr[Hooks.HookSingleFn],
-  val domUnmountHook: js.UndefOr[Hooks.HookSingleFn],
-  val hasOnlyTextChildren: Boolean,
-  val nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]])
-
 
 private[outwatch] class NativeModifiers(
   val modifiers: js.Array[StaticVDomModifier],
