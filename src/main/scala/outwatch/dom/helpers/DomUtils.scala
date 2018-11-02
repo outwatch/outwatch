@@ -317,6 +317,7 @@ private[outwatch] object NativeModifiers {
         },
         DomMountHook { _ =>
           isOpen = false
+          triggered = true
         },
         NextVDomModifier(DomUpdateHook { e =>
           if (isOpen) h.trigger(e)
