@@ -41,6 +41,8 @@ object EmitterBuilder {
       case o: Observer[E] => create(o)
     })
 
+  def empty: EmptyEmitterBuilder[VDomModifier] = new EmptyEmitterBuilder[VDomModifier](VDomModifier.empty)
+
   implicit class EventActions[O <: Event, R](val builder: SyncEmitterBuilder[O, R]) extends AnyVal {
     def preventDefault: SyncEmitterBuilder[O, R] = builder.map { e => e.preventDefault; e }
     def stopPropagation: SyncEmitterBuilder[O, R] = builder.map { e => e.stopPropagation; e }
@@ -94,4 +96,10 @@ final class TransformingEmitterBuilder[E, +O, +R] private[outwatch](transformer:
   @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
   @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transform(_.collect(f))
   def -->(observer: Observer[O]): R = create(observer.redirect(transformer))
+}
+
+final class EmptyEmitterBuilder[R](empty: R) extends SyncEmitterBuilder[Nothing, R] {
+  override def transformSync[T](f: Option[Nothing] => Option[T]): SyncEmitterBuilder[T, R] = this
+  override def transform[T](tr: Observable[Nothing] => Observable[T]): EmitterBuilder[T, R] = this
+  override def -->(observer: Observer[Nothing]): R = empty
 }
