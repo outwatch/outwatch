@@ -100,25 +100,33 @@ object SnabbdomOps {
             OutwatchTracing.patchSubject.onNext(newProxy)
             val currentProxy = patch(proxy, newProxy)
 
-            // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
-            // if we are changing the content of this proxy via a stream, the parent will not see this change.
-            // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
-            // renders its children again. But it would not have the correct state of this proxy. Therefore,
-            // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-            proxy.sel = currentProxy.sel
-            proxy.data = currentProxy.data
-            proxy.children = currentProxy.children
-            proxy.elm = currentProxy.elm
-            proxy.text = currentProxy.text
-            proxy.key = currentProxy.key
-            proxy._id = currentProxy._id
-            proxy._unmount = currentProxy._unmount
-            proxy.listener = currentProxy.listener
-
             Continue
           },
           error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
         ))
+      }
+
+      def copyToProxy(currentProxy: VNodeProxy): Unit = {
+        // we are mutating the initial proxy, because parents of this node have a reference to this proxy.
+        // if we are changing the content of this proxy via a stream, the parent will not see this change.
+        // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
+        // renders its children again. But it would not have the correct state of this proxy. Therefore,
+        // we mutate the initial proxy and thereby mutate the proxy the parent knows.
+
+        currentProxy.data.foreach { data =>
+          data.fn = proxy.data.flatMap(_.fn)
+          data.args = proxy.data.flatMap(_.args)
+        }
+
+        proxy.sel = currentProxy.sel
+        proxy.data = currentProxy.data
+        proxy.children = currentProxy.children
+        proxy.elm = currentProxy.elm
+        proxy.text = currentProxy.text
+        proxy.key = currentProxy.key
+        proxy._id = currentProxy._id
+        proxy._unmount = currentProxy._unmount
+        proxy.listener = currentProxy.listener
       }
 
       // hooks for subscribing and unsubscribing the streamable content
@@ -128,12 +136,15 @@ object SnabbdomOps {
         cancelable = subscribe()
       }
       streamableModifiers.modifiers += PostPatchHook { (o, p) =>
-        proxy.elm = p.elm
         if (o._id != p._id) {
+          proxy.elm = p.elm
           cancelable = subscribe()
         }
+        else copyToProxy(p)
       }
-      streamableModifiers.modifiers += DomUnmountHook(_ => cancelable.cancel())
+      streamableModifiers.modifiers += DomUnmountHook { _ =>
+        cancelable.cancel()
+      }
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
