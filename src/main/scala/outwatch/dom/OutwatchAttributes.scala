@@ -35,7 +35,7 @@ trait OutWatchLifeCycleAttributes {
   /**
     * Lifecycle hook for the initalization of a VNodeProxy. Snabbdom creates a fresh element for this node.
     */
-    lazy val onSnabbdomInit: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(InitHook))
+  lazy val onSnabbdomInit: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(InitHook))
 
   /**
     * Lifecycle hook for component insertion.
@@ -44,17 +44,17 @@ trait OutWatchLifeCycleAttributes {
     * and the rest of the patch cycle is done.
     */
   @deprecated("Consider using onDomMount instead for getting realiably notified whenever the element is mounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomInsert.", "")
-  lazy val onInsert   = onSnabbdomInsert
+  def onInsert   = onSnabbdomInsert
   lazy val onSnabbdomInsert: SyncEmitterBuilder[Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(InsertHook))
 
   /** Lifecycle hook for component prepatch. */
   @deprecated("Consider using onDomPreUpdate instead for getting realiably notified before the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPrePatch.", "")
-  lazy val onPrePatch   = onSnabbdomPrePatch
+  def onPrePatch   = onSnabbdomPrePatch
   lazy val onSnabbdomPrePatch: SyncEmitterBuilder[(Option[dom.Element],Option[dom.Element]), VDomModifier] = EmitterBuilder.ofModifier(proxyElementPairOptionEmitter(PrePatchHook))
 
   /** Lifecycle hook for component updates. */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomUpdate.", "")
-  lazy val onUpdate   = onSnabbdomUpdate
+  def onUpdate   = onSnabbdomUpdate
   lazy val onSnabbdomUpdate: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifier(proxyElementPairEmitter(UpdateHook))
 
   /**
@@ -63,7 +63,7 @@ trait OutWatchLifeCycleAttributes {
     *  This hook is invoked every time a node has been patched against an older instance of itself.
     */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPostPatch.", "")
-  lazy val onPostPatch   = onSnabbdomPostPatch
+  def onPostPatch   = onSnabbdomPostPatch
   lazy val onSnabbdomPostPatch: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifier(proxyElementPairEmitter(PostPatchHook))
 
   /**
@@ -73,7 +73,7 @@ trait OutWatchLifeCycleAttributes {
     * or if its parent is being removed from the DOM.
     */
   @deprecated("Consider using onDomUnmount instead for getting realiably notified whenever an element is unmounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomDestroy.", "")
-  lazy val onDestroy  = onSnabbdomDestroy
+  def onDestroy  = onSnabbdomDestroy
   lazy val onSnabbdomDestroy: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(DestroyHook))
 }
 
