@@ -123,7 +123,16 @@ object SnabbdomOps {
 
       // hooks for subscribing and unsubscribing the streamable content
       var cancelable: Cancelable = null
-      streamableModifiers.modifiers += DomMountHook(_ => cancelable = subscribe())
+      streamableModifiers.modifiers += InsertHook { p =>
+        proxy.elm = p.elm
+        cancelable = subscribe()
+      }
+      streamableModifiers.modifiers += PostPatchHook { (o, p) =>
+        proxy.elm = p.elm
+        if (o._id != p._id) {
+          cancelable = subscribe()
+        }
+      }
       streamableModifiers.modifiers += DomUnmountHook(_ => cancelable.cancel())
 
       // create initial proxy, we want to apply the initial state of the

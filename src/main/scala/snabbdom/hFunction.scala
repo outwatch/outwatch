@@ -107,16 +107,6 @@ object thunk {
     } {
       val newProxy = fn()
       copyToThunk(newProxy, thunk)
-      thunk.data.foreach { data =>
-        data.hook.foreach { hook =>
-          val prevInsert = hook.insert
-          hook.insert = { (p: VNodeProxy) =>
-            newProxy.elm = thunk.elm
-            prevInsert.foreach(_ (p))
-            hook.insert = prevInsert
-          }: Hooks.HookSingleFn
-        }
-      }
     }
 
     thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
@@ -155,7 +145,6 @@ object thunk {
     if (shouldRender) {
       val newProxy = fn()
       copyToThunk(newProxy, thunk)
-      newProxy.elm = oldVNode.elm
     } else copyToThunk(oldVNode, thunk)
   }
 
