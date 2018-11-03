@@ -96,6 +96,13 @@ object SnabbdomOps {
             nextModifiers = separatedModifiers.nextModifiers
             val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
+            // the initial proxy might have been a thunk. therefore, we need to keep the fn and args in our
+            // new proxy, then a succeeding patch operation can use args for diffing and fn for updating.
+            proxy.data.foreach { data =>
+              newProxy.data.asInstanceOf[js.Dynamic].fn = data.fn
+              newProxy.data.asInstanceOf[js.Dynamic].args = data.args.asInstanceOf[js.Any]
+            }
+
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)
             val currentProxy = patch(proxy, newProxy)

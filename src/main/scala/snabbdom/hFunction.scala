@@ -87,7 +87,11 @@ object thunk {
   //does respect equality. snabbdom thunk does not: https://github.com/snabbdom/snabbdom/issues/143
 
   private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    vnode.data.foreach { _.key = thunk.key }
+    vnode.data.foreach { data =>
+      data.key = thunk.key
+      data.fn = thunk.data.flatMap(_.fn)
+      data.args = thunk.data.flatMap(_.args)
+    }
     thunk.data = vnode.data
     thunk.children = vnode.children
     thunk.text = vnode.text
@@ -109,6 +113,7 @@ object thunk {
           hook.insert = { (p: VNodeProxy) =>
             newProxy.elm = thunk.elm
             prevInsert.foreach(_(p))
+            hook.insert = prevInsert
           }: Hooks.HookSingleFn
         }
       }
