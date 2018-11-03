@@ -30,6 +30,8 @@ trait EmitterBuilder[+O, +R] {
 object EmitterBuilder {
   @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => Emitter(eventType, event => obs.onNext(event.asInstanceOf[E])))
 
+  @inline def apply[E](observable: Observable[E]): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => managedAction(implicit scheduler => observable.subscribe(obs)))
+
   def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
     new CustomEmitterBuilder[E, VDomModifier]({
       case o: ConnectableObserver[E] => VDomModifier(
