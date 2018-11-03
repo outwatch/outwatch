@@ -89,16 +89,16 @@ trait AttributeHelpers { self: Attributes =>
 
   lazy val data = new DynamicAttrBuilder[Any]("data" :: Nil)
 
-  def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
-  def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
-  def style[T](key: String) = new BasicStyleBuilder[T](key)
+  @inline def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
+  @inline def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
+  @inline def style[T](key: String) = new BasicStyleBuilder[T](key)
 
   @inline def emitter[E](observable: Observable[E]): CustomEmitterBuilder[E, VDomModifier] = EmitterBuilder(observable)
 }
 
 trait TagHelpers { self: Tags =>
   @deprecated("Use htmlTag(name) instead. For svg, you can use svgTag(name).", "")
-  def tag(name: String): VNode= HtmlVNode(name, js.Array())
-  def htmlTag(name: String): HtmlVNode = HtmlVNode(name, js.Array())
-  def svgTag(name: String): SvgVNode = SvgVNode(name, js.Array())
+  @inline def tag(name: String): VNode= HtmlVNode(name, js.Array())
+  @inline def htmlTag(name: String): HtmlVNode = HtmlVNode(name, js.Array())
+  @inline def svgTag(name: String): SvgVNode = SvgVNode(name, js.Array())
 }
