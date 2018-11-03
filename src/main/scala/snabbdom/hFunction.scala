@@ -100,7 +100,7 @@ object thunk {
     thunk._unmount = vnode._unmount
   }
 
-  private def initThunk(thunk: VNodeProxy): Unit =
+  private def initThunk(thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
       fn <- data.fn
@@ -112,14 +112,17 @@ object thunk {
           val prevInsert = hook.insert
           hook.insert = { (p: VNodeProxy) =>
             newProxy.elm = thunk.elm
-            prevInsert.foreach(_(p))
+            prevInsert.foreach(_ (p))
             hook.insert = prevInsert
           }: Hooks.HookSingleFn
         }
       }
     }
 
-  private def prepatchArray(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
+    thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
+  }
+
+  private def prepatchArray(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
       fn <- data.fn
@@ -133,7 +136,10 @@ object thunk {
       prepatch(fn, isDifferent, oldVNode, thunk)
     }
 
-  private def prepatchBoolean(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
+    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldVNode, thunk))))
+  }
+
+  private def prepatchBoolean(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
       fn <- data.fn
@@ -142,9 +148,15 @@ object thunk {
       prepatch(fn, shouldRender, oldVNode, thunk)
     }
 
-  private def prepatch(fn: js.Function0[VNodeProxy], shouldRender: Boolean, oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    if (shouldRender) copyToThunk(fn(), thunk) else copyToThunk(oldVNode, thunk)
-    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_(oldVNode, thunk))))
+    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldVNode, thunk))))
+  }
+
+  @inline private def prepatch(fn: js.Function0[VNodeProxy], shouldRender: Boolean, oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
+    if (shouldRender) {
+      val newProxy = fn()
+      copyToThunk(newProxy, thunk)
+      newProxy.elm = oldVNode.elm
+    } else copyToThunk(oldVNode, thunk)
   }
 
   @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
