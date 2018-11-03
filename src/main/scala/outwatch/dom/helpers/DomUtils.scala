@@ -269,8 +269,12 @@ private[outwatch] object NativeModifiers {
   }
 
   // if a dom mount hook is streamed, we want to emulate an intuitive interface as if they were static.
+  // This means we need to translate the next update to a mount event and an unmount event for the previously
+  // streamed hooks. the first update event needs to be ignored to emulate static update events.
   private def mirrorStreamedDomHook(h: DomHook): js.Array[StaticVDomModifier] = h match {
     case h: DomMountHook =>
+      // trigger once for the next update event and always for each mount event.
+      // if we are streamed in with an insert event, then ignore all update events.
       var triggered = false
       js.Array(
         InsertHook { p =>
@@ -278,10 +282,13 @@ private[outwatch] object NativeModifiers {
           h.trigger(p)
         },
         PostPatchHook { (o, p) =>
-          if (!triggered && o._id == p._id) h.trigger(p)
+          if (o._id != p._id || !triggered) h.trigger(p)
           triggered = true
         })
     case h: DomPreUpdateHook =>
+      // ignore the next pre-update event, we are streamed into the node with this update
+      // trigger on all succeeding pre-update events. if we are streamed in with an insert
+      // event, then trigger on next update events as well.
       var triggered = false
       js.Array(
         InsertHook { _ => triggered = true },
@@ -291,6 +298,9 @@ private[outwatch] object NativeModifiers {
         }
       )
     case h: DomUpdateHook =>
+      // ignore the next update event, we are streamed into the node with this update
+      // trigger on all succeeding update events. if we are streamed in with an insert
+      // event, then trigger on next update events as well.
       var triggered = false
       js.Array(
         InsertHook { _ => triggered = true },
@@ -300,6 +310,9 @@ private[outwatch] object NativeModifiers {
         }
       )
     case h: DomUnmountHook =>
+      // we call the unmount hook, whenever this hook is freshly superseded by a new modifier
+      // in a stream. whenever the node is patched afterwards we check whether we are still
+      // present in the node. if not, we are unmounted and call the hook.
       var triggered = false
       var isOpen = true
       js.Array(
