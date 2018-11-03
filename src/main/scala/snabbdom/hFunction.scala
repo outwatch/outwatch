@@ -113,15 +113,14 @@ object thunk {
       thunk.data.foreach { data =>
         data.hook.foreach { hook =>
           val prevInsert = hook.insert
-          hook.asInstanceOf[js.Dynamic].insert = { (p: VNodeProxy) =>
+          hook.insert = { (p: VNodeProxy) =>
+            newProxy.elm = thunk.elm
+            hook.insert = prevInsert
             prevInsert.foreach(_(p))
-            newProxy.asInstanceOf[js.Dynamic].elm = thunk.elm
-            hook.asInstanceOf[js.Dynamic].insert = prevInsert
-          }
+          }: Hooks.HookSingleFn
         }
       }
     }
-
 
   private def prepatchArray(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
     for {
@@ -129,23 +128,12 @@ object thunk {
       fn <- data.fn
       newArgs <- data.args.asInstanceOf[js.UndefOr[js.Array[Any]]]
     } {
-      @inline def update() = copyToThunk(fn(), thunk)
-      @inline def keep() = copyToThunk(oldVNode, thunk)
-
-      val oldArgs = oldVNode.data.flatMap(_.args).asInstanceOf[js.UndefOr[js.Array[Any]]]
-      oldArgs.fold(keep()) { oldArgs =>
-        if (oldArgs.length == newArgs.length) {
-          var i = 0
-          var isDifferent = false
-          while (!isDifferent && i < oldArgs.length) {
-            if (oldArgs(i) != newArgs(i)) isDifferent = true
-            i += 1
-          }
-
-          if (isDifferent) update()
-          else keep()
-        } else update()
+      val oldArgs = oldVNode.data.flatMap(_.args.asInstanceOf[js.Array[Any]])
+      val isDifferent = oldArgs.fold(false) { oldArgs =>
+        (oldArgs.length != newArgs.length) || findIndexWith(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
+
+      prepatch(fn, isDifferent, oldVNode, thunk)
     }
 
   private def prepatchBoolean(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit =
@@ -154,11 +142,38 @@ object thunk {
       fn <- data.fn
       shouldRender <- data.args.asInstanceOf[js.UndefOr[Boolean]]
     } {
-      @inline def update() = copyToThunk(fn(), thunk)
-      @inline def keep() = copyToThunk(oldVNode, thunk)
-
-      if (shouldRender) update() else keep()
+      prepatch(fn, shouldRender, oldVNode, thunk)
     }
+
+  private def prepatch(fn: js.Function0[VNodeProxy], shouldRender: Boolean, oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
+    @inline def update() = {
+      val newProxy = fn()
+      copyToThunk(newProxy, thunk)
+      thunk.data.foreach { data =>
+        data.hook.foreach { hook =>
+          val prevInsert = hook.update
+          hook.update = { (o: VNodeProxy, p: VNodeProxy) =>
+            newProxy.elm = thunk.elm
+            hook.update = prevInsert
+            prevInsert.foreach(_(o, p))
+          }: Hooks.HookPairFn
+        }
+      }
+      // newProxy.elm = oldVNode.elm
+    }
+    @inline def keep() = copyToThunk(oldVNode, thunk)
+
+    if (shouldRender) update() else keep()
+  }
+
+  @inline private def findIndexWith(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
+    var i = 0
+    while (i < maxIndex) {
+      if (predicate(i)) return true
+      i += 1
+    }
+    false
+  }
 
   def apply(selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
     new VNodeProxy {

@@ -61,11 +61,11 @@ object SnabbdomOps {
   }
 
   @inline private def toSnabbdomProxy(node: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk.conditional(node.baseNode.nodeType, node.key, () => SnabbdomOps.toSnabbdom(node.baseNode(node.renderFn())), node.shouldRender)
+    thunk.conditional(node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn())), node.shouldRender)
   }
 
   @inline private def toSnabbdomProxy(node: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk(node.baseNode.nodeType, node.key, () => SnabbdomOps.toSnabbdom(node.baseNode(node.renderFn())), node.arguments)
+    thunk(node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn())), node.arguments)
   }
 
   def toSnabbdomProxy(node: BasicVNode)(implicit scheduler: Scheduler): VNodeProxy = {
