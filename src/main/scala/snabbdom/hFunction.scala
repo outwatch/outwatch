@@ -87,14 +87,7 @@ object thunk {
   //does respect equality. snabbdom thunk does not: https://github.com/snabbdom/snabbdom/issues/143
 
   private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    val vnodeData = vnode.data.getOrElse {
-      val data = DataObject.empty
-      vnode.data = data
-      data
-    }
-    vnodeData.fn = thunk.data.flatMap(_.fn)
-    vnodeData.args = thunk.data.flatMap(_.args)
-    vnodeData.key = thunk.key
+    vnode.data.foreach { _.key = thunk.key }
     thunk.data = vnode.data
     thunk.children = vnode.children
     thunk.text = vnode.text
@@ -115,7 +108,6 @@ object thunk {
           val prevInsert = hook.insert
           hook.insert = { (p: VNodeProxy) =>
             newProxy.elm = thunk.elm
-            hook.insert = prevInsert
             prevInsert.foreach(_(p))
           }: Hooks.HookSingleFn
         }
@@ -128,9 +120,9 @@ object thunk {
       fn <- data.fn
       newArgs <- data.args.asInstanceOf[js.UndefOr[js.Array[Any]]]
     } {
-      val oldArgs = oldVNode.data.flatMap(_.args.asInstanceOf[js.Array[Any]])
+      val oldArgs = oldVNode.data.flatMap(_.args).asInstanceOf[js.UndefOr[js.Array[Any]]]
       val isDifferent = oldArgs.fold(true) { oldArgs =>
-        (oldArgs.length != newArgs.length) || findIndexWith(oldArgs.length)(i => oldArgs(i) != newArgs(i))
+        (oldArgs.length != newArgs.length) || existsIndexWhere(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
 
       prepatch(fn, isDifferent, oldVNode, thunk)
@@ -168,7 +160,7 @@ object thunk {
     console.log("PREPATCHED", thunk)
   }
 
-  @inline private def findIndexWith(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
+  @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
     var i = 0
     while (i < maxIndex) {
       if (predicate(i)) return true
