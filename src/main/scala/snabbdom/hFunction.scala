@@ -185,7 +185,7 @@ object thunk {
 
 object patch {
 
-  private lazy val p = Snabbdom.init(js.Array(
+  private val p = Snabbdom.init(js.Array(
     SnabbdomClass.default,
     SnabbdomEventListeners.default,
     SnabbdomAttributes.default,

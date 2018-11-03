@@ -31,60 +31,60 @@ object Handlers extends Handlers
 trait OutWatchChildAttributesCompat {
   /** A special attribute that takes a stream of single child nodes. */
   @deprecated("Use the observable directly", "1.0.0")
-  lazy val child    = ChildStreamReceiverBuilder
+  def child    = ChildStreamReceiverBuilder
 
   /** A special attribute that takes a stream of lists of child nodes. */
   @deprecated("Use the observable directly", "1.0.0")
-  lazy val children = ChildrenStreamReceiverBuilder
+  def children = ChildrenStreamReceiverBuilder
 }
 
 
 trait AttributesCompat extends OutWatchChildAttributesCompat { self: Attributes =>
 
   @deprecated("Use `type`, tpe or typ instead", "0.11.0")
-  lazy val inputType = tpe
+  def inputType = tpe
 
   @deprecated("Use styleAttr instead", "0.11.0")
-  lazy val style = styleAttr
+  def style = styleAttr
 
   @deprecated("Use contentAttr instead", "0.11.0")
-  lazy val content = contentAttr
+  def content = contentAttr
 
   @deprecated("Use listId instead", "0.11.0")
-  lazy val list = listId
+  def list = listId
 
   @deprecated("Use onInput.value instead", "0.11.0")
-  lazy val inputString = onInput.value
+  def inputString = onInput.value
 
   @deprecated("Use onInput.valueAsNumber instead", "0.11.0")
-  lazy val inputNumber = onInput.valueAsNumber
+  def inputNumber = onInput.valueAsNumber
 
   @deprecated("Use onChange.checked instead", "0.11.0")
-  lazy val inputChecked = onChange.checked
+  def inputChecked = onChange.checked
 
   @deprecated("Use onClick instead", "0.11.0")
-  lazy val click = onClick
+  def click = onClick
 
   @deprecated("Use onKeyDown instead", "0.11.0")
-  lazy val keydown = onKeyDown
+  def keydown = onKeyDown
 
   @deprecated("Use onSnabbdomInsert instead", "0.11.0")
-  lazy val insert = onSnabbdomInsert
+  def insert = onSnabbdomInsert
 
   @deprecated("Use onSnabbdomPrePatch instead", "0.11.0")
-  lazy val prepatch = onSnabbdomPrePatch
+  def prepatch = onSnabbdomPrePatch
 
   @deprecated("Use onSnabbdomUpdate instead", "0.11.0")
-  lazy val update = onSnabbdomUpdate
+  def update = onSnabbdomUpdate
 
   @deprecated("Use onSnabbdomPostPatch instead", "0.11.0")
-  lazy val postpatch = onSnabbdomPostPatch
+  def postpatch = onSnabbdomPostPatch
 
   @deprecated("Use onSnabbdomDestroy instead", "0.11.0")
-  lazy val destroy = onSnabbdomDestroy
+  def destroy = onSnabbdomDestroy
 }
 
 trait TagsCompat { self: Tags =>
   @deprecated("Use textArea instead", "0.11.0")
-  lazy val textarea = textArea
+  def textarea = textArea
 }

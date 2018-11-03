@@ -79,13 +79,13 @@ trait OutWatchLifeCycleAttributes {
 
 /** Snabbdom Key Attribute */
 trait SnabbdomKeyAttributes {
-  lazy val key = KeyBuilder
+  @inline def key = KeyBuilder
 }
 
 trait AttributeHelpers { self: Attributes =>
-  lazy val `class` = className
+  @inline def `class` = className
 
-  lazy val `for` = forId
+  @inline def `for` = forId
 
   lazy val data = new DynamicAttrBuilder[Any]("data" :: Nil)
 
