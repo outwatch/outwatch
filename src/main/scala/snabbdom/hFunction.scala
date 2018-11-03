@@ -163,7 +163,9 @@ object thunk {
     }
     @inline def keep() = copyToThunk(oldVNode, thunk)
 
+    console.log("PREPATCHING", thunk)
     if (shouldRender) update() else keep()
+    console.log("PREPATCHED", thunk)
   }
 
   @inline private def findIndexWith(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
@@ -175,7 +177,7 @@ object thunk {
     false
   }
 
-  def apply(selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
+  def apply(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
     new VNodeProxy {
       sel = selector
       data = new DataObject {
@@ -186,11 +188,12 @@ object thunk {
         key = keyValue
         fn = renderFn
         args = renderArgs
+        ns = namespace
       }
       key = keyValue
     }
 
-  def conditional(selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
+  def conditional(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
     new VNodeProxy {
       sel = selector
       data = new DataObject {
@@ -201,6 +204,7 @@ object thunk {
         key = keyValue
         fn = renderFn
         args = shouldRender
+        ns = namespace
       }
       key = keyValue
     }

@@ -122,14 +122,14 @@ class SnabbdomSpec extends JSDomSpec {
     renderFnCounter shouldBe 0
 
 
-    val vNode1 = thunk("span#msg", "key", () => renderFn(message), js.Array(message))
+    val vNode1 = thunk(js.undefined, "span#msg", "key", () => renderFn(message), js.Array(message))
     val p1 = patch(node, vNode1)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
 
 
-    val vNode2 = thunk("span#msg", "key", () => renderFn(message), js.Array(message))
+    val vNode2 = thunk(js.undefined, "span#msg", "key", () => renderFn(message), js.Array(message))
     val p2 = patch(p1, vNode2)
 
     renderFnCounter shouldBe 1
@@ -137,7 +137,7 @@ class SnabbdomSpec extends JSDomSpec {
 
 
     val newMessage = "Hello Snabbdom!"
-    val vNode3 = thunk("span#msg", "key", () => renderFn(newMessage), js.Array(newMessage))
+    val vNode3 = thunk(js.undefined, "span#msg", "key", () => renderFn(newMessage), js.Array(newMessage))
     val p3 = patch(p2, vNode3)
 
     p3 should not be null
@@ -161,14 +161,14 @@ class SnabbdomSpec extends JSDomSpec {
     renderFnCounter shouldBe 0
 
 
-    val vNode1 = thunk.conditional("span#msg", "key", () => renderFn(message), shouldRender = true)
+    val vNode1 = thunk.conditional(js.undefined, "span#msg", "key", () => renderFn(message), shouldRender = true)
     val p1 = patch(node, vNode1)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
 
 
-    val vNode2 = thunk.conditional("span#msg", "key", () => renderFn(message), shouldRender = false)
+    val vNode2 = thunk.conditional(js.undefined, "span#msg", "key", () => renderFn(message), shouldRender = false)
     val p2 = patch(p1, vNode2)
 
     renderFnCounter shouldBe 1
@@ -176,7 +176,7 @@ class SnabbdomSpec extends JSDomSpec {
 
 
     val newMessage = "Hello Snabbdom!"
-    val vNode3 = thunk.conditional("span#msg", "key", () => renderFn(newMessage), shouldRender = true)
+    val vNode3 = thunk.conditional(js.undefined, "span#msg", "key", () => renderFn(newMessage), shouldRender = true)
     val p3 = patch(p2, vNode3)
 
     p3 should not be null

@@ -54,6 +54,11 @@ object SnabbdomOps {
     } else newProxy(modifiers.proxies, js.undefined)
   }
 
+  private[outwatch] def getNamespace(node: BasicVNode): js.UndefOr[String] = node match {
+    case _: SvgVNode => "http://www.w3.org/2000/svg": js.UndefOr[String]
+    case _ => js.undefined
+  }
+
   private[outwatch] def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = node match {
     case node: BasicVNode => toSnabbdomProxy(node)
     case node: ConditionalVNode => toSnabbdomProxy(node)
@@ -61,20 +66,17 @@ object SnabbdomOps {
   }
 
   @inline private def toSnabbdomProxy(node: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk.conditional(node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn())), node.shouldRender)
+    thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn())), node.shouldRender)
   }
 
   @inline private def toSnabbdomProxy(node: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    thunk(node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn())), node.arguments)
+    thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn())), node.arguments)
   }
 
   def toSnabbdomProxy(node: BasicVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     val streamableModifiers = NativeModifiers.from(node.modifiers)
     val vNodeId = streamableModifiers.##
-    val vNodeNS = node match {
-      case _: SvgVNode => "http://www.w3.org/2000/svg": js.UndefOr[String]
-      case _ => js.undefined
-    }
+    val vNodeNS = getNamespace(node)
 
     // if there is streamable content, we update the initial proxy with
     // subscribe and unsubscribe callbakcs.  additionally we update it with the
