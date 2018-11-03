@@ -143,10 +143,10 @@ object thunk {
       copyToThunk(newProxy, thunk)
       thunk.data.foreach { data =>
         data.hook.foreach { hook =>
-          val prevInsert = hook.update
-          hook.update = { (o: VNodeProxy, p: VNodeProxy) =>
+          val prevInsert = hook.postpatch
+          hook.postpatch= { (o: VNodeProxy, p: VNodeProxy) =>
             newProxy.elm = thunk.elm
-            hook.update = prevInsert
+            hook.postpatch= prevInsert
             prevInsert.foreach(_(o, p))
           }: Hooks.HookPairFn
         }
@@ -155,9 +155,7 @@ object thunk {
     }
     @inline def keep() = copyToThunk(oldVNode, thunk)
 
-    console.log("PREPATCHING", thunk)
     if (shouldRender) update() else keep()
-    console.log("PREPATCHED", thunk)
   }
 
   @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
@@ -242,7 +240,6 @@ object VNodeProxy {
     data = DataObject.empty
   }
 }
-
 
 @js.native
 @JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
