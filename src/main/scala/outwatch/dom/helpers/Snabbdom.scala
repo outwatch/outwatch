@@ -99,6 +99,7 @@ object SnabbdomOps {
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)
             val currentProxy = patch(proxy, newProxy)
+            copyToProxy(currentProxy)
 
             Continue
           },
@@ -131,20 +132,8 @@ object SnabbdomOps {
 
       // hooks for subscribing and unsubscribing the streamable content
       var cancelable: Cancelable = null
-      streamableModifiers.modifiers += InsertHook { p =>
-        proxy.elm = p.elm
-        cancelable = subscribe()
-      }
-      streamableModifiers.modifiers += PostPatchHook { (o, p) =>
-        if (o._id != p._id) {
-          proxy.elm = p.elm
-          cancelable = subscribe()
-        }
-        else copyToProxy(p)
-      }
-      streamableModifiers.modifiers += DomUnmountHook { _ =>
-        cancelable.cancel()
-      }
+      streamableModifiers.modifiers += DomMountHook { _ => cancelable = subscribe() }
+      streamableModifiers.modifiers += DomUnmountHook { _ => cancelable.cancel() }
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node

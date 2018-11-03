@@ -100,6 +100,21 @@ object thunk {
     thunk._id = vnode._id
     thunk._unmount = vnode._unmount
   }
+  private def syncElm(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
+    thunk.data.foreach(_.hook.foreach { hook =>
+      val prevInsert = hook.insert
+      hook.insert = { (proxy: VNodeProxy) =>
+        vnode.elm = proxy.elm
+        prevInsert.foreach(_ (proxy))
+      }: Hooks.HookSingleFn
+      val prevPostpatch = hook.postpatch
+      hook.postpatch = { (o: VNodeProxy, proxy: VNodeProxy) =>
+        vnode.elm = proxy.elm
+        prevPostpatch.foreach(_ (o, proxy))
+      }: Hooks.HookPairFn
+
+    })
+  }
 
   private def initThunk(thunk: VNodeProxy): Unit = {
     for {
@@ -108,6 +123,7 @@ object thunk {
     } {
       val newProxy = fn()
       copyToThunk(newProxy, thunk)
+      syncElm(newProxy, thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
@@ -146,6 +162,7 @@ object thunk {
     if (shouldRender) {
       val newProxy = fn()
       copyToThunk(newProxy, thunk)
+      syncElm(newProxy, thunk)
     } else copyToThunk(oldVNode, thunk)
   }
 
