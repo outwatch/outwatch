@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import monix.reactive.Observer
+import monix.reactive.{Observer, Observable}
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import outwatch.dom.helpers._
@@ -92,6 +92,8 @@ trait AttributeHelpers { self: Attributes =>
   def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
   def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   def style[T](key: String) = new BasicStyleBuilder[T](key)
+
+  @inline def emitter[E](observable: Observable[E]): CustomEmitterBuilder[E, VDomModifier] = EmitterBuilder(observable)
 }
 
 trait TagHelpers { self: Tags =>
