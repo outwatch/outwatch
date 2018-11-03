@@ -1,8 +1,10 @@
 package outwatch.dom
 
+import monix.reactive.Observer
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import outwatch.dom.helpers._
+import snabbdom.VNodeProxy
 
 import scala.scalajs.js
 
@@ -16,10 +18,24 @@ trait OutwatchAttributes
 
 /** Outwatch component life cycle hooks. */
 trait OutWatchLifeCycleAttributes {
-  lazy val onDomMount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomMountHook)
-  lazy val onDomUnmount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomUnmountHook)
-  lazy val onDomPreUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomPreUpdateHook)
-  lazy val onDomUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DomUpdateHook)
+  private def proxyElementEmitter(f: js.Function1[VNodeProxy, Unit] => VDomModifier): Observer[dom.Element] => VDomModifier =
+    obs => f(p => p.elm.foreach(obs.onNext(_)))
+  private def proxyElementFirstEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[dom.Element] => VDomModifier =
+    obs => f((o,_) => o.elm.foreach(obs.onNext(_)))
+  private def proxyElementPairEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(dom.Element, dom.Element)] => VDomModifier =
+    obs => f((o,p) => o.elm.foreach(oe => p.elm.foreach(pe => obs.onNext((oe,pe)))))
+  private def proxyElementPairOptionEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(Option[dom.Element], Option[dom.Element])] => VDomModifier =
+    obs => f((o,p) => obs.onNext((o.elm.toOption, p.elm.toOption)))
+
+  lazy val onDomMount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(DomMountHook))
+  lazy val onDomUnmount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(DomUnmountHook))
+  lazy val onDomPreUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementFirstEmitter(DomPreUpdateHook))
+  lazy val onDomUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementFirstEmitter(DomUpdateHook))
+
+  /**
+    * Lifecycle hook for init of VNodeProxy
+    */
+    lazy val onSnabbdomInit: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(InitHook))
 
   /**
     * Lifecycle hook for component insertion.
@@ -29,17 +45,17 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomMount instead for getting realiably notified whenever the element is mounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomInsert.", "")
   lazy val onInsert   = onSnabbdomInsert
-  lazy val onSnabbdomInsert: SyncEmitterBuilder[Element, VDomModifier] = EmitterBuilder.ofModifierFunction(InsertHook)
+  lazy val onSnabbdomInsert: SyncEmitterBuilder[Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(InsertHook))
 
   /** Lifecycle hook for component prepatch. */
   @deprecated("Consider using onDomPreUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPrePatch.", "")
   lazy val onPrePatch   = onSnabbdomPrePatch
-  lazy val onSnabbdomPrePatch: SyncEmitterBuilder[(Option[dom.Element],Option[dom.Element]), VDomModifier] = EmitterBuilder.ofModifierFunction(PrePatchHook)
+  lazy val onSnabbdomPrePatch: SyncEmitterBuilder[(Option[dom.Element],Option[dom.Element]), VDomModifier] = EmitterBuilder.ofModifier(proxyElementPairOptionEmitter(PrePatchHook))
 
   /** Lifecycle hook for component updates. */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomUpdate.", "")
   lazy val onUpdate   = onSnabbdomUpdate
-  lazy val onSnabbdomUpdate: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifierFunction(UpdateHook)
+  lazy val onSnabbdomUpdate: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifier(proxyElementPairEmitter(UpdateHook))
 
   /**
     * Lifecycle hook for component postpatch.
@@ -48,7 +64,7 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomUpdate instead for getting realiably notified whenever the element is updated with this VNode. For the raw snabbdom event as before, you can use onSnabbdomPostPatch.", "")
   lazy val onPostPatch   = onSnabbdomPostPatch
-  lazy val onSnabbdomPostPatch: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifierFunction(PostPatchHook)
+  lazy val onSnabbdomPostPatch: SyncEmitterBuilder[(dom.Element,dom.Element), VDomModifier] = EmitterBuilder.ofModifier(proxyElementPairEmitter(PostPatchHook))
 
   /**
     * Lifecycle hook for component destruction.
@@ -58,7 +74,7 @@ trait OutWatchLifeCycleAttributes {
     */
   @deprecated("Consider using onDomUnmount instead for getting realiably notified whenever an element is unmounted with this VNode. For the raw snabbdom event as before, you can use onSnabbdomDestroy.", "")
   lazy val onDestroy  = onSnabbdomDestroy
-  lazy val onSnabbdomDestroy: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifierFunction(DestroyHook)
+  lazy val onSnabbdomDestroy: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(DestroyHook))
 }
 
 /** Snabbdom Key Attribute */

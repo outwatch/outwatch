@@ -23,17 +23,19 @@ class OutWatchDomSpec extends JSDomSpec {
   "Properties" should "be separated correctly" in {
     val properties = Seq(
       BasicAttr("hidden", "true"),
+      InitHook(_ => ()),
       InsertHook(_ => ()),
-      UpdateHook(_ => ()),
+      UpdateHook((_,_) => ()),
       InsertHook(_ => ()),
       DestroyHook(_ => ()),
-      PrePatchHook(_ => ()),
-      PostPatchHook(_ => ())
+      PrePatchHook((_,_) => ()),
+      PostPatchHook((_,_) => ())
     )
 
     val seps = SeparatedModifiers.from(properties)
     import seps._
 
+    initHook.isDefined shouldBe true
     insertHook.isDefined shouldBe true
     prePatchHook.isDefined shouldBe true
     updateHook.isDefined shouldBe true
@@ -123,14 +125,14 @@ class OutWatchDomSpec extends JSDomSpec {
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
-      UpdateHook(_ => ()),
+      UpdateHook((_,_) => ()),
       ModifierStreamReceiver(ValueObservable(Observable())),
       ModifierStreamReceiver(ValueObservable(Observable())),
       ModifierStreamReceiver(ValueObservable(Observable())),
       Emitter("keyup", _ => ()),
       InsertHook(_ => ()),
-      PrePatchHook(_ => ()),
-      PostPatchHook(_ => ()),
+      PrePatchHook((_,_) => ()),
+      PostPatchHook((_,_) => ()),
       StringVNode("text")
     )
 

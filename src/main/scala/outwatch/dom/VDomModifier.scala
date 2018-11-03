@@ -30,7 +30,7 @@ object Key {
   type Value = DataObject.KeyValue
 }
 
-final case class Emitter(eventType: String, trigger: Event => Unit) extends StaticVDomModifier
+final case class Emitter(eventType: String, trigger: js.Function1[Event, Unit]) extends StaticVDomModifier
 
 sealed trait Attr extends StaticVDomModifier
 object Attr {
@@ -52,17 +52,18 @@ final case class RemoveStyle(title: String, value: String) extends Style
 final case class DestroyStyle(title: String, value: String) extends Style
 
 sealed trait SnabbdomHook extends StaticVDomModifier
-final case class InsertHook(trigger: Element => Unit) extends SnabbdomHook
-final case class PrePatchHook(trigger: ((Option[Element], Option[Element])) => Unit) extends SnabbdomHook
-final case class UpdateHook(trigger: ((Element, Element)) => Unit) extends SnabbdomHook
-final case class PostPatchHook(trigger: ((Element, Element)) => Unit) extends SnabbdomHook
-final case class DestroyHook(trigger: Element => Unit) extends SnabbdomHook
+final case class InitHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
+final case class InsertHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
+final case class PrePatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
+final case class UpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
+final case class PostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
+final case class DestroyHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 
 sealed trait DomHook extends SnabbdomHook
-final case class DomMountHook(trigger: Element => Unit) extends DomHook
-final case class DomUnmountHook(trigger: Element => Unit) extends DomHook
-final case class DomUpdateHook(trigger: Element => Unit) extends DomHook
-final case class DomPreUpdateHook(trigger: Element => Unit) extends DomHook
+final case class DomMountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
+final case class DomUnmountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
+final case class DomUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
+final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
 
 final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVDomModifier
 

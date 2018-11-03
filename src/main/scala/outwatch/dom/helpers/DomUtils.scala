@@ -17,6 +17,7 @@ private[outwatch] class SeparatedModifiers(
   val styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]],
   val keyOption: js.UndefOr[Key.Value],
   val emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]],
+  val initHook: js.UndefOr[Hooks.HookSingleFn],
   val insertHook: js.UndefOr[Hooks.HookSingleFn],
   val prePatchHook: js.UndefOr[Hooks.HookPairFn],
   val updateHook: js.UndefOr[Hooks.HookPairFn],
@@ -36,6 +37,7 @@ private[outwatch] object SeparatedModifiers {
     var styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]] = js.undefined
     var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
     var keyOption: js.UndefOr[Key.Value] = js.undefined
+    var initHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
     var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
     var prePatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
     var updateHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
@@ -57,14 +59,10 @@ private[outwatch] object SeparatedModifiers {
         style.asInstanceOf[js.Dictionary[String]](title) = value
       }
     }
-    @inline def createProxyHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: (VNodeProxy, VNodeProxy) => Unit): Hooks.HookPairFn =
-      current.fold[Hooks.HookPairFn](hook)(current => { (o,p) => current(o, p); hook(o, p) })
-    @inline def createHooksSingle(current: js.UndefOr[Hooks.HookSingleFn], hook: dom.Element => Unit): Hooks.HookSingleFn =
-      current.fold[Hooks.HookSingleFn]({ p => p.elm.foreach(hook) })(current => { p => current(p); p.elm.foreach(hook) })
-    @inline def createHooksPair(current: js.UndefOr[Hooks.HookPairFn], hook: ((dom.Element, dom.Element)) => Unit): Hooks.HookPairFn =
-      current.fold[Hooks.HookPairFn]({ (o,p) => for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) })(current => { (o,p) => current(o, p); for { oe <- o.elm; pe <- p.elm } hook((oe, pe)) })
-    @inline def createHooksPairOption(current: js.UndefOr[Hooks.HookPairFn], hook: ((Option[dom.Element], Option[dom.Element])) => Unit): Hooks.HookPairFn =
-      current.fold[Hooks.HookPairFn]({ (o,p) => hook((o.elm.toOption, p.elm.toOption)) })(current => { (o,p) => current(o, p); hook((o.elm.toOption, p.elm.toOption)) })
+    @inline def createHooksSingle[T](current: js.UndefOr[js.Function1[T, Unit]], hook: js.Function1[T, Unit]): js.Function1[T, Unit] =
+      current.fold(hook)(current => { p => current(p); hook(p) })
+    @inline def createHooksPair[T](current: js.UndefOr[js.Function2[T, T, Unit]], hook: js.Function2[T, T, Unit]): js.Function2[T, T, Unit] =
+      current.fold(hook)(current => { (o,p) => current(o, p); hook(o, p) })
 
 
     // append unmount hook for when patching a different proxy out of the dom.
@@ -119,37 +117,35 @@ private[outwatch] object SeparatedModifiers {
       case e: Emitter =>
         val emitters = assureEmitters()
         val emitter = emitters.raw(e.eventType)
-        emitter.fold {
-          emitters(e.eventType) = e.trigger
-        } { emitter =>
-          emitters(e.eventType) = { ev => emitter(ev); e.trigger(ev) }
-        }
+        emitters(e.eventType) = createHooksSingle(emitter, e.trigger)
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
-        postPatchHook = createProxyHooksPair(postPatchHook, { (oldProxy, proxy) =>
+        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldProxy, proxy) =>
           if (proxy._id != oldProxy._id) {
-            proxy.elm.foreach(h.trigger)
+            h.trigger(proxy)
           }
         })
       case h: DomUnmountHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
         domUnmountHook = createHooksSingle(domUnmountHook, h.trigger)
       case h: DomUpdateHook =>
-        postPatchHook = createProxyHooksPair(postPatchHook, { (oldproxy, proxy) =>
+        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
           if (proxy._id == oldproxy._id) {
-            proxy.elm.foreach(h.trigger)
+            h.trigger(proxy, proxy)
           }
         })
       case h: DomPreUpdateHook =>
-        prePatchHook = createProxyHooksPair(prePatchHook, { (oldproxy, proxy) =>
+        prePatchHook = createHooksPair[VNodeProxy](prePatchHook, { (oldproxy, proxy) =>
           if (proxy._id == oldproxy._id) {
-            oldproxy.elm.foreach(h.trigger)
+            h.trigger(oldproxy, proxy)
           }
         })
+      case h: InitHook =>
+        initHook = createHooksSingle(initHook, h.trigger)
       case h: InsertHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
       case h: PrePatchHook =>
-        prePatchHook = createHooksPairOption(prePatchHook, h.trigger)
+        prePatchHook = createHooksPair(prePatchHook, h.trigger)
       case h: UpdateHook =>
         updateHook = createHooksPair(updateHook, h.trigger)
       case h: PostPatchHook =>
@@ -161,7 +157,7 @@ private[outwatch] object SeparatedModifiers {
         nextModifiers += n.modifier
     }
 
-    new SeparatedModifiers(proxies = proxies, attrs = attrs, props = props, styles = styles, keyOption = keyOption, emitters = emitters, insertHook = insertHook, prePatchHook = prePatchHook, updateHook = updateHook, postPatchHook = postPatchHook, destroyHook = destroyHook, domUnmountHook = domUnmountHook, hasOnlyTextChildren = hasOnlyTextChildren, nextModifiers = nextModifiers)
+    new SeparatedModifiers(proxies = proxies, attrs = attrs, props = props, styles = styles, keyOption = keyOption, emitters = emitters, initHook = initHook, insertHook = insertHook, prePatchHook = prePatchHook, updateHook = updateHook, postPatchHook = postPatchHook, destroyHook = destroyHook, domUnmountHook = domUnmountHook, hasOnlyTextChildren = hasOnlyTextChildren, nextModifiers = nextModifiers)
   }
 }
 
@@ -277,29 +273,29 @@ private[outwatch] object NativeModifiers {
     case h: DomMountHook =>
       var triggered = false
       js.Array(
-        DomMountHook { e =>
+        InsertHook { p =>
           triggered = true
-          h.trigger(e)
+          h.trigger(p)
         },
-        DomUpdateHook { e =>
-          if (!triggered) h.trigger(e)
+        PostPatchHook { (o, p) =>
+          if (!triggered && o._id == p._id) h.trigger(p)
           triggered = true
         })
     case h: DomPreUpdateHook =>
       var triggered = false
       js.Array(
-        DomMountHook { _ => triggered = true },
-        DomPreUpdateHook { e =>
-          if (triggered) h.trigger(e)
+        InsertHook { _ => triggered = true },
+        PrePatchHook { (o, p) =>
+          if (triggered && o._id == p._id) h.trigger(o, p)
           triggered = true
         }
       )
     case h: DomUpdateHook =>
       var triggered = false
       js.Array(
-        DomMountHook { _ => triggered = true },
-        DomUpdateHook { e =>
-          if (triggered) h.trigger(e)
+        InsertHook { _ => triggered = true },
+        PostPatchHook { (o, p) =>
+          if (triggered && o._id == p._id) h.trigger(o, p)
           triggered = true
         }
       )
@@ -308,16 +304,13 @@ private[outwatch] object NativeModifiers {
       var isOpen = true
       js.Array(
         h,
-        DomUpdateHook { _ =>
-          if (triggered) isOpen = false
+        InsertHook { _ => triggered = true },
+        PostPatchHook { (o, p) =>
+          if (triggered && o._id == p._id) isOpen = false
           triggered = true
         },
-        DomMountHook { _ =>
-          isOpen = false
-          triggered = true
-        },
-        NextVDomModifier(DomUpdateHook { e =>
-          if (isOpen) h.trigger(e)
+        NextVDomModifier(PostPatchHook { (o, p) =>
+          if (isOpen && o._id == p._id) h.trigger(p)
           isOpen = true
         })
       )

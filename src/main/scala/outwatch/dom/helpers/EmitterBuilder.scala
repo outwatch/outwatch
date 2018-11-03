@@ -28,9 +28,7 @@ trait EmitterBuilder[+O, +R] {
 }
 
 object EmitterBuilder {
-  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifierFunction[E](f => Emitter(eventType, event => f(event.asInstanceOf[E])))
-
-  @inline def ofModifierFunction[E](create: (E => Unit) => VDomModifier): CustomEmitterBuilder[E, VDomModifier] = ofModifier(observer => create { e => observer.onNext(e); () })
+  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => Emitter(eventType, event => obs.onNext(event.asInstanceOf[E])))
 
   def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
     new CustomEmitterBuilder[E, VDomModifier]({

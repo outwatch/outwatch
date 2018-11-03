@@ -23,6 +23,7 @@ object SnabbdomOps {
       style = modifiers.styles
       on = modifiers.emitters
       hook = new Hooks {
+        init = modifiers.initHook
         insert = modifiers.insertHook
         prepatch = modifiers.prePatchHook
         update = modifiers.updateHook
