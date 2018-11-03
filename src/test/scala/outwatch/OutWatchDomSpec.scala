@@ -1715,13 +1715,17 @@ class OutWatchDomSpec extends JSDomSpec {
   "Thunk" should "work" in {
     val myString: Handler[String] = Handler.create.unsafeRunSync()
 
+    var mountCount = 0
+    var preupdateCount = 0
+    var updateCount = 0
+    var unmountCount = 0
     var renderFnCounter = 0
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id := "bla").thunk("component")(myString) {
+        b(id := "bla").thunk("component")(myString){
           renderFnCounter += 1
-          VDomModifier(cls := "b", myString)
+          VDomModifier(cls := "b", myString, onDomMount.foreach { mountCount += 1 }, onDomPreUpdate.foreach { preupdateCount += 1 }, onDomUpdate.foreach { updateCount += 1 }, onDomUnmount.foreach { unmountCount += 1 })
         }
       },
       b("something else")
@@ -1731,22 +1735,42 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
 
     renderFnCounter shouldBe 0
+    mountCount shouldBe 0
+    preupdateCount shouldBe 0
+    updateCount shouldBe 0
+    unmountCount shouldBe 0
     element.innerHTML shouldBe "<b>something else</b>"
 
     myString.onNext("wal?")
-    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
     renderFnCounter shouldBe 1
+    mountCount shouldBe 1
+    preupdateCount shouldBe 0
+    updateCount shouldBe 0
+    unmountCount shouldBe 0
+    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-    myString.onNext("wal?")
-    renderFnCounter shouldBe 1
-    element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+     myString.onNext("wal?")
+     renderFnCounter shouldBe 1
+     mountCount shouldBe 1
+     preupdateCount shouldBe 1
+     updateCount shouldBe 1
+     unmountCount shouldBe 0
+     element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
     myString.onNext("hai!")
     renderFnCounter shouldBe 2
+    mountCount shouldBe 2
+    preupdateCount shouldBe 1
+    updateCount shouldBe 1
+    unmountCount shouldBe 1
     element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
 
     myString.onNext("fuchs.")
     renderFnCounter shouldBe 3
+    mountCount shouldBe 3
+    preupdateCount shouldBe 1
+    updateCount shouldBe 1
+    unmountCount shouldBe 2
     element.innerHTML shouldBe """<b id="bla" class="b">fuchs.</b><b>something else</b>"""
   }
 
