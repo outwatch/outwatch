@@ -81,8 +81,9 @@ sealed trait BasicVNode extends VNode {
   def nodeType: String
   def modifiers: js.Array[VDomModifier]
   def apply(args: VDomModifier*): BasicVNode
-  def conditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
   def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VDomModifier): ThunkVNode = ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
+  def conditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
+  @inline def static(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = conditional(key)(false)(renderFn)
 }
 
 final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VDomModifier) extends VNode {
