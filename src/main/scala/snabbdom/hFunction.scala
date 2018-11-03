@@ -96,6 +96,7 @@ object thunk {
     thunk.children = vnode.children
     thunk.text = vnode.text
     thunk.elm = vnode.elm
+    thunk.listener = vnode.listener
     thunk._id = vnode._id
     thunk._unmount = vnode._unmount
   }
