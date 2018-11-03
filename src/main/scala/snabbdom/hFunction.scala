@@ -129,7 +129,7 @@ object thunk {
       newArgs <- data.args.asInstanceOf[js.UndefOr[js.Array[Any]]]
     } {
       val oldArgs = oldVNode.data.flatMap(_.args.asInstanceOf[js.Array[Any]])
-      val isDifferent = oldArgs.fold(false) { oldArgs =>
+      val isDifferent = oldArgs.fold(true) { oldArgs =>
         (oldArgs.length != newArgs.length) || findIndexWith(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
 
