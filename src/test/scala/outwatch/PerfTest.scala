@@ -8,6 +8,8 @@ import scala.scalajs.js
 
 class PerfTest extends JSDomSpec {
 
+  val numIterations = 100
+
   "Perf" should "be" in {
     (0 to 10) foreach { round =>
       val elemId = "msg"
@@ -48,7 +50,7 @@ class PerfTest extends JSDomSpec {
 
       OutWatch.renderInto(node, vtree).unsafeRunSync()
 
-      (0 to 100).foreach { i =>
+      (0 to numIterations).foreach { i =>
         handler.onNext(i)
         handler2.onNext(i)
       }
@@ -56,9 +58,9 @@ class PerfTest extends JSDomSpec {
 //      println(node.innerHTML)
 
       val t2 = System.nanoTime()
-      handler.onNext(101)
+      handler.onNext(numIterations + 1)
       val t3 = System.nanoTime()
-      handler2.onNext(101)
+      handler2.onNext(numIterations + 1)
       val t4 = System.nanoTime()
 
       println(s"NORMAL $round =====> " + (t2 - t))
@@ -107,7 +109,7 @@ class PerfTest extends JSDomSpec {
 
       OutWatch.renderInto(node, vtree).unsafeRunSync()
 
-      (0 to 100).foreach { i =>
+      (0 to numIterations).foreach { i =>
         handler.onNext(i)
         handler2.onNext(i)
       }
@@ -115,9 +117,9 @@ class PerfTest extends JSDomSpec {
 //      println(node.innerHTML)
 
       val t2 = System.nanoTime()
-      handler.onNext(101)
+      handler.onNext(numIterations + 1)
       val t3 = System.nanoTime()
-      handler2.onNext(101)
+      handler2.onNext(numIterations + 1)
       val t4 = System.nanoTime()
 
       println(s"THUNK $round =====> " + (t2 - t))
@@ -134,7 +136,7 @@ class PerfTest extends JSDomSpec {
 
       val handler3 = Handler.create[Int].unsafeRunSync
 
-      def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;")
+      def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3)
       def node2(j: Int) = div(
         div("hans", cls := j.toString, onClick foreach {}, handler3),
         p(p),
@@ -165,7 +167,7 @@ class PerfTest extends JSDomSpec {
 
       var node1Counter = 0
       var node2Counter = 0
-      (0 to 100).foreach { i =>
+      (0 to numIterations).foreach { i =>
         handler.onNext(ChildCommand.Append(node1(node1Counter)))
         handler2.onNext(ChildCommand.Append(node2(node2Counter)))
 
