@@ -520,7 +520,7 @@ class DomEventSpec extends JSDomSpec {
     element.innerHTML shouldBe "ab"
   }
 
-  "LocalStorage.handler" should "have proper events" in {
+  "LocalStorage" should "have handler with proper events" in {
     var option: Option[Option[String]] = None
     val handler = util.LocalStorage.handler("hans").unsafeRunSync()
     handler.foreach { o => option = Some(o) }
@@ -534,7 +534,7 @@ class DomEventSpec extends JSDomSpec {
     option shouldBe Some(None)
   }
 
-  "LocalStorage.handlerWithEventsOnly" should "have proper events" in {
+  it should "have handlerWithEventsOnly with proper events" in {
     var option: Option[Option[String]] = None
     val handler = util.LocalStorage.handlerWithEventsOnly("hans").unsafeRunSync()
     handler.foreach { o => option = Some(o) }
@@ -548,7 +548,7 @@ class DomEventSpec extends JSDomSpec {
     option shouldBe Some(None)
   }
 
-  "LocalStorage.handlerWithEventsOnly" should "have initial value" in {
+  it should "have handlerWithEventsOnly with initial value" in {
     import org.scalajs.dom.window.localStorage
     localStorage.setItem("hans", "wurst")
 
@@ -559,7 +559,7 @@ class DomEventSpec extends JSDomSpec {
     option shouldBe Some(Some("wurst"))
   }
 
-  "LocalStorage.handlerWithoutEvents" should "have proper events" in {
+  it should "have handlerWithoutEvents with proper events" in {
     var option: Option[Option[String]] = None
     val handler = util.LocalStorage.handlerWithoutEvents("hans").unsafeRunSync()
     handler.foreach { o => option = Some(o) }
@@ -587,7 +587,7 @@ class DomEventSpec extends JSDomSpec {
     document.getElementById("click").dispatchEvent(event)
   }
 
-  "Emitterbuilder" should "stopPropagation" in {
+  it should "stopPropagation" in {
     var triggeredFirst = false
     var triggeredSecond = false
     val node = div(
@@ -608,7 +608,7 @@ class DomEventSpec extends JSDomSpec {
     triggeredSecond shouldBe false
   }
 
-  "Emitterbuilder" should "stopImmediatePropagation" in {
+  it should "stopImmediatePropagation" in {
     // stopImmediatePropagation is supported in jsdom since version 9.12
     // https://github.com/jsdom/jsdom/blob/master/Changelog.md#9120
     pending
