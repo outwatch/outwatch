@@ -41,6 +41,7 @@ trait MonixOps {
     @deprecated("use onNext instead.", "")
     def unsafeOnNext(nextValue: I) = observer.onNext(nextValue)
 
+    @deprecated("use emitter(observable) --> observer for safely using subscriptions in a VNode. Or use observable.subscribe(observer) for manually subscribing to an observable", "")
     def <--(observable: Observable[I])(implicit scheduler: Scheduler): IO[Cancelable] = IO {
       observable.subscribe(observer)
     }
