@@ -24,10 +24,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+    }
   }
 
   it should "be called correctly on merged nodes" in {
@@ -47,11 +46,10 @@ class LifecycleHookSpec extends JSDomSpec {
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-    switch2 shouldBe true
-
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+      switch2 shouldBe true
+    }
   }
 
 
@@ -67,10 +65,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+    }
   }
 
   it should "be called correctly on merged nodes" in {
@@ -91,10 +88,10 @@ class LifecycleHookSpec extends JSDomSpec {
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-    switch2 shouldBe true
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+      switch2 shouldBe true
+    }
   }
 
   "Update hooks" should "be called correctly on merged nodes" in {
@@ -112,14 +109,15 @@ class LifecycleHookSpec extends JSDomSpec {
     val message = PublishSubject[String]
     val node = div(message, onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
 
-    switch1 shouldBe false
-    switch2 shouldBe false
+      switch1 shouldBe false
+      switch2 shouldBe false
 
-    message.onNext("wursi")
-    switch1 shouldBe true
-    switch2 shouldBe true
+      message.onNext("wursi")
+      switch1 shouldBe true
+      switch2 shouldBe true
+    }
   }
 
 
@@ -135,10 +133,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
-
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+    }
   }
 
   "Prepatch hooks" should "be called" in {
@@ -154,9 +151,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+    }
   }
 
   it should "be called correctly on merged nodes" in {
@@ -173,15 +170,15 @@ class LifecycleHookSpec extends JSDomSpec {
     val message = PublishSubject[String]()
     val node = div(message, onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch1 shouldBe false
+      switch2 shouldBe false
 
-    switch1 shouldBe false
-    switch2 shouldBe false
+      message.onNext("wursi")
 
-    message.onNext("wursi")
-
-    switch1 shouldBe true
-    switch2 shouldBe true
+      switch1 shouldBe true
+      switch2 shouldBe true
+    }
   }
 
   "Postpatch hooks" should "be called" in {
@@ -196,9 +193,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    switch shouldBe true
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch shouldBe true
+    }
   }
 
 
@@ -216,15 +213,15 @@ class LifecycleHookSpec extends JSDomSpec {
     val message = PublishSubject[String]()
     val node = div(message, onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      switch1 shouldBe false
+      switch2 shouldBe false
 
-    switch1 shouldBe false
-    switch2 shouldBe false
+      message.onNext("wursi")
 
-    message.onNext("wursi")
-
-    switch1 shouldBe true
-    switch2 shouldBe true
+      switch1 shouldBe true
+      switch2 shouldBe true
+    }
   }
 
 
@@ -263,13 +260,13 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      hooks.toList shouldBe List("insert")
 
-    hooks.toList shouldBe List("insert")
+      message.onNext("next")
 
-    message.onNext("next")
-
-    hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
+      hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
+    }
   }
 
   "Empty single children receiver" should "not trigger node update on render" in {
@@ -291,9 +288,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    hooks.toList shouldBe  List("insert")
+    OutWatch.renderInto("#app", node).map { _ =>
+      hooks.toList shouldBe  List("insert")
+    }
   }
 
   "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
@@ -318,11 +315,11 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      message.onNext("next")
 
-    message.onNext("next")
-
-    hooks.contains("destroy") shouldBe false
+      hooks.contains("destroy") shouldBe false
+    }
   }
 
   it should "be only inserted once when children stream emits" in {
@@ -347,13 +344,13 @@ class LifecycleHookSpec extends JSDomSpec {
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      messageList.onNext(Seq("one"))
 
-    messageList.onNext(Seq("one"))
+      messageList.onNext(Seq("one", "two"))
 
-    messageList.onNext(Seq("one", "two"))
-
-    hooks.count(_ == "insert") shouldBe 1
+      hooks.count(_ == "insert") shouldBe 1
+    }
   }
 
 
@@ -376,15 +373,15 @@ class LifecycleHookSpec extends JSDomSpec {
     sub.onNext("pre")
     latest shouldBe ""
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      sub.onNext("first")
+      latest shouldBe "first"
 
-    sub.onNext("first")
-    latest shouldBe "first"
+      nodes.onNext(div()) // this triggers child destroy and subscription cancelation
 
-    nodes.onNext(div()) // this triggers child destroy and subscription cancelation
-
-    sub.onNext("second")
-    latest shouldBe "first"
+      sub.onNext("second")
+      latest shouldBe "first"
+    }
   }
 
   it should "work with emitter(observable)" in {
@@ -406,15 +403,15 @@ class LifecycleHookSpec extends JSDomSpec {
     sub.onNext("pre")
     latest shouldBe ""
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      sub.onNext("first")
+      latest shouldBe "first"
 
-    sub.onNext("first")
-    latest shouldBe "first"
+      nodes.onNext(div()) // this triggers child destroy and subscription cancelation
 
-    nodes.onNext(div()) // this triggers child destroy and subscription cancelation
-
-    sub.onNext("second")
-    latest shouldBe "first"
+      sub.onNext("second")
+      latest shouldBe "first"
+    }
   }
 
   "DomHook" should "be called on static nodes" in {
@@ -423,21 +420,21 @@ class LifecycleHookSpec extends JSDomSpec {
 
     val node = div(modHandler)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      var domHooks = List.empty[String]
 
-    var domHooks = List.empty[String]
+      modHandler.onNext(div(onDomMount foreach { domHooks :+= "mount" }, p(onDomUnmount foreach { domHooks :+= "unmount" })))
+      domHooks shouldBe List("mount")
 
-    modHandler.onNext(div(onDomMount foreach { domHooks :+= "mount" }, p(onDomUnmount foreach { domHooks :+= "unmount" })))
-    domHooks shouldBe List("mount")
+      modHandler.onNext(div("meh", p(onDomMount foreach { domHooks :+= "mount2" }), onDomPreUpdate foreach { domHooks :+= "preupdate2" }, onDomUpdate foreach { domHooks :+= "update2" }, onDomUnmount foreach { domHooks :+= "unmount2" }, Observable.now("distract")))
+      domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2")
 
-    modHandler.onNext(div("meh", p(onDomMount foreach { domHooks :+= "mount2" }), onDomPreUpdate foreach { domHooks :+= "preupdate2" }, onDomUpdate foreach { domHooks :+= "update2" }, onDomUnmount foreach { domHooks :+= "unmount2" }, Observable.now("distract")))
-    domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2")
+      modHandler.onNext(span("muh", onDomMount foreach { domHooks :+= "mount3" }, onDomPreUpdate foreach { domHooks :+= "preupdate3" }, onDomUpdate foreach { domHooks :+= "update3" }, onDomUnmount foreach { domHooks :+= "unmount3" }))
+      domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3")
 
-    modHandler.onNext(span("muh", onDomMount foreach { domHooks :+= "mount3" }, onDomPreUpdate foreach { domHooks :+= "preupdate3" }, onDomUpdate foreach { domHooks :+= "update3" }, onDomUnmount foreach { domHooks :+= "unmount3" }))
-    domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3")
-
-    modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3", "unmount3")
+      modHandler.onNext(VDomModifier.empty)
+      domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3", "unmount3")
+    }
   }
 
   it should "be called on nested streaming" in {
@@ -446,27 +443,27 @@ class LifecycleHookSpec extends JSDomSpec {
     val innerHandler = PublishSubject[VDomModifier]()
     val node = div(modHandler)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      var domHooks = List.empty[String]
 
-    var domHooks = List.empty[String]
+      modHandler.onNext(VDomModifier(innerHandler))
+      domHooks shouldBe List()
 
-    modHandler.onNext(VDomModifier(innerHandler))
-    domHooks shouldBe List()
+      innerHandler.onNext("inner")
+      domHooks shouldBe List()
 
-    innerHandler.onNext("inner")
-    domHooks shouldBe List()
+      innerHandler.onNext(onDomMount foreach { domHooks :+= "inner-mount" })
+      domHooks shouldBe List("inner-mount")
 
-    innerHandler.onNext(onDomMount foreach { domHooks :+= "inner-mount" })
-    domHooks shouldBe List("inner-mount")
+      innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount" })
+      domHooks shouldBe List("inner-mount")
 
-    innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount" })
-    domHooks shouldBe List("inner-mount")
+      innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount2" })
+      domHooks shouldBe List("inner-mount", "inner-unmount")
 
-    innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount2" })
-    domHooks shouldBe List("inner-mount", "inner-unmount")
-
-    modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("inner-mount", "inner-unmount", "inner-unmount2")
+      modHandler.onNext(VDomModifier.empty)
+      domHooks shouldBe List("inner-mount", "inner-unmount", "inner-unmount2")
+    }
   }
 
   it should "be called on streaming in and streaming out" in {
@@ -476,42 +473,42 @@ class LifecycleHookSpec extends JSDomSpec {
     val innerHandler = PublishSubject[VDomModifier]()
     val node = div(modHandler, otherHandler)
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      var domHooks = List.empty[String]
 
-    var domHooks = List.empty[String]
+      modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomPreUpdate foreach { domHooks :+= "preupdate" }, onDomUpdate foreach { domHooks :+= "update" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
+      domHooks shouldBe List("mount")
 
-    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomPreUpdate foreach { domHooks :+= "preupdate" }, onDomUpdate foreach { domHooks :+= "update" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
-    domHooks shouldBe List("mount")
+      otherHandler.onNext("other")
+      domHooks shouldBe List("mount", "preupdate", "update")
 
-    otherHandler.onNext("other")
-    domHooks shouldBe List("mount", "preupdate", "update")
+      innerHandler.onNext("inner")
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update")
 
-    innerHandler.onNext("inner")
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update")
+      innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }, Observable.now("distract")))
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update")
 
-    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }, Observable.now("distract")))
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update")
+      otherHandler.onNext(span("hi!"))
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update")
 
-    otherHandler.onNext(span("hi!"))
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update")
+      innerHandler.onNext(VDomModifier(onDomPreUpdate foreach { domHooks :+= "inner-preupdate2" }, onDomUpdate foreach { domHooks :+= "inner-update2" }))
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount")
 
-    innerHandler.onNext(VDomModifier(onDomPreUpdate foreach { domHooks :+= "inner-preupdate2" }, onDomUpdate foreach { domHooks :+= "inner-update2" }))
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount")
+      innerHandler.onNext(VDomModifier(Observable("inner")))
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update")
 
-    innerHandler.onNext(VDomModifier(Observable("inner")))
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update")
+      innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount2" }, onDomUnmount foreach { domHooks :+= "inner-unmount2" }, "something-else"))
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2")
 
-    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount2" }, onDomUnmount foreach { domHooks :+= "inner-unmount2" }, "something-else"))
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2")
+      modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2")
 
-    modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2")
+      modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2")
 
-    modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2")
-
-    modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2", "unmount2")
+      modHandler.onNext(VDomModifier.empty)
+      domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "update", "inner-unmount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "mount2", "unmount", "inner-unmount2", "unmount2")
+    }
   }
 
   it should "be called for default and streaming out" in {
@@ -523,27 +520,27 @@ class LifecycleHookSpec extends JSDomSpec {
     val otherHandler = PublishSubject[VDomModifier]()
     val node = div(otherHandler, ValueObservable(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomPreUpdate foreach { domHooks :+= "default-preupdate" }, onDomUpdate foreach { domHooks :+= "default-update" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
+    OutWatch.renderInto("#app", node).map { _ =>
+      domHooks shouldBe List("default-mount")
 
-    domHooks shouldBe List("default-mount")
+      innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }))
+      domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount")
 
-    innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }))
-    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount")
+      otherHandler.onNext(span("hi!"))
+      domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update")
 
-    otherHandler.onNext(span("hi!"))
-    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update")
+      modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }))
+      domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount")
 
-    modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }))
-    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount")
+      modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
+      domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount")
 
-    modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
-    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount")
+      modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
+      domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount")
 
-    modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
-    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount")
-
-    modHandler.onNext(VDomModifier.empty)
-    domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount", "unmount2")
+      modHandler.onNext(VDomModifier.empty)
+      domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "mount", "default-unmount", "inner-unmount", "mount2", "unmount", "unmount2")
+    }
   }
 
   "Hooks" should "support emitter operations" in {
@@ -562,10 +559,9 @@ class LifecycleHookSpec extends JSDomSpec {
       span(divTagName --> sink)
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-
-    operations.toList shouldBe List("div", "insert")
-
+    OutWatch.renderInto("#app", node).map { _ =>
+      operations.toList shouldBe List("div", "insert")
+    }
   }
 
   "Lifecycle and subscription" should "with a snabbdom key" in {
@@ -579,9 +575,9 @@ class LifecycleHookSpec extends JSDomSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Handler.create[Int].unsafeRunSync
-    val handler = Handler.create[(String, String)].unsafeRunSync
-    val otherHandler = Handler.create[String].unsafeRunSync
+    val innerHandler = Handler.unsafe[Int]
+    val handler = Handler.unsafe[(String, String)]
+    val otherHandler = Handler.unsafe[String]
 
     var counter = 0
     val node = div(
@@ -606,99 +602,100 @@ class LifecycleHookSpec extends JSDomSpec {
       }
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    val element = document.getElementById("strings")
+    OutWatch.renderInto("#app", node).map { _ =>
+      val element = document.getElementById("strings")
 
-    element.innerHTML shouldBe ""
-    onSnabbdomInsertCount shouldBe 0
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe Nil
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      element.innerHTML shouldBe ""
+      onSnabbdomInsertCount shouldBe 0
+      onSnabbdomPrePatchCount shouldBe 0
+      onSnabbdomPostPatchCount shouldBe 0
+      onSnabbdomUpdateCount shouldBe 0
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe Nil
+      onDomUnmountList shouldBe Nil
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext(("key", "heinz"))
-    element.innerHTML shouldBe "<div>heinz</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1)
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      handler.onNext(("key", "heinz"))
+      element.innerHTML shouldBe "<div>heinz</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 0
+      onSnabbdomPostPatchCount shouldBe 0
+      onSnabbdomUpdateCount shouldBe 0
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1)
+      onDomUnmountList shouldBe Nil
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext(("key", "golum"))
-    element.innerHTML shouldBe "<div>golum</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 1
-    onSnabbdomPostPatchCount shouldBe 1
-    onSnabbdomUpdateCount shouldBe 1
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2)
-    onDomUnmountList shouldBe List(1)
-    onDomUpdateList shouldBe Nil
+      handler.onNext(("key", "golum"))
+      element.innerHTML shouldBe "<div>golum</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 1
+      onSnabbdomPostPatchCount shouldBe 1
+      onSnabbdomUpdateCount shouldBe 1
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2)
+      onDomUnmountList shouldBe List(1)
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext(("key", "dieter"))
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2, 3)
-    onDomUnmountList shouldBe List(1,2)
-    onDomUpdateList shouldBe Nil
+      handler.onNext(("key", "dieter"))
+      element.innerHTML shouldBe "<div>dieter</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 2
+      onSnabbdomPostPatchCount shouldBe 2
+      onSnabbdomUpdateCount shouldBe 2
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2, 3)
+      onDomUnmountList shouldBe List(1,2)
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext(("nope", "dieter"))
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 2
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 1
-    onDomMountList shouldBe List(1, 2 ,3, 4)
-    onDomUnmountList shouldBe List(1,2,3)
-    onDomUpdateList shouldBe Nil
+      handler.onNext(("nope", "dieter"))
+      element.innerHTML shouldBe "<div>dieter</div>"
+      onSnabbdomInsertCount shouldBe 2
+      onSnabbdomPrePatchCount shouldBe 2
+      onSnabbdomPostPatchCount shouldBe 2
+      onSnabbdomUpdateCount shouldBe 2
+      onSnabbdomDestroyCount shouldBe 1
+      onDomMountList shouldBe List(1, 2 ,3, 4)
+      onDomUnmountList shouldBe List(1,2,3)
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext(("yes", "peter"))
-    element.innerHTML shouldBe "<div>peter</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+      handler.onNext(("yes", "peter"))
+      element.innerHTML shouldBe "<div>peter</div>"
+      onSnabbdomInsertCount shouldBe 3
+      onSnabbdomPrePatchCount shouldBe 2
+      onSnabbdomPostPatchCount shouldBe 2
+      onSnabbdomUpdateCount shouldBe 2
+      onSnabbdomDestroyCount shouldBe 2
+      onDomMountList shouldBe List(1, 2, 3, 4, 5)
+      onDomUnmountList shouldBe List(1, 2, 3, 4)
+      onDomUpdateList shouldBe Nil
 
-    otherHandler.onNext("hi")
-    element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+      otherHandler.onNext("hi")
+      element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
+      onSnabbdomInsertCount shouldBe 3
+      onSnabbdomPrePatchCount shouldBe 2
+      onSnabbdomPostPatchCount shouldBe 2
+      onSnabbdomUpdateCount shouldBe 2
+      onSnabbdomDestroyCount shouldBe 2
+      onDomMountList shouldBe List(1, 2, 3, 4, 5)
+      onDomUnmountList shouldBe List(1, 2, 3, 4)
+      onDomUpdateList shouldBe Nil
 
-    innerHandlerCount shouldBe 0
+      innerHandlerCount shouldBe 0
 
-    innerHandler.onNext(0)
-    element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
-    onSnabbdomInsertCount shouldBe 3
-    onSnabbdomPrePatchCount shouldBe 3
-    onSnabbdomPostPatchCount shouldBe 3
-    onSnabbdomUpdateCount shouldBe 3
-    onSnabbdomDestroyCount shouldBe 2
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe List(5)
+      innerHandler.onNext(0)
+      element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
+      onSnabbdomInsertCount shouldBe 3
+      onSnabbdomPrePatchCount shouldBe 3
+      onSnabbdomPostPatchCount shouldBe 3
+      onSnabbdomUpdateCount shouldBe 3
+      onSnabbdomDestroyCount shouldBe 2
+      onDomMountList shouldBe List(1, 2, 3, 4, 5)
+      onDomUnmountList shouldBe List(1, 2, 3, 4)
+      onDomUpdateList shouldBe List(5)
 
-    innerHandlerCount shouldBe 1
+      innerHandlerCount shouldBe 1
+    }
   }
 
   it should "without a custom key" in {
@@ -712,9 +709,9 @@ class LifecycleHookSpec extends JSDomSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Handler.create[Int].unsafeRunSync
-    val handler = Handler.create[String].unsafeRunSync
-    val otherHandler = Handler.create[String].unsafeRunSync
+    val innerHandler = Handler.unsafe[Int]
+    val handler = Handler.unsafe[String]
+    val otherHandler = Handler.unsafe[String]
 
     var counter = 0
     val node = div(
@@ -738,98 +735,99 @@ class LifecycleHookSpec extends JSDomSpec {
       }
     )
 
-    OutWatch.renderInto("#app", node).unsafeRunSync()
-    val element = document.getElementById("strings")
+    OutWatch.renderInto("#app", node).map { _ =>
+      val element = document.getElementById("strings")
 
-    element.innerHTML shouldBe ""
-    onSnabbdomInsertCount shouldBe 0
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe Nil
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      element.innerHTML shouldBe ""
+      onSnabbdomInsertCount shouldBe 0
+      onSnabbdomPrePatchCount shouldBe 0
+      onSnabbdomPostPatchCount shouldBe 0
+      onSnabbdomUpdateCount shouldBe 0
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe Nil
+      onDomUnmountList shouldBe Nil
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext("heinz")
-    element.innerHTML shouldBe "<div>heinz</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 0
-    onSnabbdomPostPatchCount shouldBe 0
-    onSnabbdomUpdateCount shouldBe 0
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1)
-    onDomUnmountList shouldBe Nil
-    onDomUpdateList shouldBe Nil
+      handler.onNext("heinz")
+      element.innerHTML shouldBe "<div>heinz</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 0
+      onSnabbdomPostPatchCount shouldBe 0
+      onSnabbdomUpdateCount shouldBe 0
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1)
+      onDomUnmountList shouldBe Nil
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext("golum")
-    element.innerHTML shouldBe "<div>golum</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 1
-    onSnabbdomPostPatchCount shouldBe 1
-    onSnabbdomUpdateCount shouldBe 1
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2)
-    onDomUnmountList shouldBe List(1)
-    onDomUpdateList shouldBe Nil
+      handler.onNext("golum")
+      element.innerHTML shouldBe "<div>golum</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 1
+      onSnabbdomPostPatchCount shouldBe 1
+      onSnabbdomUpdateCount shouldBe 1
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2)
+      onDomUnmountList shouldBe List(1)
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext("dieter")
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 2
-    onSnabbdomPostPatchCount shouldBe 2
-    onSnabbdomUpdateCount shouldBe 2
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2, 3)
-    onDomUnmountList shouldBe List(1,2)
-    onDomUpdateList shouldBe Nil
+      handler.onNext("dieter")
+      element.innerHTML shouldBe "<div>dieter</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 2
+      onSnabbdomPostPatchCount shouldBe 2
+      onSnabbdomUpdateCount shouldBe 2
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2, 3)
+      onDomUnmountList shouldBe List(1,2)
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext("dieter")
-    element.innerHTML shouldBe "<div>dieter</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 3
-    onSnabbdomPostPatchCount shouldBe 3
-    onSnabbdomUpdateCount shouldBe 3
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2 ,3, 4)
-    onDomUnmountList shouldBe List(1,2,3)
-    onDomUpdateList shouldBe Nil
+      handler.onNext("dieter")
+      element.innerHTML shouldBe "<div>dieter</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 3
+      onSnabbdomPostPatchCount shouldBe 3
+      onSnabbdomUpdateCount shouldBe 3
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2 ,3, 4)
+      onDomUnmountList shouldBe List(1,2,3)
+      onDomUpdateList shouldBe Nil
 
-    handler.onNext("peter")
-    element.innerHTML shouldBe "<div>peter</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 4
-    onSnabbdomPostPatchCount shouldBe 4
-    onSnabbdomUpdateCount shouldBe 4
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+      handler.onNext("peter")
+      element.innerHTML shouldBe "<div>peter</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 4
+      onSnabbdomPostPatchCount shouldBe 4
+      onSnabbdomUpdateCount shouldBe 4
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2, 3, 4, 5)
+      onDomUnmountList shouldBe List(1, 2, 3, 4)
+      onDomUpdateList shouldBe Nil
 
-    otherHandler.onNext("hi")
-    element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 4
-    onSnabbdomPostPatchCount shouldBe 4
-    onSnabbdomUpdateCount shouldBe 4
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe Nil
+      otherHandler.onNext("hi")
+      element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 4
+      onSnabbdomPostPatchCount shouldBe 4
+      onSnabbdomUpdateCount shouldBe 4
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2, 3, 4, 5)
+      onDomUnmountList shouldBe List(1, 2, 3, 4)
+      onDomUpdateList shouldBe Nil
 
-    innerHandlerCount shouldBe 0
+      innerHandlerCount shouldBe 0
 
-    innerHandler.onNext(0)
-    element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
-    onSnabbdomInsertCount shouldBe 1
-    onSnabbdomPrePatchCount shouldBe 5
-    onSnabbdomPostPatchCount shouldBe 5
-    onSnabbdomUpdateCount shouldBe 5
-    onSnabbdomDestroyCount shouldBe 0
-    onDomMountList shouldBe List(1, 2, 3, 4, 5)
-    onDomUnmountList shouldBe List(1, 2, 3, 4)
-    onDomUpdateList shouldBe List(5)
+      innerHandler.onNext(0)
+      element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
+      onSnabbdomInsertCount shouldBe 1
+      onSnabbdomPrePatchCount shouldBe 5
+      onSnabbdomPostPatchCount shouldBe 5
+      onSnabbdomUpdateCount shouldBe 5
+      onSnabbdomDestroyCount shouldBe 0
+      onDomMountList shouldBe List(1, 2, 3, 4, 5)
+      onDomUnmountList shouldBe List(1, 2, 3, 4)
+      onDomUpdateList shouldBe List(5)
 
-    innerHandlerCount shouldBe 1
+      innerHandlerCount shouldBe 1
+    }
   }
 }

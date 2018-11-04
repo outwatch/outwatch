@@ -17,7 +17,7 @@ object OutWatch {
   def renderInto(element: dom.Element, vNode: VNode)(implicit s: Scheduler): IO[Unit] = for {
     node <- toSnabbdom(vNode)
     _ <- IO {
-      val elem = dom.document.createElement("app")
+      val elem = dom.document.createElement("div")
       element.appendChild(elem)
       patch(elem, node)
     }
