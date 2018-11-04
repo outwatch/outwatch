@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -369,7 +370,37 @@ class LifecycleHookSpec extends JSDomSpec {
     val sub = PublishSubject[String]
 
     val node = div(nodes.startWith(Seq(
-      span(managed(sink <-- sub))
+      span(managed { () => sub subscribe sink })
+    )))
+
+    sub.onNext("pre")
+    latest shouldBe ""
+
+    OutWatch.renderInto("#app", node).unsafeRunSync()
+
+    sub.onNext("first")
+    latest shouldBe "first"
+
+    nodes.onNext(div()) // this triggers child destroy and subscription cancelation
+
+    sub.onNext("second")
+    latest shouldBe "first"
+  }
+
+  it should "work with emitter(observable)" in {
+
+    val nodes = PublishSubject[VNode]
+
+    var latest = ""
+    val sink = Sink.create { (elem: String) =>
+      latest = elem
+      Continue
+    }
+
+    val sub = PublishSubject[String]
+
+    val node = div(nodes.startWith(Seq(
+      span(emitter(sub) --> sink)
     )))
 
     sub.onNext("pre")
