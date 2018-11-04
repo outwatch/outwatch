@@ -1936,7 +1936,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         id := "strings",
         onClick.map(ev => ChildCommand.RemoveId(ChildId.Element(ev.target))) --> cmds,
         cmds
-      ),
+      )
     )
 
     OutWatch.renderInto("#app", node).map { _ =>
