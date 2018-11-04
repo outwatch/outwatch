@@ -86,84 +86,49 @@ object thunk {
   // own implementation of https://github.com/snabbdom/snabbdom/blob/master/src/thunk.ts
   //does respect equality. snabbdom thunk does not: https://github.com/snabbdom/snabbdom/issues/143
 
-  private def copyToThunk(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    vnode.data.foreach { data =>
-      data.key = thunk.key
-      data.fn = thunk.data.flatMap(_.fn)
-      data.args = thunk.data.flatMap(_.args)
-    }
-    thunk.data = vnode.data
-    thunk.children = vnode.children
-    thunk.text = vnode.text
-    thunk.elm = vnode.elm
-    thunk.listener = vnode.listener
-    thunk._id = vnode._id
-    thunk._unmount = vnode._unmount
-  }
-  private def syncElm(vnode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    thunk.data.foreach(_.hook.foreach { hook =>
-      val prevInsert = hook.insert
-      hook.insert = { (proxy: VNodeProxy) =>
-        vnode.elm = proxy.elm
-        prevInsert.foreach(_ (proxy))
-      }: Hooks.HookSingleFn
-      val prevPostpatch = hook.postpatch
-      hook.postpatch = { (o: VNodeProxy, proxy: VNodeProxy) =>
-        vnode.elm = proxy.elm
-        prevPostpatch.foreach(_ (o, proxy))
-      }: Hooks.HookPairFn
-
-    })
-  }
-
   private def initThunk(thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
       fn <- data.fn
     } {
-      val newProxy = fn()
-      copyToThunk(newProxy, thunk)
-      syncElm(newProxy, thunk)
+      VNodeProxy.copyInto(source = fn(), target = thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
   }
 
-  private def prepatchArray(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
+  private def prepatchArray(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
       fn <- data.fn
       newArgs <- data.args.asInstanceOf[js.UndefOr[js.Array[Any]]]
     } {
-      val oldArgs = oldVNode.data.flatMap(_.args).asInstanceOf[js.UndefOr[js.Array[Any]]]
+      val oldArgs = oldProxy.data.flatMap(_.args).asInstanceOf[js.UndefOr[js.Array[Any]]]
       val isDifferent = oldArgs.fold(true) { oldArgs =>
         (oldArgs.length != newArgs.length) || existsIndexWhere(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
 
-      prepatch(fn, isDifferent, oldVNode, thunk)
+      prepatch(fn, isDifferent, oldProxy, thunk)
     }
 
-    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldVNode, thunk))))
+    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
   }
 
-  private def prepatchBoolean(oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
+  private def prepatchBoolean(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
       fn <- data.fn
       shouldRender <- data.args.asInstanceOf[js.UndefOr[Boolean]]
     } {
-      prepatch(fn, shouldRender, oldVNode, thunk)
+      prepatch(fn, shouldRender, oldProxy, thunk)
     }
 
-    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldVNode, thunk))))
+    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
   }
 
-  @inline private def prepatch(fn: js.Function0[VNodeProxy], shouldRender: Boolean, oldVNode: VNodeProxy, thunk: VNodeProxy): Unit = {
-    if (shouldRender) {
-      val newProxy = fn()
-      copyToThunk(newProxy, thunk)
-      syncElm(newProxy, thunk)
-    } else copyToThunk(oldVNode, thunk)
+  @inline private def prepatch(fn: js.Function0[VNodeProxy], shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
+    if (shouldRender) VNodeProxy.copyInto(source = fn(), target = thunk)
+    else VNodeProxy.copyInto(source = oldProxy, target = thunk)
   }
 
   @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
@@ -240,6 +205,23 @@ object VNodeProxy {
     elm = element
     text = ""
     data = DataObject.empty
+  }
+
+  def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
+    source.data.foreach { data =>
+      // keep fn and args from previous proxy
+      data.fn = target.data.flatMap(_.fn)
+      data.args = target.data.flatMap(_.args)
+    }
+    target.sel = source.sel
+    target.key = source.key
+    target.data = source.data
+    target.children = source.children
+    target.text = source.text
+    target.elm = source.elm
+    target.listener = source.listener
+    target._id = source._id
+    target._unmount = source._unmount
   }
 }
 

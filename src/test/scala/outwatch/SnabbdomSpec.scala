@@ -111,7 +111,7 @@ class SnabbdomSpec extends JSDomSpec {
 
     val renderFn: String => VNodeProxy = { message =>
       renderFnCounter += 1
-      hFunction("span#msg", DataObject.empty, message)
+      hFunction("span#msg", new DataObject { key = "key" }, message)
     }
 
     val message = "Hello World"
@@ -150,7 +150,7 @@ class SnabbdomSpec extends JSDomSpec {
 
     val renderFn: String => VNodeProxy = { message =>
       renderFnCounter += 1
-      hFunction("span#msg", DataObject.empty, message)
+      hFunction("span#msg", new DataObject { key = "key" }, message)
     }
 
     val message = "Hello World"

@@ -1828,17 +1828,24 @@ class OutWatchDomSpec extends JSDomSpec {
     val myId: Handler[String] = Handler.create.unsafeRunSync()
 
     var renderFnCounter = 0
-    var mountCount = 0
-    var preupdateCount = 0
-    var updateCount = 0
-    var unmountCount = 0
+    var mounts = List.empty[Int]
+    var preupdates = List.empty[Int]
+    var updates = List.empty[Int]
+    var unmounts = List.empty[Int]
+    var counter = 0
+    def mountHooks = {
+      val c = counter
+      counter += 1
+      VDomModifier(onDomMount.foreach { mounts :+= c }, onDomPreUpdate.foreach { preupdates :+= c }, onDomUpdate.foreach { updates :+= c }, onDomUnmount.foreach { unmounts :+= c } )
+    }
     val node = div(
       id := "strings",
       myString.map { myString =>
-        b(id <-- myId).thunk("component")(myString) {
+        if (myString == "empty") b.thunk("component")(myString)(VDomModifier("empty", mountHooks)) :VNode
+        else b(id <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
-          VDomModifier(cls := "b", myString, onDomMount.foreach { mountCount += 1 }, onDomPreUpdate.foreach { preupdateCount += 1 }, onDomUpdate.foreach { updateCount += 1 }, onDomUnmount.foreach { unmountCount += 1 })
-        }
+          VDomModifier(cls := "b", myString, mountHooks)
+        } :VNode
       },
       b("something else")
     )
@@ -1847,50 +1854,82 @@ class OutWatchDomSpec extends JSDomSpec {
     val element = document.getElementById("strings")
 
     renderFnCounter shouldBe 0
-    mountCount shouldBe 0
-    preupdateCount shouldBe 0
-    updateCount shouldBe 0
-    unmountCount shouldBe 0
+    mounts shouldBe Nil
+    preupdates shouldBe Nil
+    updates shouldBe Nil
+    unmounts shouldBe Nil
     element.innerHTML shouldBe "<b>something else</b>"
 
     myString.onNext("wal?")
     renderFnCounter shouldBe 1
-    mountCount shouldBe 1
-    preupdateCount shouldBe 0
-    updateCount shouldBe 0
-    unmountCount shouldBe 0
+    mounts shouldBe List(0)
+    preupdates shouldBe Nil
+    updates shouldBe Nil
+    unmounts shouldBe Nil
     element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
 
     myId.onNext("tier")
     renderFnCounter shouldBe 1
-    mountCount shouldBe 1
-    preupdateCount shouldBe 1
-    updateCount shouldBe 1
-    unmountCount shouldBe 0
+    mounts shouldBe List(0)
+    preupdates shouldBe List(0)
+    updates shouldBe List(0)
+    unmounts shouldBe Nil
     element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
     myString.onNext("wal?")
     renderFnCounter shouldBe 1
-    mountCount shouldBe 1
-    preupdateCount shouldBe 2
-    updateCount shouldBe 2
-    unmountCount shouldBe 0
+    mounts shouldBe List(0)
+    preupdates shouldBe List(0, 0)
+    updates shouldBe List(0, 0)
+    unmounts shouldBe List()
     element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
     myString.onNext("hai!")
     renderFnCounter shouldBe 2
-    mountCount shouldBe 2
-    preupdateCount shouldBe 3
-    updateCount shouldBe 3
-    unmountCount shouldBe 1
+    mounts shouldBe List(0, 1)
+    preupdates shouldBe List(0, 0, 1)
+    updates shouldBe List(0, 0, 1)
+    unmounts shouldBe List(0)
     element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
 
     myId.onNext("nope")
     renderFnCounter shouldBe 2
-    mountCount shouldBe 2
-    preupdateCount shouldBe 4
-    updateCount shouldBe 4
-    unmountCount shouldBe 1
+    mounts shouldBe List(0, 1)
+    preupdates shouldBe List(0, 0, 1, 1)
+    updates shouldBe List(0, 0, 1, 1)
+    unmounts shouldBe List(0)
     element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
+
+    myString.onNext("empty")
+    renderFnCounter shouldBe 2
+    mounts shouldBe List(0, 1, 2)
+    preupdates shouldBe List(0, 0, 1, 1)
+    updates shouldBe List(0, 0, 1, 1)
+    unmounts shouldBe List(0, 1)
+    element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+
+    myId.onNext("nothing")
+    renderFnCounter shouldBe 2
+    mounts shouldBe List(0, 1, 2)
+    preupdates shouldBe List(0, 0, 1, 1)
+    updates shouldBe List(0, 0, 1, 1)
+    unmounts shouldBe List(0, 1)
+    element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+
+    myString.onNext("hans")
+    renderFnCounter shouldBe 3
+    mounts shouldBe List(0, 1, 2, 3)
+    preupdates shouldBe List(0, 0, 1, 1, 3)
+    updates shouldBe List(0, 0, 1, 1, 3)
+    unmounts shouldBe List(0, 1, 2)
+    element.innerHTML shouldBe """<b class="b" id="nothing">hans</b><b>something else</b>"""
+
+    myId.onNext("hans")
+    renderFnCounter shouldBe 3
+    mounts shouldBe List(0, 1, 2, 3)
+    preupdates shouldBe List(0, 0, 1, 1, 3, 3)
+    updates shouldBe List(0, 0, 1, 1, 3, 3)
+    unmounts shouldBe List(0, 1, 2)
+    element.innerHTML shouldBe """<b class="b" id="hans">hans</b><b>something else</b>"""
   }
 }
