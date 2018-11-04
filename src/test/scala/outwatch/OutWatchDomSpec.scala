@@ -1990,10 +1990,10 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     var incCounter =  0
     var mapCounter = 0
     val innerMod  = onClick.transform(_ => clicks.map { c => mapCounter += 1; c }) foreach { incCounter += 1 }
-    val modHandler = Handler.create[VDomModifier](innerMod).unsafeRunSync()
+    val modHandler = Handler.unsafe[VDomModifier](innerMod)
 
     val innerNode = div(modHandler)
-    val nodeHandler = Handler.create[VNode](innerNode).unsafeRunSync()
+    val nodeHandler = Handler.unsafe[VNode](innerNode)
 
     val node = div(
       id := "strings",
@@ -2034,6 +2034,79 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       clicks.onNext(4)
       incCounter shouldBe 4
       mapCounter shouldBe 4
+    }
+  }
+
+  it should "be correctly subscribed for emitterbuilder.asLatest" in {
+
+    var aCounter =  0
+    var bCounter = 0
+    var lastValue: String = null
+
+    val aEvent = PublishSubject[String]
+    val bEvent = PublishSubject[String]
+    val innerNode =
+      input(emitter(aEvent).map { x => aCounter += 1; x } .asLatest(emitter(bEvent).map { x => bCounter += 1; x }) foreach { str =>
+        println("DWQDWQ")
+        lastValue = str
+      })
+
+    val handler = Handler.unsafe[VDomModifier](innerNode)
+    val node = div(
+      id := "strings",
+      handler
+    )
+
+    aEvent.onNext("nope?")
+    bEvent.onNext("nope?")
+    aCounter shouldBe 0
+    bCounter shouldBe 0
+    lastValue shouldBe null
+
+    OutWatch.renderInto("#app", node).map { _ =>
+      val element = document.getElementById("strings")
+      val child = element.children(0)
+      aCounter shouldBe 0
+      bCounter shouldBe 0
+      lastValue shouldBe null
+
+      aEvent.onNext("a")
+      aCounter shouldBe 1
+      bCounter shouldBe 0
+      lastValue shouldBe null
+
+      bEvent.onNext("b")
+      aCounter shouldBe 1
+      bCounter shouldBe 1
+      lastValue shouldBe null
+
+      aEvent.onNext("a2")
+      aCounter shouldBe 2
+      bCounter shouldBe 1
+      lastValue shouldBe "b"
+
+      bEvent.onNext("ahja")
+      aCounter shouldBe 2
+      bCounter shouldBe 2
+      lastValue shouldBe "b"
+
+      aEvent.onNext("oh")
+      aCounter shouldBe 3
+      bCounter shouldBe 2
+      lastValue shouldBe "ahja"
+
+      handler.onNext(VDomModifier.empty)
+
+      aEvent.onNext("hmm?")
+      aCounter shouldBe 3
+      bCounter shouldBe 2
+      lastValue shouldBe "ahja"
+
+      bEvent.onNext("no?")
+      aCounter shouldBe 3
+      bCounter shouldBe 2
+      lastValue shouldBe "ahja"
+
     }
   }
 

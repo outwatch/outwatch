@@ -1,11 +1,15 @@
 package outwatch.dom.helpers
 
+import cats.effect.IO
+import monix.execution.{Cancelable, Scheduler}
+import monix.reactive.observers.Subscriber
 import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
 import outwatch.ConnectableObserver
 import outwatch.dom._
 
 import scala.concurrent.duration.FiniteDuration
+import scala.scalajs.js
 
 
 trait EmitterBuilder[+O, +R] {
@@ -68,6 +72,24 @@ object EmitterBuilder {
   implicit class TypedElementTuples[E <: Element, R](val builder: EmitterBuilder[(E,E), R]) extends AnyVal {
     def asHtml: EmitterBuilder[(html.Element, html.Element), R] = builder.map(_.asInstanceOf[(html.Element, html.Element)])
     def asSvg: EmitterBuilder[(svg.Element, svg.Element), R] = builder.map(_.asInstanceOf[(svg.Element, svg.Element)])
+  }
+
+  implicit class ModifierActions[O](val builder: EmitterBuilder[O, VDomModifier]) extends AnyVal {
+    @inline def asLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[T, VDomModifier] = withLatest(emitter)((_, r) => r)
+
+    def withLatest[T, R](emitter: EmitterBuilder[T, VDomModifier])(f: (O, T) => R): EmitterBuilder[R, VDomModifier] = new CustomEmitterBuilder[R, VDomModifier]({ sink =>
+      IO {
+        var lastValue: js.UndefOr[T] = js.undefined
+        VDomModifier(
+          emitter foreach { lastValue = _ },
+          builder.foreach { o =>
+            lastValue.foreach { t =>
+              sink.onNext(f(o, t))
+            }
+          }
+        )
+      }
+    })
   }
 }
 
