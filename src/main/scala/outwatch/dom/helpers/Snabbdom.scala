@@ -59,25 +59,20 @@ private[outwatch] object SnabbdomOps {
     case _ => js.undefined
   }
 
-   def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = node match {
-    case node: BasicVNode => toSnabbdomProxy(node)
-    case node: ConditionalVNode => toSnabbdomProxy(node)
-    case node: ThunkVNode => toSnabbdomProxy(node)
-  }
+   def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = {
+     var proxy: VNodeProxy = null
+     proxy = node match {
+       case node: BasicVNode =>
+         toRawSnabbdomProxy(node, p => VNodeProxy.copyInto(p, proxy))
+       case node: ConditionalVNode =>
+         thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), p => VNodeProxy.copyInto(p, proxy)), node.shouldRender)
+       case node: ThunkVNode =>
+         thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), p => VNodeProxy.copyInto(p, proxy)), node.arguments)
+     }
+     proxy
+   }
 
-  private def toSnabbdomProxy(node: ConditionalVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    var proxy: VNodeProxy = null
-    proxy = thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key), PostPatchHook((_, p) => VNodeProxy.copyInto(p, proxy)))), node.shouldRender)
-    proxy
-  }
-
-  private def toSnabbdomProxy(node: ThunkVNode)(implicit scheduler: Scheduler): VNodeProxy = {
-    var proxy: VNodeProxy = null
-    proxy = thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key), PostPatchHook((_, p) => VNodeProxy.copyInto(p, proxy)))), node.arguments)
-    proxy
-  }
-
-  private def toSnabbdomProxy(node: BasicVNode)(implicit scheduler: Scheduler): VNodeProxy = {
+  private def toRawSnabbdomProxy(node: BasicVNode, onUpdate: VNodeProxy => Unit)(implicit scheduler: Scheduler): VNodeProxy = {
     val streamableModifiers = NativeModifiers.from(node.modifiers)
     val vNodeId = streamableModifiers.##
     val vNodeNS = getNamespace(node)
@@ -98,13 +93,12 @@ private[outwatch] object SnabbdomOps {
             // update the current proxy with the new state
             val separatedModifiers = SeparatedModifiers.from(nextModifiers.fold(newState)(newState ++ _))
             nextModifiers = separatedModifiers.nextModifiers
-            val newProxy = createProxy(separatedModifiers, node.nodeType, proxy._id, vNodeNS)
+            val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)
-            patch(proxy, newProxy)
-
-//            VNodeProxy.copyInto(source = currentProxy, target = proxy)
+            proxy = patch(proxy, newProxy)
+            onUpdate(proxy)
 
             Continue
           },
@@ -119,13 +113,9 @@ private[outwatch] object SnabbdomOps {
       // renders its children again. But it would not have the correct state of this proxy. Therefore,
       // we mutate the initial proxy and thereby mutate the proxy the parent knows.
       var cancelable: Cancelable = null
-      streamableModifiers.modifiers += InsertHook { p =>
-        VNodeProxy.copyInto(source = p, target = proxy)
+      streamableModifiers.modifiers += DomMountHook { p =>
+        proxy.elm = p.elm
         cancelable = subscribe()
-      }
-      streamableModifiers.modifiers += PostPatchHook { (o, p) =>
-        VNodeProxy.copyInto(source = p, target = proxy)
-        if (o._id != p._id) cancelable = subscribe()
       }
       streamableModifiers.modifiers += DomUnmountHook { _ => cancelable.cancel() }
 
