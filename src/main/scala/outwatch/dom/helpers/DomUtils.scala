@@ -312,7 +312,8 @@ private[outwatch] object NativeModifiers {
     case h: DomUnmountHook =>
       // we call the unmount hook, whenever this hook is freshly superseded by a new modifier
       // in a stream. whenever the node is patched afterwards we check whether we are still
-      // present in the node. if not, we are unmounted and call the hook.
+      // present in the node. if not, we are unmounted and call the hook. We additionally
+      // react to the normal unmount event.
       var triggered = false
       var isOpen = true
       js.Array(
