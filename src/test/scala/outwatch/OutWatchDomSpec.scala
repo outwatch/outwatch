@@ -2046,8 +2046,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val aEvent = PublishSubject[String]
     val bEvent = PublishSubject[String]
     val innerNode =
-      input(emitter(aEvent).map { x => aCounter += 1; x } .asLatest(emitter(bEvent).map { x => bCounter += 1; x }) foreach { str =>
-        println("DWQDWQ")
+      input(emitter(aEvent).map { x => aCounter += 1; x } .useLatest(emitter(bEvent).map { x => bCounter += 1; x }) foreach { str =>
         lastValue = str
       })
 

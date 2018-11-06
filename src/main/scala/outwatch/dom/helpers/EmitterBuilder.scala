@@ -38,10 +38,7 @@ object EmitterBuilder {
 
   def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
     new CustomEmitterBuilder[E, VDomModifier]({
-      case o: ConnectableObserver[E] => VDomModifier(
-        managedAction(implicit scheduler => o.connect()),
-        create(o)
-      )
+      case o: ConnectableObserver[E] => VDomModifier(managedAction(implicit scheduler => o.connect()), create(o))
       case o: Observer[E] => create(o)
     })
 
@@ -75,16 +72,14 @@ object EmitterBuilder {
   }
 
   implicit class ModifierActions[O](val builder: EmitterBuilder[O, VDomModifier]) extends AnyVal {
-    @inline def asLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[T, VDomModifier] = withLatest(emitter)((_, r) => r)
-
-    def withLatest[T, R](emitter: EmitterBuilder[T, VDomModifier])(f: (O, T) => R): EmitterBuilder[R, VDomModifier] = new CustomEmitterBuilder[R, VDomModifier]({ sink =>
+    def useLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[T, VDomModifier] = new CustomEmitterBuilder[T, VDomModifier]({ sink =>
       IO {
         var lastValue: js.UndefOr[T] = js.undefined
         VDomModifier(
           emitter foreach { lastValue = _ },
-          builder.foreach { o =>
+          builder.foreach { _ =>
             lastValue.foreach { t =>
-              sink.onNext(f(o, t))
+              sink.onNext(t)
             }
           }
         )
