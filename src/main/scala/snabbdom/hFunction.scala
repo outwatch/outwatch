@@ -58,7 +58,6 @@ trait DataObject extends js.Object {
   var key: js.UndefOr[KeyValue] = js.undefined
   var ns: js.UndefOr[String] = js.undefined
   var args: js.UndefOr[js.Array[Any] | Boolean] = js.undefined
-  var fn: js.UndefOr[js.Function0[VNodeProxy]] = js.undefined
 }
 
 object DataObject {
@@ -86,10 +85,9 @@ object thunk {
   // own implementation of https://github.com/snabbdom/snabbdom/blob/master/src/thunk.ts
   //does respect equality. snabbdom thunk does not: https://github.com/snabbdom/snabbdom/issues/143
 
-  private def initThunk(thunk: VNodeProxy): Unit = {
+  private def initThunk(fn: () => VNodeProxy)(thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
-      fn <- data.fn
     } {
       VNodeProxy.copyInto(source = fn(), target = thunk)
     }
@@ -97,10 +95,9 @@ object thunk {
     thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
   }
 
-  private def prepatchArray(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
+  private def prepatchArray(fn: () => VNodeProxy)(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
-      fn <- data.fn
       newArgs <- data.args.asInstanceOf[js.UndefOr[js.Array[Any]]]
     } {
       val oldArgs = oldProxy.data.flatMap(_.args).asInstanceOf[js.UndefOr[js.Array[Any]]]
@@ -114,10 +111,9 @@ object thunk {
     thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
   }
 
-  private def prepatchBoolean(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
+  private def prepatchBoolean(fn: () => VNodeProxy)(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       data <- thunk.data
-      fn <- data.fn
       shouldRender <- data.args.asInstanceOf[js.UndefOr[Boolean]]
     } {
       prepatch(fn, shouldRender, oldProxy, thunk)
@@ -126,7 +122,7 @@ object thunk {
     thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
   }
 
-  @inline private def prepatch(fn: js.Function0[VNodeProxy], shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
+  @inline private def prepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     if (shouldRender) VNodeProxy.copyInto(source = fn(), target = thunk)
     else VNodeProxy.copyInto(source = oldProxy, target = thunk)
   }
@@ -140,12 +136,12 @@ object thunk {
     false
   }
 
-  private def createProxy(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any] | Boolean, prepatchHook: Hooks.HookPairFn): VNodeProxy =
+  private def createProxy(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderArgs: js.Array[Any] | Boolean, initHook: Hooks.HookSingleFn, prepatchHook: Hooks.HookPairFn, onUpdate: VNodeProxy => Unit): VNodeProxy =
     new VNodeProxy {
       sel = selector
       data = new DataObject {
         hook = new Hooks {
-          init = (initThunk _): Hooks.HookSingleFn
+          init = initHook
           insert = {(p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.insert.foreach(_(p)))) }: Hooks.HookSingleFn
           prepatch = prepatchHook
           update = {(o: VNodeProxy, p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.update.foreach(_(o,p)))) }: Hooks.HookPairFn
@@ -153,18 +149,18 @@ object thunk {
           destroy = {(p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.destroy.foreach(_(p)))) }: Hooks.HookSingleFn
         }
         key = keyValue
-        fn = renderFn
         args = renderArgs
         ns = namespace
       }
+      _update = onUpdate: js.Function1[VNodeProxy, Unit]
       key = keyValue
     }
 
-  @inline def apply(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
-    createProxy(namespace, selector, keyValue, renderFn, renderArgs, prepatchArray _)
+  @inline def apply(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any], onUpdate: VNodeProxy => Unit = _ => ()): VNodeProxy =
+    createProxy(namespace, selector, keyValue, renderArgs, initThunk(renderFn), prepatchArray(renderFn), onUpdate)
 
-  @inline def conditional(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
-    createProxy(namespace, selector, keyValue, renderFn, shouldRender, prepatchBoolean _)
+  @inline def conditional(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean, onUpdate: VNodeProxy => Unit = _ => ()): VNodeProxy =
+    createProxy(namespace, selector, keyValue, shouldRender, initThunk(renderFn), prepatchBoolean(renderFn), onUpdate)
 }
 
 object patch {
@@ -193,6 +189,7 @@ trait VNodeProxy extends js.Object {
 
   var _id: js.UndefOr[Int] = js.undefined
   var _unmount: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var _update: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
 }
 
 object VNodeProxy {
@@ -209,8 +206,7 @@ object VNodeProxy {
 
   def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
     source.data.foreach { data =>
-      // keep fn and args from previous proxy
-      data.fn = target.data.flatMap(_.fn)
+      // keep args from previous proxy
       data.args = target.data.flatMap(_.args)
     }
     target.sel = source.sel

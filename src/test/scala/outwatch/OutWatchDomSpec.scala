@@ -2037,7 +2037,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
-  it should "be correctly subscribed for emitterbuilder.asLatest" in {
+  it should "be correctly subscribed for emitterbuilder.useLatest" in {
 
     var aCounter =  0
     var bCounter = 0
@@ -2222,9 +2222,62 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
+  it should "work with inner stream" in {
+    val myString: Handler[String] = Handler.unsafe[String]
+    val myOther: Handler[String] = Handler.unsafe[String]
+    val myThunk: Handler[Unit] = Handler.unsafe[Unit]
+
+    var renderFnCounter = 0
+    val node = div(
+      id := "strings",
+      myThunk.map { _ =>
+        b.static("component") {
+          renderFnCounter += 1
+          myString.map { str =>
+            p(dsl.key := str, str)
+          }
+        }
+      }
+    )
+
+    OutWatch.renderInto("#app", node).map { _ =>
+      val element = document.getElementById("strings")
+
+      renderFnCounter shouldBe 0
+      element.innerHTML shouldBe ""
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b></b>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b></b>"
+
+      myString.onNext("ok?")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b><p>ok?</p></b>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b><p>ok?</p></b>"
+
+      myString.onNext("hope so")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b><p>hope so</p></b>"
+
+      myString.onNext("ohai")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b><p>ohai</p></b>"
+    }
+  }
+
   it should "work with streams" in {
     val myString: Handler[String] = Handler.unsafe[String]
     val myId: Handler[String] = Handler.unsafe[String]
+    val myInner: Handler[String] = Handler.unsafe[String]
+    val myOther: Handler[VDomModifier] = Handler.unsafe[VDomModifier]
+    val thunkContent: Handler[VDomModifier] = Handler.unsafe[VDomModifier]
 
     var renderFnCounter = 0
     var mounts = List.empty[Int]
@@ -2240,12 +2293,13 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       id := "strings",
       myString.map { myString =>
-        if (myString == "empty") b.thunk("component")(myString)(VDomModifier("empty", mountHooks)) :VNode
-        else b(id <-- myId).thunk("component")(myString) {
+        if (myString == "empty") b.thunk("component")(myString)(VDomModifier("empty", mountHooks)) :VDomModifier
+        else ValueObservable(myInner.map[VNode](s => div(s, mountHooks)), b(id <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
-          VDomModifier(cls := "b", myString, mountHooks)
-        } :VNode
+          VDomModifier(cls := "b", myString, mountHooks, thunkContent)
+        }): VDomModifier
       },
+      myOther,
       b("something else")
     )
 
@@ -2330,6 +2384,54 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       updates shouldBe List(0, 0, 1, 1, 3, 3)
       unmounts shouldBe List(0, 1, 2)
       element.innerHTML shouldBe """<b class="b" id="hans">hans</b><b>something else</b>"""
+
+      myString.onNext("hans")
+      renderFnCounter shouldBe 3
+      mounts shouldBe List(0, 1, 2, 3)
+      preupdates shouldBe List(0, 0, 1, 1, 3, 3, 3)
+      updates shouldBe List(0, 0, 1, 1, 3, 3, 3)
+      unmounts shouldBe List(0, 1, 2)
+      element.innerHTML shouldBe """<b class="b" id="hans">hans</b><b>something else</b>"""
+
+      thunkContent.onNext(p(dsl.key := "1", "el dieter"))
+      renderFnCounter shouldBe 3
+      mounts shouldBe List(0, 1, 2, 3)
+      preupdates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3)
+      updates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3)
+      unmounts shouldBe List(0, 1, 2)
+      element.innerHTML shouldBe """<b class="b" id="hans">hans<p>el dieter</p></b><b>something else</b>"""
+
+      thunkContent.onNext(p(dsl.key := "2", "el dieter II"))
+      renderFnCounter shouldBe 3
+      mounts shouldBe List(0, 1, 2, 3)
+      preupdates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      updates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      unmounts shouldBe List(0, 1, 2)
+      element.innerHTML shouldBe """<b class="b" id="hans">hans<p>el dieter II</p></b><b>something else</b>"""
+
+      myOther.onNext(div("baem!"))
+      renderFnCounter shouldBe 3
+      mounts shouldBe List(0, 1, 2, 3)
+      preupdates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      updates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      unmounts shouldBe List(0, 1, 2)
+      element.innerHTML shouldBe """<b class="b" id="hans">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
+
+      myInner.onNext("meh")
+      renderFnCounter shouldBe 3
+      mounts shouldBe List(0, 1, 2, 3, 4)
+      preupdates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      updates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      unmounts shouldBe List(0, 1, 2, 3)
+      element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+
+      myOther.onNext(div("fini"))
+      renderFnCounter shouldBe 3
+      mounts shouldBe List(0, 1, 2, 3, 4)
+      preupdates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      updates shouldBe List(0, 0, 1, 1, 3, 3, 3, 3, 3)
+      unmounts shouldBe List(0, 1, 2, 3)
+      element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
     }
   }
 }
