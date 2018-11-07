@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
 )
 
 npmDependencies in Compile ++= Seq(
-  "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0313e25"
+  "snabbdom" -> "git://github.com/cornerman/snabbdom.git#bac3e6a"
 )
 
 scalacOptions += {
