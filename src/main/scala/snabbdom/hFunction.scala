@@ -70,6 +70,7 @@ object DataObject {
   def empty: DataObject = new DataObject { }
 }
 
+// These are the original facades for snabbdom thunk. But we implement our own, so that for equality checks, the equals method is used.
 // @js.native
 // @JSImport("snabbdom/thunk", JSImport.Namespace, globalFallback = "thunk")
 // object thunkProvider extends js.Object {
