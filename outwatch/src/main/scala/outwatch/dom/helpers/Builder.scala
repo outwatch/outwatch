@@ -11,9 +11,8 @@ trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
 
   @inline def :=(value: T): A = assign(value)
   def :=?(value: Option[T]): Option[A] = value.map(assign)
-  def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): ModifierStreamReceiver = {
-    ModifierStreamReceiver(ValueObservable(valueStream).map(assign))
-  }
+  def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): ModifierStreamReceiver = ModifierStreamReceiver(ValueObservable.from(valueStream).map(assign))
+  def <--(valueStream: ValueObservable[T]): ModifierStreamReceiver = ModifierStreamReceiver(valueStream.map(assign))
 }
 
 object AttributeBuilder {
@@ -102,16 +101,16 @@ object KeyBuilder {
 
 object ChildStreamReceiverBuilder {
   def <--[T](valueStream: Observable[VDomModifier]): ModifierStreamReceiver =
-    ModifierStreamReceiver(AsValueObservable.observable.as(valueStream))
+    ModifierStreamReceiver(ValueObservable.from(valueStream))
 
   def <--[T](valueStream: Observable[T])(implicit r: AsVDomModifier[T]): ModifierStreamReceiver =
-    ModifierStreamReceiver(AsValueObservable.observable.as(valueStream.map(r.asVDomModifier)))
+    ModifierStreamReceiver(ValueObservable.from(valueStream.map(r.asVDomModifier)))
 }
 
 object ChildrenStreamReceiverBuilder {
   def <--(childrenStream: Observable[Seq[VDomModifier]]): ModifierStreamReceiver =
-    ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map[VDomModifier](x => x)))
+    ModifierStreamReceiver(ValueObservable.from(childrenStream.map(VDomModifier(_))))
 
   def <--[T](childrenStream: Observable[Seq[T]])(implicit r: AsVDomModifier[T]): ModifierStreamReceiver =
-    ModifierStreamReceiver(AsValueObservable.observable.as(childrenStream.map(_.map(r.asVDomModifier))))
+    ModifierStreamReceiver(ValueObservable.from(childrenStream.map(x => VDomModifier(x.map(r.asVDomModifier)))))
 }

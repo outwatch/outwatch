@@ -80,15 +80,31 @@ object AsVDomModifier {
   implicit def effectRender[T : AsVDomModifier]: AsVDomModifier[IO[T]] = (effect: IO[T]) =>
     EffectModifier(effect.map(VDomModifier(_)))
 
+  implicit object ValueObservableRender extends AsVDomModifier[ValueObservable[VDomModifier]] {
+    @inline def asVDomModifier(value: ValueObservable[VDomModifier]): VDomModifier = ModifierStreamReceiver(value)
+  }
+
   implicit def valueObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[VDomModifier]] = (valueStream: F[VDomModifier]) =>
-    ModifierStreamReceiver(ValueObservable(valueStream))
+    ModifierStreamReceiver(ValueObservable.from(valueStream))
+
+  implicit def ValueObservableRenderAs[T : AsVDomModifier]: AsVDomModifier[ValueObservable[T]] = (valueStream: ValueObservable[T]) =>
+    ModifierStreamReceiver(valueStream.map(VDomModifier(_)))
 
   implicit def valueObservableRenderAs[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) =>
-    ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
+    ModifierStreamReceiver(ValueObservable.from(valueStream).map(VDomModifier(_)))
 
   implicit def childCommandObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) =>
-    SchedulerAction(implicit scheduler => ChildCommand.stream(ValueObservable(valueStream).map(Seq(_))).map(ModifierStreamReceiver(_)))
+    SchedulerAction(implicit scheduler => EffectModifier(ChildCommand.stream(ValueObservable.from(valueStream).map(Seq(_))).map(ModifierStreamReceiver(_))))
 
   implicit def childCommandSeqObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[Seq[ChildCommand]]] = (valueStream: F[Seq[ChildCommand]]) =>
-    SchedulerAction(implicit scheduler => ChildCommand.stream(ValueObservable(valueStream)).map(ModifierStreamReceiver(_)))
+    SchedulerAction(implicit scheduler => EffectModifier(ChildCommand.stream(ValueObservable.from(valueStream)).map(ModifierStreamReceiver(_))))
+
+  //TODO: adding these does not compile anymore. why?
+//  implicit object ChildCommandObservableRender extends AsVDomModifier[ValueObservable[ChildCommand]] {
+//    def asVDomModifier(value: ValueObservable[ChildCommand]): VDomModifier = SchedulerAction(implicit scheduler => EffectModifier(ChildCommand.stream(value.map(Seq(_))).map(ModifierStreamReceiver(_))))
+//  }
+//
+//  implicit object ChildCommandSeqObservableRender extends AsVDomModifier[ValueObservable[Seq[ChildCommand]]] {
+//    def asVDomModifier(value: ValueObservable[Seq[ChildCommand]]): VDomModifier = SchedulerAction(implicit scheduler => EffectModifier(ChildCommand.stream(value).map(ModifierStreamReceiver(_))))
+//  }
 }

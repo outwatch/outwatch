@@ -208,14 +208,15 @@ private[outwatch] object NativeModifiers {
       val lengthsArr = lengths getOrElse assign(new js.Array[js.UndefOr[Int]](modifiers.length))(lengths = _)
       val observables = updaterObservables getOrElse assign(new js.Array[Observable[js.Array[StaticVDomModifier]]]())(updaterObservables = _)
       val index = lengthsArr.length
-      stream.value match {
+      val v = stream.value()
+      v.head match {
         case Some(value) =>
           modifiers ++= value
           lengthsArr += value.length
         case None =>
           lengthsArr += 0
       }
-      observables += stream.observable.map { mods =>
+      observables += v.tail.map { mods =>
         var i = 0
         var lengthBefore = 0
         while (i < index) {
@@ -256,22 +257,22 @@ private[outwatch] object NativeModifiers {
       case mods: CompositeModifier =>
         val nativeModifiers = fromInStream(mods.modifiers)
         nativeModifiers.observable.fold(Observable.now(nativeModifiers.modifiers)) { obs =>
-          Observable(Observable.now(nativeModifiers.modifiers), obs).concat
+          obs.prepend(nativeModifiers.modifiers)
         }
       case m: ModifierStreamReceiver =>
-        val stream = flattenModifierStream(m.stream)
-        Observable(Observable.now(stream.value.getOrElse(js.Array())), stream.observable).concat
+        val stream = flattenModifierStream(m.stream).value()
+        stream.tail.prepend(stream.head.getOrElse(js.Array()))
+
       case m: EffectModifier => findObservable(m.effect.unsafeRunSync())
       case m: SchedulerAction => findObservable(m.action(scheduler))
     }
-    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable)
 
-    @tailrec def findDefaultObservable(modifier: VDomModifier): ValueObservable[js.Array[StaticVDomModifier]] = modifier match {
-      case h: DomHook =>  ValueObservable(observable, mirrorStreamedDomHook(h))
-      case mod: StaticVDomModifier => ValueObservable(observable, js.Array(mod))
-      case EmptyModifier => ValueObservable(observable, js.Array())
-      case child: VNode  => ValueObservable(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
-      case child: StringVNode  => ValueObservable(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
+    @tailrec def findDefaultObservable(observable: Observable[js.Array[StaticVDomModifier]], modifier: VDomModifier): ValueObservable[js.Array[StaticVDomModifier]] = modifier match {
+      case h: DomHook =>  ValueObservable.from(observable, mirrorStreamedDomHook(h))
+      case mod: StaticVDomModifier => ValueObservable.from(observable, js.Array(mod))
+      case EmptyModifier => ValueObservable.from(observable, js.Array())
+      case child: VNode  => ValueObservable.from(observable, js.Array(VNodeProxyNode(SnabbdomOps.toSnabbdom(child))))
+      case child: StringVNode  => ValueObservable.from(observable, js.Array(VNodeProxyNode(VNodeProxy.fromString(child.text))))
       case mods: CompositeModifier =>
         val nativeModifiers = fromInStream(mods.modifiers)
         val initialObservable = nativeModifiers.observable.fold(observable) { obs =>
@@ -279,17 +280,20 @@ private[outwatch] object NativeModifiers {
             Observable(obs.takeUntil(observable), observable).merge
           }
         }
-        ValueObservable(initialObservable, nativeModifiers.modifiers)
+        ValueObservable.from(initialObservable, nativeModifiers.modifiers)
       case m: ModifierStreamReceiver =>
-        val stream = flattenModifierStream(m.stream)
+        val stream = flattenModifierStream(m.stream).value()
         val initialObservable = observable.publishSelector { observable =>
-          Observable(stream.observable.takeUntil(observable), observable).merge
+          Observable(stream.tail.takeUntil(observable), observable).merge
         }
-        ValueObservable(initialObservable, stream.value.getOrElse(js.Array()))
-      case m: EffectModifier => findDefaultObservable(m.effect.unsafeRunSync())
-      case m: SchedulerAction => findDefaultObservable(m.action(scheduler))
+        ValueObservable.from(initialObservable, stream.head.getOrElse(js.Array()))
+      case m: EffectModifier => findDefaultObservable(observable, m.effect.unsafeRunSync())
+      case m: SchedulerAction => findDefaultObservable(observable, m.action(scheduler))
     }
-    modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array()))(findDefaultObservable)
+
+    val value = modStream.value()
+    val observable = value.tail.switchMap[js.Array[StaticVDomModifier]](findObservable)
+    value.head.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable.from(observable, js.Array()))(findDefaultObservable(observable, _))
   }
 
   // if a dom mount hook is streamed, we want to emulate an intuitive interface as if they were static.

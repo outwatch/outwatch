@@ -1,5 +1,6 @@
 package outwatch.dom
 
+import monix.execution.Scheduler
 import monix.reactive.Observable
 import monix.reactive.subjects.Var
 
@@ -9,10 +10,7 @@ trait AsValueObservable[-F[_]] {
 
 trait AsValueObservableInstances0 {
   implicit object observable extends AsValueObservable[Observable] {
-    def as[T](stream: Observable[T]): ValueObservable[T] = new ValueObservable[T] {
-      def observable: Observable[T] = stream
-      def value: Option[T] = None
-    }
+    @inline def as[T](stream: Observable[T]): ValueObservable[T] = ValueObservable.from(stream)
   }
 }
 
@@ -22,10 +20,7 @@ object AsValueObservable extends AsValueObservableInstances0  {
   }
 
   implicit object variable extends AsValueObservable[Var] {
-    def as[T](stream: Var[T]): ValueObservable[T] = new ValueObservable[T] {
-      def observable: Observable[T] = stream.drop(1)
-      def value: Option[T] = Some(stream.apply())
-    }
+    @inline def as[T](stream: Var[T]): ValueObservable[T] = ValueObservable.from(stream)
   }
 }
 

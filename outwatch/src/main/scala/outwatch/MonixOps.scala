@@ -3,12 +3,13 @@ package outwatch
 import cats.effect.IO
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
-import monix.reactive.{Observable, Observer}
+import monix.reactive.{Observable, Observer, OverflowStrategy}
+import outwatch.dom.ValueObservable
 
 import scala.concurrent.Future
 
 trait MonixOps {
-  type ProHandler[-I, +O] = Observable[O] with Observer[I]
+  type ProHandler[-I, +O] = ValueObservable[O] with Observer[I]
   type Handler[T] = ProHandler[T,T]
 
   @deprecated("use monix.reactive.Observer instead", "")
@@ -60,18 +61,17 @@ trait MonixOps {
     def filterObserver(f: I => Boolean): ProHandler[I, O] = ProHandler(self.redirectFilter(f), self)
     def filterProHandler(write: I => Boolean)(read: O => Boolean): ProHandler[I, O] = ProHandler(self.redirectFilter(write), self.filter(read))
 
-    def transformObservable[O2](f: Observable[O] => Observable[O2]): ProHandler[I,O2] = ProHandler(self, f(self))
+    def transformObservable[O2](f: ValueObservable[O] => ValueObservable[O2]): ProHandler[I,O2] = ProHandler(self, f(self))
     def transformObserver[I2](f: Observable[I2] => Observable[I]): ProHandler[I2,O] with ReactiveConnectable = ProHandler.connectable(self.redirect(f), self)
-    def transformProHandler[I2, O2](write: Observable[I2] => Observable[I])(read: Observable[O] => Observable[O2]): ProHandler[I2,O2] with ReactiveConnectable = ProHandler.connectable(self.redirect(write), read(self))
+    def transformProHandler[I2, O2](write: Observable[I2] => Observable[I])(read: ValueObservable[O] => ValueObservable[O2]): ProHandler[I2,O2] with ReactiveConnectable = ProHandler.connectable(self.redirect(write), read(self))
 
     @deprecated("A Handler is already an Observer", "")
     def observer:Observer[I] = self
   }
 
   implicit class RichHandler[T](self: Handler[T]) {
-    def lens[S](seed: T)(read: T => S)(write: (T, S) => T)(implicit scheduler: Scheduler): Handler[S] with ReactiveConnectable = {
-      val redirected = self
-        .redirect[S](_.withLatestFrom(self.startWith(Seq(seed))){ case (a, b) => write(b, a) })
+    def lens[S](seed: T)(read: T => S)(write: (T, S) => T): Handler[S] with ReactiveConnectable = {
+      val redirected = self.redirect[S](_.withLatestFrom(self.startWith(seed :: Nil).observable){ case (a, b) => write(b, a) })
 
       ProHandler.connectable(redirected, self.map(read))
     }
@@ -79,8 +79,7 @@ trait MonixOps {
     def mapHandler[T2](write: T2 => T)(read: T => T2): Handler[T2] = ProHandler(self.redirectMap(write), self.map(read))
     def collectHandler[T2](write: PartialFunction[T2, T])(read: PartialFunction[T, T2]): Handler[T2] = ProHandler(self.redirectCollect(write), self.collect(read))
     def filterHandler(write: T => Boolean)(read: T => Boolean): Handler[T] = ProHandler(self.redirectFilter(write), self.filter(read))
-    def transformHandler[T2](write: Observable[T2] => Observable[T])(read: Observable[T] => Observable[T2]): Handler[T2] with ReactiveConnectable = ProHandler.connectable(self.redirect(write), read(self))
+    def transformHandler[T2](write: Observable[T2] => Observable[T])(read: ValueObservable[T] => ValueObservable[T2]): Handler[T2] with ReactiveConnectable = ProHandler.connectable(self.redirect(write), read(self))
   }
-
 }
 

@@ -518,7 +518,7 @@ class LifecycleHookSpec extends JSDomSpec {
     val modHandler = PublishSubject[VDomModifier]()
     val innerHandler = PublishSubject[VDomModifier]()
     val otherHandler = PublishSubject[VDomModifier]()
-    val node = div(otherHandler, ValueObservable(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomPreUpdate foreach { domHooks :+= "default-preupdate" }, onDomUpdate foreach { domHooks :+= "default-update" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
+    val node = div(otherHandler, ValueObservable.from(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomPreUpdate foreach { domHooks :+= "default-preupdate" }, onDomUpdate foreach { domHooks :+= "default-update" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
 
     OutWatch.renderInto("#app", node).map { _ =>
       domHooks shouldBe List("default-mount")

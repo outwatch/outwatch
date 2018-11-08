@@ -12,10 +12,17 @@ import org.scalajs.dom.{document, window}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 import org.scalatest._
 import outwatch.Deprecated.IgnoreWarnings.initEvent
+import outwatch.dom.ValueObservable
 
 trait EasySubscribe {
 
-  implicit class Subscriber[T](obs: Observable[T]) {
+  implicit class SubscriberObservable[T](obs: Observable[T]) {
+    def apply(next: T => Unit)(implicit s: Scheduler): Cancelable = obs.subscribe { t =>
+      next(t)
+      Continue
+    }
+  }
+  implicit class SubscriberValueObservable[T](obs: ValueObservable[T]) {
     def apply(next: T => Unit)(implicit s: Scheduler): Cancelable = obs.subscribe { t =>
       next(t)
       Continue

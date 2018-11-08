@@ -19,11 +19,13 @@ trait EmitterBuilder[+O, +R] { self =>
   def map[T](f: O => T): EmitterBuilder[T, R]
   def filter(predicate: O => Boolean): EmitterBuilder[O, R]
   def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R]
+  def mapOption[T](f: O => Option[T]): EmitterBuilder[T, R]
 
   @inline def foreach(action: O => Unit): R = -->(Sink.fromFunction(action))
   @inline def foreach(action: => Unit): R = foreach(_ => action)
   @inline def apply[T](value: T): EmitterBuilder[T, R] = map(_ => value)
   @inline def mapTo[T](value: => T): EmitterBuilder[T, R] = map(_ => value)
+  @inline def apply[T](latest: ValueObservable[T]): EmitterBuilder[T, R] = apply(latest.observable)
   @inline def apply[T](latest: Observable[T]): EmitterBuilder[T, R] = transform(_.withLatestFrom(latest)((_, u) => u))
   @inline def debounce(timeout: FiniteDuration): EmitterBuilder[O, R] = transform(_.debounce(timeout))
   @inline def async: EmitterBuilder[O, R] = transform(_.asyncBoundary(OverflowStrategy.Unbounded))
@@ -92,11 +94,14 @@ trait SyncEmitterBuilder[+O, +R] extends EmitterBuilder[O, R] {
   @inline def map[T](f: O => T): SyncEmitterBuilder[T, R] = transformSync(_.map(f))
   @inline def collect[T](f: PartialFunction[O, T]): SyncEmitterBuilder[T, R] = transformSync(_.collect(f))
   @inline def filter(predicate: O => Boolean): SyncEmitterBuilder[O, R] = transformSync(_.filter(predicate))
+  @inline def mapOption[T](f: O => Option[T]): EmitterBuilder[T, R] = transformSync(_.flatMap(f))
 }
+
 trait AsyncEmitterBuilder[+O, +R] extends EmitterBuilder[O, R] { self =>
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transform(_.map(f))
   @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
   @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transform(_.collect(f))
+  @inline def mapOption[T](f: O => Option[T]): EmitterBuilder[T, R] = transform(_.flatMap(v => f(v).fold[Observable[T]](Observable.empty)(Observable.now)))
 }
 
 final class CustomEmitterBuilder[E, +R] private[outwatch](create: Observer[E] => R) extends SyncEmitterBuilder[E, R] {

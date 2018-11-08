@@ -3,11 +3,10 @@ package outwatch.util
 import cats.effect.IO
 import monix.execution.Scheduler
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
-import outwatch.dom.helpers.STRef
 import outwatch.dom.{OutWatch, VNode}
+import outwatch.dom.helpers.STRef
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -34,9 +33,7 @@ object Store {
   def create[State, Action](
     initialState: State,
     reducer: Reducer[State, Action]
-  )(implicit s: Scheduler): IO[ProHandler[Action, State]] = IO {
-
-      val subject = PublishSubject[Action]
+  )(implicit s: Scheduler): IO[ProHandler[Action, State]] = Handler.create[Action].map { subject =>
 
       val fold: (State, Action) => State = (state, action) => Try { // guard against reducer throwing an exception
         val (newState, effects) = reducer.reducer(state, action)

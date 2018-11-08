@@ -21,10 +21,10 @@ class Storage(domStorage: dom.Storage) {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
       val connectable = h.transformHandler[Option[String]](o => transform(o).distinctUntilChanged) { input =>
-        input.doOnNext {
+        input.transformTail(_.doOnNext {
           case Some(data) => Task(storage.update(key, data))
           case None => Task(storage.remove(key))
-        }
+        })
       }
 
       connectable.connect()

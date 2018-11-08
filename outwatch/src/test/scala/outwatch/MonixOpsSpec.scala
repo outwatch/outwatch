@@ -42,11 +42,11 @@ class MonixOpsSpec extends JSDomAsyncSpec {
   }
 
 
-  "PublishSubject" should "transformObservable" in {
+  "Handler" should "transformObservable" in {
 
     var currentValue = 0
 
-    val subject = PublishSubject[Int]
+    val subject = Handler.unsafe[Int]
     val mapped = subject.transformObservable(_.map(_ + 1))
     mapped.foreach{currentValue = _}
 

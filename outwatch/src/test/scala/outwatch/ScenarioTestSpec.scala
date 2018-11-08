@@ -22,7 +22,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       handleMinus <- Handler.create[MouseEvent]
           plusOne = handlePlus.map(_ => 1)
          minusOne = handleMinus.map(_ => -1)
-            count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
+            count = ValueObservable(plusOne, minusOne).merge.scan(0)(_ + _).startWith(Seq(0))
 
              node = div(div(
                         button(id := "plus", "+", onClick --> handlePlus),
@@ -222,7 +222,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = Observable(enterPressed, clickStream).merge
+      confirm: ValueObservable[String] = ValueObservable(enterPressed, clickStream).merge
         .withLatestFrom(textFieldStream)((_, input) => input)
 
     } yield div(
@@ -252,7 +252,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       deletes = deleteHandler
         .map(removeFromList)
 
-      state = Observable(adds, deletes).merge
+      state = ValueObservable(adds, deletes).merge
         .scan(Vector[String]())((state, modify) => modify(state))
         .map(_.map(n => TodoComponent(n, deleteHandler)))
       textFieldComponent = TextFieldComponent("Todo: ", inputHandler)
