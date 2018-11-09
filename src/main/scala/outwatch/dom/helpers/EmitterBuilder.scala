@@ -12,7 +12,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.scalajs.js
 
 
-trait EmitterBuilder[+O, +R] {
+trait EmitterBuilder[+O, +R] { self =>
 
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R]
   def -->(observer: Observer[O]): R
@@ -34,13 +34,12 @@ trait EmitterBuilder[+O, +R] {
 object EmitterBuilder {
   @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => Emitter(eventType, event => obs.onNext(event.asInstanceOf[E])))
 
-  @inline def apply[E](observable: Observable[E]): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => managedAction(implicit scheduler => observable.subscribe(obs)))
+  @inline def fromObservable[E](observable: Observable[E]): EmitterBuilder[E, VDomModifier] = new ObservableEmitterBuilder[E, VDomModifier](observable, managedAction)
 
-  def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] =
-    new CustomEmitterBuilder[E, VDomModifier]({
-      case o: ConnectableObserver[E] => VDomModifier(managedAction(implicit scheduler => o.connect()), create(o))
-      case o: Observer[E] => create(o)
-    })
+  def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] = new CustomEmitterBuilder[E, VDomModifier]({
+    case o: ConnectableObserver[E] => VDomModifier(managedAction(implicit scheduler => o.connect()), create(o))
+    case o: Observer[E] => create(o)
+  })
 
   def empty: EmptyEmitterBuilder[VDomModifier] = new EmptyEmitterBuilder[VDomModifier](VDomModifier.empty)
 
@@ -94,6 +93,11 @@ trait SyncEmitterBuilder[+O, +R] extends EmitterBuilder[O, R] {
   @inline def collect[T](f: PartialFunction[O, T]): SyncEmitterBuilder[T, R] = transformSync(_.collect(f))
   @inline def filter(predicate: O => Boolean): SyncEmitterBuilder[O, R] = transformSync(_.filter(predicate))
 }
+trait AsyncEmitterBuilder[+O, +R] extends EmitterBuilder[O, R] { self =>
+  @inline def map[T](f: O => T): EmitterBuilder[T, R] = transform(_.map(f))
+  @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
+  @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transform(_.collect(f))
+}
 
 final class CustomEmitterBuilder[E, +R] private[outwatch](create: Observer[E] => R) extends SyncEmitterBuilder[E, R] {
   def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder[E, T, R](tr, create)
@@ -107,15 +111,17 @@ final class FunctionEmitterBuilder[E, +O, +R] private[outwatch](transformer: Opt
   def -->(observer: Observer[O]): R = create(observer.redirectMapMaybe(e => transformer(Some(e))))
 }
 
-final class TransformingEmitterBuilder[E, +O, +R] private[outwatch](transformer: Observable[E] => Observable[O], create: ConnectableObserver[E] => R) extends EmitterBuilder[O, R] {
+final class TransformingEmitterBuilder[E, +O, +R] private[outwatch](transformer: Observable[E] => Observable[O], create: ConnectableObserver[E] => R) extends AsyncEmitterBuilder[O, R] {
   def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder(transformer andThen tr, create)
-  @inline def map[T](f: O => T): EmitterBuilder[T, R] = transform(_.map(f))
-  @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transform(_.filter(predicate))
-  @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transform(_.collect(f))
   def -->(observer: Observer[O]): R = create(observer.redirect(transformer))
 }
 
-final class EmptyEmitterBuilder[R](empty: R) extends SyncEmitterBuilder[Nothing, R] {
+final class ObservableEmitterBuilder[+E, +R] private[outwatch](observable: Observable[E], create: (Scheduler => Cancelable) => R) extends AsyncEmitterBuilder[E, R] {
+  def transform[T](tr: Observable[E] => Observable[T]): EmitterBuilder[T, R] = new ObservableEmitterBuilder(tr(observable), create)
+  def -->(observer: Observer[E]): R = create(implicit scheduler => observable.subscribe(observer))
+}
+
+final class EmptyEmitterBuilder[R] private[outwatch](empty: R) extends SyncEmitterBuilder[Nothing, R] {
   override def transformSync[T](f: Option[Nothing] => Option[T]): SyncEmitterBuilder[T, R] = this
   override def transform[T](tr: Observable[Nothing] => Observable[T]): EmitterBuilder[T, R] = this
   override def -->(observer: Observer[Nothing]): R = empty

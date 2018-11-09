@@ -93,7 +93,7 @@ trait AttributeHelpers { self: Attributes =>
   @inline def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   @inline def style[T](key: String) = new BasicStyleBuilder[T](key)
 
-  @inline def emitter[E](observable: Observable[E]): CustomEmitterBuilder[E, VDomModifier] = EmitterBuilder(observable)
+  @inline def emitter[E](observable: Observable[E]): EmitterBuilder[E, VDomModifier] = EmitterBuilder.fromObservable(observable)
 }
 
 trait TagHelpers { self: Tags =>
