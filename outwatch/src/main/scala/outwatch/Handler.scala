@@ -16,8 +16,14 @@ object Handler {
   @inline def create[T]:IO[Handler[T]] = IO(unsafe[T])
   @inline def create[T](seed:T):IO[Handler[T]] = IO(unsafe[T](seed))
 
+  @inline def createDistinct[T](implicit e: cats.Eq[T]):IO[Handler[T]] = IO(unsafeDistinct)
+  @inline def createDistinct[T](seed:T)(implicit e: cats.Eq[T]):IO[Handler[T]] = IO(unsafeDistinct(seed))
+
   def unsafe[T]:Handler[T] = new BehaviorProHandler[T](None)
   def unsafe[T](seed:T):Handler[T] = new BehaviorProHandler[T](Some(seed))
+
+  def unsafeDistinct[T](implicit e: cats.Eq[T]):Handler[T] = new BehaviorProHandler[T](None).transformObservable(_.distinctUntilChanged)
+  def unsafeDistinct[T](seed:T)(implicit e: cats.Eq[T]):Handler[T] = new BehaviorProHandler[T](Some(seed)).transformObservable(_.distinctUntilChanged)
 
   @inline def apply[T,F[_]: AsValueObservable : AsObserver](handler: F[T]): Handler[T] = ProHandler(AsObserver(handler), ValueObservable.from(handler))
 }
