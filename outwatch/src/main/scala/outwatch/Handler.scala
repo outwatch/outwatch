@@ -29,13 +29,17 @@ object Handler {
 }
 
 object ProHandler {
-  def create[I,O](seed: I, f: I => O): IO[ProHandler[I,O]] = for {
-    handler <- Handler.create[I](seed)
-  } yield handler.mapObservable[O](f)
+  @inline def create[I,O](seed: I, f: I => O): IO[ProHandler[I,O]] = IO(unsafe(seed, f))
+  @inline def create[I,O](f: I => O): IO[ProHandler[I,O]] = IO(unsafe(f))
 
-  def create[I,O](f: I => O): IO[ProHandler[I,O]] = for {
-    handler <- Handler.create[I]
-  } yield handler.mapObservable[O](f)
+  def unsafe[I,O](seed: I, f: I => O): ProHandler[I,O] = {
+    val handler = Handler.unsafe[I](seed)
+    handler.mapObservable[O](f)
+  }
+  def unsafe[I,O](f: I => O): ProHandler[I,O] = {
+    val handler = Handler.unsafe[I]
+    handler.mapObservable[O](f)
+  }
 
   @inline def apply[I,O,F[_]: AsValueObservable](observer:Observer[I], observable: F[O]):ProHandler[I,O] = apply(observer, ValueObservable.from(observable))
   def apply[I,O](observer:Observer[I], valueObservable: ValueObservable[O]):ProHandler[I,O] = new ValueObservable[O] with Observer[I] {
