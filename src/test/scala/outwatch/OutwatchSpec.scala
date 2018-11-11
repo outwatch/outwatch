@@ -68,7 +68,7 @@ trait LocalStorageMock {
 
 trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock { self: Suite =>
 
-  implicit val scheduler: TrampolineScheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
+  val scheduler: TrampolineScheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
   override def beforeEach(): Unit = {
 
@@ -85,7 +85,11 @@ trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe w
 
 }
 
-abstract class JSDomSpec extends FlatSpec with OutwatchSpec
+abstract class JSDomSpec extends FlatSpec with OutwatchSpec {
+  implicit def executionContext = scheduler
+}
 abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
+  override implicit def executionContext = scheduler
+
   implicit def ioAssertionToFutureAssertion(io: IO[Assertion]): Future[Assertion] = io.unsafeToFuture()
 }
