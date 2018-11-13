@@ -33,11 +33,6 @@ trait OutWatchLifeCycleAttributes {
   lazy val onDomUpdate: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementFirstEmitter(DomUpdateHook))
 
   /**
-    * Lifecycle hook for the initalization of a VNodeProxy. Snabbdom creates a fresh element for this node.
-    */
-  lazy val onSnabbdomInit: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(InitHook))
-
-  /**
     * Lifecycle hook for component insertion.
     *
     * This hook is invoked once the DOM element for a vnode has been inserted into the document
