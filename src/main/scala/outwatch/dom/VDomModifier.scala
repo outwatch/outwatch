@@ -88,7 +88,7 @@ sealed trait BasicVNode extends VNode {
   @inline def static(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = conditional(key)(false)(renderFn)
 }
 sealed trait TypedVNode[T <: BasicVNode] extends BasicVNode {
-  def modified(updatedModifiers: js.Array[VDomModifier]): T
+  protected def modified(updatedModifiers: js.Array[VDomModifier]): T
 
   def apply(args: VDomModifier*): T = {
     val newModifiers:js.Array[VDomModifier] = args match {
@@ -114,8 +114,8 @@ final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRe
   def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args))
 }
 final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends TypedVNode[HtmlVNode] {
-  override def modified(updatedModifiers: js.Array[VDomModifier]): HtmlVNode = copy(modifiers = updatedModifiers)
+  protected def modified(updatedModifiers: js.Array[VDomModifier]): HtmlVNode = copy(modifiers = updatedModifiers)
 }
 final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends TypedVNode[SvgVNode] {
-  override def modified(updatedModifiers: js.Array[VDomModifier]): SvgVNode = copy(modifiers = updatedModifiers)
+  protected def modified(updatedModifiers: js.Array[VDomModifier]): SvgVNode = copy(modifiers = updatedModifiers)
 }
