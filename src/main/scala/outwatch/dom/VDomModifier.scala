@@ -87,7 +87,24 @@ sealed trait BasicVNode extends VNode {
   def conditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
   @inline def static(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = conditional(key)(false)(renderFn)
 }
+sealed trait TypedVNode[T <: BasicVNode] extends BasicVNode {
+  def modified(updatedModifiers: js.Array[VDomModifier]): T
 
+  def apply(args: VDomModifier*): T = {
+    val newModifiers:js.Array[VDomModifier] = args match {
+      case wrappedArgs:js.WrappedArray[VDomModifier] => modifiers.concat(wrappedArgs.array)
+      case _                                         => modifiers ++ args
+    }
+    modified(newModifiers)
+  }
+  def prepend(args: VDomModifier*): T = {
+    val newModifiers:js.Array[VDomModifier] = args match {
+      case wrappedArgs:js.WrappedArray[VDomModifier] => wrappedArgs.array.concat(modifiers)
+      case _                                         => args.++(modifiers)(collection.breakOut)
+    }
+    modified(newModifiers)
+  }
+}
 final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VDomModifier) extends VNode {
   def apply(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode(args))
   def prepend(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args))
@@ -96,35 +113,9 @@ final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRe
   def apply(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args))
   def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args))
 }
-final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
-  def apply(args: VDomModifier*): HtmlVNode = {
-    val newModifiers:js.Array[VDomModifier] = args match {
-      case wrappedArgs:js.WrappedArray[VDomModifier] => modifiers.concat(wrappedArgs.array)
-      case _                                         => modifiers ++ args
-    }
-    copy(modifiers = newModifiers)
-  }
-  def prepend(args: VDomModifier*): HtmlVNode = {
-    val newModifiers:js.Array[VDomModifier] = args match {
-      case wrappedArgs:js.WrappedArray[VDomModifier] => wrappedArgs.array.concat(modifiers)
-      case _                                         => args.++(modifiers)(collection.breakOut)
-    }
-    copy(modifiers = newModifiers)
-  }
+final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends TypedVNode[HtmlVNode] {
+  override def modified(updatedModifiers: js.Array[VDomModifier]): HtmlVNode = copy(modifiers = updatedModifiers)
 }
-final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
-  def apply(args: VDomModifier*): SvgVNode = {
-    val newModifiers:js.Array[VDomModifier] = args match {
-      case wrappedArgs:js.WrappedArray[VDomModifier] => modifiers.concat(wrappedArgs.array)
-      case _                                         => modifiers ++ args
-    }
-    copy(modifiers = newModifiers)
-  }
-  def prepend(args: VDomModifier*): SvgVNode = {
-    val newModifiers:js.Array[VDomModifier] = args match {
-      case wrappedArgs:js.WrappedArray[VDomModifier] => wrappedArgs.array.concat(modifiers)
-      case _                                         => args.++(modifiers)(collection.breakOut)
-    }
-    copy(modifiers = newModifiers)
-  }
+final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends TypedVNode[SvgVNode] {
+  override def modified(updatedModifiers: js.Array[VDomModifier]): SvgVNode = copy(modifiers = updatedModifiers)
 }
