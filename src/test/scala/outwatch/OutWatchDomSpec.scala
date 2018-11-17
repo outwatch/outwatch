@@ -2224,7 +2224,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work with inner stream" in {
     val myString: Handler[String] = Handler.unsafe[String]
-    val myOther: Handler[String] = Handler.unsafe[String]
     val myThunk: Handler[Unit] = Handler.unsafe[Unit]
 
     var renderFnCounter = 0
@@ -2269,6 +2268,351 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       myString.onNext("ohai")
       renderFnCounter shouldBe 1
       element.innerHTML shouldBe "<b><p>ohai</p></b>"
+    }
+  }
+
+  it should "work with inner and adjacent stream" in {
+    val myString: Handler[String] = Handler.unsafe[String]
+    val myOther: Handler[String] = Handler.unsafe[String]
+    val myThunk: Handler[Int] = Handler.unsafe[Int]
+
+    var renderFnCounter = 0
+    val node = div(
+      id := "strings",
+      myThunk.map { i =>
+        b.thunk("component")(i) {
+          renderFnCounter += 1
+          VDomModifier(
+            i,
+            myString.map { str =>
+              if (str.isEmpty) span("nope")
+              else p(dsl.key := str, str)
+            }
+          )
+        }
+      },
+      myOther
+    )
+
+    OutWatch.renderInto("#app", node).map { _ =>
+      val element = document.getElementById("strings")
+
+      renderFnCounter shouldBe 0
+      element.innerHTML shouldBe ""
+
+      myThunk.onNext(0)
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b>0</b>"
+
+      myThunk.onNext(0)
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b>0</b>"
+
+      myString.onNext("ok?")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b>0<p>ok?</p></b>"
+
+      myString.onNext("got it?")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b>0<p>got it?</p></b>"
+
+      myOther.onNext("nope")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<b>0<p>got it?</p></b>nope"
+
+      myThunk.onNext(1)
+      renderFnCounter shouldBe 2
+      element.innerHTML shouldBe "<b>1<p>got it?</p></b>nope"
+
+      myThunk.onNext(2)
+      renderFnCounter shouldBe 3
+      element.innerHTML shouldBe "<b>2<p>got it?</p></b>nope"
+
+      myOther.onNext("yes")
+      renderFnCounter shouldBe 3
+      element.innerHTML shouldBe "<b>2<p>got it?</p></b>yes"
+
+      myString.onNext("sad?")
+      renderFnCounter shouldBe 3
+      element.innerHTML shouldBe "<b>2<p>sad?</p></b>yes"
+
+      myString.onNext("hungry?")
+      renderFnCounter shouldBe 3
+      element.innerHTML shouldBe "<b>2<p>hungry?</p></b>yes"
+
+      myString.onNext("thursty?")
+      renderFnCounter shouldBe 3
+      element.innerHTML shouldBe "<b>2<p>thursty?</p></b>yes"
+
+      myOther.onNext("maybe")
+      renderFnCounter shouldBe 3
+      element.innerHTML shouldBe "<b>2<p>thursty?</p></b>maybe"
+
+      myThunk.onNext(3)
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<p>thursty?</p></b>maybe"
+
+      myString.onNext("")
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<span>nope</span></b>maybe"
+
+      myOther.onNext("come on")
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<span>nope</span></b>come on"
+
+      myThunk.onNext(3)
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<span>nope</span></b>come on"
+
+      myOther.onNext("hey?")
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<span>nope</span></b>hey?"
+
+      myString.onNext("oh")
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<p>oh</p></b>hey?"
+
+      myOther.onNext("ah")
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<p>oh</p></b>ah"
+
+      myThunk.onNext(3)
+      renderFnCounter shouldBe 4
+      element.innerHTML shouldBe "<b>3<p>oh</p></b>ah"
+
+      myThunk.onNext(4)
+      renderFnCounter shouldBe 5
+      element.innerHTML shouldBe "<b>4<p>oh</p></b>ah"
+    }
+  }
+
+  it should "work with nested inner stream" in {
+    val myString: Handler[String] = Handler.unsafe[String]
+    val myInner: Handler[String] = Handler.unsafe[String]
+    val myInnerOther: Handler[String] = Handler.unsafe[String]
+    val myOther: Handler[String] = Handler.unsafe[String]
+    val myThunk: Handler[Unit] = Handler.unsafe[Unit]
+
+    var renderFnCounter = 0
+    val node = div(
+      id := "strings",
+      myThunk.map { _ =>
+        div(
+          b.static("component") {
+            renderFnCounter += 1
+            myString.map { str =>
+              div(
+                if (str.isEmpty) div("empty") else p.thunk("inner")(str)(VDomModifier(str, myInner)),
+                myInnerOther
+              )
+            }
+          },
+          myOther
+        )
+      }
+    )
+
+    OutWatch.renderInto("#app", node).map { _ =>
+      val element = document.getElementById("strings")
+
+      renderFnCounter shouldBe 0
+      element.innerHTML shouldBe ""
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b></b></div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b></b></div>"
+
+      myString.onNext("ok?")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
+
+      myString.onNext("ok?")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
+
+      myString.onNext("hope so")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>hope so</p></div></b></div>"
+
+      myString.onNext("ohai")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ohai</p></div></b></div>"
+
+      myString.onNext("")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><div>empty</div></div></b></div>"
+
+      myInner.onNext("!")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><div>empty</div></div></b></div>"
+
+      myString.onNext("torst")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>torst!</p></div></b></div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>torst!</p></div></b></div>"
+
+      myInner.onNext("?")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>torst?</p></div></b></div>"
+
+      myString.onNext("gandalf")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b></div>"
+
+      myString.onNext("gandalf")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b></div>"
+
+      myOther.onNext("du")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b>du</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b>du</div>"
+
+      myInner.onNext("!")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gandalf!</p></div></b>du</div>"
+
+      myString.onNext("fanta")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
+
+      myString.onNext("fanta")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
+
+      myOther.onNext("nee")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>nee</div>"
+
+      myInnerOther.onNext("muh")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>fanta!</p>muh</div></b>nee</div>"
+
+      myString.onNext("ghost")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
+
+      myString.onNext("ghost")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
+
+      myOther.onNext("life")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
+
+      myInnerOther.onNext("muh")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
+
+      myString.onNext("ghost")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
+
+      myOther.onNext("seen")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>seen</div>"
+
+      myInnerOther.onNext("muh")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>seen</div>"
+
+      myString.onNext("")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><div>empty</div>muh</div></b>seen</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><div>empty</div>muh</div></b>seen</div>"
+
+      myString.onNext("gott")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gott!</p>muh</div></b>seen</div>"
+
+      myOther.onNext("dorf")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gott!</p>muh</div></b>dorf</div>"
+
+      myInnerOther.onNext("ach")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
+
+      myString.onNext("gott")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
+
+      myInner.onNext("hans")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>ach</div></b>dorf</div>"
+
+      myOther.onNext("das")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>ach</div></b>das</div>"
+
+      myInnerOther.onNext("tank")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>tank</div></b>das</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>tank</div></b>das</div>"
+
+      myInner.onNext("so")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gottso</p>tank</div></b>das</div>"
+
+      myOther.onNext("datt")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gottso</p>tank</div></b>datt</div>"
+
+      myInnerOther.onNext("ohje")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gottso</p>ohje</div></b>datt</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>gottso</p>ohje</div></b>datt</div>"
+
+      myString.onNext("ende")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>datt</div>"
+
+      myString.onNext("ende")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>datt</div>"
+
+      myOther.onNext("fin")
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>fin</div>"
+
+      myThunk.onNext(())
+      renderFnCounter shouldBe 1
+      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>fin</div>"
     }
   }
 
