@@ -96,10 +96,10 @@ final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRe
   def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args))
 }
 final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
-  def apply(args: VDomModifier*): BasicVNode = copy(modifiers = appendSeq(modifiers, args))
-  def prepend(args: VDomModifier*): BasicVNode = copy(modifiers = prependSeq(modifiers, args))
+  def apply(args: VDomModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
+  def prepend(args: VDomModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
 }
 final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
-  def apply(args: VDomModifier*): BasicVNode = copy(modifiers = appendSeq(modifiers, args))
-  def prepend(args: VDomModifier*): BasicVNode = copy(modifiers = prependSeq(modifiers, args))
+  def apply(args: VDomModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
+  def prepend(args: VDomModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
 }
