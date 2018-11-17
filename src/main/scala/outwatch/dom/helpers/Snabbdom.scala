@@ -101,6 +101,7 @@ private[outwatch] object SnabbdomOps {
             nextModifiers = separatedModifiers.nextModifiers
             val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
             newProxy._update = proxy._update
+            newProxy.data.get.args = proxy.data.get.args
 
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)

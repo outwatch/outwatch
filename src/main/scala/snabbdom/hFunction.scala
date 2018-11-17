@@ -90,7 +90,7 @@ object thunk {
     for {
       data <- thunk.data
     } {
-      VNodeProxy.copyInto(source = fn(), target = thunk)
+      VNodeProxy.updateInto(source = fn(), target = thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
@@ -124,8 +124,8 @@ object thunk {
   }
 
   @inline private def prepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
-    if (shouldRender) VNodeProxy.copyInto(source = fn(), target = thunk)
-    else VNodeProxy.copyInto(source = oldProxy, target = thunk)
+    if (shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
+    else VNodeProxy.updateInto(source = oldProxy, target = thunk)
   }
 
   @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
@@ -205,11 +205,24 @@ object VNodeProxy {
     data = DataObject.empty
   }
 
-  def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
-    source.data.foreach { data =>
-      // keep args from previous proxy
-      data.args = target.data.flatMap(_.args)
+  def updateInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
+    val targetArgs = target.data.flatMap(_.args)
+    target.key = source.key
+    target.data = source.data
+    target.children = source.children
+    target.text = source.text
+    target.elm = source.elm
+    target.listener = source.listener
+    target._id = source._id
+    target._unmount = source._unmount
+    // do not copy _update
+    target.data.foreach { data =>
+      // keep last arguments
+      data.args = targetArgs
     }
+  }
+
+  def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
     target.sel = source.sel
     target.key = source.key
     target.data = source.data
@@ -219,6 +232,7 @@ object VNodeProxy {
     target.listener = source.listener
     target._id = source._id
     target._unmount = source._unmount
+    target._update = source._update
   }
 }
 
