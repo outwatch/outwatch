@@ -13,6 +13,9 @@ import scala.scalajs.js
 object OutwatchTracing {
   private[outwatch] val patchSubject = PublishSubject[VNodeProxy]()
   def patch: Observable[VNodeProxy] = patchSubject
+
+  private[outwatch] val errorSubject = PublishSubject[Throwable]()
+  def error: Observable[Throwable] = errorSubject
 }
 
 private[outwatch] object SnabbdomOps {
@@ -110,7 +113,10 @@ private[outwatch] object SnabbdomOps {
               Ack.Continue
             } else Ack.Stop
           },
-          error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
+          { error =>
+            OutwatchTracing.errorSubject.onNext(error)
+            dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
+          }
         ))
       }
 
