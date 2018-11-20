@@ -7,7 +7,6 @@ import outwatch.dom._
 import scala.language.dynamics
 
 trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
-  protected def name: String
   private[outwatch] def assign(value: T): A
 
   @inline def :=(value: T): A = assign(value)
@@ -24,6 +23,7 @@ object AttributeBuilder {
 // Attr
 
 trait AccumulateAttrOps[T] { self: AttributeBuilder[T, BasicAttr] =>
+  protected def name: String
   @inline def accum(s: String): AccumAttrBuilder[T] = accum(_ + s + _)
   @inline def accum(reducer: (Attr.Value, Attr.Value) => Attr.Value) = new AccumAttrBuilder[T](name, this, reducer)
 }
@@ -60,7 +60,7 @@ final class PropBuilder[T](val name: String, encode: T => Prop.Value) extends At
 // Styles
 
 trait AccumulateStyleOps[T] extends Any { self: AttributeBuilder[T, BasicStyle] =>
-
+  protected def name: String
   @inline def accum: AccumStyleBuilder[T] = accum(",")
   @inline def accum(s: String): AccumStyleBuilder[T] = accum(_ + s + _)
   @inline def accum(reducer: (String, String) => String) = new AccumStyleBuilder[T](name, reducer)
