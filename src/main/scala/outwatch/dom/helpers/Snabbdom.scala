@@ -64,21 +64,16 @@ private[outwatch] object SnabbdomOps {
     // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
     // renders its children again. But it would not have the correct state of this proxy. Therefore,
     // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-   def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = {
-     var proxy: VNodeProxy = null
-     val copyProxy: VNodeProxy => Unit = p => VNodeProxy.copyInto(p, proxy)
-     proxy = node match {
-       case node: BasicVNode =>
-         toRawSnabbdomProxy(node, copyProxy)
-       case node: ConditionalVNode =>
-         thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.shouldRender, copyProxy)
-       case node: ThunkVNode =>
-         thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.arguments, copyProxy)
-     }
-     proxy
+   def toSnabbdom(node: VNode)(implicit scheduler: Scheduler): VNodeProxy = node match {
+     case node: BasicVNode =>
+       toRawSnabbdomProxy(node)
+     case node: ConditionalVNode =>
+       thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.shouldRender)
+     case node: ThunkVNode =>
+       thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.arguments)
    }
 
-   private def toRawSnabbdomProxy(node: BasicVNode, onUpdate: VNodeProxy => Unit = _ => ())(implicit scheduler: Scheduler): VNodeProxy = {
+   private def toRawSnabbdomProxy(node: BasicVNode)(implicit scheduler: Scheduler): VNodeProxy = {
     val streamableModifiers = NativeModifiers.from(node.modifiers)
     val vNodeId = streamableModifiers.##
     val vNodeNS = getNamespace(node)
@@ -101,7 +96,7 @@ private[outwatch] object SnabbdomOps {
             nextModifiers = separatedModifiers.nextModifiers
             val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
             newProxy._update = proxy._update
-            newProxy.data.get.args = proxy.data.get.args
+            newProxy._args = proxy._args
 
             // call the snabbdom patch method and get the resulting proxy
             OutwatchTracing.patchSubject.onNext(newProxy)
@@ -116,13 +111,12 @@ private[outwatch] object SnabbdomOps {
     // hooks for subscribing and unsubscribing the streamable content
       var cancelable: Cancelable = null
       streamableModifiers.modifiers += InsertHook { p =>
-        proxy = p
+        VNodeProxy.copyInto(p, proxy)
         cancelable = subscribe()
       }
       streamableModifiers.modifiers += PostPatchHook { (o, p) =>
-        proxy = p
-        p._update.foreach(_(p))
-        onUpdate(p)
+        VNodeProxy.copyInto(p, proxy)
+        proxy._update.foreach(_(proxy))
         if (o._id != p._id) cancelable = subscribe()
       }
       streamableModifiers.modifiers += DomUnmountHook { _ => cancelable.cancel() }

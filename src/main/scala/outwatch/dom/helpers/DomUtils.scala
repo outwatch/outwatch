@@ -240,7 +240,7 @@ private[outwatch] object NativeModifiers {
       case m: EffectModifier => findObservable(m.effect.unsafeRunSync())
       case m: SchedulerAction => findObservable(m.action(scheduler))
     }
-    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable).share
+    val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable)
 
     @tailrec def findDefaultObservable(modifier: VDomModifier): ValueObservable[js.Array[StaticVDomModifier]] = modifier match {
       case h: DomHook =>  ValueObservable(observable, mirrorStreamedDomHook(h))
