@@ -4,7 +4,7 @@ import cats.effect.IO
 import monix.reactive.Observable
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.{document, html}
+import org.scalajs.dom.{document, html, Element}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -20,6 +20,12 @@ import scala.scalajs.js.JSON
 
 class OutWatchDomSpec extends JSDomAsyncSpec {
   implicit def ListToJsArray[T](list: Seq[T]): js.Array[T] = list.toJSArray
+
+  def sendEvent(elem: Element, eventType: String) = {
+    val event = document.createEvent("Events")
+    initEvent(event)(eventType, canBubbleArg = true, cancelableArg = false)
+    elem.dispatchEvent(event)
+  }
 
   "Properties" should "be separated correctly" in {
     val properties = Seq(
@@ -1678,18 +1684,16 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         element.innerHTML shouldBe """<div id="click"></div>"""
 
         clickCounter shouldBe 0
-        val event = document.createEvent("Events")
-        initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-        document.getElementById("click").dispatchEvent(event)
+        sendEvent(document.getElementById("click"), "click")
         clickCounter shouldBe 1
 
-        document.getElementById("click").dispatchEvent(event)
+        sendEvent(document.getElementById("click"), "click")
         clickCounter shouldBe 2
 
         myHandler.onNext(VDomModifier.empty)
         element.innerHTML shouldBe """<div id="click"></div>"""
 
-        document.getElementById("click").dispatchEvent(event)
+        sendEvent(document.getElementById("click"), "click")
         clickCounter shouldBe 2
       }
 
@@ -1818,9 +1822,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       unmounts shouldBe 0
       updates shouldBe 3
 
-      val event = document.createEvent("Events")
-      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-      document.getElementById("strings").dispatchEvent(event)
+      sendEvent(document.getElementById("strings"), "click")
 
       element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
       mounts shouldBe 1
@@ -1867,9 +1869,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       unmounts shouldBe 0
       updates shouldBe 1
 
-      val event = document.createEvent("Events")
-      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-      document.getElementById("strings").dispatchEvent(event)
+      sendEvent(document.getElementById("strings"), "click")
 
       element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
       mounts shouldBe 1
@@ -1943,9 +1943,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       val element = document.getElementById("strings")
       element.innerHTML shouldBe """<p id="id-1">How much?</p><p id="id-2">Why so cheap?</p>"""
 
-      val event = document.createEvent("Events")
-      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-      document.getElementById("id-1").dispatchEvent(event)
+      sendEvent(document.getElementById("id-1"), "click")
 
       element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p>"""
 
@@ -1955,7 +1953,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       cmds.onNext(ChildCommand.MoveId(ChildId.Key("question-2"), 0))
       element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p><div>spam</div>"""
 
-      document.getElementById("id-2").dispatchEvent(event)
+      sendEvent(document.getElementById("id-2"), "click")
       element.innerHTML shouldBe """<div>spam</div>"""
     }
   }
