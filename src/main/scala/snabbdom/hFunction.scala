@@ -64,7 +64,7 @@ object DataObject {
   type PropValue = Any
   type AttrValue = String | Boolean
   type StyleValue = String | js.Dictionary[String]
-  type KeyValue = String | Double  // https://github.com/snabbdom/snabbdom#key--string--number
+  type KeyValue = String | Double | Int // https://github.com/snabbdom/snabbdom#key--string--number
 
   def empty: DataObject = new DataObject { }
 }
