@@ -1,7 +1,7 @@
 package outwatch.dom.helpers
 
 import monix.execution.Ack.Continue
-import monix.execution.{Cancelable, Scheduler}
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
@@ -87,39 +87,49 @@ private[outwatch] object SnabbdomOps {
       // needs var for forward referencing
       var proxy: VNodeProxy = null
       var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = null
+      var isActive = false
 
       def subscribe(): Cancelable = {
         observable.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
-            // update the current proxy with the new state
-            val separatedModifiers = SeparatedModifiers.from(nextModifiers.fold(newState)(newState ++ _))
-            nextModifiers = separatedModifiers.nextModifiers
-            val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
-            newProxy._update = proxy._update
-            newProxy._args = proxy._args
+            if (isActive) {
+              // update the current proxy with the new state
+              val separatedModifiers = SeparatedModifiers.from(nextModifiers.fold(newState)(newState ++ _))
+              nextModifiers = separatedModifiers.nextModifiers
+              val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
+              newProxy._update = proxy._update
+              newProxy._args = proxy._args
 
-            // call the snabbdom patch method and get the resulting proxy
-            OutwatchTracing.patchSubject.onNext(newProxy)
-            patch(proxy, newProxy)
+              // call the snabbdom patch method and get the resulting proxy
+              OutwatchTracing.patchSubject.onNext(newProxy)
+              patch(proxy, newProxy)
 
-            Continue
+              Ack.Continue
+            } else Ack.Stop
           },
           error => dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
         ))
       }
 
-    // hooks for subscribing and unsubscribing the streamable content
+      // hooks for subscribing and unsubscribing the streamable content
       var cancelable: Cancelable = null
       streamableModifiers.modifiers += InsertHook { p =>
         VNodeProxy.copyInto(p, proxy)
+        isActive = true
         cancelable = subscribe()
       }
       streamableModifiers.modifiers += PostPatchHook { (o, p) =>
         VNodeProxy.copyInto(p, proxy)
         proxy._update.foreach(_(proxy))
-        if (o._id != p._id) cancelable = subscribe()
+        if (o._id != p._id) {
+          isActive = true
+          cancelable = subscribe()
+        }
       }
-      streamableModifiers.modifiers += DomUnmountHook { _ => cancelable.cancel() }
+      streamableModifiers.modifiers += DomUnmountHook { _ =>
+        isActive = false
+        cancelable.cancel()
+      }
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
