@@ -1,16 +1,57 @@
 package outwatch
 
-import org.scalajs.dom.document
+import monix.execution.Scheduler.Implicits.global
 import outwatch.dom._
 import outwatch.dom.dsl._
 
+import org.scalajs.dom.{document, window}
 import scala.scalajs.js
+import scala.scalajs.js.annotation._
 
-class PerfTest extends JSDomSpec {
+@js.native
+@JSImport("jsdom", JSImport.Namespace)
+object jsdom extends js.Object {
+  def jsdom(innerHTML: js.UndefOr[String]): js.Any = js.native
+}
+
+object Performance {
+
+  def main(args: Array[String]): Unit = {
+    setupJsDom()
+
+    beforeEach()
+    runChildren()
+
+    beforeEach()
+    runThunks()
+
+    beforeEach()
+    runCommands()
+  }
 
   val numIterations = 100
 
-  "Perf" should "be" in {
+  def setupJsDom(): Unit = {
+    // see https://airbnb.io/enzyme/docs/guides/jsdom.html
+
+    val jdom = jsdom.jsdom("")
+    js.Dynamic.global.document = jdom
+    js.Dynamic.global.window = jdom.asInstanceOf[js.Dynamic].defaultView
+    js.Dynamic.global.navigator = js.Dynamic.literal(userAgent = "node.js");
+  }
+
+  def beforeEach(): Unit = {
+
+    document.body.innerHTML = ""
+
+    // prepare body with <div id="app"></div>
+    val root = document.createElement("div")
+    root.id = "app"
+    document.body.appendChild(root)
+    ()
+  }
+
+  def runChildren(): Unit = {
     (0 to 10) foreach { round =>
       val elemId = "msg"
 
@@ -69,7 +110,7 @@ class PerfTest extends JSDomSpec {
     }
   }
 
-  it should "thunk" in {
+  def runThunks(): Unit = {
     (0 to 10) foreach { round =>
       val elemId = "msg"
 
@@ -129,7 +170,7 @@ class PerfTest extends JSDomSpec {
     }
   }
 
-  it should "cmd" in {
+  def runCommands(): Unit = {
     (0 to 10) foreach { round =>
 
       val elemId = "msg"
