@@ -10,6 +10,7 @@ import snabbdom.{DataObject, Hooks, VNodeProxy}
 import scala.annotation.tailrec
 import scala.scalajs.js
 
+// This represents the structured definition of a VNodeProxy (like snabbdom expects it).
 private[outwatch] class SeparatedModifiers(
   val proxies: js.UndefOr[js.Array[VNodeProxy]],
   val attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]],
@@ -161,6 +162,29 @@ private[outwatch] object SeparatedModifiers {
   }
 }
 
+// Each VNode or each streamed CompositeVDomModifier contains static and
+// potentially dynamic content (i.e. streams). The contained VDomModifiers
+// within this VNode or this CompositeVDomModifier need to be transformed into
+// a list of static VDomModifiers (non-dynamic like attributes, vnode proxies,
+// ... that can directly be rendered) and a combined observable of all dynamic
+// content (like ModifierStreamReceiver).
+//
+// The NativeModifier class represents exactly that: the static and dynamic
+// part of a list of VDomModifiers. The static part is an array of all
+// modifiers that are to-be-rendered at the current point in time. The dynamic
+// part is an observable that changes the previously mentioned array to reflect
+// the new state.
+//
+// Example
+//  Input:
+//    div (
+//     "a",
+//     observable
+//     observable2
+//    )
+//  Output:
+//    - currently active modifiers: Array("a", ?, ?)
+//    - dynamic changes: Observable.merge(observable, observable2).foreach(update ? in Array)
 private[outwatch] class NativeModifiers(
   val modifiers: js.Array[StaticVDomModifier],
   val observable: js.UndefOr[Observable[js.Array[StaticVDomModifier]]]
