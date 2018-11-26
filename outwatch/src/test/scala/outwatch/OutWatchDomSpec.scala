@@ -2777,7 +2777,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
-  "Nested VNode" should "work interactive" in {
+  // TODO: this test does not actually fail if it is wrong, but you just see an error message in the console output. Fix when merging error observable in OutwatchTracing.
+  "Nested VNode" should "work without outdated patch" in {
     val myList: Handler[List[String]] = Handler.unsafe[List[String]](List("hi"))
     val isSynced: Handler[Int] = Handler.unsafe[Int](-1)
     import scala.concurrent.duration._
@@ -2808,7 +2809,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       ),
       button("Edit", id := "edit-button",
         onClick(myList).map(l => l.init ++ l.lastOption.map(_ + "!")) --> myList,
-        onClick(isSynced).map(_ + 1) --> isSynced,
+        onClick(isSynced).map(_ + 1) --> isSynced
       )
     )
 
@@ -2826,7 +2827,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
-  it should "work interactive with thunk" in {
+  // TODO: this test does not actually fail if it is wrong, but you just see an error message in the console output. Fix when merging error observable in OutwatchTracing.
+  it should "work without outdated patch in thunk" in {
     val myList: Handler[List[String]] = Handler.unsafe[List[String]](List("hi"))
     val isSynced: Handler[Int] = Handler.unsafe[Int](-1)
     import scala.concurrent.duration._
@@ -2857,7 +2859,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       ),
       button("Edit", id := "edit-button",
         onClick(myList).map(l => l.init ++ l.lastOption.map(_ + "!")) --> myList,
-        onClick(isSynced).map(_ + 1) --> isSynced,
+        onClick(isSynced).map(_ + 1) --> isSynced
       )
     )
 

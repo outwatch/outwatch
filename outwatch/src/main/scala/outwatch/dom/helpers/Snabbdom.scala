@@ -92,6 +92,9 @@ private[outwatch] object SnabbdomOps {
       def subscribe(): Cancelable = {
         observable.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
+            // First check whether we are active, i.e., our subscription is not cancelled.
+            // The obvious question of the reader might be: But then it is already cancelled?
+            // The answer: While this is true, it somehow happens in certain cases that eventhough we just cancelled the subcription, the observer is called one last time. The isActive flag prevents this. There is also a test assuring this, see OutwatchDomSpec "Nested VNode * outdated patch".
             if (isActive) {
               // update the current proxy with the new state
               val separatedModifiers = SeparatedModifiers.from(nextModifiers.fold(newState)(newState ++ _))
