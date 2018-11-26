@@ -1,8 +1,10 @@
 package outwatch
 
-import monix.execution.Scheduler.Implicits.global
 import outwatch.dom._
 import outwatch.dom.dsl._
+import monix.execution.ExecutionModel.SynchronousExecution
+import monix.execution.schedulers.TrampolineScheduler
+import monix.execution.Scheduler
 
 import org.scalajs.dom.{document, window}
 import scala.scalajs.js
@@ -15,6 +17,8 @@ object jsdom extends js.Object {
 }
 
 object Performance {
+
+  implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
   def main(args: Array[String]): Unit = {
     setupJsDom()
@@ -96,7 +100,7 @@ object Performance {
         handler2.onNext(i)
       }
 
-//      println(node.innerHTML)
+      // println(node.innerHTML)
 
       val t2 = System.nanoTime()
       handler.onNext(numIterations + 1)
@@ -155,7 +159,7 @@ object Performance {
         handler2.onNext(i)
       }
 
-//      println(node.innerHTML)
+      // println(node.innerHTML)
 
       val t2 = System.nanoTime()
       handler.onNext(numIterations + 1)
@@ -166,7 +170,6 @@ object Performance {
       println(s"THUNK $round =====> " + (t2 - t))
       println("SINGLE1 TOOK =====> " + (t3 - t2))
       println("SINGLE2 TOOK =====> " + (t4 - t3))
-
     }
   }
 
@@ -216,7 +219,7 @@ object Performance {
         node2Counter += 1
       }
 
-      //      println(node.innerHTML)
+      // println(node.innerHTML)
 
       val t2 = System.nanoTime()
       handler.onNext(ChildCommand.Append(node1(node1Counter)))
