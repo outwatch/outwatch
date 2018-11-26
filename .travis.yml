@@ -6,6 +6,9 @@ scala:
    - 2.12.6
 node_js: 9
 
+script:
+  - sbt outwatch/test
+
 cache:
   yarn: true
   directories:
