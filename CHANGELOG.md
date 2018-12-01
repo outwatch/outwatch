@@ -4,6 +4,38 @@
 
 ...
 
+* Add `OutwatchTracing.error: Observable[Throwable]` to get notified about errors in your reactive components.
+
+* Make `VDomModifier` non-side effecting by default. No dom-access or subscriptions happen when constructing VNodes. This means that a modifier does not need be wrapped in an `IO`. Instead `div` just returns a `VNode` and `href := "meh"` just returns an `Attribute`. If you apply side effects via a handler, or from your own code, you will have an `IO` around your node: `Handler.create("text").map(div(_)): IO[VNode]`. You can now transparently embed the `IO` into your main logic or unwrap the IO to use with `Outwatch.renderInto`. You can also use `IO[VDomModifier]` in your code as before: `div(ioNode: IO[VNode], ioMod: IO[VDomModifier])`. These `IO` modifiers are represented as an `EffectModifier`. The whole construction is still referentially transparent, just much simpler and less intrusive.
+* Use our own fork of snabbdom. It fixes bugs that are still not merged in snabbdom and allows us to use it more efficiently. For example, we can reuse VNodeProxies to have a very intelligent way of caching VNodes in outwatch. That allows for mixing Observables without recalculating the whole subtree on every update. I think the goal needs to be to write our own library like snabbdom or something similar!
+* Fix leaking subscriptions in emitter builders and monix ops
+* Faster code with less memory allocations for constructing `VNodeProxies`, a lot of mutability but just internally :)
+* Remove implicit scheduler from builder dsl, we have a `SchedulerAction` modifier now, which gets the scheduler injected from the outer `Outwatch.render` call. We delay subscriptiuons in a `SchedulerAction` until a node is going to be inserted and use the same scheduler for the whole ui of the app.
+* Child commands to send an `Observable[ChildCommand]` that can incrementally update a list of nodes. Gives major improvments in speed as opposed to rerendering the whole list of nodes like a `Observable[Seq[VNode]]`.
+* Add thunk nodes. This is also useful for performance reasons, but you can keep writing your components as before with `Observable[Seq[VNode]]`. You can define a thunk node like this: `div.thunk("unique-component-name")(arg1, arg2)(VDomModifier(arg1, arg2, ...))`. Here `arg1` and `arg2` are the only dependencies of this `div`, so the `div` only needs to be rerendered if one of these dependencies changes. So thunk delays the execution of the `VDomModifier` in the last parameter list (call-by-name) and only computes a new node if one of the arguments has changed. If the arguments stay the same, it can just reuse the node from the previous run (identified by the "unique-component-name"). For perfomance this comes close to `ChildCommands`. It works similar to a React component with a `shouldRender` function, which compares the previous and the next state.
+* Sync emitters so that `stopPropagation` / `preventDefault` actually work and are not behind an async boundary. Only async if needed.
+* Add `mapTo` to emitter builder to get the value to be mapped by-name.
+* Add `async` to enforce an async boundary in the emitter `Observable`.
+* Add `useLatest` to emitter builder for combining two emitter builders: e.g. `onClick.useLatest(onDomMount.asHtml).foreach { elem => elem.blur() }
+* Add `foreach` to emitter builder. `foreach` fits naturally with methods like `map`, `collect`, etc and gives a way to interact nicely with the dom: `onDomMount.asHtml.foreach { elem => elem.focus }`. The side effect factories are deprecated.
+* Userful emitter builder factories: `EmitterBuilder.fromObservable(Observable)` or `emitter(Observable)` and `EmitterBuilder.ofModifier`.
+* Less function allocations when handling hooks and emitters.
+* Do not return `IO` in `Sink.create`. The sink itself is not a side effect. If there is a side effect and therefore a reason for `IO`, then it lies in the function. Now then the function should be in an `IO` beforehand. So, you will use it this way anyhow: `statefulAction.map(Sink.create _)`.
+* Add DomPreUpdate hook: `onDomPreUpdate`
+* Add Init hook, which you can use via `InitHook(f: VNodeProxy => Unit)`. Be aware, the element of the `VNodeProxy` will always be undefined in the `init` callback. This is why there is no `onSnabbdomInit: EmitterBuilder[dom.Element, VDomModifier]`.
+* Add `Handler.unsafe` method to get a handler without an `IO`. This may be needed for global state and is easier to write, but shares the logic with `Handler.create`
+* Do not enforce keys in Outwatch, we are able to track the identity of `VNode`s via their `_id` and do not need to enforce a key for streaming nodes. Letting the user do this on demand is much better and allows for improvements (that are not broken by automatic key generation in Outwatch).
+* Add `managedAction`, `managedElement`, `managedElement.asHtml`, `managedElement.asSvg` as helper for binding things to the lifetime of an element. Allows easy integration of third-party libraries
+* Remove syntax suger `=?`
+* Add a minimalistic performance test to get an idea of the figures.
+* Remove `dsl.attributes.lifecycle._`, you can use `dsl.attributes.outwatch._` already.
+* More inlining of simple redirect functions. Specialized versions of functions for `VDomModifier` to not require a `AsVDomModifier`.
+* Fix streaming of dom-mount-hooks and managed subscriptions. Now you can have `Observable(managed(subscription), onDomMount --> sink)` and it will work intuitively and trigger when streamed in and out accordingly.
+* Update monix to experimental RC2 and cats-effect to 1.0 
+* Do not use `h`-function of snabbdom. It is slow because it does a lot of checks that we do not need and it reiterates all svg children which we also do not need because we have this information at construction time from dom-types. Therefore we just construct a new `VNodeProxy` instead of calling the h-function.
+* Add VNode.prepend for prepending modifiers to a Modifier, this is useful for providing defaults to a VNode from the call-side. 
+* Add `HtmlVNode` and `SvgVNode` to differentiate between html and svg nodes.
+
 * Make Handler.create return a BehaviourSubject if there is a seed, otherwise create a ReplaceSubject.createLimited(1).
 
 * Introduce proper lifecycle hooks: `onDomMount` (called when a VNode is mounted into an element), `onDomUnmount` (called when a VNode is unmounted from an element), `onDomUpdate` (called when a VNode was updated in the same element). With only using snabbdom lifecycle hooks, we get incorrect behavior: onInsert and onDestroy are not sufficient to know when a node is inserted into the dom or removed from the dom. You also need to check onPostPatch and check whether you are patching against an older version of the same node or against a totally different node. For outwatch, this lead to leaking subscriptions because only onDestroy is handled, but a node could be removed via onPostPatch as well. The same was true for the managed subscription. Therefore, we added the new lifecycle events. They are built by putting a state into the VNodeProxy which can be accessed in onPostPatch hooks. So now, subscriptions do not leak anymore and application have proper hooks for accessing the dom element only when necessary. The snabbdom events were renamed to onSnabbdomInsert, onSnabbdomDestroy, etc. Old names were deprecated with a hint on using the new hooks.
