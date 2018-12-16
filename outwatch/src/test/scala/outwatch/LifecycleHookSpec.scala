@@ -10,7 +10,7 @@ import outwatch.dom.dsl._
 
 import scala.collection.mutable
 
-class LifecycleHookSpec extends JSDomSpec {
+class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Insertion hooks" should "be called correctly" in {
 
@@ -20,7 +20,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = div(onSnabbdomInsert --> sink)
+    val node = div(dsl.key := "unique", onSnabbdomInsert --> sink)
 
     switch shouldBe false
 
@@ -41,7 +41,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = div(onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
+    val node = div(dsl.key := "unique", onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
 
     switch shouldBe false
     switch2 shouldBe false
@@ -107,7 +107,7 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val message = PublishSubject[String]
-    val node = div(message, onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
+    val node = div(message, dsl.key := "unique", onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
 
     OutWatch.renderInto("#app", node).map { _ =>
 
@@ -168,7 +168,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
     val message = PublishSubject[String]()
-    val node = div(message, onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
+    val node = div(message, dsl.key := "unique", onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
 
     OutWatch.renderInto("#app", node).map { _ =>
       switch1 shouldBe false
@@ -189,7 +189,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
 
-    val node = div(Observable.pure("message"), onSnabbdomPostPatch --> sink, "Hey")
+    val node = div(Observable.pure("message"), dsl.key := "unique", onSnabbdomPostPatch --> sink, "Hey")
 
     switch shouldBe false
 
@@ -211,7 +211,7 @@ class LifecycleHookSpec extends JSDomSpec {
       Continue
     }
     val message = PublishSubject[String]()
-    val node = div(message, onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
+    val node = div(message, dsl.key := "unique", onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
 
     OutWatch.renderInto("#app", node).map { _ =>
       switch1 shouldBe false
@@ -250,7 +250,9 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val message = PublishSubject[String]()
-    val node = div(message,
+    val node = div(
+      dsl.key := "unique",
+      message,
       onSnabbdomInsert --> insertSink,
       onSnabbdomPrePatch --> prepatchSink,
       onSnabbdomUpdate --> updateSink,
@@ -281,7 +283,7 @@ class LifecycleHookSpec extends JSDomSpec {
     }
 
     val messageList = PublishSubject[Seq[String]]()
-    val node = div("Hello", messageList.map(_.map(span(_))),
+    val node = div(dsl.key := "unique", "Hello", messageList.map(_.map(span(_))),
       onSnabbdomInsert --> insertSink,
       onSnabbdomUpdate --> updateSink
     )
@@ -554,7 +556,9 @@ class LifecycleHookSpec extends JSDomSpec {
 
     val divTagName = onSnabbdomInsert.map(_.tagName.toLowerCase).filter(_ == "div")
 
-    val node = div(onSnabbdomInsert("insert") --> sink,
+    val node = div(
+      dsl.key := "unique",
+      onSnabbdomInsert("insert") --> sink,
       div(divTagName --> sink),
       span(divTagName --> sink)
     )
