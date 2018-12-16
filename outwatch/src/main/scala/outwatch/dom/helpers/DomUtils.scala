@@ -343,11 +343,11 @@ private[outwatch] object NativeModifiers {
       js.Array(
         h,
         InsertHook { _ => triggered = true },
-        PostPatchHook { (o, p) =>
+        UpdateHook { (o, p) =>
           if (triggered && o._id == p._id) isOpen = false
           triggered = true
         },
-        NextVDomModifier(PostPatchHook { (o, p) =>
+        NextVDomModifier(UpdateHook { (o, p) =>
           if (isOpen && o._id == p._id) h.trigger(p)
           isOpen = true
         })
