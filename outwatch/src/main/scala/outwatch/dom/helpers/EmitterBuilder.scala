@@ -22,7 +22,7 @@ trait EmitterBuilder[+O, +R] { self =>
 
   @inline def foreach(action: O => Unit): R = -->(Sink.fromFunction(action))
   @inline def foreach(action: => Unit): R = foreach(_ => action)
-  @inline def apply[T](value: T): EmitterBuilder[T, R] = map(_ => value)
+  @inline def apply[T](value: => T): EmitterBuilder[T, R] = mapTo(value)
   @inline def mapTo[T](value: => T): EmitterBuilder[T, R] = map(_ => value)
   @inline def apply[T](latest: Observable[T]): EmitterBuilder[T, R] = transform(_.withLatestFrom(latest)((_, u) => u))
   @inline def debounce(timeout: FiniteDuration): EmitterBuilder[O, R] = transform(_.debounce(timeout))
