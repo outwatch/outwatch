@@ -5,7 +5,10 @@ To install my project
 libraryDependencies += "com" % "lib" % "@VERSION@"
 ```
 
-```scala mdoc
-val x = 1
-List(x, x)
+```scala mdoc:js
+import outwatch.dom._
+import outwatch.dom.dsl._
+import monix.execution.Scheduler.Implicits.global
+
+OutWatch.renderInto(node, h1("Hello World")).unsafeRunSync()
 ```

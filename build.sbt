@@ -123,8 +123,9 @@ lazy val bench = project
 
 lazy val docs = project       
   .in(file("outwatch-docs")) // important: it must not be docs/
+  .dependsOn(outwatch)
   .settings(
-    /* mdocJS := Some(outwatch) */  
+    mdocJS := Some(outwatch),
     mdocVariables := Map(
       "VERSION" -> version.value
     )
