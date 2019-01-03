@@ -120,3 +120,13 @@ lazy val bench = project
       "jsdom" -> "9.9.0"
     ),
   )
+
+lazy val docs = project       
+  .in(file("outwatch-docs")) // important: it must not be docs/
+  .settings(
+    /* mdocJS := Some(outwatch) */  
+    mdocVariables := Map(
+      "VERSION" -> version.value
+    )
+  )
+  .enablePlugins(MdocPlugin)
