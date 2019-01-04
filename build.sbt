@@ -63,6 +63,8 @@ lazy val outwatch = project
   .settings(
     name := "OutWatch",
     normalizedName := "outwatch",
+    scalaJSUseMainModuleInitializer := true,
+    webpackBundlingMode := BundlingMode.LibraryOnly(),
 
     libraryDependencies ++= Seq(
       "io.monix"      %%% "monix"       % "3.0.0-RC2",
@@ -126,6 +128,7 @@ lazy val docs = project
   .dependsOn(outwatch)
   .settings(
     mdocJS := Some(outwatch),
+    mdocJSLibraries := webpack.in(outwatch, Compile, fullOptJS).value,
     mdocVariables := Map(
       "VERSION" -> version.value
     )
