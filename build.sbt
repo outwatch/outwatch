@@ -131,6 +131,7 @@ lazy val docs = project
     mdocJSLibraries := webpack.in(outwatch, Compile, fullOptJS).value,
     mdocVariables := Map(
       "VERSION" -> version.value
-    )
+    ),
+    moduleName := "outwatch-docs"
   )
-  .enablePlugins(MdocPlugin)
+  .enablePlugins(MdocPlugin, DocusaurusPlugin)
