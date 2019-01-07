@@ -73,7 +73,8 @@ lazy val outwatch = project
       "org.typelevel" %%% "cats-core" % "1.4.0",
       "org.typelevel" %%% "cats-effect" % "1.0.0",
 
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test
+      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
+      "com.lihaoyi" %%% "scalarx" % "0.4.0",
     ),
 
     npmDependencies in Compile ++= Seq(
@@ -130,8 +131,10 @@ lazy val docs = project
     mdocJS := Some(outwatch),
     mdocJSLibraries := webpack.in(outwatch, Compile, fullOptJS).value,
     mdocVariables := Map(
-      "VERSION" -> version.value
+      /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
+      "VERSION" -> version.value,
+      "HEADCOMMIT" -> git.gitHeadCommit.value.get.take(8)
     ),
-    moduleName := "outwatch-docs"
+    moduleName := "outwatch-docs",
   )
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
