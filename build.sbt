@@ -21,11 +21,11 @@ inThisBuild(Seq(
   )
 ))
 
+val jsdomVersion = "13.2.0"
+
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
   addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full),
-
-  requireJsDomEnv in Test := true,
 
   useYarn := true,
 
@@ -117,6 +117,16 @@ lazy val outwatchMonix = project
     )
   )
 
+lazy val outwatchRepairDom = project
+  .in(file("repairdom"))
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
+  .settings(librarySettings)
+  .settings(
+    name := "OutWatch-RepairDom",
+    normalizedName := "outwatch-repairdom",
+  )
+
 lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -141,12 +151,13 @@ lazy val outwatch = project
 
 lazy val tests = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchMonix, outwatchUtil)
+  .dependsOn(outwatchMonix, outwatchUtil, outwatchRepairDom)
   .settings(commonSettings)
   .settings(
     skip in publish := true,
 
-    useYarn := true,
+    requireJsDomEnv in Test := true,
+    version in installJsdom := jsdomVersion,
   )
 
 lazy val bench = project
@@ -170,7 +181,7 @@ lazy val bench = project
     useYarn := true,
 
     npmDependencies in Compile ++= Seq(
-      "jsdom" -> "9.9.0"
+      "jsdom" -> jsdomVersion
     ),
   )
 
@@ -181,4 +192,4 @@ lazy val root = project
     name := "outwatch-root",
     skip in publish := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, tests)
+  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
