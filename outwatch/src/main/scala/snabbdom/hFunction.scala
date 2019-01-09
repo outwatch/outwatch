@@ -198,13 +198,6 @@ object VNodeProxy {
     text = string
   }
 
-  def fromElement(element: Element): VNodeProxy = new VNodeProxy {
-    sel = element.tagName.toLowerCase
-    elm = element
-    text = ""
-    data = DataObject.empty
-  }
-
   def updateInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
     target.sel = source.sel
     target.key = source.key
@@ -268,4 +261,11 @@ object SnabbdomCustomProps extends js.Object {
 @JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
 object SnabbdomStyle extends js.Object {
   val default: js.Any = js.native
+}
+
+
+@js.native
+@JSImport("snabbdom/tovnode", JSImport.Default)
+object tovnode extends js.Function1[Element, VNodeProxy] {
+  def apply(element: Element):VNodeProxy = js.native
 }
