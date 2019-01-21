@@ -10,6 +10,11 @@ import scala.scalajs.js
 
 sealed trait ChildCommand
 object ChildCommand {
+  sealed trait ChildId
+  object ChildId {
+    case class Key(key: outwatch.dom.Key.Value) extends ChildId
+    case class Element(elem: org.scalajs.dom.Element) extends ChildId
+  }
 
   case class Append(node: VNode) extends ChildCommand
   case class Prepend(node: VNode) extends ChildCommand
@@ -106,10 +111,3 @@ object ChildCommand {
     }
   }
 }
-
-sealed trait ChildId
-object ChildId {
-  case class Key(key: outwatch.dom.Key.Value) extends ChildId
-  case class Element(elem: org.scalajs.dom.Element) extends ChildId
-}
-

@@ -1908,10 +1908,10 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       cmds.onNext(ChildCommand.Move(1, 2))
       element.innerHTML shouldBe """<b>Hello World</b><span>!</span><p>and friends</p>"""
 
-      cmds.onNext(ChildCommand.MoveId(ChildId.Key(42), 1))
+      cmds.onNext(ChildCommand.MoveId(ChildCommand.ChildId.Key(42), 1))
       element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
 
-      cmds.onNext(ChildCommand.RemoveId(ChildId.Key(42)))
+      cmds.onNext(ChildCommand.RemoveId(ChildCommand.ChildId.Key(42)))
       element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
     }
   }
@@ -1937,7 +1937,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       "Questions?",
       div(
         id := "strings",
-        onClick.map(ev => ChildCommand.RemoveId(ChildId.Element(ev.target))) --> cmds,
+        onClick.map(ev => ChildCommand.RemoveId(ChildCommand.ChildId.Element(ev.target))) --> cmds,
         cmds
       )
     )
@@ -1950,10 +1950,10 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p>"""
 
-      cmds.onNext(ChildCommand.InsertBeforeId(ChildId.Key("question-2"), div("spam")))
+      cmds.onNext(ChildCommand.InsertBeforeId(ChildCommand.ChildId.Key("question-2"), div("spam")))
       element.innerHTML shouldBe """<div>spam</div><p id="id-2">Why so cheap?</p>"""
 
-      cmds.onNext(ChildCommand.MoveId(ChildId.Key("question-2"), 0))
+      cmds.onNext(ChildCommand.MoveId(ChildCommand.ChildId.Key("question-2"), 0))
       element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p><div>spam</div>"""
 
       sendEvent(document.getElementById("id-2"), "click")
