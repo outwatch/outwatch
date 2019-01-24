@@ -34,8 +34,8 @@ Changes to the code will trigger a recompile and automatically refresh the page 
 Install `java`, `sbt` and  `nodejs`, if you haven't already.
 Create a new SBT project and add the ScalaJS and Scala-js-bundler plugin to your `plugins.sbt`:
 ```scala
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.25")
-addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.13.1")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.26")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.14.0")
 ```
 Then add the outwatch dependency to your `build.sbt`.
 
