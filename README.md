@@ -139,7 +139,7 @@ div("Hello ", "World")
 #### Nesting
 ```scala
 div(span("Hey ", b("you"), "!"))
-// <div>Hey <b>you</b>!</div>
+// <div><span>Hey <b>you</b>!</span></div>
 ```
 
 
