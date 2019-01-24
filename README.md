@@ -171,7 +171,7 @@ Styles are also written into the tag. All style properties have to be written in
 
 ```scala
 div(color := "tomato", "Hello")
-// <div style="color: blue">Hello</div>
+// <div style="color: tomato">Hello</div>
 ```
 
 Multiple styles will me merged to one style attribute:
