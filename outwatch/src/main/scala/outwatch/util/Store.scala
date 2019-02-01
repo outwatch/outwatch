@@ -15,15 +15,14 @@ import scala.util.control.NonFatal
 
 object Store {
 
-  case class Reducer[S, A](reducer: (S, A) => (S, Observable[A]))
+  case class Reducer[M, A](reducer: (M, A) => (M, Observable[A]))
 
   object Reducer {
+    implicit def stateAndEffects[M, A](f: (M, A) => (M, Observable[A])): Reducer[M, A] = Reducer(f)
 
-    implicit def stateAndEffects[S, A](f: (S, A) => (S, Observable[A])): Reducer[S, A] = Reducer(f)
+    implicit def justState[M, A](f: (M, A) => M): Reducer[M, A] = Reducer { (s: M, a: A) => (f(s, a), Observable.empty) }
 
-    implicit def justState[S, A](f: (S, A) => S): Reducer[S, A] = Reducer { (s: S, a: A) => (f(s, a), Observable.empty) }
-
-    implicit def stateAndOptionIO[S, A](f: (S, A) => (S, Option[IO[A]])): Reducer[S, A] =  Reducer { (s: S, a: A) =>
+    implicit def stateAndOptionIO[M, A](f: (M, A) => (M, Option[IO[A]])): Reducer[M, A] =  Reducer { (s: M, a: A) =>
       val (mewState, effect) = f(s, a)
       (mewState, effect.fold[Observable[A]](Observable.empty)(Observable.fromIO))
     }
@@ -31,14 +30,14 @@ object Store {
 
   private val storeRef = STRef.empty
 
-  def create[State, Action](
-    initialState: State,
-    reducer: Reducer[State, Action]
-  )(implicit s: Scheduler): IO[ProHandler[Action, State]] = IO {
+  def create[M, A](
+    initialState: M,
+    reducer: Reducer[M, A]
+  )(implicit s: Scheduler): IO[ProHandler[A, M]] = IO {
 
-      val subject = PublishSubject[Action]
+      val subject = PublishSubject[A]
 
-      val fold: (State, Action) => State = (state, action) => Try { // guard against reducer throwing an exception
+      val fold: (M, A) => M = (state, action) => Try { // guard against reducer throwing an exception
         val (newState, effects) = reducer.reducer(state, action)
 
         effects.subscribe(
@@ -59,13 +58,13 @@ object Store {
       )
   }
 
-  def get[S, A]: IO[ProHandler[A, S]] = storeRef.asInstanceOf[STRef[ProHandler[A, S]]].getOrThrow(NoStoreException)
+  def get[M, A]: IO[ProHandler[A, M]] = storeRef.asInstanceOf[STRef[ProHandler[A, M]]].getOrThrow(NoStoreException)
 
-  def renderWithStore[S, A](
-    initialState: S, reducer: Reducer[S, A], selector: String, root: VNode
+  def renderWithStore[M, A](
+    initialState: M, reducer: Reducer[M, A], selector: String, root: VNode
   )(implicit s: Scheduler): IO[Unit] = for {
     store <- Store.create(initialState, reducer)
-    _ <- storeRef.asInstanceOf[STRef[ProHandler[A, S]]].put(store)
+    _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store)
     _ <- OutWatch.renderInto(selector, root)
   } yield ()
 
