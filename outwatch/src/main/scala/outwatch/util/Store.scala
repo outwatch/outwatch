@@ -23,8 +23,8 @@ object Store {
     implicit def justState[M, A](f: (M, A) => M): Reducer[M, A] = Reducer { (s: M, a: A) => (f(s, a), Observable.empty) }
 
     implicit def stateAndOptionIO[M, A](f: (M, A) => (M, Option[IO[A]])): Reducer[M, A] =  Reducer { (s: M, a: A) =>
-      val (mewState, effect) = f(s, a)
-      (mewState, effect.fold[Observable[A]](Observable.empty)(Observable.fromIO))
+      val (newState, effect) = f(s, a)
+      (newState, effect.fold[Observable[A]](Observable.empty)(Observable.fromIO))
     }
   }
 
