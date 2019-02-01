@@ -73,7 +73,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val node: IO[VNode] = for {
-      store <- Store.create[State, Action](0, reduce _)
+      store <- Store.create[Action, State](0, reduce _)
     } yield div(
         div(
           button(id := "plus", "+", onClick(Plus) --> store),

@@ -40,8 +40,8 @@ object OutWatch {
   @deprecated("Use renderInto instead (or renderReplace)", "0.11.0")
   def render(querySelector: String, vNode: VNode)(implicit s: Scheduler): IO[Unit] = renderInto(querySelector, vNode)
 
-  def renderWithStore[M, A](
-    initialState: M, reducer: Store.Reducer[M, A], querySelector: String, root: VNode
+  def renderWithStore[A, M](
+    initialState: M, reducer: Store.Reducer[A, M], querySelector: String, root: VNode
   )(implicit s: Scheduler): IO[Unit] =
     Store.renderWithStore(initialState, reducer, querySelector, root)
 }
