@@ -12,27 +12,24 @@ import outwatch.dom.{OutWatch, VNode}
 import scala.util.Try
 import scala.util.control.NonFatal
 
-
 object Store {
 
-  case class Reducer[M, A](reducer: (M, A) => (M, Observable[A]))
+  case class Reducer[A, M](reducer: (M, A) => (M, Observable[A]))
 
   object Reducer {
-    implicit def stateAndEffects[M, A](f: (M, A) => (M, Observable[A])): Reducer[M, A] = Reducer(f)
+    implicit def stateAndEffects[A, M](f: (M, A) => (M, Observable[A])): Reducer[A, M] = Reducer(f)
 
-    implicit def justState[M, A](f: (M, A) => M): Reducer[M, A] = Reducer { (s: M, a: A) => (f(s, a), Observable.empty) }
+    implicit def justState[A, M](f: (M, A) => M): Reducer[A, M] = Reducer { (s: M, a: A) => (f(s, a), Observable.empty) }
 
-    implicit def stateAndOptionIO[M, A](f: (M, A) => (M, Option[IO[A]])): Reducer[M, A] =  Reducer { (s: M, a: A) =>
+    implicit def stateAndOptionIO[A, M](f: (M, A) => (M, Option[IO[A]])): Reducer[A, M] = Reducer { (s: M, a: A) =>
       val (newState, effect) = f(s, a)
       (newState, effect.fold[Observable[A]](Observable.empty)(Observable.fromIO))
     }
   }
 
-  private val storeRef = STRef.empty
-
-  def create[M, A](
+  def create[A, M](
     initialState: M,
-    reducer: Reducer[M, A]
+    reducer: Reducer[A, M]
   )(implicit s: Scheduler): IO[ProHandler[A, M]] = IO {
 
       val subject = PublishSubject[A]
@@ -58,10 +55,12 @@ object Store {
       )
   }
 
-  def get[M, A]: IO[ProHandler[A, M]] = storeRef.asInstanceOf[STRef[ProHandler[A, M]]].getOrThrow(NoStoreException)
+  private val storeRef = STRef.empty
 
-  def renderWithStore[M, A](
-    initialState: M, reducer: Reducer[M, A], selector: String, root: VNode
+  def get[A, M]: IO[ProHandler[A, M]] = storeRef.asInstanceOf[STRef[ProHandler[A, M]]].getOrThrow(NoStoreException)
+
+  def renderWithStore[A, M](
+    initialState: M, reducer: Reducer[A, M], selector: String, root: VNode
   )(implicit s: Scheduler): IO[Unit] = for {
     store <- Store.create(initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store)
