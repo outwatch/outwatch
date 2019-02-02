@@ -1,6 +1,7 @@
 package outwatch.util
 
 import cats.effect.IO
+import monix.eval.Task
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -52,11 +53,16 @@ object Store {
       }).get
     }
 
-    subject.transformObservable(source =>
+    val out = subject.transformObservable(source =>
       source
         .scan0[(A, M)](initialAction -> initialState)(fold)
         .replay(1).refCount
     )
+
+    val sub = out.subscribe()
+    out.doOnSubscribeF(Task(sub.cancel))
+
+    out
   }
 
   private val storeRef = STRef.empty
