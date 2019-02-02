@@ -61,24 +61,27 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
   "A simple counter application that uses Store" should "work as intended" in {
 
-    sealed trait Action
-    case object Plus extends Action
-    case object Minus extends Action
+    sealed trait CounterAction
+    case object Initial extends CounterAction
+    case object Plus extends CounterAction
+    case object Minus extends CounterAction
 
-    type State = Int
+    type CounterModel = Int
 
-    def reduce(state: State, action: Action): State = action match {
+    def reduce(state: CounterModel, action: CounterAction): CounterModel = action match {
+      case Initial => ???
       case Plus => state + 1
       case Minus => state - 1
     }
 
     val node: IO[VNode] = for {
-      store <- Store.create[Action, State](0, reduce _)
+      store <- Store.create[CounterAction, CounterModel](Initial, 0, reduce _)
+      state = store.collect { case (action@_, state) => state }
     } yield div(
         div(
           button(id := "plus", "+", onClick(Plus) --> store),
           button(id := "minus", "-", onClick(Minus) --> store),
-          span(id:="counter", store)
+          span(id:="counter", state)
         )
       )
 
