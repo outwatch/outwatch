@@ -30,7 +30,8 @@ object Store {
   def create[A, M](
     initialAction: A,
     initialState: M,
-    reducer: Reducer[A, M]
+    reducer: Reducer[A, M],
+    recoverError: PartialFunction[Throwable, M => M] = PartialFunction.empty
   )(implicit s: Scheduler): IO[ProHandler[A, (A, M)]] = IO {
     val subject = PublishSubject[A]
 
@@ -45,10 +46,10 @@ object Store {
         )
 
         action -> newState
-      }.recover { case NonFatal(e) =>
+      }.recover(recoverError.andThen(f => action -> f(state)) orElse { case NonFatal(e) =>
         dom.console.error(e.getMessage)
         action -> state
-      }.get
+      }).get
     }
 
     subject.transformObservable(source =>
