@@ -28,31 +28,34 @@ object Store {
   }
 
   def create[A, M](
+    initialAction: A,
     initialState: M,
     reducer: Reducer[A, M]
-  )(implicit s: Scheduler): IO[ProHandler[A, M]] = IO {
+  )(implicit s: Scheduler): IO[ProHandler[A, (A, M)]] = IO {
+    val subject = PublishSubject[A]
 
-      val subject = PublishSubject[A]
-
-      val fold: (M, A) => M = (state, action) => Try { // guard against reducer throwing an exception
+    val fold: ((A, M), A) => (A, M) = {
+      case ((_, state), action) => Try { // guard against reducer throwing an exception
         val (newState, effects) = reducer.reducer(state, action)
 
         effects.subscribe(
-          e => subject.feed(e :: Nil),
-          e => dom.console.error(e.getMessage) // just log the error, don't push it into the subject's observable, because it would stop the scan "loop"
+          next => subject.feed(next :: Nil),
+          // just log the error, don't push it into the subject's observable, because it would stop the scan "loop"
+          error => dom.console.error(error.getMessage)
         )
-        newState
+
+        action -> newState
       }.recover { case NonFatal(e) =>
         dom.console.error(e.getMessage)
-        state
+        action -> state
       }.get
+    }
 
-      subject.transformObservable(source =>
-        source
-          .scan(initialState)(fold)
-          .share
-          .startWith(Seq(initialState))
-      )
+    subject.transformObservable(source =>
+      source
+        .scan0[(A, M)](initialAction -> initialState)(fold)
+        .replay(1).refCount
+    )
   }
 
   private val storeRef = STRef.empty
@@ -60,13 +63,18 @@ object Store {
   def get[A, M]: IO[ProHandler[A, M]] = storeRef.asInstanceOf[STRef[ProHandler[A, M]]].getOrThrow(NoStoreException)
 
   def renderWithStore[A, M](
-    initialState: M, reducer: Reducer[A, M], selector: String, root: VNode
+    initialAction: A,
+    initialState: M,
+    reducer: Reducer[A, M],
+    selector: String,
+    root: VNode
   )(implicit s: Scheduler): IO[Unit] = for {
-    store <- Store.create(initialState, reducer)
-    _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store)
+    store <- Store.create[A, M](initialAction, initialState, reducer)
+    _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store.mapProHandler[A, M](in => in)(out => out._2))
     _ <- OutWatch.renderInto(selector, root)
   } yield ()
 
   private object NoStoreException
     extends Exception("Application was rendered without specifying a Store, please use Outwatch.renderWithStore instead")
+
 }
