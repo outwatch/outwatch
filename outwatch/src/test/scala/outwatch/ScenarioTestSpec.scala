@@ -66,24 +66,31 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     case object Plus extends CounterAction
     case object Minus extends CounterAction
 
-    type CounterModel = Int
+    case class CounterModel(count: Int, iterations: Int)
 
     def reduce(state: CounterModel, action: CounterAction): CounterModel = action match {
       case Initial => ???
-      case Plus => state + 1
-      case Minus => state - 1
+      case Plus => state.copy(state.count + 1, state.iterations + 1)
+      case Minus => state.copy(state.count - 1, state.iterations + 1)
     }
 
     val node: IO[VNode] = for {
-      store <- Store.create[CounterAction, CounterModel](Initial, 0, reduce _)
+      store <- Store.create[CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce _)
       state = store.collect { case (action@_, state) => state }
     } yield div(
-        div(
-          button(id := "plus", "+", onClick(Plus) --> store),
-          button(id := "minus", "-", onClick(Minus) --> store),
-          span(id:="counter", state)
+      div(
+        button(id := "plus", "+", onClick(Plus) --> store),
+        button(id := "minus", "-", onClick(Minus) --> store),
+        span(id:="counter")(
+          state.map(_.count)
+        ),
+        span(id := "iterations")(
+          state.map(_.iterations)
         )
       )
+    )
+
+    def getIterations: Element = document.getElementById("iterations")
 
     val test: IO[Assertion] = for {
       r <- IO {
@@ -100,9 +107,13 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
           }
       _ <- IO {
             getCounter.innerHTML shouldBe 0.toString
+            getIterations.innerHTML shouldBe 0.toString
+
             getMinus.dispatchEvent(e)
+
             getCounter.innerHTML shouldBe (-1).toString
-          }
+            getIterations.innerHTML shouldBe 1.toString
+      }
       as <- IO {
             (0 to 10).map { _ =>
               getPlus.dispatchEvent(e)
@@ -111,6 +122,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
     } yield {
       as should contain theSameElementsInOrderAs (0 to 10).map(_.toString)
+      getIterations.innerHTML shouldBe 12.toString
     }
 
     test
