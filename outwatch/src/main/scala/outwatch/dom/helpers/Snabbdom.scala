@@ -2,7 +2,7 @@ package outwatch.dom.helpers
 
 import monix.execution.Ack.Continue
 import monix.execution.{Ack, Cancelable, Scheduler}
-import monix.reactive.Observable
+import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
@@ -93,7 +93,7 @@ private[outwatch] object SnabbdomOps {
       var isActive = false
 
       def subscribe(): Cancelable = {
-        observable.unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
+        observable.asyncBoundary(OverflowStrategy.Unbounded).unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
           { newState =>
             // First check whether we are active, i.e., our subscription is not cancelled.
             // The obvious question of the reader might be: But then it is already cancelled?
