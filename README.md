@@ -72,7 +72,7 @@ For bugs, questions and discussions please use [Github Issues](https://github.co
 
 
 ## Community
-We adopted the [Typelevel Code of Conduct](http://typelevel.org/conduct.html). People are expected to follow it when discussing OutWatch on the Github page, Gitter channel, or other venues.
+We adopted the [Scala Code of Conduct](https://www.scala-lang.org/conduct/). People are expected to follow it when discussing OutWatch on the Github page, Gitter channel, or other venues.
 
 
 ## Documentation and Examples
