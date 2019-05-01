@@ -36,8 +36,8 @@ private[outwatch] object CodecBuilder {
 private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[TagBuilder.Tag, dom.html.Element] with builders.SvgTagBuilder[TagBuilder.Tag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array())
-  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array())
+  @inline final override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = new HtmlVNode(tagName, js.Array())
+  @inline final override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = new SvgVNode(tagName, js.Array())
 }
 
 private[outwatch] object TagBuilder {
@@ -88,7 +88,7 @@ trait HtmlAttrs
   with builders.ReflectedHtmlAttrBuilder[BuilderTypes.Attribute]
   with builders.PropBuilder[BuilderTypes.Property] {
 
-  override protected def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+  @inline final override protected def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 
   override protected def reflectedAttr[V, DomPropV](
@@ -103,7 +103,7 @@ trait HtmlAttrs
     new PropBuilder(key, codec.encode)
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className = new AccumAttrBuilder[String]("class",
+  override def className = new AccumAttrBuilder[String]("class",
     reflectedAttr(attrKey = "class", propKey = "className", attrCodec = codecs.StringAsIsCodec, propCodec = codecs.StringAsIsCodec),
     _ + " " + _
   )

@@ -36,7 +36,7 @@ sealed trait Attr extends StaticVDomModifier
 object Attr {
   type Value = DataObject.AttrValue
 }
-final case class BasicAttr(title: String, value: Attr.Value) extends Attr
+@inline final case class BasicAttr(title: String, value: Attr.Value) extends Attr
 final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value)=> Attr.Value) extends Attr
 
 final case class Prop(title: String, value: Prop.Value) extends StaticVDomModifier
@@ -95,7 +95,8 @@ final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRe
   def apply(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args))
   def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args))
 }
-final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
+
+@inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
   def apply(args: VDomModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
   def prepend(args: VDomModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
 }

@@ -7,10 +7,10 @@ import outwatch.dom._
 import scala.language.dynamics
 
 trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
-  private[outwatch] def assign(value: T): A
+  @inline private[outwatch] def assign(value: T): A
 
-  @inline def :=(value: T): A = assign(value)
-  def :=?(value: Option[T]): Option[A] = value.map(assign)
+  @inline final def :=(value: T): A = assign(value)
+  @inline final def :=?(value: Option[T]): Option[A] = value.map(assign)
   def <--[F[_] : AsValueObservable](valueStream: F[_ <: T]): ModifierStreamReceiver = {
     ModifierStreamReceiver(ValueObservable(valueStream).map(assign))
   }
@@ -28,12 +28,12 @@ trait AccumulateAttrOps[T] { self: AttributeBuilder[T, BasicAttr] =>
   @inline def accum(reducer: (Attr.Value, Attr.Value) => Attr.Value) = new AccumAttrBuilder[T](name, this, reducer)
 }
 
-final class BasicAttrBuilder[T](val name: String, encode: T => Attr.Value) extends AttributeBuilder[T, BasicAttr]
+@inline final class BasicAttrBuilder[T](val name: String, encode: T => Attr.Value) extends AttributeBuilder[T, BasicAttr]
                                                                                    with AccumulateAttrOps[T] {
   @inline private[outwatch] def assign(value: T) = BasicAttr(name, encode(value))
 }
 
-final class DynamicAttrBuilder[T](parts: List[String]) extends Dynamic
+@inline final class DynamicAttrBuilder[T](parts: List[String]) extends Dynamic
                                                                with AttributeBuilder[T, BasicAttr]
                                                                with AccumulateAttrOps[T] {
   lazy val name: String = parts.reverse.mkString("-")
@@ -43,7 +43,7 @@ final class DynamicAttrBuilder[T](parts: List[String]) extends Dynamic
   @inline private[outwatch] def assign(value: T) = BasicAttr(name, value.toString)
 }
 
-final class AccumAttrBuilder[T](
+@inline final class AccumAttrBuilder[T](
   val name: String,
   builder: AttributeBuilder[T, BasicAttr],
   reduce: (Attr.Value, Attr.Value) => Attr.Value

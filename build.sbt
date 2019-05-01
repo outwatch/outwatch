@@ -1,5 +1,5 @@
 inThisBuild(Seq(
-  version := "0.11.1-SNAPSHOT",
+  version := "0.11.4-SNAPSHOT",
 
   organization := "io.github.outwatch",
 
@@ -67,7 +67,7 @@ lazy val outwatch = project
     libraryDependencies ++= Seq(
       "io.monix"      %%% "monix"       % "3.0.0-RC2",
       "org.scala-js"  %%% "scalajs-dom" % "0.9.6",
-      "com.raquo"     %%% "domtypes" % "0.9",
+      "com.raquo"     %%% "domtypes" % "0.9.5-SNAPSHOT",
       "org.typelevel" %%% "cats-core" % "1.4.0",
       "org.typelevel" %%% "cats-effect" % "1.0.0",
 
