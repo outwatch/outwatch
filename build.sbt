@@ -75,7 +75,7 @@ lazy val outwatch = project
     ),
 
     npmDependencies in Compile ++= Seq(
-      "snabbdom" -> "git://github.com/cornerman/snabbdom.git#464535d"
+      "snabbdom" -> "git://github.com/cornerman/snabbdom.git#semver:0.7.3"
     ),
 
     requireJsDomEnv in Test := true,
