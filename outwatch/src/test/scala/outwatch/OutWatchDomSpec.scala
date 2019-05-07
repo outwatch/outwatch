@@ -2231,7 +2231,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       id := "strings",
       myThunk.map { _ =>
-        b.static("component") {
+        b.thunkStatic("component") {
           renderFnCounter += 1
           myString.map { str =>
             p(dsl.key := str, str)
@@ -2399,7 +2399,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       id := "strings",
       myThunk.map { _ =>
         div(
-          b.static("component") {
+          b.thunkStatic("component") {
             renderFnCounter += 1
             myString.map { str =>
               div(
@@ -2843,7 +2843,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         myList.map(_.indices.map { i =>
           val counter = renderFnCounter
           renderFnCounter += 1
-          div.static(i) {
+          div.thunkStatic(i) {
 
             val node = myList.map { list => list(i) }
             val syncedIcon = isSynced.map { isSynced =>
