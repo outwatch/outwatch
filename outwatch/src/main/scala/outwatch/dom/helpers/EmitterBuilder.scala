@@ -80,19 +80,21 @@ object EmitterBuilder {
   }
 
   implicit class ModifierActions[O](val builder: EmitterBuilder[O, VDomModifier]) extends AnyVal {
-    def useLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[T, VDomModifier] = new CustomEmitterBuilder[T, VDomModifier]({ sink =>
+    def withLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[(O, T), VDomModifier] = new CustomEmitterBuilder[(O, T), VDomModifier]({ sink =>
       IO {
         var lastValue: js.UndefOr[T] = js.undefined
         VDomModifier(
           emitter foreach { lastValue = _ },
-          builder.foreach { _ =>
+          builder.foreach { o =>
             lastValue.foreach { t =>
-              sink.onNext(t)
+              sink.onNext((o, t))
             }
           }
         )
       }
     })
+
+    def useLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[T, VDomModifier] = withLatest(emitter).map(_._2)
   }
 }
 
