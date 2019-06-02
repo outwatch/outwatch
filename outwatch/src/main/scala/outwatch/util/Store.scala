@@ -69,26 +69,17 @@ object Store {
   )(implicit s: Scheduler): IO[ProHandler[A, (A, M)]] = IO {
     val subject = PublishSubject[A]
 
-    val fold: ((A, M), A) => (A, M) = {
-      case ((_, state), action) => Try { // guard against reducer throwing an exception
-        val (newState, effects) = reducer.reducer(state, action)
-
-        effects.subscribe(
-          next => subject.feed(next :: Nil),
-          // just log the error, don't push it into the subject's observable, because it would stop the scan "loop"
-          error => dom.console.error(error.getMessage)
-        )
-
-        action -> newState
-      }.recover(recoverError.andThen(f => action -> f(state)) orElse { case NonFatal(e) =>
-        dom.console.error(e.getMessage)
-        action -> state
-      }).get
-    }
+    def fold(state: M, action: A): Observable[(A, M)] = Try {
+      val (newState, effects) = reducer.reducer(state, action)
+      effects.flatScan0(action -> newState)((actionState, action) => fold(actionState._2, action))
+    }.fold(recoverError.andThen(f => Observable.now(action -> f(state))) orElse { case NonFatal(e) =>
+      dom.console.error(e.getMessage)
+      Observable.now(action -> state)
+    }, identity)
 
     val out = subject.transformObservable(source =>
       source
-        .scan0[(A, M)](initialAction -> initialState)(fold)
+        .flatScan0[(A, M)](initialAction -> initialState)((actionState, action) => fold(actionState._2, action))
         .replay(1).refCount
     )
 
