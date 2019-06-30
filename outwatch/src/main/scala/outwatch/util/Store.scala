@@ -119,11 +119,12 @@ object Store {
     initialState: M,
     reducer: Reducer[A, M],
     selector: String,
-    root: VNode
+    root: IO[VNode]
   )(implicit s: Scheduler): IO[Unit] = for {
     store <- Store.create[A, M](initialAction, initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store.mapProHandler[A, M](in => in)(out => out._2))
-    _ <- OutWatch.renderInto(selector, root)
+    vnode <- root
+    _ <- OutWatch.renderInto(selector, vnode)
   } yield ()
 
   private object NoStoreException
