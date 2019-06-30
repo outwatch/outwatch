@@ -45,7 +45,7 @@ object OutWatch {
     initialState: M,
     reducer: Store.Reducer[A, M],
     querySelector: String,
-    root: VNode
+    root: IO[VNode]
   )(implicit s: Scheduler): IO[Unit] =
     Store.renderWithStore(initialAction, initialState, reducer, querySelector, root)
 }
