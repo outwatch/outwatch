@@ -38,11 +38,11 @@ object EmitterBuilder {
   @inline def fromObservable[E](observable: Observable[E]): EmitterBuilder[E, VDomModifier] = new ObservableEmitterBuilder[E, VDomModifier](observable, managedAction)
 
   def ofModifier[E](create: Observer[E] => VDomModifier): CustomEmitterBuilder[E, VDomModifier] = new CustomEmitterBuilder[E, VDomModifier]({
-    case o: ConnectableObserver[E] => VDomModifier(managedAction(implicit scheduler => o.connect()), create(o))
+    case o: ConnectableObserver[E] => VDomModifier(managedAction(implicit scheduler => o.connect()), create(o.observer))
     case o: Observer[E] => create(o)
   })
   def ofNode[E](create: Observer[E] => VNode): CustomEmitterBuilder[E, VNode] = new CustomEmitterBuilder[E, VNode]({
-    case o: ConnectableObserver[E] => create(o).apply(managedAction(implicit scheduler => o.connect()))
+    case o: ConnectableObserver[E] => create(o.observer).apply(managedAction(implicit scheduler => o.connect()))
     case o: Observer[E] => create(o)
   })
   def custom[E, O](create: ConnectableObserver[E] => O): CustomEmitterBuilder[E, O] = new CustomEmitterBuilder[E, O]({
