@@ -19,6 +19,8 @@ inThisBuild(Seq(
 ))
 
 lazy val commonSettings = Seq(
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
+
   scalacOptions += {
     val local = baseDirectory.value.toURI
     val remote = s"https://raw.githubusercontent.com/OutWatch/outwatch/${git.gitHeadCommit.value.get}/"

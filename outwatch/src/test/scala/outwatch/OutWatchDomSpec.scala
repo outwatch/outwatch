@@ -1,5 +1,7 @@
 package outwatch
 
+import cats.Monoid
+import cats.implicits._
 import cats.effect.IO
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
@@ -2890,6 +2892,43 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
         onMouseDown(true) --> sink,
         onMouseUp(false) --> sink
+      )
+    }
+
+    for {
+      handler <- Handler.create[String]
+      node = div(
+        id := "strings",
+        clickableView.map {
+          case true => "yes"
+          case false => "no"
+        } --> handler,
+        handler
+      )
+      _ <- OutWatch.renderInto("#app", node)
+
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe ""
+
+      _ = sendEvent(element, "mousedown")
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ = element.innerHTML shouldBe "yes"
+
+      _ = sendEvent(element, "mouseup")
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ = element.innerHTML shouldBe "no"
+    } yield succeed
+  }
+
+  it should "work with events as combined emitterbuidler" in {
+    import scala.concurrent.duration._
+
+    val clickableView: EmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier { sink: Observer[Boolean] =>
+      VDomModifier(
+        display.flex,
+        minWidth := "0px",
+
+        Monoid[EmitterBuilder[Boolean, VDomModifier]].combine(onMouseDown(true), onMouseUp(false)) --> sink,
       )
     }
 

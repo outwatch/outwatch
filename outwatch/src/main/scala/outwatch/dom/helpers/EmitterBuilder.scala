@@ -1,5 +1,6 @@
 package outwatch.dom.helpers
 
+import cats.{Monoid, Functor, Bifunctor}
 import cats.effect.IO
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.observers.Subscriber
@@ -51,6 +52,21 @@ object EmitterBuilder {
   })
 
   def empty: EmptyEmitterBuilder[VDomModifier] = new EmptyEmitterBuilder[VDomModifier](VDomModifier.empty)
+
+  implicit def monoid[T, R : Monoid]: Monoid[EmitterBuilder[T, R]] = new Monoid[EmitterBuilder[T, R]] {
+    def empty: EmitterBuilder[T, R] = new EmptyEmitterBuilder[R](Monoid[R].empty)
+    def combine(x: EmitterBuilder[T, R], y: EmitterBuilder[T, R]): EmitterBuilder[T, R] = new CustomEmitterBuilder[T, R](sink =>
+      Monoid[R].combine(x --> sink, y --> sink)
+    )
+  }
+
+  implicit def functor[T, R]: Functor[EmitterBuilder[?, R]] = new Functor[EmitterBuilder[?, R]] {
+    def map[A, B](fa: EmitterBuilder[A,R])(f: A => B): EmitterBuilder[B,R] = fa.map(f)
+  }
+
+  implicit def bifunctor[T, R]: Bifunctor[EmitterBuilder] = new Bifunctor[EmitterBuilder] {
+    def bimap[A, B, C, D](fab: EmitterBuilder[A,B])(f: A => C, g: B => D): EmitterBuilder[C,D] = fab.map(f).mapResult(g)
+  }
 
   implicit class EventActions[O <: Event, R](val builder: SyncEmitterBuilder[O, R]) extends AnyVal {
     def preventDefault: SyncEmitterBuilder[O, R] = builder.map { e => e.preventDefault; e }
