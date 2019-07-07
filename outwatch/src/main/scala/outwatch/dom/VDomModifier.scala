@@ -1,5 +1,6 @@
 package outwatch.dom
 
+import cats.Monoid
 import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom._
@@ -19,6 +20,11 @@ object VDomModifier {
 
   def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
     CompositeModifier(js.Array(modifier, modifier2) ++ modifiers)
+
+  implicit object monoid extends Monoid[VDomModifier] {
+    def empty: VDomModifier = VDomModifier.empty
+    def combine(x: VDomModifier, y: VDomModifier): VDomModifier = VDomModifier(x, y)
+  }
 }
 
 sealed trait StaticVDomModifier extends VDomModifier
