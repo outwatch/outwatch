@@ -2928,7 +2928,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         display.flex,
         minWidth := "0px",
 
-        Monoid[EmitterBuilder[Boolean, VDomModifier]].combine(onMouseDown(true), onMouseUp(false)) --> sink,
+        Monoid[EmitterBuilder[Boolean, VDomModifier]].combine(onMouseDown(true), onMouseUp(false)) --> sink
       )
     }
 
