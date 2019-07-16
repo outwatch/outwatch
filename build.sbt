@@ -3,9 +3,9 @@ inThisBuild(Seq(
 
   organization := "io.github.outwatch",
 
-  scalaVersion := "2.12.6",
+  scalaVersion := "2.12.8",
 
-  crossScalaVersions := Seq("2.11.12", "2.12.6", "2.13.0-M5"),
+  crossScalaVersions := Seq("2.11.12", "2.12.8", "2.13.0"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
@@ -73,7 +73,7 @@ lazy val outwatch = project
       "org.typelevel" %%% "cats-core" % "1.6.0",
       "org.typelevel" %%% "cats-effect" % "1.3.0",
 
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test
+      "org.scalatest" %%% "scalatest" % "3.0.8" % Test
     ),
 
     npmDependencies in Compile ++= Seq(
