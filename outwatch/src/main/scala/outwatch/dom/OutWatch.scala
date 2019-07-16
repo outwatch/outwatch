@@ -48,4 +48,13 @@ object OutWatch {
     root: IO[VNode]
   )(implicit s: Scheduler): IO[Unit] =
     Store.renderWithStore(initialAction, initialState, reducer, querySelector, root)
+
+  def renderWithStore[A, M](
+    initialAction: A,
+    initialState: M,
+    reducer: Store.Reducer[A, M],
+    querySelector: String,
+    root: VNode
+  )(implicit s: Scheduler): IO[Unit] =
+    Store.renderWithStore(initialAction, initialState, reducer, querySelector, IO.pure(root))
 }
