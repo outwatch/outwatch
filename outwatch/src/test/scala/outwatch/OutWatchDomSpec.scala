@@ -8,8 +8,8 @@ import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
-import monix.execution.Ack.Continue
-import monix.reactive.{Observable, Observer}
+import monix.reactive.Observable
+import monix.reactive.Observer
 import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
@@ -2066,8 +2066,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     lastValue shouldBe null
 
     OutWatch.renderInto("#app", node).map { _ =>
-      val element = document.getElementById("strings")
-      val child = element.children(0)
       aCounter shouldBe 0
       bCounter shouldBe 0
       lastValue shouldBe null
@@ -2819,7 +2817,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
     OutWatch.renderInto("#app", node).unsafeToFuture.flatMap { _ =>
-      val element = document.getElementById("strings")
       val editButton = document.getElementById("edit-button")
 
       for {
@@ -2869,7 +2866,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
     OutWatch.renderInto("#app", node).unsafeToFuture.flatMap { _ =>
-      val element = document.getElementById("strings")
       val editButton = document.getElementById("edit-button")
 
       for {
@@ -2911,11 +2907,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe ""
 
       _ = sendEvent(element, "mousedown")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
       _ = element.innerHTML shouldBe "yes"
 
       _ = sendEvent(element, "mouseup")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
       _ = element.innerHTML shouldBe "no"
     } yield succeed
   }
@@ -2948,11 +2944,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe ""
 
       _ = sendEvent(element, "mousedown")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
       _ = element.innerHTML shouldBe "yes"
 
       _ = sendEvent(element, "mouseup")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).toIO
+      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
       _ = element.innerHTML shouldBe "no"
     } yield succeed
   }

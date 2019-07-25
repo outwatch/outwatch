@@ -1,6 +1,5 @@
 package outwatch.dom.helpers
 
-import monix.execution.Ack.Continue
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.PublishSubject

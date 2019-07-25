@@ -25,7 +25,10 @@ trait OutWatchLifeCycleAttributes {
   private def proxyElementPairEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(dom.Element, dom.Element)] => VDomModifier =
     obs => f((o,p) => o.elm.foreach(oe => p.elm.foreach(pe => obs.onNext((oe,pe)))))
   private def proxyElementPairOptionEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(Option[dom.Element], Option[dom.Element])] => VDomModifier =
-    obs => f((o,p) => obs.onNext((o.elm.toOption, p.elm.toOption)))
+    obs => f((o,p) => {
+      obs.onNext((o.elm.toOption, p.elm.toOption))
+      ()
+    })
 
   lazy val onDomMount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(DomMountHook))
   lazy val onDomUnmount: SyncEmitterBuilder[dom.Element, VDomModifier] = EmitterBuilder.ofModifier(proxyElementEmitter(DomUnmountHook))

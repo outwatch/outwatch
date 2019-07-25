@@ -22,7 +22,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       handleMinus <- Handler.create[MouseEvent]
           plusOne = handlePlus.map(_ => 1)
          minusOne = handleMinus.map(_ => -1)
-            count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
+            count = Observable(plusOne, minusOne).merge.scan(0)(_ + _).startWith(Seq(0))
 
              node = div(div(
                         button(id := "plus", "+", onClick --> handlePlus),
