@@ -3,7 +3,6 @@ package outwatch.dom.helpers
 import cats.{Monoid, Functor, Bifunctor}
 import cats.effect.IO
 import monix.execution.{Cancelable, Scheduler}
-import monix.reactive.observers.Subscriber
 import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
 import outwatch.ConnectableObserver
@@ -34,7 +33,13 @@ trait EmitterBuilder[+O, +R] { self =>
 }
 
 object EmitterBuilder {
-  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => Emitter(eventType, event => obs.onNext(event.asInstanceOf[E])))
+  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => 
+    Emitter(
+      eventType, 
+      event => {
+        obs.onNext(event.asInstanceOf[E])
+        ()
+      }))
 
   @inline def fromObservable[E](observable: Observable[E]): EmitterBuilder[E, VDomModifier] = new ObservableEmitterBuilder[E, VDomModifier](observable, managedAction)
 

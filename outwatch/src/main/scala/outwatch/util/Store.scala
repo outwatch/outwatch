@@ -46,7 +46,7 @@ object Store {
      */
     implicit def stateAndOptionIO[A, M](f: (M, A) => (M, Option[IO[A]])): Reducer[A, M] = Reducer { (s: M, a: A) =>
       val (newState, effect) = f(s, a)
-      (newState, effect.fold[Observable[A]](Observable.empty)(Observable.fromIO))
+      (newState, effect.fold[Observable[A]](Observable.empty)(Observable.from))
     }
   }
 
@@ -86,14 +86,15 @@ object Store {
       }).get
     }
 
+    val sub = subject.subscribe()
+    subject.doOnSubscribeF(Task(sub.cancel))
+
     val out = subject.transformObservable(source =>
       source
         .scan0[(A, M)](initialAction -> initialState)(fold)
         .replay(1).refCount
     )
 
-    val sub = out.subscribe()
-    out.doOnSubscribeF(Task(sub.cancel))
 
     out
   }
