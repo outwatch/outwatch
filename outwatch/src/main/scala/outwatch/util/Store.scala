@@ -86,15 +86,14 @@ object Store {
       }).get
     }
 
-    val sub = subject.subscribe()
-    subject.doOnSubscribeF(Task(sub.cancel))
-
     val out = subject.transformObservable(source =>
       source
         .scan0[(A, M)](initialAction -> initialState)(fold)
         .replay(1).refCount
     )
 
+    val sub = out.subscribe()
+    out.doOnSubscribeF(Task(sub.cancel))
 
     out
   }
