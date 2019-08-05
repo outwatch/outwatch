@@ -55,7 +55,6 @@ object Store {
    * @param initialAction The Stores initial action. Useful for re-creating a store from memory.
    * @param initialState The stores initial state. Similar to the initial accumulator on a fold / scan.
    * @param reducer The Reducing funcion. Creates a new State from the previous state and an Action.
-   * @param recoverError An optional PartialFunctio for recovering the State when an Exception occurs in the Recuer.
    * @return An Observable emitting a tuple of the current state and the action that caused that state.
    */
   def create[F[_]: Sync, A, M](
