@@ -1,6 +1,6 @@
 package outwatch.util
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
 import monix.eval.Task
 import monix.execution.Scheduler
 import monix.reactive.Observable
@@ -9,9 +9,6 @@ import org.scalajs.dom
 import outwatch._
 import outwatch.dom.helpers.STRef
 import outwatch.dom.{OutWatch, VNode}
-
-import scala.util.Try
-import scala.util.control.NonFatal
 
 object Store {
 
@@ -61,16 +58,15 @@ object Store {
    * @param recoverError An optional PartialFunctio for recovering the State when an Exception occurs in the Recuer.
    * @return An Observable emitting a tuple of the current state and the action that caused that state.
    */
-  def create[A, M](
+  def create[F[_]: Sync, A, M](
     initialAction: A,
     initialState: M,
-    reducer: Reducer[A, M],
-    recoverError: PartialFunction[Throwable, M => M] = PartialFunction.empty
-  )(implicit s: Scheduler): IO[ProHandler[A, (A, M)]] = IO {
+    reducer: Reducer[A, M]
+  )(implicit s: Scheduler): F[ProHandler[A, (A, M)]] = Sync[F].delay {
     val subject = PublishSubject[A]
 
     val fold: ((A, M), A) => (A, M) = {
-      case ((_, state), action) => Try { // guard against reducer throwing an exception
+      case ((_, state), action) => {
         val (newState, effects) = reducer.reducer(state, action)
 
         effects.subscribe(
@@ -80,10 +76,7 @@ object Store {
         )
 
         action -> newState
-      }.recover(recoverError.andThen(f => action -> f(state)) orElse { case NonFatal(e) =>
-        dom.console.error(e.getMessage)
-        action -> state
-      }).get
+      }
     }
 
     val out = subject.transformObservable(source =>
@@ -121,7 +114,7 @@ object Store {
     selector: String,
     root: IO[VNode]
   )(implicit s: Scheduler): IO[Unit] = for {
-    store <- Store.create[A, M](initialAction, initialState, reducer)
+    store <- Store.create[IO, A, M](initialAction, initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store.mapProHandler[A, M](in => in)(out => out._2))
     vnode <- root
     _ <- OutWatch.renderInto(selector, vnode)
