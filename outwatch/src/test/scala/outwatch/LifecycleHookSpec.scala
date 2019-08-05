@@ -14,12 +14,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = ObserverBuilder.create{(_: Element) =>
+    val observer = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
 
-    val node = div(dsl.key := "unique", onSnabbdomInsert --> sink)
+    val node = div(dsl.key := "unique", onSnabbdomInsert --> observer)
 
     switch shouldBe false
 
@@ -30,17 +30,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch = false
-    val sink = ObserverBuilder.create{(_: Element) =>
+    val observer = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
     var switch2 = false
-    val sink2 = ObserverBuilder.create{(_: Element) =>
+    val observer2 = ObserverBuilder.create{(_: Element) =>
       switch2 = true
       Continue
     }
 
-    val node = div(dsl.key := "unique", onSnabbdomInsert --> sink)(onSnabbdomInsert --> sink2)
+    val node = div(dsl.key := "unique", onSnabbdomInsert --> observer)(onSnabbdomInsert --> observer2)
 
     switch shouldBe false
     switch2 shouldBe false
@@ -55,12 +55,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Destruction hooks"  should "be called correctly" in {
 
     var switch = false
-    val sink = ObserverBuilder.create{(_: Element) =>
+    val observer = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
 
-    val node = div(Observable(span(onSnabbdomDestroy --> sink), div("Hasdasd")))
+    val node = div(Observable(span(onSnabbdomDestroy --> observer), div("Hasdasd")))
 
     switch shouldBe false
 
@@ -72,17 +72,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   it should "be called correctly on merged nodes" in {
 
     var switch = false
-    val sink = ObserverBuilder.create{(_: Element) =>
+    val observer = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
     var switch2 = false
-    val sink2 = ObserverBuilder.create{(_: Element) =>
+    val observer2 = ObserverBuilder.create{(_: Element) =>
       switch2 = true
       Continue
     }
 
-    val node = div(Observable(span(onSnabbdomDestroy --> sink)(onSnabbdomDestroy --> sink2), div("Hasdasd")))
+    val node = div(Observable(span(onSnabbdomDestroy --> observer)(onSnabbdomDestroy --> observer2), div("Hasdasd")))
 
     switch shouldBe false
     switch2 shouldBe false
@@ -95,18 +95,18 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Update hooks" should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = ObserverBuilder.create{(_: (Element, Element)) =>
+    val observer1 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = ObserverBuilder.create{(_: (Element, Element)) =>
+    val observer2 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch2 = true
       Continue
     }
 
     val message = PublishSubject[String]
-    val node = div(message, dsl.key := "unique", onSnabbdomUpdate --> sink1)(onSnabbdomUpdate --> sink2)
+    val node = div(message, dsl.key := "unique", onSnabbdomUpdate --> observer1)(onSnabbdomUpdate --> observer2)
 
     OutWatch.renderInto("#app", node).map { _ =>
 
@@ -123,12 +123,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   it should "be called correctly" in {
 
     var switch = false
-    val sink = ObserverBuilder.create{(_: (Element, Element)) =>
+    val observer = ObserverBuilder.create{(_: (Element, Element)) =>
       switch = true
       Continue
     }
 
-    val node = div(Observable(span(onSnabbdomUpdate --> sink, "Hello"), span(onSnabbdomUpdate --> sink, "Hey")))
+    val node = div(Observable(span(onSnabbdomUpdate --> observer, "Hello"), span(onSnabbdomUpdate --> observer, "Hey")))
 
     switch shouldBe false
 
@@ -140,12 +140,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Prepatch hooks" should "be called" in {
 
     var switch = false
-    val sink = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
+    val observer = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
       switch = true
       Continue
     }
 
-    val prepatchNode = span(attributes.key := "1", onSnabbdomPrePatch --> sink, "Hey")
+    val prepatchNode = span(attributes.key := "1", onSnabbdomPrePatch --> observer, "Hey")
     val node = div(Observable(span("Hello")), Observable(prepatchNode, prepatchNode))
 
     switch shouldBe false
@@ -157,17 +157,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
+    val observer1 = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
+    val observer2 = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
       switch2 = true
       Continue
     }
     val message = PublishSubject[String]()
-    val node = div(message, dsl.key := "unique", onSnabbdomPrePatch --> sink1)(onSnabbdomPrePatch --> sink2)
+    val node = div(message, dsl.key := "unique", onSnabbdomPrePatch --> observer1)(onSnabbdomPrePatch --> observer2)
 
     OutWatch.renderInto("#app", node).map { _ =>
       switch1 shouldBe false
@@ -183,12 +183,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Postpatch hooks" should "be called" in {
 
     var switch = false
-    val sink = ObserverBuilder.create{(_: (Element, Element)) =>
+    val observer = ObserverBuilder.create{(_: (Element, Element)) =>
       switch = true
       Continue
     }
 
-    val node = div(Observable.pure("message"), dsl.key := "unique", onSnabbdomPostPatch --> sink, "Hey")
+    val node = div(Observable.pure("message"), dsl.key := "unique", onSnabbdomPostPatch --> observer, "Hey")
 
     switch shouldBe false
 
@@ -200,17 +200,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = ObserverBuilder.create{(_: (Element, Element)) =>
+    val observer1 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = ObserverBuilder.create{(_: (Element, Element)) =>
+    val observer2 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch2 = true
       Continue
     }
     val message = PublishSubject[String]()
-    val node = div(message, dsl.key := "unique", onSnabbdomPostPatch --> sink1)(onSnabbdomPostPatch --> sink2)
+    val node = div(message, dsl.key := "unique", onSnabbdomPostPatch --> observer1)(onSnabbdomPostPatch --> observer2)
 
     OutWatch.renderInto("#app", node).map { _ =>
       switch1 shouldBe false
@@ -226,24 +226,24 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Hooks" should "be called in the correct order for modified node" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = ObserverBuilder.create { (_: Element) =>
+    val insertObs = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val prepatchSink = ObserverBuilder.create { (_: (Option[Element], Option[Element])) =>
+    val prepatchObs = ObserverBuilder.create { (_: (Option[Element], Option[Element])) =>
       hooks += "prepatch"
       Continue
     }
-    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
+    val updateObs = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
-    val postpatchSink = ObserverBuilder.create { (_: (Element, Element)) =>
+    val postpatchObs = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "postpatch"
       Continue
 
     }
-    val destroySink = ObserverBuilder.create { (_: Element) =>
+    val destroyObs = ObserverBuilder.create { (_: Element) =>
       hooks += "destroy"
       Continue
     }
@@ -252,11 +252,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val node = div(
       dsl.key := "unique",
       message,
-      onSnabbdomInsert --> insertSink,
-      onSnabbdomPrePatch --> prepatchSink,
-      onSnabbdomUpdate --> updateSink,
-      onSnabbdomPostPatch --> postpatchSink,
-      onSnabbdomDestroy --> destroySink
+      onSnabbdomInsert --> insertObs,
+      onSnabbdomPrePatch --> prepatchObs,
+      onSnabbdomUpdate --> updateObs,
+      onSnabbdomPostPatch --> postpatchObs,
+      onSnabbdomDestroy --> destroyObs
     )
 
     hooks shouldBe empty
@@ -272,19 +272,19 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Empty single children receiver" should "not trigger node update on render" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = ObserverBuilder.create { (_: Element) =>
+    val insertObs = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
+    val updateObs = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
 
     val messageList = PublishSubject[Seq[String]]()
     val node = div(dsl.key := "unique", "Hello", messageList.map(_.map(span(_))),
-      onSnabbdomInsert --> insertSink,
-      onSnabbdomUpdate --> updateSink
+      onSnabbdomInsert --> insertObs,
+      onSnabbdomUpdate --> updateObs
     )
 
     hooks shouldBe empty
@@ -296,21 +296,21 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = ObserverBuilder.create { (_: Element) =>
+    val insertObs = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
+    val updateObs = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
-    val destroySink = ObserverBuilder.create { (_: Element) =>
+    val destroyObs = ObserverBuilder.create { (_: Element) =>
       hooks += "destroy"
       Continue
     }
 
     val message = PublishSubject[String]()
-    val node = div(span("Hello", onSnabbdomInsert --> insertSink, onSnabbdomUpdate --> updateSink, onSnabbdomDestroy --> destroySink),
+    val node = div(span("Hello", onSnabbdomInsert --> insertObs, onSnabbdomUpdate --> updateObs, onSnabbdomDestroy --> destroyObs),
       message.map(span(_))
     )
 
@@ -325,22 +325,22 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be only inserted once when children stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = ObserverBuilder.create { (_: Element) =>
+    val insertObs = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
+    val updateObs = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
-    val destroySink = ObserverBuilder.create { (_: Element) =>
+    val destroyObs = ObserverBuilder.create { (_: Element) =>
       hooks += "destroy"
       Continue
     }
 
     val messageList = PublishSubject[Seq[String]]()
     val node = div(messageList.map(_.map(span(_))),
-      span("Hello", onSnabbdomInsert --> insertSink, onSnabbdomUpdate --> updateSink, onSnabbdomDestroy --> destroySink)
+      span("Hello", onSnabbdomInsert --> insertObs, onSnabbdomUpdate --> updateObs, onSnabbdomDestroy --> destroyObs)
     )
 
     hooks shouldBe empty
@@ -360,7 +360,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val nodes = PublishSubject[VNode]
 
     var latest = ""
-    val sink = ObserverBuilder.create { (elem: String) =>
+    val observer = ObserverBuilder.create { (elem: String) =>
       latest = elem
       Continue
     }
@@ -368,7 +368,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val sub = PublishSubject[String]
 
     val node = div(nodes.startWith(Seq(
-      span(managed { () => sub subscribe sink })
+      span(managed { () => sub subscribe observer })
     )))
 
     sub.onNext("pre")
@@ -390,7 +390,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val nodes = PublishSubject[VNode]
 
     var latest = ""
-    val sink = ObserverBuilder.create { (elem: String) =>
+    val observer = ObserverBuilder.create { (elem: String) =>
       latest = elem
       Continue
     }
@@ -398,7 +398,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val sub = PublishSubject[String]
 
     val node = div(nodes.startWith(Seq(
-      span(emitter(sub) --> sink)
+      span(emitter(sub) --> observer)
     )))
 
     sub.onNext("pre")
@@ -577,7 +577,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     val operations = mutable.ArrayBuffer.empty[String]
 
-    val sink = ObserverBuilder.create { (op: String) =>
+    val observer = ObserverBuilder.create { (op: String) =>
       operations += op
       Continue
     }
@@ -586,9 +586,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     val node = div(
       dsl.key := "unique",
-      onSnabbdomInsert("insert") --> sink,
-      div(divTagName --> sink),
-      span(divTagName --> sink)
+      onSnabbdomInsert("insert") --> observer,
+      div(divTagName --> observer),
+      span(divTagName --> observer)
     )
 
     OutWatch.renderInto("#app", node).map { _ =>
