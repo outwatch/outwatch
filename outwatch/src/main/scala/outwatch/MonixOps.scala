@@ -1,7 +1,6 @@
 package outwatch
 
-import cats.effect.IO
-import monix.execution.{Ack, Cancelable, Scheduler}
+import monix.execution.{Ack, Scheduler}
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
 
@@ -10,11 +9,6 @@ import scala.concurrent.Future
 trait MonixOps {
   type ProHandler[-I, +O] = Observable[O] with Observer[I]
   type Handler[T] = ProHandler[T,T]
-
-  @deprecated("use monix.reactive.Observer instead", "")
-  type Sink[-A] = Observer[A]
-  @deprecated("use ProHandler instead", "")
-  type Pipe[-I, +O] = ProHandler[I,O]
 
   implicit class RichObserver[I](observer: Observer[I]) {
     def redirect[I2](f: Observable[I2] => Observable[I]): ConnectableObserver[I2] = {
@@ -37,14 +31,6 @@ trait MonixOps {
 
     def redirectCollect[I2](f: PartialFunction[I2, I]): Observer[I2] = redirectMapMaybe(f.lift)
     def redirectFilter(f: I => Boolean): Observer[I] = redirectMapMaybe(e => Some(e).filter(f))
-
-    @deprecated("use onNext instead.", "")
-    def unsafeOnNext(nextValue: I) = observer.onNext(nextValue)
-
-    @deprecated("use emitter(observable) --> observer for safely using subscriptions in a VNode. Or use observable.subscribe(observer) for manually subscribing to an observable", "")
-    def <--(observable: Observable[I])(implicit scheduler: Scheduler): IO[Cancelable] = IO {
-      observable.subscribe(observer)
-    }
   }
 
   implicit class RichProHandler[I,O](self: ProHandler[I,O]) {

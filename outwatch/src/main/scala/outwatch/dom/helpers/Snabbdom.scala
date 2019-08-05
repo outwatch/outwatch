@@ -1,4 +1,5 @@
-package outwatch.dom.helpers
+package outwatch
+package dom.helpers
 
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.{Observable, OverflowStrategy}
@@ -92,7 +93,7 @@ private[outwatch] object SnabbdomOps {
       var isActive = false
 
       def subscribe(): Cancelable = {
-        observable.asyncBoundary(OverflowStrategy.Unbounded).unsafeSubscribeFn(Sink.create[js.Array[StaticVDomModifier]](
+        observable.asyncBoundary(OverflowStrategy.Unbounded).unsafeSubscribeFn(ObserverBuilder.create[js.Array[StaticVDomModifier]](
           { newState =>
             // First check whether we are active, i.e., our subscription is not cancelled.
             // The obvious question of the reader might be: But then it is already cancelled?

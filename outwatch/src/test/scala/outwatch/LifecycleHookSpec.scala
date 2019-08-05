@@ -14,7 +14,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
@@ -30,12 +30,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: Element) =>
+    val sink2 = ObserverBuilder.create{(_: Element) =>
       switch2 = true
       Continue
     }
@@ -55,7 +55,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Destruction hooks"  should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
@@ -72,12 +72,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   it should "be called correctly on merged nodes" in {
 
     var switch = false
-    val sink = Sink.create{(_: Element) =>
+    val sink = ObserverBuilder.create{(_: Element) =>
       switch = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: Element) =>
+    val sink2 = ObserverBuilder.create{(_: Element) =>
       switch2 = true
       Continue
     }
@@ -95,12 +95,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Update hooks" should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = Sink.create{(_: (Element, Element)) =>
+    val sink1 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: (Element, Element)) =>
+    val sink2 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch2 = true
       Continue
     }
@@ -123,7 +123,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   it should "be called correctly" in {
 
     var switch = false
-    val sink = Sink.create{(_: (Element, Element)) =>
+    val sink = ObserverBuilder.create{(_: (Element, Element)) =>
       switch = true
       Continue
     }
@@ -140,7 +140,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Prepatch hooks" should "be called" in {
 
     var switch = false
-    val sink = Sink.create{(_: (Option[Element], Option[Element])) =>
+    val sink = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
       switch = true
       Continue
     }
@@ -157,12 +157,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = Sink.create{(_: (Option[Element], Option[Element])) =>
+    val sink1 = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: (Option[Element], Option[Element])) =>
+    val sink2 = ObserverBuilder.create{(_: (Option[Element], Option[Element])) =>
       switch2 = true
       Continue
     }
@@ -183,7 +183,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Postpatch hooks" should "be called" in {
 
     var switch = false
-    val sink = Sink.create{(_: (Element, Element)) =>
+    val sink = ObserverBuilder.create{(_: (Element, Element)) =>
       switch = true
       Continue
     }
@@ -200,12 +200,12 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val sink1 = Sink.create{(_: (Element, Element)) =>
+    val sink1 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch1 = true
       Continue
     }
     var switch2 = false
-    val sink2 = Sink.create{(_: (Element, Element)) =>
+    val sink2 = ObserverBuilder.create{(_: (Element, Element)) =>
       switch2 = true
       Continue
     }
@@ -226,24 +226,24 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Hooks" should "be called in the correct order for modified node" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val prepatchSink = Sink.create { (_: (Option[Element], Option[Element])) =>
+    val prepatchSink = ObserverBuilder.create { (_: (Option[Element], Option[Element])) =>
       hooks += "prepatch"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
-    val postpatchSink = Sink.create { (_: (Element, Element)) =>
+    val postpatchSink = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "postpatch"
       Continue
 
     }
-    val destroySink = Sink.create { (_: Element) =>
+    val destroySink = ObserverBuilder.create { (_: Element) =>
       hooks += "destroy"
       Continue
     }
@@ -272,11 +272,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Empty single children receiver" should "not trigger node update on render" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
@@ -296,15 +296,15 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
-    val destroySink = Sink.create { (_: Element) =>
+    val destroySink = ObserverBuilder.create { (_: Element) =>
       hooks += "destroy"
       Continue
     }
@@ -325,15 +325,15 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be only inserted once when children stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertSink = Sink.create { (_: Element) =>
+    val insertSink = ObserverBuilder.create { (_: Element) =>
       hooks += "insert"
       Continue
     }
-    val updateSink = Sink.create { (_: (Element, Element)) =>
+    val updateSink = ObserverBuilder.create { (_: (Element, Element)) =>
       hooks += "update"
       Continue
     }
-    val destroySink = Sink.create { (_: Element) =>
+    val destroySink = ObserverBuilder.create { (_: Element) =>
       hooks += "destroy"
       Continue
     }
@@ -360,7 +360,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val nodes = PublishSubject[VNode]
 
     var latest = ""
-    val sink = Sink.create { (elem: String) =>
+    val sink = ObserverBuilder.create { (elem: String) =>
       latest = elem
       Continue
     }
@@ -390,7 +390,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val nodes = PublishSubject[VNode]
 
     var latest = ""
-    val sink = Sink.create { (elem: String) =>
+    val sink = ObserverBuilder.create { (elem: String) =>
       latest = elem
       Continue
     }
@@ -577,7 +577,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     val operations = mutable.ArrayBuffer.empty[String]
 
-    val sink = Sink.create { (op: String) =>
+    val sink = ObserverBuilder.create { (op: String) =>
       operations += op
       Continue
     }
