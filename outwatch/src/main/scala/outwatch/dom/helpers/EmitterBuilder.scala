@@ -7,6 +7,7 @@ import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
 import outwatch.ConnectableObserver
 import outwatch.dom._
+import outwatch.ObserverBuilder
 
 import scala.concurrent.duration.FiniteDuration
 import scala.scalajs.js
@@ -21,7 +22,7 @@ trait EmitterBuilder[+O, +R] { self =>
   def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R]
   def mapResult[S](f: R => S): EmitterBuilder[O, S]
 
-  @inline def foreach(action: O => Unit): R = -->(Sink.fromFunction(action))
+  @inline def foreach(action: O => Unit): R = -->(ObserverBuilder.fromFunction(action))
   @inline def foreach(action: => Unit): R = foreach(_ => action)
   @inline def apply[T](value: T): EmitterBuilder[T, R] = map(_ => value)
   @inline def mapTo[T](value: => T): EmitterBuilder[T, R] = map(_ => value)
@@ -147,7 +148,7 @@ final class CustomEmitterBuilder[E, +R] private[outwatch](create: Observer[E] =>
 }
 
 final class FunctionEmitterBuilder[E, +O, +R] private[outwatch](transformer: Option[E] => Option[O], create: Observer[E] => R) extends SyncEmitterBuilder[O, R] {
-  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder[O, T, R](tr, observer => create(new ConnectableObserver[E](Sink.fromFunction(e => transformer(Some(e)).foreach(observer.onNext(_))), observer.connect()(_))))
+  def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, R] = new TransformingEmitterBuilder[O, T, R](tr, observer => create(new ConnectableObserver[E](ObserverBuilder.fromFunction(e => transformer(Some(e)).foreach(observer.onNext(_))), observer.connect()(_))))
   def transformSync[T](tr: Option[O] => Option[T]): SyncEmitterBuilder[T, R] = new FunctionEmitterBuilder(transformer andThen tr, create)
   def -->(observer: Observer[O]): R = create(observer.redirectMapMaybe(e => transformer(Some(e))))
 }

@@ -5,7 +5,7 @@ import monix.reactive.Observer
 
 import scala.concurrent.Future
 
-object Sink {
+object ObserverBuilder {
 
   def create[T](next: T => Future[Ack],
     error: Throwable => Unit = ex => throw ex,
@@ -16,7 +16,7 @@ object Sink {
     override def onComplete(): Unit = complete()
   }
 
-  def fromFunction[T](next: T => Unit): Observer[T] = Sink.create[T]{ t => next(t); Ack.Continue }
+  def fromFunction[T](next: T => Unit): Observer[T] = create[T]{ t => next(t); Ack.Continue }
 }
 
 trait ReactiveConnectable {
