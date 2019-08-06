@@ -3,9 +3,9 @@ inThisBuild(Seq(
 
   organization := "io.github.outwatch",
 
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.12.9",
 
-  crossScalaVersions := Seq("2.11.12", "2.12.8", "2.13.0"),
+  crossScalaVersions := Seq("2.11.12", "2.12.9", "2.13.0"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
