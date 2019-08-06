@@ -2,13 +2,15 @@ package outwatch
 
 import scala.scalajs.js
 import org.scalajs.dom.{document, html}
+import cats.effect.IO
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom.OutWatch
 import outwatch.dom.dsl._
-import cats.effect.IO
+import outwatch.io._
 import snabbdom._
 
-class SnabbdomSpec extends JSDomAsyncSpec with MonixOps[IO] {
+
+class SnabbdomSpec extends JSDomAsyncSpec {
 
   "The Snabbdom Facade" should "correctly patch the DOM" in {
 

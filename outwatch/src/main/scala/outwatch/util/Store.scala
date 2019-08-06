@@ -1,6 +1,6 @@
 package outwatch.util
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.implicits._
 import monix.execution.Scheduler
 import monix.reactive.subjects.PublishSubject
@@ -93,5 +93,3 @@ class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] {
     extends Exception("Application was rendered without specifying a Store, please use Outwatch.renderWithStore instead")
 
 }
-
-object Store extends StoreOps[IO]

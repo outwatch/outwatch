@@ -1,9 +1,9 @@
 package outwatch
 
-import cats.effect.IO
 import monix.reactive.subjects.PublishSubject
+import outwatch.io._ 
 
-class MonixOpsSpec extends JSDomAsyncSpec with MonixOps[IO] {
+class MonixOpsSpec extends JSDomAsyncSpec {
 
   "Observer" should "redirect" in {
 

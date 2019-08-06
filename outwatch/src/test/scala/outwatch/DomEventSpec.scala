@@ -8,9 +8,10 @@ import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.io._
 import outwatch.util.LocalStorage
 
-class DomEventSpec extends JSDomAsyncSpec with MonixOps[IO] {
+class DomEventSpec extends JSDomAsyncSpec {
 
   val LocalStorageIO = new LocalStorage[IO]
 

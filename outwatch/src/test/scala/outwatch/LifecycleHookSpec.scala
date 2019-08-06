@@ -7,10 +7,11 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom._
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.io._
 
 import scala.collection.mutable
 
-class LifecycleHookSpec extends JSDomAsyncSpec with MonixOps[IO] {
+class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Insertion hooks" should "be called correctly" in {
 

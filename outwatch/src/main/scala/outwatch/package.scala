@@ -1,3 +1,4 @@
+import cats.effect.IO
 import monix.reactive.{Observer, Observable}
 
 package object outwatch extends ObserverOps {
@@ -7,4 +8,5 @@ package object outwatch extends ObserverOps {
   type ProHandler[-I, +O] = Observable[O] with Observer[I]
   type Handler[T] = ProHandler[T,T]
 
+  object io extends MonixOps[IO]
 }

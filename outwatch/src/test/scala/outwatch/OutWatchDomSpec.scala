@@ -13,6 +13,7 @@ import monix.reactive.Observer
 import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
+import outwatch.io._
 import snabbdom.{DataObject, Hooks, hFunction}
 import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
@@ -23,7 +24,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.JSON
 
-class OutWatchDomSpec extends JSDomAsyncSpec with MonixOps[IO] {
+class OutWatchDomSpec extends JSDomAsyncSpec {
   val LocalStorageIO = new util.LocalStorage[IO]
 
   implicit def ListToJsArray[T](list: Seq[T]): js.Array[T] = list.toJSArray

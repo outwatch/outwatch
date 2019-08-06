@@ -7,8 +7,9 @@ import org.scalatest.Assertion
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.io._
 
-class ScenarioTestSpec extends JSDomAsyncSpec with MonixOps[IO] {
+class ScenarioTestSpec extends JSDomAsyncSpec {
 
   def getMinus: Element   = document.getElementById("minus")
   def getPlus: Element    = document.getElementById("plus")
