@@ -1,6 +1,6 @@
 package outwatch
 
-import monix.execution.Ack 
+import monix.execution.Ack
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
 
@@ -14,11 +14,8 @@ trait ObserverOps {
       new ConnectableObserver[I2](subject, implicit scheduler => transformed.subscribe(observer))
     }
 
-    def redirectMap[I2](f: I2 => I): Observer[I2] = new Observer[I2] {
-      override def onNext(elem: I2): Future[Ack] = observer.onNext(f(elem))
-      override def onError(ex: Throwable): Unit = observer.onError(ex)
-      override def onComplete(): Unit = observer.onComplete()
-    }
+    @deprecated("Use contramap", "")
+    def redirectMap[I2](f: I2 => I): Observer[I2] = observer.contramap(f)
 
     def redirectMapMaybe[I2](f: I2 => Option[I]): Observer[I2] = new Observer[I2] {
       override def onNext(elem: I2): Future[Ack] = f(elem).fold[Future[Ack]](Ack.Continue)(observer.onNext(_))
