@@ -23,25 +23,6 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
-  it should "redirectMap" in {
-
-    var currentValue = 0
-
-    val subject = PublishSubject[Int]
-    subject.foreach{currentValue = _}
-
-    val redirected = subject.redirectMap[Int](_ + 1)
-
-    for {
-      _ <- subject.onNext(5)
-      _ <- currentValue shouldBe 5
-      _ <- redirected.onNext(5)
-      _ <- currentValue shouldBe 6
-
-    } yield succeed
-  }
-
-
   "PublishSubject" should "transformObservable" in {
 
     var currentValue = 0
