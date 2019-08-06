@@ -17,11 +17,8 @@ trait MonixOps {
       new ConnectableObserver[I2](subject, implicit scheduler => transformed.subscribe(observer))
     }
 
-    def redirectMap[I2](f: I2 => I): Observer[I2] = new Observer[I2] {
-      override def onNext(elem: I2): Future[Ack] = observer.onNext(f(elem))
-      override def onError(ex: Throwable): Unit = observer.onError(ex)
-      override def onComplete(): Unit = observer.onComplete()
-    }
+    @deprecated("Use contramap", "")
+    def redirectMap[I2](f: I2 => I): Observer[I2] = observer.contramap(f)
 
     def redirectMapMaybe[I2](f: I2 => Option[I]): Observer[I2] = new Observer[I2] {
       override def onNext(elem: I2): Future[Ack] = f(elem).fold[Future[Ack]](Ack.Continue)(observer.onNext(_))
@@ -35,8 +32,8 @@ trait MonixOps {
 
   implicit class RichProHandler[I,O](self: ProHandler[I,O]) {
     def mapObservable[O2](f: O => O2): ProHandler[I, O2] = ProHandler(self, self.map(f))
-    def mapObserver[I2](f: I2 => I): ProHandler[I2, O] = ProHandler(self.redirectMap(f), self)
-    def mapProHandler[I2, O2](write: I2 => I)(read: O => O2): ProHandler[I2, O2] = ProHandler(self.redirectMap(write), self.map(read))
+    def mapObserver[I2](f: I2 => I): ProHandler[I2, O] = ProHandler(self.contramap(f), self)
+    def mapProHandler[I2, O2](write: I2 => I)(read: O => O2): ProHandler[I2, O2] = ProHandler(self.contramap(write), self.map(read))
 
     def collectObservable[O2](f: PartialFunction[O, O2]): ProHandler[I, O2] = ProHandler(self, self.collect(f))
     def collectObserver[I2](f: PartialFunction[I2, I]): ProHandler[I2, O] = ProHandler(self.redirectCollect(f), self)
@@ -62,7 +59,7 @@ trait MonixOps {
       ProHandler.connectable(redirected, self.map(read))
     }
 
-    def mapHandler[T2](write: T2 => T)(read: T => T2): Handler[T2] = ProHandler(self.redirectMap(write), self.map(read))
+    def mapHandler[T2](write: T2 => T)(read: T => T2): Handler[T2] = ProHandler(self.contramap(write), self.map(read))
     def collectHandler[T2](write: PartialFunction[T2, T])(read: PartialFunction[T, T2]): Handler[T2] = ProHandler(self.redirectCollect(write), self.collect(read))
     def filterHandler(write: T => Boolean)(read: T => Boolean): Handler[T] = ProHandler(self.redirectFilter(write), self.filter(read))
     def transformHandler[T2](write: Observable[T2] => Observable[T])(read: Observable[T] => Observable[T2]): Handler[T2] with ReactiveConnectable = ProHandler.connectable(self.redirect(write), read(self))
