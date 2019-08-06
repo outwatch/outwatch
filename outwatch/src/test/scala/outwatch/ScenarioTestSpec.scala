@@ -8,6 +8,7 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.util.Store
+import outwatch.util.Store.Reducer
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
 
@@ -75,7 +76,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val node: IO[VNode] = for {
-      store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce _)
+      store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), Reducer.justState(reduce _))
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
