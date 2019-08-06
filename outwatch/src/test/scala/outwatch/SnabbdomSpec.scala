@@ -8,7 +8,7 @@ import outwatch.dom.dsl._
 import cats.effect.IO
 import snabbdom._
 
-class SnabbdomSpec extends JSDomAsyncSpec {
+class SnabbdomSpec extends JSDomAsyncSpec with MonixOps[IO] {
 
   "The Snabbdom Facade" should "correctly patch the DOM" in {
 
@@ -60,7 +60,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                    node
                  }
 
-               _ <- OutWatch.renderInto("#app", div(nodes))
+               _ <- OutWatch.renderInto[IO]("#app", div(nodes))
 
         inputEvt <- IO {
                     val inputEvt = document.createEvent("HTMLEvents")
@@ -97,8 +97,8 @@ class SnabbdomSpec extends JSDomAsyncSpec {
       IO(document.getElementById("content").innerHTML)
 
     for {
-      a <- outwatch.Handler.create[Int](0)
-      b <- outwatch.Handler.create[Int](100)
+      a <- Handler.create[Int](0)
+      b <- Handler.create[Int](100)
       vtree = div(
               a.map { a =>
                 div(
@@ -109,7 +109,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                 )
               }
             )
-          _ <- OutWatch.renderInto("#app", vtree)
+          _ <- OutWatch.renderInto[IO]("#app", vtree)
           c1 <- getContent
            _ <- IO.fromFuture(IO(a.onNext(1)))
           c2 <- getContent

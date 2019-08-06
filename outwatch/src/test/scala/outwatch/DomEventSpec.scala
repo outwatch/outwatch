@@ -8,8 +8,11 @@ import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.util.LocalStorage
 
-class DomEventSpec extends JSDomAsyncSpec {
+class DomEventSpec extends JSDomAsyncSpec with MonixOps[IO] {
+
+  val LocalStorageIO = new LocalStorage[IO]
 
   "EventStreams" should "emit and receive events correctly" in {
 
@@ -24,7 +27,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       vtree <- vtree
-          _ <- OutWatch.renderInto("#app", vtree)
+          _ <- OutWatch.renderInto[IO]("#app", vtree)
        hasD <- IO(document.getElementById("btn").hasAttribute("disabled"))
           _ <- IO(hasD shouldBe false)
       event <- IO {
@@ -50,7 +53,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       vtree <- vtree
-      _ <- OutWatch.renderInto("#app", vtree)
+      _ <- OutWatch.renderInto[IO]("#app", vtree)
     } yield {
       document.getElementById("child").innerHTML shouldBe ""
 
@@ -80,7 +83,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
       for {
         vtree <- vtree
-        _ <- OutWatch.renderInto("#app", vtree)
+        _ <- OutWatch.renderInto[IO]("#app", vtree)
       } yield {
 
         document.getElementById("child").innerHTML shouldBe ""
@@ -116,7 +119,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val vtree = input(id := "input", attributes.value <-- values)
 
-    OutWatch.renderInto("#app", vtree).map {_ =>
+    OutWatch.renderInto[IO]("#app", vtree).map {_ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
 
@@ -143,7 +146,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     val defaultValues = PublishSubject[String]
 
     val vtree = input(id := "input", attributes.defaultValue <-- defaultValues)
-    OutWatch.renderInto("#app", vtree).map { _ =>
+    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
@@ -165,7 +168,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     val values = PublishSubject[String]
 
     val vtree = input(id := "input", attributes.value <-- values)
-    OutWatch.renderInto("#app", vtree).map { _ =>
+    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
@@ -191,7 +194,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       ul(id := "list", state)
     )
 
-    OutWatch.renderInto("#app", vtree).map { _ =>
+    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val list = document.getElementById("list")
 
@@ -244,7 +247,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
       val event = document.createEvent("Events")
       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -270,7 +273,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val event = document.createEvent("Events")
@@ -300,7 +303,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val event = document.createEvent("Events")
@@ -325,7 +328,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputEvt = document.createEvent("HTMLEvents")
@@ -356,7 +359,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       )
     }
 
-    OutWatch.renderInto("#app", node).map {_ =>
+    OutWatch.renderInto[IO]("#app", node).map {_ =>
 
       val inputEvt = document.createEvent("HTMLEvents")
       initEvent(inputEvt)("click", canBubbleArg = false, cancelableArg = true)
@@ -397,7 +400,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputElement = document.getElementById("input").asInstanceOf[html.Input]
@@ -437,7 +440,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
@@ -470,7 +473,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val node = div(button(id := "input", tpe := "checkbox"))
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       val inputEvt = document.createEvent("HTMLEvents")
       initEvent(inputEvt)("click", canBubbleArg = true, cancelableArg = false)
@@ -521,7 +524,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
       document.getElementById("input") should not be null
     }
@@ -546,7 +549,7 @@ class DomEventSpec extends JSDomAsyncSpec {
             modifier
           ),
           ul(id := "items"))
-        _ <- OutWatch.renderInto("#app", elem)
+        _ <- OutWatch.renderInto[IO]("#app", elem)
         } yield {
           document.getElementById("input") should not be null
         }
@@ -560,7 +563,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       myStrings
     )
 
-    OutWatch.renderInto("#app", node).map( _ =>
+    OutWatch.renderInto[IO]("#app", node).map( _ =>
       document.getElementById("strings").innerHTML shouldBe "ab"
     )
   }
@@ -568,7 +571,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   "LocalStorage" should "have handler with proper events" in {
     var option: Option[Option[String]] = None
 
-    util.LocalStorage.handler("hans").map { handler =>
+    LocalStorageIO.handler("hans").map { handler =>
 
       handler.foreach { o => option = Some(o) }
 
@@ -586,7 +589,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "have handlerWithEventsOnly with proper events" in {
     var option: Option[Option[String]] = None
 
-    util.LocalStorage.handlerWithEventsOnly("hans").map {handler =>
+    LocalStorageIO.handlerWithEventsOnly("hans").map {handler =>
       handler.foreach { o => option = Some(o) }
 
       option shouldBe Some(None)
@@ -606,7 +609,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     var option: Option[Option[String]] = None
 
-    util.LocalStorage.handlerWithEventsOnly("hans").map { handler =>
+    LocalStorageIO.handlerWithEventsOnly("hans").map { handler =>
 
       handler.foreach { o => option = Some(o) }
       option shouldBe Some(Some("wurst"))
@@ -616,7 +619,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "have handlerWithoutEvents with proper events" in {
     var option: Option[Option[String]] = None
 
-    util.LocalStorage.handlerWithoutEvents("hans").map { handler =>
+    LocalStorageIO.handlerWithoutEvents("hans").map { handler =>
 
       handler.foreach { o => option = Some(o) }
 
@@ -640,7 +643,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     )
 
     val test = for {
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
       _ <- IO {
             val event = document.createEvent("Events")
             initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -666,7 +669,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       val event = document.createEvent("Events")
       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -690,7 +693,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       onClick foreach {triggeredSecond = true}
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       val event = document.createEvent("Events")
       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)

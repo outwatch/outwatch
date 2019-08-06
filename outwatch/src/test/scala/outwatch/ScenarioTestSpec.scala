@@ -7,9 +7,8 @@ import org.scalatest.Assertion
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.util.Store
 
-class ScenarioTestSpec extends JSDomAsyncSpec {
+class ScenarioTestSpec extends JSDomAsyncSpec with MonixOps[IO] {
 
   def getMinus: Element   = document.getElementById("minus")
   def getPlus: Element    = document.getElementById("plus")
@@ -34,7 +33,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                       document.body.appendChild(root)
                       root
                     }
-                _ <- OutWatch.renderInto(r, node)
+                _ <- OutWatch.renderInto[IO](r, node)
             event <- IO {
                       val event = document.createEvent("Events")
                       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -75,7 +74,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val node: IO[VNode] = for {
-      store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce _)
+      store <- Store.create[CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce _)
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
@@ -99,7 +98,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
             root
           }
       node <- node
-      _ <- OutWatch.renderInto(r, node)
+      _ <- OutWatch.renderInto[IO](r, node)
       e <- IO {
             val event = document.createEvent("Events")
             initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -160,7 +159,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                 root
               }
       node  <- node
-          _ <- OutWatch.renderInto(r, node)
+          _ <- OutWatch.renderInto[IO](r, node)
       event <- IO {
                 val evt = document.createEvent("HTMLEvents")
                 initEvent(evt)("input", canBubbleArg = false, cancelableArg = true)
@@ -202,9 +201,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         clickEvt
       }
       e1 <- createDiv
-       _ <- OutWatch.renderInto(e1, component1)
+       _ <- OutWatch.renderInto[IO](e1, component1)
       e2 <- createDiv
-       _ <- OutWatch.renderInto(e2, component2)
+       _ <- OutWatch.renderInto[IO](e2, component2)
        _ <- IO {
              getButton(e1).dispatchEvent(evt)
              getButton(e2).dispatchEvent(evt)
@@ -286,7 +285,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       }
 
       vtree <- vtree
-      _ <- OutWatch.renderInto(root, vtree)
+      _ <- OutWatch.renderInto[IO](root, vtree)
 
       inputEvt <- IO {
         val inputEvt = document.createEvent("HTMLEvents")

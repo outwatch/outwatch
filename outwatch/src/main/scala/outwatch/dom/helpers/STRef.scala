@@ -1,18 +1,19 @@
 package outwatch.dom.helpers
 
-import cats.effect.IO
+import cats.effect.Sync
+import cats.implicits._
 
-class STRef[A](private var unsafeGet: A) {
-  def put(a: A): IO[A] = IO { unsafeGet = a; a }
+class STRef[F[_]: Sync, A](private var unsafeGet: A) {
+  def put(a: A): F[A] = Sync[F].delay { unsafeGet = a; a }
 
-  def getOrThrow(t: Throwable): IO[A] = IO(unsafeGet)
-    .flatMap(s => if (s == null) IO.raiseError(t) else IO.pure(s)) // scalastyle:ignore
+  def getOrThrow(t: Throwable): F[A] = 
+    unsafeGet.pure[F].flatMap(s => if (s == null) Sync[F].raiseError(t) else s.pure[F]) // scalastyle:ignore
 
-  def get: IO[A] = getOrThrow(new IllegalStateException())
-  def update(f: A => A): IO[A] = IO { unsafeGet = f(unsafeGet); unsafeGet }
+  def get: F[A] = getOrThrow(new IllegalStateException())
+  def update(f: A => A): F[A] = Sync[F].delay { unsafeGet = f(unsafeGet); unsafeGet }
 }
 
 object STRef {
-  def apply[A](a: A): STRef[A] = new STRef(a)
-  def empty[A]: STRef[A] = new STRef[A](null.asInstanceOf[A]) // scalastyle:ignore
+  def apply[F[_]: Sync, A](a: A): STRef[F, A] = new STRef[F, A](a)
+  def empty[F[_]: Sync, A]: STRef[F, A] = new STRef[F, A](null.asInstanceOf[A]) // scalastyle:ignore
 }
