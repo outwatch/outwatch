@@ -1,4 +1,5 @@
 package outwatch
+package dom
 
 import cats.effect.Sync
 import cats.implicits._

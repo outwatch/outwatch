@@ -7,7 +7,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
 import outwatch.dom.helpers.STRef
-import outwatch.dom.{OutWatch, VNode}
+import outwatch.dom.{OutWatch, VNode, ProHandlerOps, ProHandler}
 import monix.eval.Task
 
 trait StoreOps[F[_]] extends ProHandlerOps[F] {
