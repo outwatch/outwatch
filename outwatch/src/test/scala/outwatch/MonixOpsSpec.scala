@@ -1,7 +1,7 @@
 package outwatch
 
 import monix.reactive.subjects.PublishSubject
-import outwatch.io._ 
+import outwatch.dom.io._
 
 class MonixOpsSpec extends JSDomAsyncSpec {
 

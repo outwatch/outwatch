@@ -10,9 +10,9 @@ import outwatch.dom.helpers.STRef
 import outwatch.dom.{OutWatchOps, VNode, ProHandlerOps, ProHandler}
 import monix.eval.Task
 
-trait StoreOps[F[_]] extends ProHandlerOps[F] {
+trait StoreOps[F[_]] {
 
-  object Store {
+  object Store extends ProHandlerOps[F] {
 
     @deprecated("Use Reducer object from outwatch.util", "")
     val Reducer = outwatch.util.Reducer

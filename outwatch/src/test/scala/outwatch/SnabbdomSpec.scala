@@ -4,9 +4,8 @@ import scala.scalajs.js
 import org.scalajs.dom.{document, html}
 import cats.effect.IO
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import outwatch.dom.OutWatch
+import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.io._
 import snabbdom._
 
 
@@ -62,7 +61,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                    node
                  }
 
-               _ <- OutWatch.renderInto[IO]("#app", div(nodes))
+               _ <- OutWatch.renderInto("#app", div(nodes))
 
         inputEvt <- IO {
                     val inputEvt = document.createEvent("HTMLEvents")
@@ -111,7 +110,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                 )
               }
             )
-          _ <- OutWatch.renderInto[IO]("#app", vtree)
+          _ <- OutWatch.renderInto("#app", vtree)
           c1 <- getContent
            _ <- IO.fromFuture(IO(a.onNext(1)))
           c2 <- getContent

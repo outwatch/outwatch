@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.execution.Scheduler.Implicits.global
 
-OutWatch.renderInto[IO]("#app", h1("Hello World")).unsafeRunSync()
+OutWatch.renderInto("#app", h1("Hello World")).unsafeRunSync()
 ```
 
 Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI is made reactive with [Monix](https://monix.io/).
@@ -108,7 +108,7 @@ object Main {
     
     val myComponent = div("Hello World")
 
-    OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
+    OutWatch.renderReplace("#app", myComponent).unsafeRunSync()
   }
 }
 ```
@@ -444,7 +444,7 @@ object Main {
     val counter = Observable.interval(1 second)
     val counterComponent = div("count: ", counter)
 
-    OutWatch.renderReplace[IO]("#app", counterComponent).unsafeRunSync()
+    OutWatch.renderReplace("#app", counterComponent).unsafeRunSync()
   }
 }
 ```

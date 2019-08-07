@@ -10,10 +10,10 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import monix.reactive.Observable
 import monix.reactive.Observer
+import outwatch.dom._
 import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
-import outwatch.io._
 import snabbdom.{DataObject, Hooks, hFunction}
 import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
@@ -221,7 +221,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       }
 
       _ <- IO(list.isEmpty shouldBe true)
-      _ <- OutWatch.renderInto[IO](node, vtree)
+      _ <- OutWatch.renderInto(node, vtree)
     } yield {
 
       list should contain theSameElementsAs List(
@@ -332,7 +332,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       handlerCounter shouldBe 0
 
 
-      OutWatch.renderInto[IO](node, vtree).map { _ =>
+      OutWatch.renderInto(node, vtree).map { _ =>
 
         ioCounter shouldBe 1
         handlerCounter shouldBe 0
@@ -369,7 +369,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       ioCounter shouldBe 0
       handlerCounter shouldBe 0
 
-      OutWatch.renderInto[IO](node, vtree).map { _ =>
+      OutWatch.renderInto(node, vtree).map { _ =>
 
         ioCounter shouldBe 1
         handlerCounter shouldBe 0
@@ -399,7 +399,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vtree).map { _ =>
+      OutWatch.renderInto(n, vtree).map { _ =>
 
           val patchedNode = document.getElementById(id)
           patchedNode.childElementCount shouldBe 1
@@ -439,7 +439,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vtree).map { _ =>
+      OutWatch.renderInto(n, vtree).map { _ =>
 
         pageHandler.onNext(1)
 
@@ -523,7 +523,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap {n =>
 
-      OutWatch.renderInto[IO](n, vtree).map {_ =>
+      OutWatch.renderInto(n, vtree).map {_ =>
 
         val patchedNode = document.getElementById("test")
 
@@ -551,7 +551,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vtree).map { _ =>
+      OutWatch.renderInto(n, vtree).map { _ =>
 
         val field = document.getElementById("input").asInstanceOf[html.Input]
 
@@ -591,7 +591,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         messagesA.onNext("1")
         messagesB.onNext("2")
@@ -621,7 +621,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         n.innerHTML shouldBe "<div>AB</div>"
 
@@ -657,7 +657,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         n.innerHTML shouldBe "<div>AB</div>"
 
@@ -689,7 +689,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         otherMessages.onNext(Seq(div("otherMessage")))
         n.children(0).innerHTML shouldBe "<div>otherMessage</div>"
@@ -718,7 +718,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         n.children(0).innerHTML shouldBe ""
 
@@ -755,7 +755,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         val inner = document.getElementById("inner").asInstanceOf[html.Div]
 
@@ -801,7 +801,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         val inner = document.getElementById("inner").asInstanceOf[html.Div]
 
@@ -834,7 +834,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, container).map { _ =>
+      OutWatch.renderInto(n, container).map { _ =>
 
         messages.onNext("message")
         n.children(0).children(0).innerHTML shouldBe "message"
@@ -864,10 +864,10 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val test = for {
 
       node1 <- node
-       _ <- OutWatch.renderInto[IO](node1, vNodeTemplate)
+       _ <- OutWatch.renderInto(node1, vNodeTemplate)
 
       node2 <- node
-       _ <- OutWatch.renderInto[IO](node2, vNode)
+       _ <- OutWatch.renderInto(node2, vNode)
 
     } yield {
 
@@ -902,7 +902,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         otherMessages.onNext("otherMessage")
         n.children(0).getAttribute("data-noise") shouldBe "otherMessage"
@@ -931,7 +931,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         otherMessages.onNext("red")
         n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
@@ -960,7 +960,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         otherMessages.onNext("red")
         n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
@@ -989,7 +989,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         n.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
       }
@@ -1010,7 +1010,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         classes.onNext("active")
 
@@ -1032,7 +1032,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     node.flatMap { n =>
 
-      OutWatch.renderInto[IO](n, vNode).map { _ =>
+      OutWatch.renderInto(n, vNode).map { _ =>
 
         n.innerHTML shouldBe "<div><main></main></div>"
       }
@@ -1055,7 +1055,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       n.selected shouldBe false
       n.disabled shouldBe false
 
-      OutWatch.renderReplace[IO](n, vNode).map {_ =>
+      OutWatch.renderReplace(n, vNode).map {_ =>
 
         n.selected shouldBe true
         n.disabled shouldBe true
@@ -1069,30 +1069,30 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val test: IO[Assertion] = for {
       n1 <- IO(document.createElement("div"))
 
-       _ <- OutWatch.renderReplace[IO](n1, div("one"))
+       _ <- OutWatch.renderReplace(n1, div("one"))
        _ = n1.innerHTML shouldBe "one"
 
-       _ <- OutWatch.renderReplace[IO](n1, div(Some("one")))
+       _ <- OutWatch.renderReplace(n1, div(Some("one")))
        _ = n1.innerHTML shouldBe "one"
 
       n2 <- IO(document.createElement("div"))
 
-       _ <- OutWatch.renderReplace[IO](n2, div(None:Option[Int]))
+       _ <- OutWatch.renderReplace(n2, div(None:Option[Int]))
        _ = n2.innerHTML shouldBe ""
 
-      _ <- OutWatch.renderReplace[IO](n1, div(1))
+      _ <- OutWatch.renderReplace(n1, div(1))
       _ = n1.innerHTML shouldBe "1"
 
-      _ <- OutWatch.renderReplace[IO](n1, div(1.0))
+      _ <- OutWatch.renderReplace(n1, div(1.0))
       _ = n1.innerHTML shouldBe "1"
 
-      _ <- OutWatch.renderReplace[IO](n1, div(Seq("one", "two")))
+      _ <- OutWatch.renderReplace(n1, div(Seq("one", "two")))
       _ = n1.innerHTML shouldBe "onetwo"
 
-      _ <- OutWatch.renderReplace[IO](n1, div(Seq(1, 2)))
+      _ <- OutWatch.renderReplace(n1, div(Seq(1, 2)))
       _ = n1.innerHTML shouldBe "12"
 
-      _ <- OutWatch.renderReplace[IO](n1, div(Seq(1.0, 2.0)))
+      _ <- OutWatch.renderReplace(n1, div(Seq(1.0, 2.0)))
       _ = n1.innerHTML shouldBe "12"
 
     } yield succeed
@@ -1105,7 +1105,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
     val node = div(id := "strings", myStrings)
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
 
       val element = document.getElementById("strings")
       element.innerHTML shouldBe "ab"
@@ -1119,7 +1119,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       1.1, true, 133L, 7
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
 
       val element = document.getElementById("strings")
       element.innerHTML shouldBe "1.1true1337"
@@ -1133,7 +1133,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       val node = div(id := "strings", myOption)
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "a"
@@ -1152,7 +1152,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       val node = div(id := "strings", myOption)
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div>a</div>"
@@ -1173,7 +1173,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(VDomModifier(myHandler))
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe """<div class="hans"><b>stark</b></div>"""
@@ -1194,7 +1194,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(myHandler, "bla")
       )
 
-      OutWatch.renderInto[IO]("#app", node).flatMap { _ =>
+      OutWatch.renderInto("#app", node).flatMap { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div>bla</div>"
@@ -1248,7 +1248,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(myHandler)
       )
 
-      OutWatch.renderInto[IO]("#app", node).flatMap { _ =>
+      OutWatch.renderInto("#app", node).flatMap { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
@@ -1303,7 +1303,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         )
       )
 
-      OutWatch.renderInto[IO]("#app", node).flatMap { _ =>
+      OutWatch.renderInto("#app", node).flatMap { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div>initial</div>"
@@ -1362,7 +1362,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
           )
         )
 
-      OutWatch.renderInto[IO]("#app", node).map {_ =>
+      OutWatch.renderInto("#app", node).map {_ =>
 
         val element = document.getElementById("app")
         element.innerHTML shouldBe "<div><div><div>0</div></div></div>"
@@ -1389,7 +1389,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).flatMap { _ =>
+    OutWatch.renderInto("#app", node).flatMap { _ =>
 
       val element = document.getElementById("strings")
       element.innerHTML shouldBe "<div>initial</div>"
@@ -1446,7 +1446,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         )
       )
 
-      OutWatch.renderInto[IO]("#app", node).flatMap {_ =>
+      OutWatch.renderInto("#app", node).flatMap {_ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div>initial</div>"
@@ -1551,7 +1551,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         outerHandler
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.outerHTML shouldBe """<div id="strings" data-test="v">ab</div>"""
@@ -1576,7 +1576,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         outerHandler
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.outerHTML shouldBe """<div id="strings" data-test="v">a</div>"""
@@ -1602,7 +1602,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(myHandler)
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
@@ -1622,7 +1622,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(myHandler)
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
@@ -1642,7 +1642,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(myHandler)
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
@@ -1662,7 +1662,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(myHandler)
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
@@ -1682,7 +1682,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         div(id := "click", myHandler)
       )
 
-      OutWatch.renderInto[IO]("#app", node).map { _ =>
+      OutWatch.renderInto("#app", node).map { _ =>
 
         val element = document.getElementById("strings")
         element.innerHTML shouldBe """<div id="click"></div>"""
@@ -1724,7 +1724,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         )
       )
 
-      OutWatch.renderInto[IO]("#app", node).map {_ =>
+      OutWatch.renderInto("#app", node).map {_ =>
         val element = document.getElementById("strings")
 
         element.innerHTML shouldBe """<div class="first second"></div>"""
@@ -1815,7 +1815,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
                       onDomUnmount foreach  { unmounts += 1 },
                       onDomUpdate foreach  { updates += 1 }
                     )
-          _ <- OutWatch.renderInto[IO]("#app", node)
+          _ <- OutWatch.renderInto("#app", node)
     } yield {
 
       val element = document.getElementById("strings")
@@ -1863,7 +1863,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
                     onDomUnmount foreach  { unmounts += 1 },
                     onDomUpdate foreach  { updates += 1 }
                   )
-                _ <- OutWatch.renderInto[IO]("#app", node)
+                _ <- OutWatch.renderInto("#app", node)
     } yield {
       val element = document.getElementById("strings")
       element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
@@ -1900,7 +1900,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       cmds
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
       element.innerHTML shouldBe ""
 
@@ -1947,7 +1947,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
       element.innerHTML shouldBe """<p id="id-1">How much?</p><p id="id-2">Why so cheap?</p>"""
 
@@ -1974,7 +1974,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       ValueObservable(cmds, ChildCommand.ReplaceAll(div("huch") :: Nil))
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
       element.innerHTML shouldBe "<div>huch</div>"
 
@@ -2009,7 +2009,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     incCounter shouldBe 0
     mapCounter shouldBe 0
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       incCounter shouldBe 1
       mapCounter shouldBe 1
 
@@ -2068,7 +2068,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     bCounter shouldBe 0
     lastValue shouldBe null
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       aCounter shouldBe 0
       bCounter shouldBe 0
       lastValue shouldBe null
@@ -2132,7 +2132,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       renderFnCounter shouldBe 0
@@ -2202,7 +2202,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       renderFnCounter shouldBe 0
@@ -2243,7 +2243,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       }
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       renderFnCounter shouldBe 0
@@ -2298,7 +2298,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       myOther
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       renderFnCounter shouldBe 0
@@ -2416,7 +2416,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       }
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       renderFnCounter shouldBe 0
@@ -2651,7 +2651,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    OutWatch.renderInto("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       renderFnCounter shouldBe 0
@@ -2819,7 +2819,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).unsafeToFuture.flatMap { _ =>
+    OutWatch.renderInto("#app", node).unsafeToFuture.flatMap { _ =>
       val editButton = document.getElementById("edit-button")
 
       for {
@@ -2868,7 +2868,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).unsafeToFuture.flatMap { _ =>
+    OutWatch.renderInto("#app", node).unsafeToFuture.flatMap { _ =>
       val editButton = document.getElementById("edit-button")
 
       for {
@@ -2904,7 +2904,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         } --> handler,
         handler
       )
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- OutWatch.renderInto("#app", node)
 
       element = document.getElementById("strings")
       _ = element.innerHTML shouldBe ""
@@ -2941,7 +2941,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         } --> handler,
         handler
       )
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- OutWatch.renderInto("#app", node)
 
       element = document.getElementById("strings")
       _ = element.innerHTML shouldBe ""

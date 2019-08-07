@@ -12,4 +12,7 @@ package object dom extends Implicits with ManagedSubscriptions {
   type Handler[T] = ProHandler[T,T]
 
   val OutWatch = new OutWatchOps[IO]{}.OutWatch
+
+  object io extends ProHandlerOps[IO] with OutWatchOps[IO]
+  object implicits extends Implicits with ManagedSubscriptions
 }

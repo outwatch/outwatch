@@ -7,7 +7,7 @@ import org.scalatest.Assertion
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.io._
+import outwatch.util.io._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
 
@@ -34,7 +34,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                       document.body.appendChild(root)
                       root
                     }
-                _ <- OutWatch.renderInto[IO](r, node)
+                _ <- OutWatch.renderInto(r, node)
             event <- IO {
                       val event = document.createEvent("Events")
                       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -99,7 +99,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
             root
           }
       node <- node
-      _ <- OutWatch.renderInto[IO](r, node)
+      _ <- OutWatch.renderInto(r, node)
       e <- IO {
             val event = document.createEvent("Events")
             initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -160,7 +160,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                 root
               }
       node  <- node
-          _ <- OutWatch.renderInto[IO](r, node)
+          _ <- OutWatch.renderInto(r, node)
       event <- IO {
                 val evt = document.createEvent("HTMLEvents")
                 initEvent(evt)("input", canBubbleArg = false, cancelableArg = true)
@@ -202,9 +202,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         clickEvt
       }
       e1 <- createDiv
-       _ <- OutWatch.renderInto[IO](e1, component1)
+       _ <- OutWatch.renderInto(e1, component1)
       e2 <- createDiv
-       _ <- OutWatch.renderInto[IO](e2, component2)
+       _ <- OutWatch.renderInto(e2, component2)
        _ <- IO {
              getButton(e1).dispatchEvent(evt)
              getButton(e2).dispatchEvent(evt)
@@ -286,7 +286,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       }
 
       vtree <- vtree
-      _ <- OutWatch.renderInto[IO](root, vtree)
+      _ <- OutWatch.renderInto(root, vtree)
 
       inputEvt <- IO {
         val inputEvt = document.createEvent("HTMLEvents")
