@@ -1,5 +1,4 @@
-package outwatch
-package dom.helpers
+package outwatch.dom.helpers
 
 import cats.{Monoid, Functor, Bifunctor}
 import cats.effect.IO
@@ -35,9 +34,9 @@ trait EmitterBuilder[+O, +R] { self =>
 }
 
 object EmitterBuilder {
-  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => 
+  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs =>
     Emitter(
-      eventType, 
+      eventType,
       event => {
         obs.onNext(event.asInstanceOf[E])
         ()
