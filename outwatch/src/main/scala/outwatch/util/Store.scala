@@ -13,6 +13,9 @@ import monix.eval.Task
 trait StoreOps[F[_]] extends ProHandlerOps[F] {
 
   object Store {
+
+    @deprecated("Use Reducer object from outwatch.util", "")
+    val Reducer = outwatch.util.Reducer
     /**
      * Creates a Store in the context of the provided F
      * A Store capules a scan operation on an Observable in an opinionated manner.
