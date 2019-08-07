@@ -7,7 +7,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
 import outwatch.dom.helpers.STRef
-import outwatch.dom.{OutWatch, VNode, ProHandlerOps, ProHandler}
+import outwatch.dom.{OutWatchOps, VNode, ProHandlerOps, ProHandler}
 import monix.eval.Task
 
 trait StoreOps[F[_]] extends ProHandlerOps[F] {
@@ -61,7 +61,7 @@ trait StoreOps[F[_]] extends ProHandlerOps[F] {
   }
 }
 
-class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] {
+class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] with OutWatchOps[F] {
 
   /**
    * A global reference to a Store.
@@ -89,7 +89,7 @@ class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] {
     store <- Store.create[A, M](initialAction, initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[F, ProHandler[A, M]]].put(store.mapProHandler[A, M](in => in)(out => out._2))
     vnode <- root
-    _ <- OutWatch.renderInto[F](selector, vnode)
+    _ <- OutWatch.renderInto(selector, vnode)
   } yield ()
 
   private object NoStoreException

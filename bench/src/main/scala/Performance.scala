@@ -1,6 +1,5 @@
 package outwatch
 
-import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.execution.ExecutionModel.SynchronousExecution
@@ -17,7 +16,7 @@ object jsdom extends js.Object {
   def jsdom(innerHTML: js.UndefOr[String]): js.Any = js.native
 }
 
-object Performance extends HandlerOps[IO] {
+object Performance {
 
   implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
@@ -94,7 +93,7 @@ object Performance extends HandlerOps[IO] {
 
       val t = System.nanoTime()
 
-      OutWatch.renderInto[IO](node, vtree).unsafeRunSync()
+      OutWatch.renderInto(node, vtree).unsafeRunSync()
 
       (0 to numIterations).foreach { i =>
         handler.onNext(i)
@@ -153,7 +152,7 @@ object Performance extends HandlerOps[IO] {
 
       val t = System.nanoTime()
 
-      OutWatch.renderInto[IO](node, vtree).unsafeRunSync()
+      OutWatch.renderInto(node, vtree).unsafeRunSync()
 
       (0 to numIterations).foreach { i =>
         handler.onNext(i)
@@ -208,7 +207,7 @@ object Performance extends HandlerOps[IO] {
 
       val t = System.nanoTime()
 
-      OutWatch.renderInto[IO](node, vtree).unsafeRunSync()
+      OutWatch.renderInto(node, vtree).unsafeRunSync()
 
       var node1Counter = 0
       var node2Counter = 0
