@@ -1,4 +1,5 @@
-package outwatch.dom.helpers
+package outwatch
+package dom.helpers
 
 import cats.{Monoid, Functor, Bifunctor}
 import cats.effect.IO
