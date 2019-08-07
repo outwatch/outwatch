@@ -11,8 +11,8 @@ import org.scalajs.dom.window.{localStorage, sessionStorage}
 import outwatch._
 import outwatch.dom.dsl.events
 
-class Storage[F[_]](domStorage: dom.Storage) extends ProHandlerOps[F] {
-  private def subjectWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler, F: Sync[F]): F[Handler[Option[String]]] = {
+class Storage[F[_]: Sync](domStorage: dom.Storage) extends ProHandlerOps[F] {
+  private def subjectWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
@@ -45,20 +45,20 @@ class Storage[F[_]](domStorage: dom.Storage) extends ProHandlerOps[F] {
         None
     }
 
-  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler, F: Sync[F]): F[Handler[Option[String]]] = {
+  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     subjectWithTransform(key, identity)
   }
 
-  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler, F: Sync[F]): F[Handler[Option[String]]] = {
+  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     subjectWithTransform(key, o => storageEvents)
   }
 
-  def handler(key: String)(implicit scheduler: Scheduler, F: Sync[F]): F[Handler[Option[String]]] = {
+  def handler(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     subjectWithTransform(key, Observable(_, storageEvents).merge)
   }
 }
 
-class LocalStorage[F[_]] extends Storage[F](localStorage)
-class SessionStorage[F[_]] extends Storage[F](sessionStorage)
+class LocalStorage[F[_]: Sync] extends Storage[F](localStorage)
+class SessionStorage[F[_]: Sync] extends Storage[F](sessionStorage)
