@@ -122,3 +122,12 @@ lazy val bench = project
       "jsdom" -> "9.9.0"
     ),
   )
+
+
+lazy val root = project
+  .in(file("."))
+  .settings(
+    name := "outwatch-root",
+    skip in publish := true,
+  )
+  .aggregate(outwatch, bench)
