@@ -6,11 +6,11 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import outwatch.dom._
+import outwatch.dom.{OutWatchOps, ProHandlerOps, VNode, VDomModifier}
 import outwatch.dom.dsl._
 import outwatch.util.LocalStorage
 
-class DomEventSpec extends JSDomAsyncSpec {
+class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOps[IO] {
 
   val LocalStorageIO = new LocalStorage[IO]
 
@@ -464,7 +464,6 @@ class DomEventSpec extends JSDomAsyncSpec {
   }
 
   "DomWindowEvents and DomDocumentEvents" should "trigger correctly" in {
-    import outwatch.dom._
 
     var docClicked = false
     var winClicked = false

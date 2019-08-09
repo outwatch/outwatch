@@ -1,6 +1,7 @@
 package outwatch
 
 import outwatch.dom._
+import outwatch.dom.io._
 import outwatch.dom.dsl._
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler

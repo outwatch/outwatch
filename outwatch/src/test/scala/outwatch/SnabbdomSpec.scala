@@ -5,6 +5,7 @@ import org.scalajs.dom.{document, html}
 import cats.effect.IO
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
+import outwatch.dom.io._
 import outwatch.dom.dsl._
 import snabbdom._
 
@@ -91,9 +92,6 @@ class SnabbdomSpec extends JSDomAsyncSpec {
   }
 
   it should "handle keys with nested observables" in {
-    import outwatch.dom._
-    import outwatch.dom.dsl._
-
     def getContent =
       IO(document.getElementById("content").innerHTML)
 

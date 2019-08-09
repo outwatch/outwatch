@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.effect.IO
+import cats.effect.{IO, SyncIO}
 import cats.syntax.functor._
 import outwatch.dom._
 
@@ -73,12 +73,15 @@ object AsVDomModifier {
     @inline def asVDomModifier(value: Boolean): VDomModifier = StringVNode(value.toString)
   }
 
-  implicit object EffectRender extends AsVDomModifier[IO[VDomModifier]] {
-    @inline def asVDomModifier(value: IO[VDomModifier]): VDomModifier = EffectModifier(value)
+  implicit object EffectRender extends AsVDomModifier[SyncIO[VDomModifier]] {
+    @inline def asVDomModifier(value: SyncIO[VDomModifier]): VDomModifier = EffectModifierIO(value)
   }
 
-  implicit def effectRender[T : AsVDomModifier]: AsVDomModifier[IO[T]] = (effect: IO[T]) =>
+  implicit def effectRenderIO[T : AsVDomModifier]: AsVDomModifier[IO[T]] = (effect: IO[T]) =>
     EffectModifier(effect.map(VDomModifier(_)))
+
+  implicit def effectRender[T : AsVDomModifier]: AsVDomModifier[SyncIO[T]] = (effect: SyncIO[T]) =>
+    EffectModifierIO(effect.map(VDomModifier(_)))
 
   implicit def valueObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[VDomModifier]] = (valueStream: F[VDomModifier]) =>
     ModifierStreamReceiver(ValueObservable(valueStream))

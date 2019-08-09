@@ -7,10 +7,10 @@ import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import outwatch.dom._
 import monix.reactive.Observable
 import monix.reactive.Observer
 import outwatch.dom._
+import outwatch.dom.io._
 import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
@@ -456,8 +456,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   "The HTML DSL" should "construct VTrees properly" in {
-    import outwatch.dom._
-
     val vtree = div(cls := "red", id := "msg", span("Hello"))
 
     val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
@@ -467,8 +465,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "construct VTrees with optional children properly" in {
-    import outwatch.dom._
-
     val vtree = div(cls := "red", id := "msg",
       Option(span("Hello")),
       Option.empty[VDomModifier]
@@ -503,7 +499,6 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "patch into the DOM properly" in {
-    import outwatch.dom._
 
     val message = "Test"
     val vtree = div(cls := "blue", id := "test",

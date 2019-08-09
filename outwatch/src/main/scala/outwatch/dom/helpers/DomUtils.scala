@@ -238,6 +238,7 @@ private[outwatch] object NativeModifiers {
       case child: StringVNode  => appendModifier(VNodeProxyNode(VNodeProxy.fromString(child.text)))
       case m: ModifierStreamReceiver => appendStream(flattenModifierStream(m.stream))
       case m: EffectModifier => inner(m.effect.unsafeRunSync())
+      case m: EffectModifierIO => inner(m.effect.unsafeRunSync())
       case m: SchedulerAction => inner(m.action(scheduler))
     }
 
@@ -262,6 +263,7 @@ private[outwatch] object NativeModifiers {
         val stream = flattenModifierStream(m.stream)
         Observable(Observable.now(stream.value.getOrElse(js.Array())), stream.observable).concat
       case m: EffectModifier => findObservable(m.effect.unsafeRunSync())
+      case m: EffectModifierIO => findObservable(m.effect.unsafeRunSync())
       case m: SchedulerAction => findObservable(m.action(scheduler))
     }
     val observable = modStream.observable.switchMap[js.Array[StaticVDomModifier]](findObservable)
@@ -287,6 +289,7 @@ private[outwatch] object NativeModifiers {
         }
         ValueObservable(initialObservable, stream.value.getOrElse(js.Array()))
       case m: EffectModifier => findDefaultObservable(m.effect.unsafeRunSync())
+      case m: EffectModifierIO => findDefaultObservable(m.effect.unsafeRunSync())
       case m: SchedulerAction => findDefaultObservable(m.action(scheduler))
     }
     modStream.value.fold[ValueObservable[js.Array[StaticVDomModifier]]](ValueObservable(observable, js.Array()))(findDefaultObservable)

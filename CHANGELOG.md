@@ -6,6 +6,11 @@
 
 ### August 2019
 * Refactor code to use cats effect typeclasses instead of directly committing to IO (#135)
+* The default IO implementation is still available, users only need to add the imports:
+```scala
+import outwatch.dom.io._  // Handler, OutWatch.render*
+import outwatch.util.io._ // Store
+```
 
 ### Pre 2019
 * Add `OutwatchTracing.error: Observable[Throwable]` to get notified about errors in your reactive components.

@@ -6,6 +6,7 @@ import monix.reactive.{Observable, Observer}
 import org.scalatest.Assertion
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
+import outwatch.dom.io._
 import outwatch.dom.dsl._
 import outwatch.util.io._
 
