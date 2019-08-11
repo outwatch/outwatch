@@ -14,7 +14,6 @@ object Store {
 
   /**
    * A Function that applies an Action onto the Stores current state.
-   * @param reducer The reducing function
    * @tparam A The Action Type
    * @tparam M The Model Type
    */
