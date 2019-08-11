@@ -1,9 +1,10 @@
 package outwatch.util
 
 import cats.effect.{IO, Sync}
+import cats.implicits._
 import monix.eval.Task
 import monix.execution.Scheduler
-import monix.reactive.Observable
+import monix.reactive.{ObservableLike, Observable}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
@@ -14,11 +15,10 @@ object Store {
 
   /**
    * A Function that applies an Action onto the Stores current state.
-   * @param reducer The reducing function
    * @tparam A The Action Type
    * @tparam M The Model Type
    */
-  case class Reducer[A, M](reducer: (M, A) => (M, Observable[A]))
+  type Reducer[A, M] = (M, A) => (M, Observable[A])
 
   object Reducer {
     /**
@@ -31,19 +31,18 @@ object Store {
      * However, this only effects immediate emissions of the Effects Observable, delayed emissions should be fine.
      * @param f The Reducing Function returning the (Model, Effects) tuple.
      */
-    implicit def stateAndEffects[A, M](f: (M, A) => (M, Observable[A])): Reducer[A, M] = Reducer(f)
+    def withEffects[A, M](f: (M, A) => (M, Observable[A])): Reducer[A, M] = f
 
     /**
      * Creates a reducer which just transforms the state, without additional effects.
      */
-    implicit def justState[A, M](f: (M, A) => M): Reducer[A, M] = Reducer { (s: M, a: A) => (f(s, a), Observable.empty) }
+    def apply[A, M](f: (M, A) => M): Reducer[A, M] = (s: M, a: A) => f(s, a) -> Observable.empty
 
     /**
      * Creates a Reducer with an optional IO effect.
      */
-    implicit def stateAndOptionIO[A, M](f: (M, A) => (M, Option[IO[A]])): Reducer[A, M] = Reducer { (s: M, a: A) =>
-      val (newState, effect) = f(s, a)
-      (newState, effect.fold[Observable[A]](Observable.empty)(Observable.from))
+    def withOptionalEffects[F[_]: ObservableLike, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = { (s: M, a: A) =>
+      f(s, a).map(_.fold[Observable[A]](Observable.empty)(Observable.from))
     }
   }
 
@@ -66,7 +65,7 @@ object Store {
 
     val fold: ((A, M), A) => (A, M) = {
       case ((_, state), action) => {
-        val (newState, effects) = reducer.reducer(state, action)
+        val (newState, effects) = reducer(state, action)
 
         effects.subscribe(
           next => subject.feed(next :: Nil),
