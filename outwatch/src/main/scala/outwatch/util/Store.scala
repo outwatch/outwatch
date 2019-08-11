@@ -1,6 +1,7 @@
 package outwatch.util
 
 import cats.effect.{IO, Sync}
+import cats.implicits._
 import monix.eval.Task
 import monix.execution.Scheduler
 import monix.reactive.{ObservableLike, Observable}
@@ -41,8 +42,7 @@ object Store {
      * Creates a Reducer with an optional IO effect.
      */
     def withOptionalEffects[F[_]: ObservableLike, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = { (s: M, a: A) =>
-      val (newState, effect) = f(s, a)
-      (newState, effect.fold[Observable[A]](Observable.empty)(Observable.from))
+      f(s, a).map(_.fold[Observable[A]](Observable.empty)(Observable.from))
     }
   }
 
