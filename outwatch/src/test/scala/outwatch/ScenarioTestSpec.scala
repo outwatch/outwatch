@@ -76,7 +76,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val node: IO[VNode] = for {
-      store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), Reducer.justState(reduce _))
+      store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), Reducer(reduce _))
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
