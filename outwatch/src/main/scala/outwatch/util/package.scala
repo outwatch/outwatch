@@ -1,10 +1,16 @@
 package outwatch
 
 import cats.effect.IO
+import monix.reactive.Observable
 
 package object util {
-  @deprecated("Better to extend StoreOps[F], providing your own context such as IO, SyncIO, Task, etc. If you want to use IO, you can import from outwatch.util.io", "")
-  val Store = new StoreOps[IO]{}.Store
+  /**
+   * A Function that applies an Action onto the Stores current state.
+   * @param reducer The reducing function
+   * @tparam A The Action Type
+   * @tparam M The Model Type
+   */
+  type Reducer[A, M] = (M, A) => (M, Observable[A])
 
   object io extends StoreOps[IO]
 }

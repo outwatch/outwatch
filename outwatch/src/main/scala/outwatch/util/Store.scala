@@ -3,29 +3,16 @@ package outwatch.util
 import cats.effect.Sync
 import cats.implicits._
 import monix.execution.Scheduler
+import monix.eval.Task
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
 import outwatch.dom.helpers.STRef
 import outwatch.dom.{OutWatchOps, VNode, ProHandlerOps, ProHandler}
-import monix.eval.Task
 
 trait StoreOps[F[_]] {
 
   object Store extends ProHandlerOps[F] {
-
-    @deprecated("Use Reducer object from outwatch.util", "")
-    val Reducer = outwatch.util.Reducer
-    /**
-     * Creates a Store in the context of the provided F
-     * A Store capules a scan operation on an Observable in an opinionated manner.
-     * An internal state is tansformed by a series of actions.
-     * The state will be the same for every subscriber.
-     * @param initialAction The Stores initial action. Useful for re-creating a store from memory.
-     * @param initialState The stores initial state. Similar to the initial accumulator on a fold / scan.
-     * @param reducer The Reducing funcion. Creates a new State from the previous state and an Action.
-     * @return An Observable emitting a tuple of the current state and the action that caused that state.
-     */
     def create[A, M](
       initialAction: A,
       initialState: M,
@@ -35,7 +22,7 @@ trait StoreOps[F[_]] {
 
       val fold: ((A, M), A) => (A, M) = {
         case ((_, state), action) => {
-          val (newState, effects) = reducer.reducer(state, action)
+          val (newState, effects) = reducer(state, action)
 
           effects.subscribe(
             next => subject.feed(next :: Nil),
@@ -94,5 +81,4 @@ class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] wi
 
   private object NoStoreException
     extends Exception("Application was rendered without specifying a Store, please use Outwatch.renderWithStore instead")
-
 }
