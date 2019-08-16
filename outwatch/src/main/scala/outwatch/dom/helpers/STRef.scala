@@ -15,5 +15,5 @@ class STRef[F[_]: Sync, A](private var unsafeGet: A) {
 
 object STRef {
   def apply[F[_]: Sync, A](a: A): STRef[F, A] = new STRef[F, A](a)
-  def empty[F[_]: Sync, A]: STRef[F, A] = new STRef[F, A](null.asInstanceOf[A]) // scalastyle:ignore
+  def empty[F[_]: Sync, A >: Null]: STRef[F, A] = new STRef[F, A](null)
 }
