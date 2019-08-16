@@ -9,8 +9,8 @@ import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
 import org.scalajs.dom.window.{localStorage, sessionStorage}
 import outwatch._
+import outwatch.dom._
 import outwatch.dom.dsl.events
-import outwatch.dom.{ProHandlerOps, Handler}
 
 class Storage[F[_]: Sync](domStorage: dom.Storage) extends ProHandlerOps[F] {
   private def subjectWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {

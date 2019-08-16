@@ -1,4 +1,5 @@
-package outwatch.util
+package outwatch
+package util
 
 import cats.effect.Sync
 import cats.implicits._
@@ -7,8 +8,8 @@ import monix.eval.Task
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
+import outwatch.dom._
 import outwatch.dom.helpers.STRef
-import outwatch.dom.{OutWatchOps, VNode, ProHandlerOps, ProHandler}
 
 trait StoreOps[F[_]] {
 

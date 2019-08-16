@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import monix.reactive.subjects.PublishSubject
-import outwatch.dom.{ProHandlerOps, OutWatchOps}
+import outwatch.dom._
 
 class MonixOpsSpec extends JSDomAsyncSpec with OutWatchOps[IO] with ProHandlerOps[IO] {
 
