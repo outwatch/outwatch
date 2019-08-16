@@ -28,3 +28,4 @@ object AsValueObservable extends AsValueObservableInstances0  {
     }
   }
 }
+
