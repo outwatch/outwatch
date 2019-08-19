@@ -326,6 +326,7 @@ val vnode: VNode = div()
 val modifiers: List[VDomModifier] = List("Hello", id := "main", color := "tomato", vnode)
 ```
 
+
 Every `VNode` contains a sequence of `VDomModifier`. A `VNode` is a `VDomModifier` itself.
 
 There are implicits for converting primitives, `Option[VDomModifier]`, `Seq[VDomModifier]` to `VDomModifier`.
@@ -338,6 +339,12 @@ To make a set of modifiers reusable you can group them to become one `VDomModifi
 val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
 div("Argh!", bigFont)
 // <div style="font-size: 40px; font-weight: bold;">Argh!</div>
+```
+
+if you want to reuse it but overriding a property:
+
+```scala
+VDomModifier(bigFont, fontSize := "99px")
 ```
 
 You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](src/main/scala/outwatch/dom/package.scala) object.
