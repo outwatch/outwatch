@@ -344,7 +344,7 @@ div("Argh!", bigFont)
 if you want to reuse it but overriding a property:
 
 ```scala
-VDomModifier(bigFont, fontSize := "99px")
+val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
 ```
 
 You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](src/main/scala/outwatch/dom/package.scala) object.
