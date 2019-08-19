@@ -92,7 +92,7 @@ object thunk {
 
   private def initThunk(fn: () => VNodeProxy)(thunk: VNodeProxy): Unit = {
     for {
-      data <- thunk.data
+      _ <- thunk.data
     } {
       VNodeProxy.updateInto(source = fn(), target = thunk)
     }
@@ -266,7 +266,6 @@ object SnabbdomStyle extends js.Object {
 }
 
 
-@silent("unused")
 @js.native
 @JSImport("snabbdom/tovnode", JSImport.Default)
 object tovnode extends js.Function1[Element, VNodeProxy] {

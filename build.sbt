@@ -34,8 +34,12 @@ lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .settings(commonSettings)
-  .settings(scalacOptions := allOptionsForVersion(scalaVersion.value, true))
-  .settings(scalacOptions in (Compile, console) := allOptionsForVersionConsole(scalaVersion.value))
+  .settings(scalacOptions ++=
+    CrossVersion.partialVersion(scalaVersion.value).map(v =>
+      allOptionsForVersion(s"${v._1}.${v._2}", true)
+    ).getOrElse(Nil)
+  )
+  .settings(scalacOptions in (Compile, console) ~= (_.diff(badConsoleFlags)))
   .settings(
     name := "OutWatch",
     normalizedName := "outwatch",
