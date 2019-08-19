@@ -1,17 +1,22 @@
 package snabbdom
 
+import com.github.ghik.silencer.silent
 import org.scalajs.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.|
 
+
+
+@silent("dead code")
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
 object hProvider extends js.Object {
   val default: hFunction = js.native
 }
 
+@silent
 @js.native
 trait hFunction extends js.Any {
   def apply(nodeType: String, dataObject: DataObject): VNodeProxy = js.native
@@ -220,34 +225,40 @@ object VNodeProxy {
 @js.native
 @JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
 object Snabbdom extends js.Object {
+  @silent("never used|dead code")
   def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
 
 }
 
+@silent("unused|dead code")
 @js.native
 @JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
 object SnabbdomClass extends js.Object {
   val default: js.Any = js.native
 }
 
+@silent("unused|dead code")
 @js.native
 @JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
 object SnabbdomEventListeners extends js.Object{
   val default: js.Any = js.native
 }
 
+@silent("unused|dead code")
 @js.native
 @JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
 object SnabbdomAttributes extends js.Object{
   val default: js.Any = js.native
 }
 
+@silent("unused|dead code")
 @js.native
 @JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
 object SnabbdomProps extends js.Object{
   val default: js.Any = js.native
 }
 
+@silent("unused|dead code")
 @js.native
 @JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
 object SnabbdomStyle extends js.Object {
@@ -255,6 +266,7 @@ object SnabbdomStyle extends js.Object {
 }
 
 
+@silent("unused")
 @js.native
 @JSImport("snabbdom/tovnode", JSImport.Default)
 object tovnode extends js.Function1[Element, VNodeProxy] {
