@@ -1,7 +1,6 @@
 package outwatch.dom
 
 import cats.effect.IO
-import cats.syntax.functor._
 import monix.execution.Scheduler
 import org.scalajs.dom.Element
 import outwatch.dom.helpers.SnabbdomOps
@@ -79,8 +78,9 @@ object ChildCommand {
           children.prepend(VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
         case ReplaceAll(list) =>
           children.clear()
-          children.push(list.map(node => VNodeProxyNode(SnabbdomOps.toSnabbdom(node))): _*)
-          ()
+          list.foreach { node =>
+            children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
+          }
         case Insert(index, node) =>
           insertByIndex(index, node)
         case InsertBeforeId(id, node) =>

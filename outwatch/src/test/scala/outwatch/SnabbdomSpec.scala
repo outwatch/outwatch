@@ -7,8 +7,12 @@ import outwatch.dom.OutWatch
 import outwatch.dom.dsl._
 import cats.effect.IO
 import snabbdom._
+import cats.effect.ContextShift
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class SnabbdomSpec extends JSDomAsyncSpec {
+
+  implicit val cs: ContextShift[IO] = IO.contextShift(global)
 
   "The Snabbdom Facade" should "correctly patch the DOM" in {
 

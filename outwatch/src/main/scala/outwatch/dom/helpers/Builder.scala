@@ -24,7 +24,8 @@ object AttributeBuilder {
 
 trait AccumulateAttrOps[T] { self: AttributeBuilder[T, BasicAttr] =>
   protected def name: String
-  @inline def accum(s: String): AccumAttrBuilder[T] = accum(_ + s + _)
+  @inline def accum(s: String): AccumAttrBuilder[T] = accum((v1, v2) => s"$v1$s$v2")
+
   @inline def accum(reducer: (Attr.Value, Attr.Value) => Attr.Value) = new AccumAttrBuilder[T](name, this, reducer)
 }
 

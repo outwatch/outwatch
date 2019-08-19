@@ -17,9 +17,12 @@ object Options {
 
   val badConsoleFlags = Seq("-P:silencer:checkUnused", "-Ywarn-unused:imports", "-Xfatal-warnings")
 
-  val versionBasedOptions = Map(
-    "2.12" -> Seq(
-      // "-Xcheckinit",                       // Wrap field accessors to throw an exception on uninitialized access.
+  val options211 = baseOptions ++ Seq(
+      "-Ywarn-unused",
+      "-Xexperimental"   // SAM conversion
+  )
+
+  val options212 = baseOptions ++ Seq(
       "-Xfatal-warnings",                  // Fail the compilation if there are any warnings.
       "-Xfuture",                          // Turn on future language features.
       "-Xlint:adapted-args",               // Warn if an argument list is modified to match the receiver.
@@ -55,11 +58,25 @@ object Options {
       "-Ywarn-unused:privates",            // Warn if a private member is unused.
       "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
       "-P:silencer:checkUnused",           // Warn if silencer is used when no warning is suppressed
-    ),
-    "2.11" -> Seq(
-      "-Ywarn-unused",
-      "-Xexperimental"   // SAM conversion
-    )
+  )
+
+  val options213 = options212.diff(Seq(
+    "-Ypartial-unification",
+    "-Yno-adapted-args",
+    "-Ywarn-inaccessible",
+    "-Ywarn-infer-any",
+    "-Ywarn-nullary-override",
+    "-Ywarn-nullary-unit",
+    "-Xlint:by-name-right-associative",
+    "-Xlint:unsound-match",
+    "-Xfuture",
+  ))
+
+
+  val versionBasedOptions: Map[String, Seq[String]] = Map(
+    "2.13" -> options213,
+    "2.12" -> options212,
+    "2.11" -> options211,
   )
 
   val scalajsOptions = Seq(
@@ -67,5 +84,5 @@ object Options {
   )
 
   def allOptionsForVersion(v: String, js: Boolean): Seq[String] =
-    baseOptions ++ (versionBasedOptions.get(v).getOrElse(Nil)) ++ (if(js) scalajsOptions else Nil)
+    versionBasedOptions.getOrElse(v, Nil) ++ (if(js) scalajsOptions else Nil)
 }

@@ -100,9 +100,9 @@ trait HtmlAttrs
     new PropBuilder(key, codec.encode)
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className = new AccumAttrBuilder[String]("class",
-    reflectedAttr(attrKey = "class", propKey = "className", attrCodec = codecs.StringAsIsCodec, propCodec = codecs.StringAsIsCodec),
-    _ + " " + _
+  override lazy val className = new AccumAttrBuilder[String](
+    "class",
+    reflectedAttr(attrKey = "class", propKey = "className", attrCodec = codecs.StringAsIsCodec, propCodec = codecs.StringAsIsCodec), (v1, v2) => s"$v1 $v2"
   )
 }
 

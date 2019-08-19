@@ -1,6 +1,5 @@
 package outwatch
 
-import scala.language.implicitConversions
 import scala.concurrent.Future
 import cats.effect.IO
 import monix.execution.Ack.Continue
