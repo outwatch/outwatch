@@ -222,7 +222,35 @@ private[outwatch] object NativeModifiers {
           lengthBefore += lengthsArr(i) getOrElse 1
           i += 1
         }
-        modifiers.splice(lengthBefore, lengthsArr(index) getOrElse 1, mods: _*)
+        // This call might look weird on the first glance, but was only way I was able to properly call `splice` on an Array. Normally `splice` takes a `VarArg*` for the value that should be inserted. Now with defensive copying and toSeq, we always get boilerplate code:
+
+        // ```javascript
+        // var jsx$7 = myArray.splice;
+        // var col = $m_sci_IndexedSeq$().from__sc_IterableOnce__sci_IndexedSeq(new $c_sjs_js_WrappedArray().init___sjs_js_Array(myArray));
+        // if ($is_sjs_js_WrappedArray(col)) {
+        //     var x2$1 = $as_sjs_js_WrappedArray(col);
+        //     var jsx$6 = x2$1.array$5
+        // } else {
+        //     var result = [];
+        //     var this$101 = col.iterator__sc_Iterator();
+        //     while (this$101.hasNext__Z()) {
+        //     var arg1$2 = this$101.next__O();
+        //     $uI(result.push(arg1$2))
+        //     };
+        //     var jsx$6 = result
+        // };
+        // var jsx$5 = [0, 2].concat(jsx$6);
+        // jsx$7.apply(myArray, jsx$5);
+        // ```
+
+        // Now, I tried to use `call` on `js.Function`, but that also has varargs for the arguments, so we again get this wrapping/unwrapping code for just passing an array into a function. Somehow `apply` on `js.Function` is not available, which would take an array as last argument instead of varargs - it is advised to use `call` instead: https://github.com/scala-js/scala-js/blob/master/library/src/main/scala/scala/scalajs/js/Function.scala#L94.
+
+        // This is why, I added `apply` to our facade  and now I get the code I want without any boilerplate:
+
+        // ```javascript
+        // myArray.splice.apply(myArray, [0, 2].concat(myArray));
+        // ```
+        modifiers.asInstanceOf[js.Dynamic].splice.asInstanceOf[FunctionRawApply].applyCall(modifiers, js.Array(lengthBefore, lengthsArr(index) getOrElse 1).concat(mods))
         lengthsArr(index) = mods.length
         modifiers
       }
@@ -243,7 +271,7 @@ private[outwatch] object NativeModifiers {
 
     appendModifiers.foreach(inner)
 
-    new NativeModifiers(modifiers, updaterObservables.map(obs => Observable(obs: _*).merge))
+    new NativeModifiers(modifiers, updaterObservables.map(obs => Observable.fromIterable(obs).merge))
   }
 
   private def flattenModifierStream(modStream: ValueObservable[VDomModifier])(implicit scheduler: Scheduler): ValueObservable[js.Array[StaticVDomModifier]] = {

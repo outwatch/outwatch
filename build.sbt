@@ -8,7 +8,7 @@ inThisBuild(Seq(
 
   scalaVersion := "2.12.9",
 
-  crossScalaVersions := Seq("2.11.12", "2.12.9", "2.13.0"),
+  crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.0"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
@@ -45,11 +45,11 @@ lazy val outwatch = project
     normalizedName := "outwatch",
 
     libraryDependencies ++= Seq(
-      "io.monix"      %%% "monix"       % "3.0.0-RC3",
+      "io.monix"      %%% "monix"       % "3.0.0",
       "org.scala-js"  %%% "scalajs-dom" % "0.9.7",
       "com.raquo"     %%% "domtypes" % "0.9.5",
-      "org.typelevel" %%% "cats-core" % "1.6.0",
-      "org.typelevel" %%% "cats-effect" % "1.3.0",
+      "org.typelevel" %%% "cats-core" % "2.0.0",
+      "org.typelevel" %%% "cats-effect" % "2.0.0",
 
       "org.scalatest" %%% "scalatest" % "3.0.8" % Test,
       compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.3" cross CrossVersion.full),
@@ -95,7 +95,7 @@ lazy val bench = project
       ("jitpack" at "https://jitpack.io") ::
       Nil,
     libraryDependencies ++=
-      "com.github.fdietze.bench" %%% "bench" % "e66a721" ::
+      "com.github.fdietze.bench" %%% "bench" % "555e14b" ::
       Nil,
 
     scalaJSStage in Compile := FullOptStage,

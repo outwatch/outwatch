@@ -6,7 +6,6 @@ import outwatch.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.collection.breakOut
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
@@ -25,15 +24,26 @@ object AsVDomModifier {
     @inline def asVDomModifier(value: Array[VDomModifier]): VDomModifier = CompositeModifier(value.toJSArray)
   }
 
-  implicit def arrayModifier[T : AsVDomModifier]: AsVDomModifier[Array[T]] = (value: Array[T]) =>
-    CompositeModifier(value.map(VDomModifier(_))(breakOut) : js.Array[VDomModifier])
+  implicit def arrayModifier[T : AsVDomModifier]: AsVDomModifier[Array[T]] = { (value: Array[T]) =>
+    var i = 0
+    val n = value.length
+    val arr = new js.Array[VDomModifier](n)
+    while (i < n) {
+      arr(i) = VDomModifier(value(i))
+      i += 1
+    }
+    CompositeModifier(arr)
+  }
 
   implicit object SeqModifier extends AsVDomModifier[Seq[VDomModifier]] {
     @inline def asVDomModifier(value: Seq[VDomModifier]): VDomModifier = CompositeModifier(value.toJSArray)
   }
 
-  implicit def seqModifier[T : AsVDomModifier]: AsVDomModifier[Seq[T]] = (value: Seq[T]) =>
-    CompositeModifier(value.map(VDomModifier(_))(breakOut) : js.Array[VDomModifier])
+  implicit def seqModifier[T : AsVDomModifier]: AsVDomModifier[Seq[T]] = { (value: Seq[T]) =>
+    val arr = new js.Array[VDomModifier]()
+    value.foreach { value => arr.push(VDomModifier(value)) }
+    CompositeModifier(arr)
+  }
 
   implicit object OptionModifier extends AsVDomModifier[Option[VDomModifier]] {
     @inline def asVDomModifier(value: Option[VDomModifier]): VDomModifier = value.getOrElse(VDomModifier.empty)
