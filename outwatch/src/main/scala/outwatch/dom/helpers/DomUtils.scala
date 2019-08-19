@@ -29,7 +29,7 @@ private[outwatch] class SeparatedModifiers(
   val nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]])
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: js.Array[StaticVDomModifier])(implicit scheduler: Scheduler): SeparatedModifiers = {
+  def from(modifiers: js.Array[StaticVDomModifier]): SeparatedModifiers = {
     var hasOnlyTextChildren = true
     var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
     var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
