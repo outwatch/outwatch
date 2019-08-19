@@ -1,3 +1,6 @@
+import Options._
+
+
 inThisBuild(Seq(
   version := "0.11.1-SNAPSHOT",
 
@@ -20,48 +23,19 @@ inThisBuild(Seq(
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
-
   scalacOptions += {
     val local = baseDirectory.value.toURI
     val remote = s"https://raw.githubusercontent.com/OutWatch/outwatch/${git.gitHeadCommit.value.get}/"
     s"-P:scalajs:mapSourceURI:$local->$remote"
   },
-
-  scalacOptions ++=
-    "-encoding" :: "UTF-8" ::
-    "-unchecked" ::
-    "-deprecation" ::
-    "-explaintypes" ::
-    "-feature" ::
-    "-language:_" ::
-    "-Xfuture" ::
-    "-Xlint" ::
-    "-Ypartial-unification" ::
-    "-Yno-adapted-args" ::
-    "-Ywarn-infer-any" ::
-    "-Ywarn-value-discard" ::
-    "-Ywarn-nullary-override" ::
-    "-Ywarn-nullary-unit" ::
-    "-P:scalajs:sjsDefinedByDefault" ::
-    Nil,
-
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 12)) =>
-        "-Ywarn-extra-implicit" ::
-        "-Ywarn-unused:-explicits,-implicits,_" ::
-        Nil
-      case _             =>
-        "-Ywarn-unused" ::
-        "-Xexperimental" ::   // SAM conversion
-        Nil
-    }
-  }
 )
 
 lazy val outwatch = project
+  .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .settings(commonSettings)
+  .settings(scalacOptions := allOptionsForVersion(scalaVersion.value, true))
+  .settings(scalacOptions in (Compile, console) := allOptionsForVersionConsole(scalaVersion.value))
   .settings(
     name := "OutWatch",
     normalizedName := "outwatch",
@@ -73,7 +47,9 @@ lazy val outwatch = project
       "org.typelevel" %%% "cats-core" % "1.6.0",
       "org.typelevel" %%% "cats-effect" % "1.3.0",
 
-      "org.scalatest" %%% "scalatest" % "3.0.8" % Test
+      "org.scalatest" %%% "scalatest" % "3.0.8" % Test,
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.3" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.4.3" % Provided cross CrossVersion.full,
     ),
 
     npmDependencies in Compile ++= Seq(
@@ -107,7 +83,6 @@ lazy val outwatch = project
 
 lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .settings(commonSettings)
   .dependsOn(outwatch)
   .settings(
     publish := {},
