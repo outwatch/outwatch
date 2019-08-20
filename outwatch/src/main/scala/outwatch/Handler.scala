@@ -1,13 +1,32 @@
-package outwatch.dom
+package outwatch
 
 import cats.effect.Sync
 import cats.implicits._
-import monix.reactive.{Observable, Observer}
-import scala.concurrent.Future
-import monix.execution.{Ack, Cancelable}
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.observers.Subscriber
-import outwatch.ReactiveConnectable
-import monix.execution.Scheduler
+import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
+import monix.reactive.{Observable, Observer}
+
+import scala.concurrent.Future
+
+object Handler {
+  def empty[F[_]: Sync, T]: F[Handler[T]] = create[F, T]
+
+  def create[F[_]] = new CreatePartiallyApplied[F]
+  def create[F[_], T](implicit F: Sync[F]): F[Handler[T]] = F.delay(unsafe[T])
+  def create[F[_], T](seed: T)(implicit F: Sync[F]): F[Handler[T]] = F.delay(unsafe[T](seed))
+
+
+  /* Partial application trick, "kinda-curried type parameters"
+   * https://typelevel.org/cats/guidelines.html
+   */
+  final class CreatePartiallyApplied[F[_]](val dummy: Boolean = false) extends AnyVal {
+    def apply[T](seed: T)(implicit F: Sync[F]): F[Handler[T]] = F.delay(unsafe[T](seed))
+  }
+
+  def unsafe[T]: Handler[T] = ReplaySubject.createLimited(1)
+  def unsafe[T](seed:T): Handler[T] = BehaviorSubject[T](seed)
+}
 
 object ProHandler {
   def create[F[_]: Sync, I,O](f: I => O): F[ProHandler[I,O]] = for {

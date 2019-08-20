@@ -6,7 +6,7 @@
 
 ### August 2019
 * Refactor code to use cats effect typeclasses instead of directly committing to IO (#135)
- 
+
 ### Pre 2019
 * Add `OutwatchTracing.error: Observable[Throwable]` to get notified about errors in your reactive components.
 

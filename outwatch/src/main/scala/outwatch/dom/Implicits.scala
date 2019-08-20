@@ -5,7 +5,7 @@ import monix.reactive.Observer
 import outwatch.AsVDomModifier
 import outwatch.dom.helpers.BasicStyleBuilder
 
-trait Implicits extends RichHandlerOps with RichProHandlerOps {
+trait Implicits {
 
   @inline implicit def asVDomModifier[T](value: T)(implicit vm: AsVDomModifier[T]): VDomModifier = vm.asVDomModifier(value)
 

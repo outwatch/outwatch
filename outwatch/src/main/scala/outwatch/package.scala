@@ -1,4 +1,4 @@
-package object outwatch extends ObserverOps {
+package object outwatch extends MonixOps {
   @deprecated("Use ObserverBuilder instead", "")
   val Sink = ObserverBuilder
 }

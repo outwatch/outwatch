@@ -1,5 +1,4 @@
-package outwatch
-package util
+package outwatch.util
 
 import cats.effect.Sync
 import cats.implicits._
@@ -7,7 +6,6 @@ import monix.execution.Scheduler
 import monix.eval.Task
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import outwatch._
 import outwatch.dom._
 import outwatch.dom.helpers.STRef
 

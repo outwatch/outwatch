@@ -8,7 +8,6 @@ import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
 import org.scalajs.dom.window.{localStorage, sessionStorage}
-import outwatch._
 import outwatch.dom._
 import outwatch.dom.dsl.events
 
