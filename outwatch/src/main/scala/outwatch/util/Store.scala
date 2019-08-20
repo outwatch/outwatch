@@ -11,45 +11,53 @@ import outwatch._
 import outwatch.dom._
 import outwatch.dom.helpers.STRef
 
-trait StoreOps[F[_]] {
+object Store {
 
-  object Store extends ProHandlerOps[F] {
-    def create[A, M](
-      initialAction: A,
-      initialState: M,
-      reducer: Reducer[A, M]
-    )(implicit s: Scheduler, F: Sync[F]): F[ProHandler[A, (A, M)]] = F.delay {
-      val subject = PublishSubject[A]
+  /* Partial application trick, "kinda-curried type parameters"
+   * https://typelevel.org/cats/guidelines.html
+   */
+  final class CreatePartiallyApplied[F[_]](val dummy: Boolean = false) extends AnyVal {
+    def apply[A, M](initialAction: A, initialState: M, reducer: Reducer[A, M])(implicit s: Scheduler, F: Sync[F]) = 
+      create[F, A, M](initialAction, initialState, reducer)
+  }
 
-      val fold: ((A, M), A) => (A, M) = {
-        case ((_, state), action) => {
-          val (newState, effects) = reducer(state, action)
+  def create[F[_]] = new CreatePartiallyApplied[F]
 
-          effects.subscribe(
-            next => subject.feed(next :: Nil),
-            // just log the error, don't push it into the subject's observable, because it would stop the scan "loop"
-            error => dom.console.error(error.getMessage)
-          )
+  def create[F[_], A, M](
+    initialAction: A,
+    initialState: M,
+    reducer: Reducer[A, M]
+  )(implicit s: Scheduler, F: Sync[F]): F[ProHandler[A, (A, M)]] = F.delay {
+    val subject = PublishSubject[A]
 
-          action -> newState
-        }
+    val fold: ((A, M), A) => (A, M) = {
+      case ((_, state), action) => {
+        val (newState, effects) = reducer(state, action)
+
+        effects.subscribe(
+          next => subject.feed(next :: Nil),
+          // just log the error, don't push it into the subject's observable, because it would stop the scan "loop"
+          error => dom.console.error(error.getMessage)
+        )
+
+        action -> newState
       }
-
-      val out = subject.transformObservable(source =>
-        source
-          .scan0[(A, M)](initialAction -> initialState)(fold)
-          .replay(1).refCount
-      )
-
-      val sub = out.subscribe()
-      out.doOnSubscribeF(Task(sub.cancel))
-
-      out
     }
+
+    val out = subject.transformObservable(source =>
+      source
+        .scan0[(A, M)](initialAction -> initialState)(fold)
+        .replay(1).refCount
+    )
+
+    val sub = out.subscribe()
+    out.doOnSubscribeF(Task(sub.cancel))
+
+    out
   }
 }
 
-class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] with OutWatchOps[F] {
+class GlobalStore[F[_]: Sync, A, M] {
 
   /**
    * A global reference to a Store.
@@ -74,7 +82,7 @@ class GlobalStore[F[_]: Sync, A, M] extends ProHandlerOps[F] with StoreOps[F] wi
     selector: String,
     root: F[VNode]
   )(implicit s: Scheduler): F[Unit] = for {
-    store <- Store.create[A, M](initialAction, initialState, reducer)
+    store <- Store.create[F, A, M](initialAction, initialState, reducer)
     _ <- storeRef.asInstanceOf[STRef[F, ProHandler[A, M]]].put(store.mapProHandler[A, M](in => in)(out => out._2))
     vnode <- root
     _ <- OutWatch.renderInto(selector, vnode)

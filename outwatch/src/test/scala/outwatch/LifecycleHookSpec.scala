@@ -5,13 +5,13 @@ import monix.execution.Ack.Continue
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom._
-import outwatch.dom.{ProHandlerOps, OutWatchOps, VNode, managed, VDomModifier, ValueObservable}
+import outwatch.dom._
 import outwatch.dom.dsl
 import dsl._
 
 import scala.collection.mutable
 
-class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOps[IO] {
+class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Insertion hooks" should "be called correctly" in {
 
@@ -25,7 +25,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
     }
   }
@@ -47,7 +47,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
       switch2 shouldBe true
     }
@@ -66,7 +66,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
     }
   }
@@ -89,7 +89,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     switch shouldBe false
     switch2 shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
       switch2 shouldBe true
     }
@@ -110,7 +110,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     val message = PublishSubject[String]
     val node = div(message, dsl.key := "unique", onSnabbdomUpdate --> observer1)(onSnabbdomUpdate --> observer2)
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       switch1 shouldBe false
       switch2 shouldBe false
@@ -134,7 +134,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
     }
   }
@@ -152,7 +152,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
     }
   }
@@ -171,7 +171,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     val message = PublishSubject[String]()
     val node = div(message, dsl.key := "unique", onSnabbdomPrePatch --> observer1)(onSnabbdomPrePatch --> observer2)
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch1 shouldBe false
       switch2 shouldBe false
 
@@ -194,7 +194,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     switch shouldBe false
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe true
     }
   }
@@ -214,7 +214,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     val message = PublishSubject[String]()
     val node = div(message, dsl.key := "unique", onSnabbdomPostPatch --> observer1)(onSnabbdomPostPatch --> observer2)
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch1 shouldBe false
       switch2 shouldBe false
 
@@ -263,7 +263,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       hooks.toList shouldBe List("insert")
 
       message.onNext("next")
@@ -291,7 +291,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       hooks.toList shouldBe  List("insert")
     }
   }
@@ -318,7 +318,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       message.onNext("next")
 
       hooks.contains("destroy") shouldBe false
@@ -347,7 +347,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     hooks shouldBe empty
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       messageList.onNext(Seq("one"))
 
       messageList.onNext(Seq("one", "two"))
@@ -376,7 +376,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     sub.onNext("pre")
     latest shouldBe ""
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       sub.onNext("first")
       latest shouldBe "first"
 
@@ -406,7 +406,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     sub.onNext("pre")
     latest shouldBe ""
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       sub.onNext("first")
       latest shouldBe "first"
 
@@ -423,7 +423,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
 
     val node = div(modHandler)
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       var domHooks = List.empty[String]
 
       modHandler.onNext(div(onDomMount foreach { domHooks :+= "mount" }, p(onDomUnmount foreach { domHooks :+= "unmount" })))
@@ -446,7 +446,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     val innerHandler = PublishSubject[VDomModifier]()
     val node = div(modHandler)
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       var domHooks = List.empty[String]
 
       modHandler.onNext(VDomModifier(innerHandler))
@@ -476,7 +476,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     val innerHandler = PublishSubject[VDomModifier]()
     val node = div(modHandler, otherHandler)
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       var domHooks = List.empty[String]
 
       modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomPreUpdate foreach { domHooks :+= "preupdate" }, onDomUpdate foreach { domHooks :+= "update" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
@@ -523,7 +523,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
     val otherHandler = PublishSubject[VDomModifier]()
     val node = div(otherHandler, ValueObservable(modHandler, VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomPreUpdate foreach { domHooks :+= "default-preupdate" }, onDomUpdate foreach { domHooks :+= "default-update" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       domHooks shouldBe List("default-mount")
 
       innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }))
@@ -564,7 +564,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
       }
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       domHooks shouldBe List.empty
 
       countHandler.onNext(1)
@@ -593,7 +593,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
       span(divTagName --> observer)
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       operations.toList shouldBe List("div", "insert")
     }
   }
@@ -636,7 +636,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
       }
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       element.innerHTML shouldBe ""
@@ -769,7 +769,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWa
       }
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
       val element = document.getElementById("strings")
 
       element.innerHTML shouldBe ""

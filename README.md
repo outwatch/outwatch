@@ -108,7 +108,7 @@ object Main {
     
     val myComponent = div("Hello World")
 
-    OutWatch.renderReplace("#app", myComponent).unsafeRunSync()
+    OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
   }
 }
 ```
@@ -444,7 +444,7 @@ object Main {
     val counter = Observable.interval(1 second)
     val counterComponent = div("count: ", counter)
 
-    OutWatch.renderReplace("#app", counterComponent).unsafeRunSync()
+    OutWatch.renderReplace[IO]("#app", counterComponent).unsafeRunSync()
   }
 }
 ```

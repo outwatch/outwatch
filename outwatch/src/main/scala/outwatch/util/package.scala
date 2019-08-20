@@ -1,6 +1,5 @@
 package outwatch
 
-import cats.effect.IO
 import monix.reactive.Observable
 
 package object util {
@@ -11,6 +10,4 @@ package object util {
    * @tparam M The Model Type
    */
   type Reducer[A, M] = (M, A) => (M, Observable[A])
-
-  object io extends StoreOps[IO]
 }

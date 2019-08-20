@@ -6,10 +6,8 @@ import monix.reactive.{Observable, Observer}
 import org.scalatest.Assertion
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
-import outwatch.dom.io._
 import outwatch.dom.dsl._
 import outwatch.util._
-import outwatch.util.io._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
 
@@ -20,8 +18,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
   "A simple counter application" should "work as intended" in {
 
     val test: IO[Assertion] = for {
-       handlePlus <- Handler.create[MouseEvent]
-      handleMinus <- Handler.create[MouseEvent]
+       handlePlus <- Handler.create[IO, MouseEvent]
+      handleMinus <- Handler.create[IO, MouseEvent]
           plusOne = handlePlus.map(_ => 1)
          minusOne = handleMinus.map(_ => -1)
             count = Observable(plusOne, minusOne).merge.scan(0)(_ + _).startWith(Seq(0))
@@ -36,7 +34,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                       document.body.appendChild(root)
                       root
                     }
-                _ <- OutWatch.renderInto(r, node)
+                _ <- OutWatch.renderInto[IO](r, node)
             event <- IO {
                       val event = document.createEvent("Events")
                       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -77,7 +75,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
   
     val node: IO[VNode] = for {
-      store <- Store.create[CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce)
+      store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce)
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
@@ -101,7 +99,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
             root
           }
       node <- node
-      _ <- OutWatch.renderInto(r, node)
+      _ <- OutWatch.renderInto[IO](r, node)
       e <- IO {
             val event = document.createEvent("Events")
             initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -146,7 +144,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     def assertGreeting(greeting: String, name: String): Assertion =
       assert(greeting == greetStart + name)
 
-    val node = Handler.create[String].map { nameHandler =>
+    val node = Handler.create[IO, String].map { nameHandler =>
       div(
         label("Name:"),
         input(id := "input", tpe := "text", onInput.value --> nameHandler),
@@ -162,7 +160,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                 root
               }
       node  <- node
-          _ <- OutWatch.renderInto(r, node)
+          _ <- OutWatch.renderInto[IO](r, node)
       event <- IO {
                 val evt = document.createEvent("HTMLEvents")
                 initEvent(evt)("input", canBubbleArg = false, cancelableArg = true)
@@ -185,7 +183,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       element.getElementsByTagName("button").item(0)
 
     def component(): IO[VNode] = {
-      Handler.create[String].map { handler =>
+      Handler.create[IO, String].map { handler =>
         div(
           button(onClick("clicked") --> handler),
           div(cls := "label", handler)
@@ -204,9 +202,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         clickEvt
       }
       e1 <- createDiv
-       _ <- OutWatch.renderInto(e1, component1)
+       _ <- OutWatch.renderInto[IO](e1, component1)
       e2 <- createDiv
-       _ <- OutWatch.renderInto(e2, component2)
+       _ <- OutWatch.renderInto[IO](e2, component2)
        _ <- IO {
              getButton(e1).dispatchEvent(evt)
              getButton(e2).dispatchEvent(evt)
@@ -228,9 +226,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
     def TextFieldComponent(labelText: String, outputStream: Observer[String]) = for {
 
-      textFieldStream <- Handler.create[String]
-      clickStream <- Handler.create[MouseEvent]
-      keyStream <- Handler.create[KeyboardEvent]
+      textFieldStream <- Handler.create[IO, String]
+      clickStream <- Handler.create[IO, MouseEvent]
+      keyStream <- Handler.create[IO, KeyboardEvent]
 
       buttonDisabled = textFieldStream
         .map(_.length < 2)
@@ -260,8 +258,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val vtree = for {
-      inputHandler <- Handler.create[String]
-      deleteHandler <- Handler.create[String]
+      inputHandler <- Handler.create[IO, String]
+      deleteHandler <- Handler.create[IO, String]
 
       adds = inputHandler
         .map(addToList)
@@ -288,7 +286,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       }
 
       vtree <- vtree
-      _ <- OutWatch.renderInto(root, vtree)
+      _ <- OutWatch.renderInto[IO](root, vtree)
 
       inputEvt <- IO {
         val inputEvt = document.createEvent("HTMLEvents")

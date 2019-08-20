@@ -5,7 +5,6 @@ import org.scalajs.dom.{document, html}
 import cats.effect.IO
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
-import outwatch.dom.io._
 import outwatch.dom.dsl._
 import snabbdom._
 
@@ -43,7 +42,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
 
-    Handler.create[Int](1).flatMap { clicks =>
+    Handler.create[IO](1).flatMap { clicks =>
 
       val nodes = clicks.map { i =>
         div(
@@ -62,7 +61,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                    node
                  }
 
-               _ <- OutWatch.renderInto("#app", div(nodes))
+               _ <- OutWatch.renderInto[IO]("#app", div(nodes))
 
         inputEvt <- IO {
                     val inputEvt = document.createEvent("HTMLEvents")
@@ -96,8 +95,8 @@ class SnabbdomSpec extends JSDomAsyncSpec {
       IO(document.getElementById("content").innerHTML)
 
     for {
-      a <- Handler.create[Int](0)
-      b <- Handler.create[Int](100)
+      a <- Handler.create[IO](0)
+      b <- Handler.create[IO](100)
       vtree = div(
               a.map { a =>
                 div(
@@ -108,7 +107,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                 )
               }
             )
-          _ <- OutWatch.renderInto("#app", vtree)
+          _ <- OutWatch.renderInto[IO]("#app", vtree)
           c1 <- getContent
            _ <- IO.fromFuture(IO(a.onNext(1)))
           c2 <- getContent

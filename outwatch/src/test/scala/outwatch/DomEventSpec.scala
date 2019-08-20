@@ -6,17 +6,17 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
-import outwatch.dom.{OutWatchOps, ProHandlerOps, VNode, VDomModifier}
+import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.util.LocalStorage
 
-class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOps[IO] {
+class DomEventSpec extends JSDomAsyncSpec {
 
   val LocalStorageIO = new LocalStorage[IO]
 
   "EventStreams" should "emit and receive events correctly" in {
 
-    val vtree = Handler.create[MouseEvent].map { handler =>
+    val vtree = Handler.create[IO, MouseEvent].map { handler =>
 
       val buttonDisabled = handler.map(_ => true).startWith(Seq(false))
 
@@ -27,7 +27,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       vtree <- vtree
-          _ <- OutWatch.renderInto("#app", vtree)
+          _ <- OutWatch.renderInto[IO]("#app", vtree)
        hasD <- IO(document.getElementById("btn").hasAttribute("disabled"))
           _ <- IO(hasD shouldBe false)
       event <- IO {
@@ -45,7 +45,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val message = "ad"
 
-    val vtree = Handler.create[String].map { handler =>
+    val vtree = Handler.create[IO, String].map { handler =>
       div(id := "click", onClick(message) --> handler,
         span(id := "child", handler)
       )
@@ -53,7 +53,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       vtree <- vtree
-      _ <- OutWatch.renderInto("#app", vtree)
+      _ <- OutWatch.renderInto[IO]("#app", vtree)
     } yield {
       document.getElementById("child").innerHTML shouldBe ""
 
@@ -73,9 +73,9 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
   it should "be converted to a generic stream emitter correctly" in {
 
-    Handler.create[String].flatMap { messages =>
+    Handler.create[IO, String].flatMap { messages =>
 
-      val vtree = Handler.create[String].map { stream =>
+      val vtree = Handler.create[IO, String].map { stream =>
         div(id := "click", onClick(messages) --> stream,
           span(id := "child", stream)
         )
@@ -83,7 +83,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
       for {
         vtree <- vtree
-        _ <- OutWatch.renderInto("#app", vtree)
+        _ <- OutWatch.renderInto[IO]("#app", vtree)
       } yield {
 
         document.getElementById("child").innerHTML shouldBe ""
@@ -119,7 +119,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val vtree = input(id := "input", attributes.value <-- values)
 
-    OutWatch.renderInto("#app", vtree).map {_ =>
+    OutWatch.renderInto[IO]("#app", vtree).map {_ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
 
@@ -146,7 +146,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
     val defaultValues = PublishSubject[String]
 
     val vtree = input(id := "input", attributes.defaultValue <-- defaultValues)
-    OutWatch.renderInto("#app", vtree).map { _ =>
+    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
@@ -168,7 +168,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
     val values = PublishSubject[String]
 
     val vtree = input(id := "input", attributes.value <-- values)
-    OutWatch.renderInto("#app", vtree).map { _ =>
+    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
@@ -194,7 +194,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
       ul(id := "list", state)
     )
 
-    OutWatch.renderInto("#app", vtree).map { _ =>
+    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val list = document.getElementById("list")
 
@@ -235,8 +235,8 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val messages = ("Hello", "World")
 
-    val node = Handler.create[String].flatMap { first =>
-      Handler.create[String].map { second =>
+    val node = Handler.create[IO, String].flatMap { first =>
+      Handler.create[IO, String].map { second =>
         div(
           button(id := "click", onClick(messages._1) --> first, onClick(messages._2) --> second),
           span(id := "first", first),
@@ -247,7 +247,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
       val event = document.createEvent("Events")
       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -264,7 +264,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = Handler.create[(MouseEvent, Int)].map { stream =>
+    val node = Handler.create[IO, (MouseEvent, Int)].map { stream =>
       div(
         button(id := "click", onClick.map(toTuple) --> stream),
         span(id := "num", stream.map(_._2))
@@ -273,7 +273,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val event = document.createEvent("Events")
@@ -291,7 +291,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val transformer = (e: Observable[MouseEvent]) => e.concatMap(_ => numbers)
 
-    val node = Handler.create[Int].map { stream =>
+    val node = Handler.create[IO, Int].map { stream =>
 
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
@@ -303,7 +303,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val event = document.createEvent("Events")
@@ -319,7 +319,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val number = 42
     val onInputValue = onInput.value
-    val node = Handler.create[Int].map { stream =>
+    val node = Handler.create[IO, Int].map { stream =>
       div(
         input(id := "input", onInputValue(number) --> stream),
         span(id := "num", stream)
@@ -328,7 +328,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputEvt = document.createEvent("HTMLEvents")
@@ -359,7 +359,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
       )
     }
 
-    OutWatch.renderInto("#app", node).map {_ =>
+    OutWatch.renderInto[IO]("#app", node).map {_ =>
 
       val inputEvt = document.createEvent("HTMLEvents")
       initEvent(inputEvt)("click", canBubbleArg = false, cancelableArg = true)
@@ -383,11 +383,11 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
   it should "correctly be transformed from latest in observable" in {
 
-    val node = Handler.create[String].flatMap { submit =>
+    val node = Handler.create[IO, String].flatMap { submit =>
 
       val state = submit.scan(List.empty[String])((l, s) => l :+ s)
 
-      Handler.create[String].map { stream =>
+      Handler.create[IO, String].map { stream =>
         div(
           input(id := "input", tpe := "text", onInput.value --> stream),
           button(id := "submit", onClick(stream) --> submit),
@@ -400,7 +400,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputElement = document.getElementById("input").asInstanceOf[html.Input]
@@ -430,7 +430,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
   "Boolean Props" should "be handled corectly" in {
 
-    val node = Handler.create[Boolean].map { checkValue =>
+    val node = Handler.create[IO, Boolean].map { checkValue =>
       div(
         input(id := "checkbox", `type` := "Checkbox", checked <-- checkValue),
         button(id := "on_button", onClick(true) --> checkValue, "On"),
@@ -440,7 +440,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
 
       val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
@@ -472,7 +472,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     val node = div(button(id := "input", tpe := "checkbox"))
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       val inputEvt = document.createEvent("HTMLEvents")
       initEvent(inputEvt)("click", canBubbleArg = true, cancelableArg = false)
@@ -488,14 +488,14 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
   "EmitterOps" should "correctly work on events" in {
 
-    val node = Handler.create[String].flatMap { _ =>
+    val node = Handler.create[IO, String].flatMap { _ =>
 
       for {
-        stringStream <- Handler.create[String]
-        doubleStream <- Handler.create[Double]
-        boolStream <- Handler.create[Boolean]
-        htmlElementStream <- Handler.create[html.Element]
-        svgElementTupleStream <- Handler.create[(org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]
+        stringStream <- Handler.create[IO, String]
+        doubleStream <- Handler.create[IO, Double]
+        boolStream <- Handler.create[IO, Boolean]
+        htmlElementStream <- Handler.create[IO, html.Element]
+        svgElementTupleStream <- Handler.create[IO, (org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]
         elem = div(
           input(
             id := "input", tpe := "text",
@@ -523,7 +523,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
     for {
       node <- node
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
     } yield {
       document.getElementById("input") should not be null
     }
@@ -531,14 +531,14 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
 
   it should "correctly be compiled with currentTarget" in {
 
-    Handler.create[String].flatMap { stringHandler =>
+    Handler.create[IO, String].flatMap { stringHandler =>
       def modifier: VDomModifier = onDrag.value --> stringHandler
 
-      Handler.create[String].flatMap { _ =>
+      Handler.create[IO, String].flatMap { _ =>
 
       for {
-        stream <- Handler.create[String]
-        eventStream <- Handler.create[MouseEvent]
+        stream <- Handler.create[IO, String]
+        eventStream <- Handler.create[IO, MouseEvent]
         elem = div(
           input(
             id := "input", tpe := "text",
@@ -548,7 +548,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
             modifier
           ),
           ul(id := "items"))
-        _ <- OutWatch.renderInto("#app", elem)
+        _ <- OutWatch.renderInto[IO]("#app", elem)
         } yield {
           document.getElementById("input") should not be null
         }
@@ -562,7 +562,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
       myStrings
     )
 
-    OutWatch.renderInto("#app", node).map( _ =>
+    OutWatch.renderInto[IO]("#app", node).map( _ =>
       document.getElementById("strings").innerHTML shouldBe "ab"
     )
   }
@@ -642,7 +642,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
     )
 
     val test = for {
-      _ <- OutWatch.renderInto("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node)
       _ <- IO {
             val event = document.createEvent("Events")
             initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -668,7 +668,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
       )
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       val event = document.createEvent("Events")
       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
@@ -692,7 +692,7 @@ class DomEventSpec extends JSDomAsyncSpec with ProHandlerOps[IO] with OutWatchOp
       onClick foreach {triggeredSecond = true}
     )
 
-    OutWatch.renderInto("#app", node).map { _ =>
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
 
       val event = document.createEvent("Events")
       initEvent(event)("click", canBubbleArg = true, cancelableArg = false)

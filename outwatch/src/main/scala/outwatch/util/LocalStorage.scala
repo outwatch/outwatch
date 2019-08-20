@@ -12,12 +12,12 @@ import outwatch._
 import outwatch.dom._
 import outwatch.dom.dsl.events
 
-class Storage[F[_]: Sync](domStorage: dom.Storage) extends ProHandlerOps[F] {
+class Storage[F[_]: Sync](domStorage: dom.Storage) {
   private def subjectWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
-      h <- Handler.create[Option[String]](storage(key))
+      h <- Handler.create[F](storage(key))
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h

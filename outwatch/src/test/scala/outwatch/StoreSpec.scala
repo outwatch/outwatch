@@ -1,10 +1,10 @@
 package outwatch
 
+import cats.effect.IO
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.Scheduler
 import monix.execution.schedulers.TrampolineScheduler
 import org.scalatest.{FlatSpec, Matchers}
-import outwatch.util.io._
 import outwatch.util._
 
 class StoreSpec extends FlatSpec with Matchers {
@@ -25,7 +25,7 @@ class StoreSpec extends FlatSpec with Matchers {
   }
 
   "A Store" should "emit its initial state to multiple subscribers" in {
-    val store = Store.create[CounterAction, Model](Initial, 0, reduce).unsafeRunSync()
+    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
 
     var a: Option[Model] = None
     var b: Option[Model] = None
@@ -44,7 +44,7 @@ class StoreSpec extends FlatSpec with Matchers {
   }
 
   "A Store" should "emit consecutive states to multiple subscribers" in {
-    val store = Store.create[CounterAction, Model](Initial, 0, reduce).unsafeRunSync()
+    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
 
     var a: Option[Model] = None
     var b: Option[Model] = None
@@ -71,7 +71,7 @@ class StoreSpec extends FlatSpec with Matchers {
   }
 
   "A Store" should "emit its current state to new subscribers" in {
-    val store = Store.create[CounterAction, Model](Initial, 0, reduce).unsafeRunSync()
+    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
 
     (1 to 10).foreach(_ => store.onNext(Plus))
 
