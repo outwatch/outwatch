@@ -74,8 +74,7 @@ class StoreSpec extends FlatSpec with Matchers {
   "A Store" should "emit its current state to new subscribers" in {
     val store = Store.create[IO, CounterAction, Model](Initial, 0, Reducer(reduce _)).unsafeRunSync()
 
-    for (i <- 1 to 10)
-      store.onNext(Plus)
+    (1 to 10).foreach(_ => store.onNext(Plus))
 
     var a: Option[Model] = None
     var b: Option[Model] = None
