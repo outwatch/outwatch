@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.execution.Scheduler.Implicits.global
 
-OutWatch.renderInto("#app", h1("Hello World")).unsafeRunSync()
+OutWatch.renderInto[IO]("#app", h1("Hello World")).unsafeRunSync()
 ```
 
 Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI is made reactive with [Monix](https://monix.io/).
