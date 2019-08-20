@@ -2,14 +2,12 @@ package outwatch
 package dom
 
 import cats.implicits._
-import monix.execution.Scheduler
 import monix.reactive.Observable
-
 import outwatch.ReactiveConnectable
 
 trait RichHandlerOps {
   implicit class RichHandler[T](self: Handler[T]) {
-    def lens[S](seed: T)(read: T => S)(write: (T, S) => T)(implicit scheduler: Scheduler): Handler[S] with ReactiveConnectable = {
+    def lens[S](seed: T)(read: T => S)(write: (T, S) => T): Handler[S] with ReactiveConnectable = {
       val redirected = self
         .redirect[S](_.withLatestFrom(self.startWith(Seq(seed))){ case (a, b) => write(b, a) })
 
