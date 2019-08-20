@@ -12,8 +12,6 @@ import outwatch.util.LocalStorage
 
 class DomEventSpec extends JSDomAsyncSpec {
 
-  val LocalStorageIO = new LocalStorage[IO]
-
   "EventStreams" should "emit and receive events correctly" in {
 
     val vtree = Handler.create[IO, MouseEvent].map { handler =>
@@ -570,7 +568,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   "LocalStorage" should "have handler with proper events" in {
     var option: Option[Option[String]] = None
 
-    LocalStorageIO.handler("hans").map { handler =>
+    LocalStorage.handler[IO]("hans").map { handler =>
 
       handler.foreach { o => option = Some(o) }
 
@@ -588,7 +586,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "have handlerWithEventsOnly with proper events" in {
     var option: Option[Option[String]] = None
 
-    LocalStorageIO.handlerWithEventsOnly("hans").map {handler =>
+    LocalStorage.handlerWithEventsOnly[IO]("hans").map {handler =>
       handler.foreach { o => option = Some(o) }
 
       option shouldBe Some(None)
@@ -608,7 +606,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     var option: Option[Option[String]] = None
 
-    LocalStorageIO.handlerWithEventsOnly("hans").map { handler =>
+    LocalStorage.handlerWithEventsOnly[IO]("hans").map { handler =>
 
       handler.foreach { o => option = Some(o) }
       option shouldBe Some(Some("wurst"))
@@ -618,7 +616,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "have handlerWithoutEvents with proper events" in {
     var option: Option[Option[String]] = None
 
-    LocalStorageIO.handlerWithoutEvents("hans").map { handler =>
+    LocalStorage.handlerWithoutEvents[IO]("hans").map { handler =>
 
       handler.foreach { o => option = Some(o) }
 

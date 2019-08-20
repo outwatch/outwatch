@@ -11,8 +11,8 @@ import org.scalajs.dom.window.{localStorage, sessionStorage}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 
-class Storage[F[_]: Sync](domStorage: dom.Storage) {
-  private def subjectWithTransform(key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+class Storage(domStorage: dom.Storage) {
+  private def subjectWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
@@ -33,7 +33,7 @@ class Storage[F[_]: Sync](domStorage: dom.Storage) {
     }
   }
 
-  private def storageEventsForKey(key: String): Observable[Option[String]] =
+  private def storageEventsForKey[F[_]: Sync](key: String): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
     events.window.onStorage.collect {
       case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
@@ -45,20 +45,20 @@ class Storage[F[_]: Sync](domStorage: dom.Storage) {
         None
     }
 
-  def handlerWithoutEvents(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+  def handlerWithoutEvents[F[_]: Sync](key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     subjectWithTransform(key, identity)
   }
 
-  def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+  def handlerWithEventsOnly[F[_]: Sync](key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     subjectWithTransform(key, _ => storageEvents)
   }
 
-  def handler(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+  def handler[F[_]: Sync](key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     subjectWithTransform(key, Observable(_, storageEvents).merge)
   }
 }
 
-class LocalStorage[F[_]: Sync] extends Storage[F](localStorage)
-class SessionStorage[F[_]: Sync] extends Storage[F](sessionStorage)
+object LocalStorage extends Storage(localStorage)
+object SessionStorage extends Storage(sessionStorage)

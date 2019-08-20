@@ -7,9 +7,9 @@ import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
+import outwatch.dom._
 import monix.reactive.Observable
 import monix.reactive.Observer
-import outwatch.dom._
 import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
@@ -25,7 +25,6 @@ import scala.scalajs.js.JSON
 
 final case class Fixture(proxy: VNodeProxy)
 class OutWatchDomSpec extends JSDomAsyncSpec {
-  val LocalStorageIO = new util.LocalStorage[IO]
 
   implicit def ListToJsArray[T](list: Seq[T]): js.Array[T] = list.toJSArray
 
@@ -1744,7 +1743,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     assert(localStorage.getItem(key) == null)
 
-    LocalStorageIO.handler(key).flatMap { storageHandler =>
+    util.LocalStorage.handler[IO](key).flatMap { storageHandler =>
 
       storageHandler.foreach{e => triggeredHandlerEvents += e}
       assert(localStorage.getItem(key) == null)
@@ -1756,7 +1755,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       var initialValue:Option[String] = null
 
-      LocalStorageIO.handler(key).map { sh =>
+      util.LocalStorage.handler[IO](key).map { sh =>
 
         sh.foreach {initialValue = _}
         assert(initialValue == Some("joe"))
