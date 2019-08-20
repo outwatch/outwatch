@@ -34,7 +34,7 @@ class Storage[F[_]: Sync](domStorage: dom.Storage) extends ProHandlerOps[F] {
     }
   }
 
-  private def storageEventsForKey(key: String)(implicit scheduler: Scheduler): Observable[Option[String]] =
+  private def storageEventsForKey(key: String): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
     events.window.onStorage.collect {
       case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
@@ -52,7 +52,7 @@ class Storage[F[_]: Sync](domStorage: dom.Storage) extends ProHandlerOps[F] {
 
   def handlerWithEventsOnly(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    subjectWithTransform(key, o => storageEvents)
+    subjectWithTransform(key, _ => storageEvents)
   }
 
   def handler(key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {

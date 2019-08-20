@@ -14,7 +14,7 @@ import outwatch.dom.io._
 import outwatch.dom.helpers._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
-import snabbdom.{DataObject, Hooks, hFunction}
+import snabbdom.{DataObject, Hooks, hFunction, VNodeProxy}
 import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
 
@@ -24,6 +24,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.JSON
 
+final case class Fixture(proxy: VNodeProxy)
 class OutWatchDomSpec extends JSDomAsyncSpec {
   val LocalStorageIO = new util.LocalStorage[IO]
 
@@ -167,8 +168,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     proxies.get.length shouldBe 1
   }
 
-  val fixture = new {
-    val proxy = hFunction(
+  val fixture = Fixture(
+    hFunction(
       "div",
       new DataObject {
         attrs = js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg")
@@ -176,7 +177,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       },
       js.Array(hFunction("span", new DataObject { hook = Hooks.empty }, "Hello"))
     )
-  }
+  )
 
   it should "run effect modifiers once" in {
     val list = new collection.mutable.ArrayBuffer[String]
@@ -2820,9 +2821,9 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       for {
         _ <- monix.eval.Task.unit.runToFuture
         _ = sendEvent(editButton, "click")
-        _ <- monix.eval.Task.unit.delayResult(1 seconds).runToFuture
+        _ <- monix.eval.Task.unit.delayResult(1.seconds).runToFuture
         _ = sendEvent(editButton, "click")
-        _ <- monix.eval.Task.unit.delayResult(1 seconds).runToFuture
+        _ <- monix.eval.Task.unit.delayResult(1.seconds).runToFuture
       } yield succeed
     }
   }
@@ -2869,9 +2870,9 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       for {
         _ <- monix.eval.Task.unit.runToFuture
         _ = sendEvent(editButton, "click")
-        _ <- monix.eval.Task.unit.delayResult(1 seconds).runToFuture
+        _ <- monix.eval.Task.unit.delayResult(1.seconds).runToFuture
         _ = sendEvent(editButton, "click")
-        _ <- monix.eval.Task.unit.delayResult(1 seconds).runToFuture
+        _ <- monix.eval.Task.unit.delayResult(1.seconds).runToFuture
       } yield succeed
     }
   }
@@ -2905,11 +2906,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe ""
 
       _ = sendEvent(element, "mousedown")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
+      _ <- monix.eval.Task.unit.delayResult(0.1.seconds).to[IO]
       _ = element.innerHTML shouldBe "yes"
 
       _ = sendEvent(element, "mouseup")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
+      _ <- monix.eval.Task.unit.delayResult(0.1.seconds).to[IO]
       _ = element.innerHTML shouldBe "no"
     } yield succeed
   }
@@ -2942,11 +2943,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe ""
 
       _ = sendEvent(element, "mousedown")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
+      _ <- monix.eval.Task.unit.delayResult(0.1.seconds).to[IO]
       _ = element.innerHTML shouldBe "yes"
 
       _ = sendEvent(element, "mouseup")
-      _ <- monix.eval.Task.unit.delayResult(0.1 seconds).to[IO]
+      _ <- monix.eval.Task.unit.delayResult(0.1.seconds).to[IO]
       _ = element.innerHTML shouldBe "no"
     } yield succeed
   }
