@@ -1,6 +1,6 @@
 package outwatch.util
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.implicits._
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -8,8 +8,6 @@ import monix.reactive.{ObservableLike, Observable}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch._
-import outwatch.dom.helpers.STRef
-import outwatch.dom.{OutWatch, VNode}
 
 object Store {
 
@@ -88,37 +86,4 @@ object Store {
 
     out
   }
-
-  /**
-   * A global reference to a Store.
-   * Commonly used to implement the Redux Pattern.
-   */
-  private val storeRef = STRef.empty
-
-  /**
-   * Get's a globally unique store.
-   * Commonly used to implement the Redux Pattern.
-   */
-  def get[A, M]: IO[ProHandler[A, M]] = storeRef.asInstanceOf[STRef[ProHandler[A, M]]].getOrThrow(NoStoreException)
-
-  /**
-   * Renders an Application with a globally unique Store.
-   * Commonly used to implement the Redux Pattern.
-   */
-  def renderWithStore[A, M](
-    initialAction: A,
-    initialState: M,
-    reducer: Reducer[A, M],
-    selector: String,
-    root: IO[VNode]
-  )(implicit s: Scheduler): IO[Unit] = for {
-    store <- Store.create[IO, A, M](initialAction, initialState, reducer)
-    _ <- storeRef.asInstanceOf[STRef[ProHandler[A, M]]].put(store.mapProHandler[A, M](in => in)(out => out._2))
-    vnode <- root
-    _ <- OutWatch.renderInto(selector, vnode)
-  } yield ()
-
-  private object NoStoreException
-    extends Exception("Application was rendered without specifying a Store, please use Outwatch.renderWithStore instead")
-
 }
