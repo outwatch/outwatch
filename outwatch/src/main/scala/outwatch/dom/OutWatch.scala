@@ -1,12 +1,11 @@
 package outwatch.dom
 
-import cats.effect.{Sync, SyncIO}
+import cats.effect.Sync
 import cats.implicits._
 import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom._
 import outwatch.dom.helpers.SnabbdomOps
-import outwatch.util.{Reducer, GlobalStore}
 import snabbdom.{VNodeProxy, patch}
 
 object OutWatch {
@@ -21,10 +20,10 @@ object OutWatch {
       patch(elem, node)
     }.void
 
-  def renderReplace[F[_]: Sync](element: dom.Element, vNode: VNode)(implicit s: Scheduler): F[Unit] = 
+  def renderReplace[F[_]: Sync](element: dom.Element, vNode: VNode)(implicit s: Scheduler): F[Unit] =
     toSnabbdom(vNode).map { node =>
       val elementNode = snabbdom.tovnode(element)
-      patch(elementNode, node)    
+      patch(elementNode, node)
     }.void
 
   def renderInto[F[_]: Sync](querySelector: String, vNode: VNode)(implicit s: Scheduler): F[Unit] =
@@ -33,25 +32,6 @@ object OutWatch {
   def renderReplace[F[_]: Sync](querySelector: String, vNode: VNode)(implicit s: Scheduler): F[Unit] =
     renderReplace(document.querySelector(querySelector), vNode)
 
-  @deprecated("Use renderInto[F] instead (or renderReplace[F])", "0.11.0")
-  def render(querySelector: String, vNode: VNode)(implicit s: Scheduler): SyncIO[Unit] = 
-    renderInto[SyncIO](querySelector, vNode)
-
-  def renderWithStore[F[_]: Sync, A, M](
-    initialAction: A,
-    initialState: M,
-    reducer: Reducer[A, M],
-    querySelector: String,
-    root: F[VNode]
-  )(implicit s: Scheduler): F[Unit] =
-    new GlobalStore[F, A, M].renderWithStore(initialAction, initialState, reducer, querySelector, root)
-
-  def renderWithStore[F[_]: Sync, A, M](
-    initialAction: A,
-    initialState: M,
-    reducer: Reducer[A, M],
-    querySelector: String,
-    root: VNode
-  )(implicit s: Scheduler): F[Unit] =
-    new GlobalStore[F, A, M].renderWithStore(initialAction, initialState, reducer, querySelector, root.pure[F])
+  @deprecated("Use renderInto instead (or renderReplace)", "0.11.0")
+  def render[F[_]: Sync](querySelector: String, vNode: VNode)(implicit s: Scheduler): F[Unit] = renderInto(querySelector, vNode)
 }
