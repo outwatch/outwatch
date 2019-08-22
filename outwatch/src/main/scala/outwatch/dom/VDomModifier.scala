@@ -11,7 +11,9 @@ import snabbdom.{DataObject, VNodeProxy}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-sealed trait VDomModifier
+sealed trait VDomModifier {
+  @inline def combine(modifier: VDomModifier): VDomModifier = VDomModifier(this, modifier)
+}
 
 object VDomModifier {
   @inline def empty: VDomModifier = EmptyModifier
@@ -23,7 +25,7 @@ object VDomModifier {
 
   implicit object monoid extends Monoid[VDomModifier] {
     def empty: VDomModifier = VDomModifier.empty
-    def combine(x: VDomModifier, y: VDomModifier): VDomModifier = VDomModifier(x, y)
+    def combine(x: VDomModifier, y: VDomModifier): VDomModifier = x combine y
   }
 }
 
