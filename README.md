@@ -341,7 +341,7 @@ div("Argh!", bigFont)
 // <div style="font-size: 40px; font-weight: bold;">Argh!</div>
 ```
 
-if you want to reuse it but overriding a property:
+If you want to reuse it, but want to overwrite a property:
 
 ```scala
 val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
