@@ -1,6 +1,6 @@
 package outwatch
 
-import monix.execution.{Ack, Scheduler}
+import monix.execution.Ack
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
 
@@ -52,7 +52,7 @@ trait MonixOps {
   }
 
   implicit class RichHandler[T](self: Handler[T]) {
-    def lens[S](seed: T)(read: T => S)(write: (T, S) => T)(implicit scheduler: Scheduler): Handler[S] with ReactiveConnectable = {
+    def lens[S](seed: T)(read: T => S)(write: (T, S) => T): Handler[S] with ReactiveConnectable = {
       val redirected = self
         .redirect[S](_.withLatestFrom(self.startWith(Seq(seed))){ case (a, b) => write(b, a) })
 

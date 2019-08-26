@@ -465,8 +465,8 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     var docClicked = false
     var winClicked = false
-    events.window.onClick(ev => winClicked = true)
-    events.document.onClick(ev => docClicked = true)
+    events.window.onClick(_ => winClicked = true)
+    events.document.onClick(_ => docClicked = true)
 
     val node = div(button(id := "input", tpe := "checkbox"))
 
@@ -486,7 +486,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   "EmitterOps" should "correctly work on events" in {
 
-    val node = Handler.create[String].flatMap { submit =>
+    val node = Handler.create[String].flatMap { _ =>
 
       for {
         stringStream <- Handler.create[String]
