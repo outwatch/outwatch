@@ -432,6 +432,75 @@ div(
 // </div>
 ```
 
+####  Handler
+Because of Outwatch is following a reactive paradigm, based at this moment in monix.
+
+We have `Observables` and `Observers` from monix.
+
+and `Handler` from Outwatch:
+
+Handler is just an alias for `Observer with Observable` and is referential transparent API. (before was `Sink with Observer` where `Sink` was just a wrapper around Observer). 
+
+So `Handler` creates an `Observable` that is also a `Observer`.
+
+Older version  patterns changes from.
+
+`val  textValues = createStringHandler()` 
+
+to 
+
+`val textValues = Handler.create[String].unsafeRunSync()` 
+
+and this
+
+`val additions = createHandler[Int]()`
+
+to 
+
+`val additions = Handler.create[Int].unsafeRunSync()`
+
+When is the right time to put the .unsafeRunSync on there?
+
+It’d be better to wrap the whole thing in a for-expression instead.
+
+  def render: VNode = {
+    val hdl_1 = Handler.create[String].unsafeRunSync()
+    hdl_1.onNext("test1")
+    div(
+      label( "Example!" ),
+      input (
+        value <-- hdl_1,
+        onChange.value --> hdl_1
+      )
+    )
+  }
+
+  def main(args: Array[String]) = OutWatch.renderInto("#root", render ).unsafeRunSync()
+
+  //With for-comprehension
+
+  def render: IO[VNode] =
+    for {
+      hdl_2 <- Handler.create[String]
+    } yield {
+      hdl_2.onNext("test2")
+      div(
+        label( "Example!" ),
+        input(
+          value <-- hdl_2,
+          onChange.value --> hdl_2
+        )
+      )
+    }
+
+  def main( args: Array[String] ): Unit = {
+    val app = for {
+      r <- render
+      _ <- OutWatch.renderInto("#root", r )
+    }  yield ()
+    app.unsafeRunSync()
+  }
+
 
 ### Dynamic Content
 To visualize updates, use an `Observable[VDomModifier]` as if it was a `VDomModifier`.
