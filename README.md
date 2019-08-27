@@ -445,24 +445,31 @@ So `Handler` creates an `Observable` that is also a `Observer`.
 
 Older version  patterns changes from.
 
-`val  textValues = createStringHandler()` 
+```scala
+val  textValues = createStringHandler()
+```
 
 to 
 
-`val textValues = Handler.create[String].unsafeRunSync()` 
+```scala
+val textValues = Handler.create[String].unsafeRunSync()
+```
 
 and this
 
-`val additions = createHandler[Int]()`
+```scala
+val additions = createHandler[Int]()
+```
 
 to 
 
-`val additions = Handler.create[Int].unsafeRunSync()`
+```scala
+val additions = Handler.create[Int].unsafeRunSync()
+```
 
 When is the right time to put the .unsafeRunSync on there?
 
-It’d be better to wrap the whole thing in a for-expression instead.
-
+```scala
   def render: VNode = {
     val hdl_1 = Handler.create[String].unsafeRunSync()
     hdl_1.onNext("test1")
@@ -476,9 +483,11 @@ It’d be better to wrap the whole thing in a for-expression instead.
   }
 
   def main(args: Array[String]) = OutWatch.renderInto("#root", render ).unsafeRunSync()
+```
 
-  //With for-comprehension
+It would be better to wrap the whole thing in a for-expression instead. 
 
+```scala
   def render: IO[VNode] =
     for {
       hdl_2 <- Handler.create[String]
@@ -500,7 +509,7 @@ It’d be better to wrap the whole thing in a for-expression instead.
     }  yield ()
     app.unsafeRunSync()
   }
-
+```
 
 ### Dynamic Content
 To visualize updates, use an `Observable[VDomModifier]` as if it was a `VDomModifier`.
