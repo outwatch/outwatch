@@ -2,7 +2,7 @@ package outwatch
 
 import cats.Monoid
 import cats.implicits._
-import cats.effect.IO
+import cats.effect.{SyncIO, IO}
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject, Var}
 import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element}
@@ -410,9 +410,46 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   }
 
-  it should "be replaced if they contain changeables" in {
+  it should "be replaced if they contain changeables (SyncIO)" in {
 
-    def page(num: Int): IO[VNode] = for {
+    def page(num: Int): VDomModifier = for {
+      pageNum <- Handler.create[SyncIO](num)
+    } yield div( id := "page",
+      num match {
+        case 1 =>
+          div(pageNum)
+        case 2 =>
+          div(pageNum)
+      }
+    )
+
+
+    val pageHandler = PublishSubject[Int]
+
+    val vtree = div(
+      div(pageHandler.map(page))
+    )
+
+    val node = IO {
+      val node = document.createElement("div")
+      document.body.appendChild(node)
+      node
+    }
+
+    for {
+      n <- node
+      _ <- OutWatch.renderInto[IO](n, vtree)
+      _ <- IO.fromFuture(IO{pageHandler.onNext(1)})
+      domNode = document.getElementById("page")
+      _ = domNode.textContent shouldBe "1"
+      _ <- IO.fromFuture(IO{pageHandler.onNext(2)})
+      _ = domNode.textContent shouldBe "2"
+    } yield succeed
+  }
+
+  it should "be replaced if they contain changeables (IO)" in {
+
+    def page(num: Int): VDomModifier = for {
       pageNum <- Handler.create[IO](num)
     } yield div( id := "page",
       num match {
@@ -436,22 +473,21 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       node
     }
 
-    node.flatMap { n =>
-
-      OutWatch.renderInto[IO](n, vtree).map { _ =>
-
-        pageHandler.onNext(1)
-
-        val domNode = document.getElementById("page")
-
-        domNode.textContent shouldBe "1"
-
-        pageHandler.onNext(2)
-
-        domNode.textContent shouldBe "2"
-      }
-
-    }
+    for {
+      n <- node
+      _ <- OutWatch.renderInto[IO](n, vtree)
+      _ <- IO.fromFuture(IO{pageHandler.onNext(1)})
+      domNode = document.getElementById("page")
+      _ = domNode.textContent shouldBe "1"
+      _ <- IO.fromFuture(IO{pageHandler.onNext(2)})
+      // we need to get the element again, because Handler.create[IO] will be
+      // patched async, therefore it will be empty for the initial render. So
+      // each new value will first remove the old div, then add the new div.
+      // Resulting in the page-element being destroyed on every update. (This
+      // is different with SyncIO, see test above).
+      domNode2 = document.getElementById("page")
+      _ = domNode2.textContent shouldBe "2"
+    } yield succeed
   }
 
   "The HTML DSL" should "construct VTrees properly" in {
