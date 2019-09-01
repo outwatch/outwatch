@@ -74,14 +74,14 @@ object AsVDomModifier {
   }
 
   implicit object EffectRender extends AsVDomModifier[SyncIO[VDomModifier]] {
-    @inline def asVDomModifier(value: SyncIO[VDomModifier]): VDomModifier = EffectModifierIO(value)
+    @inline def asVDomModifier(value: SyncIO[VDomModifier]): VDomModifier = SyncEffectModifier(() => value.unsafeRunSync())
   }
 
   implicit def effectRenderIO[T : AsVDomModifier]: AsVDomModifier[IO[T]] = (effect: IO[T]) =>
-    EffectModifier(effect.map(VDomModifier(_)))
+    SyncEffectModifier(() => effect.map(VDomModifier(_)).unsafeRunSync())
 
   implicit def effectRender[T : AsVDomModifier]: AsVDomModifier[SyncIO[T]] = (effect: SyncIO[T]) =>
-    EffectModifierIO(effect.map(VDomModifier(_)))
+    SyncEffectModifier(() => effect.map(VDomModifier(_)).unsafeRunSync())
 
   implicit def valueObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[VDomModifier]] = (valueStream: F[VDomModifier]) =>
     ModifierStreamReceiver(ValueObservable(valueStream))
