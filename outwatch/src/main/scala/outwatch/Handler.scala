@@ -12,16 +12,20 @@ import scala.concurrent.Future
 object Handler {
   def empty[F[_]: Sync, T]: F[Handler[T]] = create[F, T]
 
-  def create[F[_]] = new CreatePartiallyApplied[F]
+  @inline def create[F[_]] = new CreatePartiallyApplied[F]
   def create[F[_], T](implicit F: Sync[F]): F[Handler[T]] = F.delay(unsafe[T])
   def create[F[_], T](seed: T)(implicit F: Sync[F]): F[Handler[T]] = F.delay(unsafe[T](seed))
 
 
   /* Partial application trick, "kinda-curried type parameters"
    * https://typelevel.org/cats/guidelines.html
+   *
+   * In scala-js, @inline assures that this trick has no overhead and generates the same code as calling create[F, T](seed)
+   * AnyVal still generates code in this code for creating an CreatePartiallyApplied instance.
+   *
    */
-  final class CreatePartiallyApplied[F[_]](val dummy: Boolean = false) extends AnyVal {
-    def apply[T](seed: T)(implicit F: Sync[F]): F[Handler[T]] = F.delay(unsafe[T](seed))
+  @inline final class CreatePartiallyApplied[F[_]] {
+    @inline def apply[T](seed: T)(implicit F: Sync[F]): F[Handler[T]] = create[F, T](seed)
   }
 
   def unsafe[T]: Handler[T] = ReplaySubject.createLimited(1)

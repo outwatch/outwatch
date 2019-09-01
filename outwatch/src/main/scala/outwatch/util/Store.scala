@@ -11,10 +11,12 @@ object Store {
 
   /* Partial application trick, "kinda-curried type parameters"
    * https://typelevel.org/cats/guidelines.html
+   *
+   * In scala-js, @inline assures that this trick has no overhead and generates the same code as calling create[F, T](seed)
+   * AnyVal still generates code in this code for creating an CreatePartiallyApplied instance.
    */
-  final class CreatePartiallyApplied[F[_]](val dummy: Boolean = false) extends AnyVal {
-    def apply[A, M](initialAction: A, initialState: M, reducer: Reducer[A, M])(implicit s: Scheduler, F: Sync[F]) =
-      create[F, A, M](initialAction, initialState, reducer)
+  @inline final class CreatePartiallyApplied[F[_]] {
+    @inline def apply[A, M](initialAction: A, initialState: M, reducer: Reducer[A, M])(implicit s: Scheduler, F: Sync[F]) = create[F, A, M](initialAction, initialState, reducer)
   }
 
   def create[F[_]] = new CreatePartiallyApplied[F]
