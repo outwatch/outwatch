@@ -5,6 +5,8 @@ import outwatch.dom._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.collection.breakOut
+import scala.concurrent.Future
+import scala.util.Success
 
 import monix.reactive.Observable
 import monix.eval.Task
@@ -85,6 +87,19 @@ object AsVDomModifier {
 
   implicit def effectRenderAs[F[_] : cats.effect.Effect, T : AsVDomModifier]: AsVDomModifier[F[T]] = (effect: F[T]) =>
     ModifierStreamReceiver(ValueObservable(Observable.fromTask(Task.fromEffect(effect).map(VDomModifier(_)))))
+
+  implicit object FutureRender extends AsVDomModifier[Future[VDomModifier]] {
+    def asVDomModifier(future: Future[VDomModifier]): VDomModifier = future.value match {
+      case Some(Success(value)) => value
+      case _ => ModifierStreamReceiver(ValueObservable(Observable.fromFuture(future)))
+    }
+  }
+
+  implicit def futureRenderAs[T : AsVDomModifier]: AsVDomModifier[Future[T]] = (future: Future[T]) =>
+    future.value match {
+      case Some(Success(value)) => VDomModifier(value)
+      case _ => ModifierStreamReceiver(ValueObservable(Observable.fromFuture(future)).map(VDomModifier(_)))
+    }
 
   implicit def valueObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[VDomModifier]] = (valueStream: F[VDomModifier]) =>
     ModifierStreamReceiver(ValueObservable(valueStream))
