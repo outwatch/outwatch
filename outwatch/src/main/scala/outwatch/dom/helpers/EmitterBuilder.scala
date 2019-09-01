@@ -1,7 +1,6 @@
 package outwatch.dom.helpers
 
 import cats.{Monoid, Functor, Bifunctor}
-import cats.effect.SyncIO
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
@@ -103,7 +102,7 @@ object EmitterBuilder {
 
   implicit class ModifierActions[O](val builder: EmitterBuilder[O, VDomModifier]) extends AnyVal {
     def withLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[(O, T), VDomModifier] = new CustomEmitterBuilder[(O, T), VDomModifier]({ sink =>
-      SyncIO {
+      VDomModifier.delay {
         var lastValue: js.UndefOr[T] = js.undefined
         VDomModifier(
           emitter foreach { lastValue = _ },

@@ -18,7 +18,7 @@ trait ManagedSubscriptions {
   def managedAction(action: Scheduler => Cancelable): VDomModifier = SchedulerAction(scheduler => managed(() => action(scheduler)))
 
   object managedElement {
-    def apply(subscription: dom.Element => Cancelable): VDomModifier = SyncIO {
+    def apply(subscription: dom.Element => Cancelable): VDomModifier = VDomModifier.delay {
       var cancelable: Cancelable = null
       VDomModifier(
         dsl.onDomMount foreach { elem => cancelable = subscription(elem) },
@@ -26,7 +26,7 @@ trait ManagedSubscriptions {
       )
     }
 
-    def asHtml(subscription: dom.html.Element => Cancelable): VDomModifier = SyncIO {
+    def asHtml(subscription: dom.html.Element => Cancelable): VDomModifier = VDomModifier.delay {
       var cancelable: Cancelable = null
       VDomModifier(
         dsl.onDomMount.asHtml foreach { elem => cancelable = subscription(elem) },
@@ -34,7 +34,7 @@ trait ManagedSubscriptions {
       )
     }
 
-    def asSvg(subscription: dom.svg.Element => Cancelable): VDomModifier = SyncIO {
+    def asSvg(subscription: dom.svg.Element => Cancelable): VDomModifier = VDomModifier.delay {
       var cancelable: Cancelable = null
       VDomModifier(
         dsl.onDomMount.asSvg foreach { elem => cancelable = subscription(elem) },
