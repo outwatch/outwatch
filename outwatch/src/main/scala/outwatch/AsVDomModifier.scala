@@ -1,12 +1,13 @@
 package outwatch
 
-import cats.effect.{IO, SyncIO}
-import cats.syntax.functor._
 import outwatch.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.collection.breakOut
+
+import monix.reactive.Observable
+import monix.eval.Task
 
 trait AsVDomModifier[-T] {
   def asVDomModifier(value: T): VDomModifier
@@ -73,25 +74,27 @@ object AsVDomModifier {
     @inline def asVDomModifier(value: Boolean): VDomModifier = StringVNode(value.toString)
   }
 
-  implicit object EffectRender extends AsVDomModifier[SyncIO[VDomModifier]] {
-    @inline def asVDomModifier(value: SyncIO[VDomModifier]): VDomModifier = SyncEffectModifier(() => value.unsafeRunSync())
-  }
+  implicit def syncEffectRender[F[_] : RunSyncEffect]: AsVDomModifier[F[VDomModifier]] = (effect: F[VDomModifier]) =>
+    SyncEffectModifier(() => RunSyncEffect[F].unsafeRun(effect))
 
-  implicit def effectRenderIO[T : AsVDomModifier]: AsVDomModifier[IO[T]] = (effect: IO[T]) =>
-    SyncEffectModifier(() => effect.map(VDomModifier(_)).unsafeRunSync())
+  implicit def syncEffectRenderAs[F[_] : RunSyncEffect, T : AsVDomModifier]: AsVDomModifier[F[T]] = (effect: F[T]) =>
+    SyncEffectModifier(() => VDomModifier(RunSyncEffect[F].unsafeRun(effect)))
 
-  implicit def effectRender[T : AsVDomModifier]: AsVDomModifier[SyncIO[T]] = (effect: SyncIO[T]) =>
-    SyncEffectModifier(() => effect.map(VDomModifier(_)).unsafeRunSync())
+  implicit def effectRender[F[_] : cats.effect.Effect]: AsVDomModifier[F[VDomModifier]] = (effect: F[VDomModifier]) =>
+    ModifierStreamReceiver(ValueObservable(Observable.fromTask(Task.fromEffect(effect))))
+
+  implicit def effectRenderAs[F[_] : cats.effect.Effect, T : AsVDomModifier]: AsVDomModifier[F[T]] = (effect: F[T]) =>
+    ModifierStreamReceiver(ValueObservable(Observable.fromTask(Task.fromEffect(effect).map(VDomModifier(_)))))
 
   implicit def valueObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[VDomModifier]] = (valueStream: F[VDomModifier]) =>
     ModifierStreamReceiver(ValueObservable(valueStream))
 
-  implicit def valueObservableRenderAs[T : AsVDomModifier, F[_] : AsValueObservable]: AsVDomModifier[F[T]] = (valueStream: F[T]) =>
+  implicit def valueObservableRenderAs[F[_] : AsValueObservable, T : AsVDomModifier]: AsVDomModifier[F[T]] = (valueStream: F[T]) =>
     ModifierStreamReceiver(ValueObservable(valueStream).map(VDomModifier(_)))
 
   implicit def childCommandObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[ChildCommand]] = (valueStream: F[ChildCommand]) =>
-    SchedulerAction(implicit scheduler => ChildCommand.stream(ValueObservable(valueStream).map(Seq(_))).map(ModifierStreamReceiver(_)))
+    SchedulerAction(implicit scheduler => ChildCommand.stream(ValueObservable(valueStream).map(Seq(_))))
 
   implicit def childCommandSeqObservableRender[F[_] : AsValueObservable]: AsVDomModifier[F[Seq[ChildCommand]]] = (valueStream: F[Seq[ChildCommand]]) =>
-    SchedulerAction(implicit scheduler => ChildCommand.stream(ValueObservable(valueStream)).map(ModifierStreamReceiver(_)))
+    SchedulerAction(implicit scheduler => ChildCommand.stream(ValueObservable(valueStream)))
 }
