@@ -702,33 +702,6 @@ class DomEventSpec extends JSDomAsyncSpec {
     }
   }
 
-  it should "stopImmediatePropagation" in {
-    // stopImmediatePropagation is supported in jsdom since version 9.12
-    // https://github.com/jsdom/jsdom/blob/master/Changelog.md#9120
-    pending
-
-    var triggeredFirst = false
-    var triggeredSecond = false
-    val node = div(
-      idAttr := "click",
-      onClick.stopImmediatePropagation foreach {triggeredFirst = true},
-      onClick foreach {triggeredSecond = true}
-    )
-
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
-
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
-      document.getElementById("click").dispatchEvent(event)
-
-      triggeredFirst shouldBe true
-      triggeredSecond shouldBe false
-
-    }
-  }
-
   "Global dom events" should "return an observable" in {
     var clicked = 0
     val sub = events.window.onClick.foreach { _ =>

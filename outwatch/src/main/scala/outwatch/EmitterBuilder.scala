@@ -244,7 +244,6 @@ object EmitterBuilder {
     def onlyOwnEvents: EmitterBuilder[O, R] = builder.filter(ev => ev.currentTarget == ev.target)
     def preventDefault: EmitterBuilder.Sync[O, R] = builder.map { e => e.preventDefault; e }
     def stopPropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopPropagation; e }
-    def stopImmediatePropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopImmediatePropagation; e }
   }
 
   @inline implicit class TargetAsInput[O <: Event, R](builder: EmitterBuilder.Sync[O, R]) {
