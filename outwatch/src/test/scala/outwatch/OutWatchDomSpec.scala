@@ -1260,7 +1260,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
           myHandler.onNext(innerHandler2)
           element.innerHTML shouldBe """<div></div>"""
 
-          myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+          myHandler.onNext(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil))
           element.innerHTML shouldBe """<div></div>"""
 
           myHandler.onNext(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil))
@@ -1318,11 +1318,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
           element.innerHTML shouldBe """<div>initial3</div>"""
           numPatches shouldBe 3
 
-          myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2, VDomModifier("initial4"))) :: Nil)))
+          myHandler.onNext(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2, VDomModifier("initial4"))) :: Nil))
           element.innerHTML shouldBe """<div>initial4</div>"""
           numPatches shouldBe 4
 
-          myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+          myHandler.onNext(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil))
           element.innerHTML shouldBe """<div>pete</div>"""
           numPatches shouldBe 5
 
@@ -1403,11 +1403,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         element.innerHTML shouldBe """<div>initial3</div>"""
         numPatches shouldBe 6
 
-        myHandler.onNext(IO.pure(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2.startWith(VDomModifier("initial4") :: Nil))) :: Nil)))
+        myHandler.onNext(CompositeModifier(ModifierStreamReceiver(ValueObservable(innerHandler2.startWith(VDomModifier("initial4") :: Nil))) :: Nil))
         element.innerHTML shouldBe """<div>initial4</div>"""
         numPatches shouldBe 8
 
-        myHandler.onNext(IO.pure(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil)))
+        myHandler.onNext(CompositeModifier(StringVNode("pete") :: ModifierStreamReceiver(ValueObservable(innerHandler2)) :: Nil))
         element.innerHTML shouldBe """<div>pete</div>"""
         numPatches shouldBe 9
 
@@ -1497,7 +1497,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
             innerTriggers2.size shouldBe 1
             innerTriggers3.size shouldBe 0
 
-            innerHandler.onNext(IO.pure(EmptyModifier))
+            innerHandler.onNext(EmptyModifier)
             element.innerHTML shouldBe """<div></div>"""
             outerTriggers.size shouldBe 3
             innerTriggers.size shouldBe 5
