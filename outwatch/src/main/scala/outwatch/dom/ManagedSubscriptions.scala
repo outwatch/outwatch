@@ -1,6 +1,6 @@
 package outwatch.dom
 
-import cats.effect.SyncIO
+import cats.{Applicative, Functor}
 import cats.implicits._
 import monix.execution.{Cancelable, Scheduler}
 import monix.execution.cancelables.CompositeCancelable
@@ -9,9 +9,9 @@ import org.scalajs.dom
 trait ManagedSubscriptions {
 
   @inline def managed(subscription: () => Cancelable): VDomModifier = managedElement(_ => subscription())
-  @inline def managed(subscription: SyncIO[Cancelable]): VDomModifier = managed(() => subscription.unsafeRunSync())
-  def managed(sub1: SyncIO[Cancelable], sub2: SyncIO[Cancelable], subscriptions: SyncIO[Cancelable]*): VDomModifier = {
-    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map(subs => CompositeCancelable(subs: _*))
+  @inline def managed[F[_] : RunSyncEffect](subscription: F[Cancelable]): VDomModifier = managed(() => RunSyncEffect[F].unsafeRun(subscription))
+  def managed[F[_] : RunSyncEffect : Applicative : Functor](sub1: F[Cancelable], sub2: F[Cancelable], subscriptions: F[Cancelable]*): VDomModifier = {
+    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[Cancelable](subs => CompositeCancelable(subs: _*))
     managed(composite)
   }
 
