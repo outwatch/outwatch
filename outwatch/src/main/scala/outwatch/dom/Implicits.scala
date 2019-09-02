@@ -1,7 +1,10 @@
 package outwatch.dom
 
+import cats.Monoid
 import com.raquo.domtypes.generic.keys
 import monix.reactive.Observer
+import monix.execution.Cancelable
+import monix.execution.cancelables.CompositeCancelable
 import outwatch.AsVDomModifier
 import outwatch.dom.helpers.BasicStyleBuilder
 
@@ -13,4 +16,10 @@ trait Implicits {
   @inline implicit def asObserver[T, F[_]](value: F[T])(implicit ao: AsObserver[F]): Observer[T] = ao.as(value)
 
   @inline implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)
+
+  //TODO: add to monix?
+  implicit object CancelableMonoid extends Monoid[Cancelable] {
+    def empty: Cancelable = Cancelable.empty
+    def combine(x: Cancelable, y: Cancelable): Cancelable = CompositeCancelable(x, y)
+  }
 }

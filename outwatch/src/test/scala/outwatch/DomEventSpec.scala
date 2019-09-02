@@ -662,7 +662,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       onClick foreach {triggeredSecond = true},
       div(
         id := "click",
-        onClick.stopPropagation foreach {triggeredFirst = true}
+        onClick.map(x => x).stopPropagation foreach {triggeredFirst = true}
       )
     )
 

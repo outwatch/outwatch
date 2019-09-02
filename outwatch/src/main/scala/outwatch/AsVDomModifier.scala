@@ -1,6 +1,7 @@
 package outwatch
 
 import outwatch.dom._
+import outwatch.dom.helpers.EmitterBuilder
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -75,6 +76,13 @@ object AsVDomModifier {
   implicit object BooleanAsVDomModifier extends AsVDomModifier[Boolean] {
     @inline def asVDomModifier(value: Boolean): VDomModifier = StringVNode(value.toString)
   }
+
+  implicit object EmitterBuilderResult extends AsVDomModifier[EmitterBuilder.Result[VDomModifier]] {
+    @inline def asVDomModifier(value: EmitterBuilder.Result[VDomModifier]): VDomModifier = VDomModifier(value.value, value.subscription.map(managedAction(_)))
+  }
+
+  implicit def emitterBuilderResult[T: AsVDomModifier]: AsVDomModifier[EmitterBuilder.Result[T]] = (value: EmitterBuilder.Result[T]) =>
+    VDomModifier(value.value.map(VDomModifier(_)), value.subscription.map(managedAction(_)))
 
   implicit def syncEffectRender[F[_] : RunSyncEffect]: AsVDomModifier[F[VDomModifier]] = (effect: F[VDomModifier]) =>
     SyncEffectModifier(() => RunSyncEffect[F].unsafeRun(effect))

@@ -67,7 +67,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       new StringVNode("Test"),
       div(),
       CompositeModifier(
-        Seq(
+        Seq[VDomModifier](
           div(),
           attributes.`class` := "blue",
           attributes.onClick(1) foreach {},
@@ -2914,7 +2914,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   "Custom Emitter builder" should "work with events" in {
     import scala.concurrent.duration._
 
-    val clickableView: EmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier { sink: Observer[Boolean] =>
+    val clickableView: EmitterBuilder[Boolean, VDomModifier] = EmitterBuilder { sink: Observer[Boolean] =>
       VDomModifier(
         display.flex,
         minWidth := "0px",
@@ -2952,7 +2952,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   it should "work with events as combined emitterbuidler" in {
     import scala.concurrent.duration._
 
-    val clickableView: EmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier { sink: Observer[Boolean] =>
+    val clickableView: EmitterBuilder[Boolean, VDomModifier] = EmitterBuilder { sink: Observer[Boolean] =>
       VDomModifier(
         display.flex,
         minWidth := "0px",
