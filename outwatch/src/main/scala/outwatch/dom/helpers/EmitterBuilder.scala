@@ -2,14 +2,15 @@ package outwatch.dom.helpers
 
 import cats.{Monoid, Functor, Bifunctor}
 import cats.implicits._
-import monix.execution.{Cancelable, Scheduler}
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.execution.cancelables.CompositeCancelable
 import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
 import outwatch.dom._
 import outwatch.ObserverBuilder
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration}
+import scala.concurrent.Future
 import scala.scalajs.js
 
 trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] { self =>
@@ -103,7 +104,18 @@ object EmitterBuilder {
   def apply[E, R](create: Observer[E] => R): EmitterBuilder.Sync[E, R] = new Custom[E, R, SyncExecution](observer => Result(create(observer)))
 
   def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, VDomModifier] = apply[E, VDomModifier] { obs =>
-    Emitter(eventType, event => { obs.onNext(event.asInstanceOf[E]); () })
+    SchedulerAction { implicit scheduler =>
+      var lastAck = Future.successful[Ack](Ack.Continue)
+      Emitter(eventType, { event =>
+        lastAck = lastAck.flatMap {
+          // in case of an Ack.Stop, we stop sending events downstream.
+          // but we do not unregister the actual event listener, because
+          // reigster/unregister of the emitter is done by snabbdom.
+          case Ack.Continue => obs.onNext(event.asInstanceOf[E])
+          case Ack.Stop => Ack.Stop
+        }
+      })
+    }
   }
 
   @inline def fromObservable[E](observable: Observable[E]): EmitterBuilder[E, Nothing] = new Observed(observable)

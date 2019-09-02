@@ -1,6 +1,7 @@
 package outwatch
 
 import cats.effect.IO
+import monix.execution.Ack
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -699,6 +700,40 @@ class DomEventSpec extends JSDomAsyncSpec {
       triggeredFirst shouldBe true
       triggeredSecond shouldBe false
 
+    }
+  }
+
+  it should "stop on Ack.Stop" in {
+    var triggeredStopped = 0
+    var triggered = 0
+    val node = div(
+      id := "click",
+      onClick --> ObserverBuilder.create({ _ =>
+        triggeredStopped += 1
+        Ack.Stop
+      }),
+      onClick --> ObserverBuilder.create({ _ =>
+        triggered += 1
+        Ack.Continue
+      })
+    )
+
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
+
+      triggered shouldBe 0
+      triggeredStopped shouldBe 0
+
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      document.getElementById("click").dispatchEvent(event)
+
+      triggered shouldBe 1
+      triggeredStopped shouldBe 1
+
+      document.getElementById("click").dispatchEvent(event)
+
+      triggered shouldBe 2
+      triggeredStopped shouldBe 1
     }
   }
 }
