@@ -5,9 +5,6 @@ import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
 import com.raquo.domtypes.generic.{builders, codecs, keys}
 import com.raquo.domtypes.jsdom.defs.eventProps
 import com.raquo.domtypes.jsdom.defs.tags._
-import monix.execution.{Ack, Cancelable}
-import monix.reactive.Observable
-import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom
 import outwatch.dom.helpers._
 
@@ -131,21 +128,17 @@ trait Events
 // Window / Document events
 
 private[outwatch] abstract class ObservableEventPropBuilder(target: dom.EventTarget)
-  extends builders.EventPropBuilder[Observable, dom.Event] {
-  override def eventProp[V <: dom.Event](key: String): Observable[V] = Observable.create(Unbounded) { obs =>
-    val eventHandler: js.Function1[V, Ack] = obs.onNext _
-    target.addEventListener(key, eventHandler)
-    Cancelable(() => target.removeEventListener(key, eventHandler))
-  }
+  extends builders.EventPropBuilder[EventObservable, dom.Event] {
+  override def eventProp[V <: dom.Event](key: String): EventObservable[V] = new EventObservable[V](target, key, _ => ())
 }
 
 abstract class WindowEvents
   extends ObservableEventPropBuilder(dom.window)
-  with eventProps.WindowEventProps[Observable]
+  with eventProps.WindowEventProps[EventObservable]
 
 abstract class DocumentEvents
   extends ObservableEventPropBuilder(dom.document)
-  with eventProps.DocumentEventProps[Observable]
+  with eventProps.DocumentEventProps[EventObservable]
 
 // Styles
 
