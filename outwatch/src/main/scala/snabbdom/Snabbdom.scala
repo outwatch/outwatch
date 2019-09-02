@@ -7,35 +7,6 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.|
 
-
-
-@silent("never used|dead code")
-@js.native
-@JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
-object hProvider extends js.Object {
-  val default: hFunction = js.native
-}
-
-@silent
-@js.native
-trait hFunction extends js.Any {
-  def apply(nodeType: String, dataObject: DataObject): VNodeProxy = js.native
-  def apply(nodeType: String, dataObject: DataObject, text: js.UndefOr[String]): VNodeProxy = js.native
-  def apply(nodeType: String, dataObject: DataObject, children: js.Array[VNodeProxy]): VNodeProxy = js.native
-}
-
-object hFunction {
-  def apply(nodeType: String, dataObject: DataObject): VNodeProxy = {
-    hProvider.default.apply(nodeType, dataObject)
-  }
-  def apply(nodeType: String, dataObject: DataObject, text: js.UndefOr[String]): VNodeProxy = {
-    hProvider.default.apply(nodeType, dataObject, text)
-  }
-  def apply(nodeType: String, dataObject: DataObject, children: js.Array[VNodeProxy]): VNodeProxy = {
-    hProvider.default.apply(nodeType, dataObject, children)
-  }
-}
-
 trait Hooks extends js.Object {
   var init: js.UndefOr[Hooks.HookSingleFn] = js.undefined
   var insert: js.UndefOr[Hooks.HookSingleFn] = js.undefined
@@ -80,7 +51,6 @@ object DataObject {
 // object thunkProvider extends js.Object {
 //   val default: thunkFunction = js.native
 // }
-
 // @js.native
 // trait thunkFunction extends js.Any {
 //   def apply(selector: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
@@ -264,7 +234,6 @@ object SnabbdomProps extends js.Object{
 object SnabbdomStyle extends js.Object {
   val default: js.Any = js.native
 }
-
 
 @js.native
 @JSImport("snabbdom/tovnode", JSImport.Default)
