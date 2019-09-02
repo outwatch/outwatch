@@ -92,8 +92,16 @@ lazy val bench = project
     publish := {},
     publishLocal := {},
 
+    resolvers ++=
+      ("jitpack" at "https://jitpack.io") ::
+      Nil,
+    libraryDependencies ++=
+      "com.github.fdietze.bench" %%% "bench" % "e66a721" ::
+      Nil,
+
     scalaJSStage in Compile := FullOptStage,
-    scalaJSUseMainModuleInitializer := true,
+    scalacOptions ++= Seq ("-Xdisable-assertions"),
+    /* scalaJSUseMainModuleInitializer := true, */
 
     useYarn := true,
 
