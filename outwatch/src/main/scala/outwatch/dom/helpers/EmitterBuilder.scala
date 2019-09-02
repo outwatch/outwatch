@@ -138,28 +138,28 @@ object EmitterBuilder {
     def stopImmediatePropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopImmediatePropagation; e }
   }
 
-  @inline implicit class TargetAsInput[O <: Event, R, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
+  @inline implicit class TargetAsInput[O <: Event, R](builder: EmitterBuilder.Sync[O, R]) {
     object target {
-      @inline def value: EmitterBuilderExecution[String, R, Exec] = builder.map(_.target.asInstanceOf[html.Input].value)
-      @inline def valueAsNumber: EmitterBuilderExecution[Double, R, Exec] = builder.map(_.target.asInstanceOf[html.Input].valueAsNumber)
-      @inline def checked: EmitterBuilderExecution[Boolean, R, Exec] = builder.map(_.target.asInstanceOf[html.Input].checked)
+      @inline def value: EmitterBuilder.Sync[String, R] = builder.map(_.target.asInstanceOf[html.Input].value)
+      @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(_.target.asInstanceOf[html.Input].valueAsNumber)
+      @inline def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(_.target.asInstanceOf[html.Input].checked)
     }
   }
 
-  implicit class CurrentTargetAsInput[O <: Event, R, Exec <: Execution](val builder: EmitterBuilderExecution[O, R, Exec]) extends AnyVal {
-    def value: EmitterBuilderExecution[String, R, Exec] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].value)
-    def valueAsNumber: EmitterBuilderExecution[Double, R, Exec] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].valueAsNumber)
-    def checked: EmitterBuilderExecution[Boolean, R, Exec] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].checked)
+  implicit class CurrentTargetAsInput[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
+    def value: EmitterBuilder.Sync[String, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].value)
+    def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].valueAsNumber)
+    def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].checked)
   }
 
-  implicit class TypedElements[O <: Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
-    def asHtml: EmitterBuilder[html.Element, R] = builder.map(_.asInstanceOf[html.Element])
-    def asSvg: EmitterBuilder[svg.Element, R] = builder.map(_.asInstanceOf[svg.Element])
+  implicit class TypedElements[O <: Element, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
+    def asHtml: EmitterBuilder.Sync[html.Element, R] = builder.map(_.asInstanceOf[html.Element])
+    def asSvg: EmitterBuilder.Sync[svg.Element, R] = builder.map(_.asInstanceOf[svg.Element])
   }
 
-  implicit class TypedElementTuples[E <: Element, R, Exec <: Execution](val builder: EmitterBuilderExecution[(E,E), R, Exec]) extends AnyVal {
-    def asHtml: EmitterBuilderExecution[(html.Element, html.Element), R, Exec] = builder.map(_.asInstanceOf[(html.Element, html.Element)])
-    def asSvg: EmitterBuilderExecution[(svg.Element, svg.Element), R, Exec] = builder.map(_.asInstanceOf[(svg.Element, svg.Element)])
+  implicit class TypedElementTuples[E <: Element, R](val builder: EmitterBuilder.Sync[(E,E), R]) extends AnyVal {
+    def asHtml: EmitterBuilder.Sync[(html.Element, html.Element), R] = builder.map(_.asInstanceOf[(html.Element, html.Element)])
+    def asSvg: EmitterBuilder.Sync[(svg.Element, svg.Element), R] = builder.map(_.asInstanceOf[(svg.Element, svg.Element)])
   }
 
   implicit class ModifierActions[O](val builder: EmitterBuilder[O, VDomModifier]) extends AnyVal {
