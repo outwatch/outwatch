@@ -9,6 +9,8 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 
+import scala.scalajs.js
+
 class DomEventSpec extends JSDomAsyncSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
@@ -700,5 +702,66 @@ class DomEventSpec extends JSDomAsyncSpec {
       triggeredSecond shouldBe false
 
     }
+  }
+
+  "Global dom events" should "return an observable" in {
+    var clicked = 0
+    val sub = events.window.onClick.foreach { _ =>
+      clicked += 1
+    }
+
+
+    def newEvent() = {
+      val event = document.createEvent("Events")
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      event
+    }
+
+    clicked shouldBe 0
+
+    window.dispatchEvent(newEvent())
+
+    clicked shouldBe 1
+
+    window.dispatchEvent(newEvent())
+
+    clicked shouldBe 2
+
+    sub.cancel()
+    window.dispatchEvent(newEvent())
+
+    clicked shouldBe 2
+  }
+
+  it should "have sync operations" in {
+    var clicked = List.empty[String]
+    val sub = events.window.onClick.stopPropagation.foreach { ev =>
+      clicked ++= ev.asInstanceOf[js.Dynamic].testtoken.asInstanceOf[String] :: Nil
+    }
+
+    def newEvent(token: String) = {
+      val event = document.createEvent("Events")
+      event.asInstanceOf[js.Dynamic].stopPropagation = { () =>
+        event.asInstanceOf[js.Dynamic].testtoken = token
+        ()
+      }: js.Function0[Unit]
+      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
+      event
+    }
+
+    clicked shouldBe Nil
+
+    window.dispatchEvent(newEvent("a"))
+
+    clicked shouldBe List("a")
+
+    window.dispatchEvent(newEvent("b"))
+
+    clicked shouldBe List("a", "b")
+
+    sub.cancel()
+    window.dispatchEvent(newEvent("c"))
+
+    clicked shouldBe List("a", "b")
   }
 }
