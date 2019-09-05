@@ -89,8 +89,7 @@ lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .settings(
-    publish := {},
-    publishLocal := {},
+    skip in publish := true,
 
     resolvers ++=
       ("jitpack" at "https://jitpack.io") ::
