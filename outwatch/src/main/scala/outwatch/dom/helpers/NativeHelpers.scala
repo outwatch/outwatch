@@ -2,23 +2,13 @@ package outwatch.dom.helpers
 
 import com.github.ghik.silencer.silent
 import scala.scalajs.js
-import scala.scalajs.js.annotation.{JSBracketAccess, JSName}
+import scala.scalajs.js.annotation.JSBracketAccess
 
 @js.native
 private[outwatch] trait DictionaryRawApply[A] extends js.Object {
   @silent("never used|dead code")
   @JSBracketAccess
   def apply(key: String): js.UndefOr[A] = js.native
-}
-
-@js.native
-private[outwatch] trait FunctionRawApply extends js.Object {
-  @silent("never used|dead code")
-  @JSName("apply")
-  def applyCall[A](thisArg: js.Any, argArray: js.Array[A]): Unit = js.native
-  @silent("never used|dead code")
-  @JSName("apply")
-  def applyCall(thisArg: js.Any): Unit = js.native
 }
 
 private[outwatch] object NativeHelpers {

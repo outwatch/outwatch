@@ -1,46 +1,35 @@
 package outwatch.dom
 
-import cats.{Applicative, Functor}
+import cats.{Applicative, Functor, Monoid}
 import cats.implicits._
-import monix.execution.{Cancelable, Scheduler}
-import monix.execution.cancelables.CompositeCancelable
 import org.scalajs.dom
+import scala.scalajs.js
+import outwatch.reactive._
+import outwatch.effect.RunSyncEffect
 
 trait ManagedSubscriptions {
 
-  @inline def managed(subscription: () => Cancelable): VDomModifier = managedElement(_ => subscription())
-  @inline def managed[F[_] : RunSyncEffect](subscription: F[Cancelable]): VDomModifier = managed(() => RunSyncEffect[F].unsafeRun(subscription))
-  def managed[F[_] : RunSyncEffect : Applicative : Functor](sub1: F[Cancelable], sub2: F[Cancelable], subscriptions: F[Cancelable]*): VDomModifier = {
-    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[Cancelable](subs => CompositeCancelable(subs: _*))
+  @inline def managedFunction[T : CancelSubscription](subscription: () => T): VDomModifier = managedElement(_ => subscription())
+
+  @inline def managed[F[_] : RunSyncEffect, T : CancelSubscription](subscription: F[T]): VDomModifier = managedFunction(() => RunSyncEffect[F].unsafeRun(subscription))
+
+  def managed[F[_] : RunSyncEffect : Applicative : Functor, T : CancelSubscription : Monoid](sub1: F[T], sub2: F[T], subscriptions: F[T]*): VDomModifier = {
+    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
     managed(composite)
   }
 
-  def managedAction(action: Scheduler => Cancelable): VDomModifier = SchedulerAction(scheduler => managed(() => action(scheduler)))
-
   object managedElement {
-    def apply(subscription: dom.Element => Cancelable): VDomModifier = VDomModifier.delay {
-      var cancelable: Cancelable = null
+    def apply[T : CancelSubscription](subscription: dom.Element => T): VDomModifier = VDomModifier.delay {
+      var lastSub: js.UndefOr[T] = js.undefined
       VDomModifier(
-        dsl.onDomMount foreach { elem => cancelable = subscription(elem) },
-        dsl.onDomUnmount foreach { cancelable.cancel() }
+        dsl.onDomMount foreach { elem => lastSub = subscription(elem) },
+        dsl.onDomUnmount foreach { lastSub.foreach(CancelSubscription[T].cancel) }
       )
     }
 
-    def asHtml(subscription: dom.html.Element => Cancelable): VDomModifier = VDomModifier.delay {
-      var cancelable: Cancelable = null
-      VDomModifier(
-        dsl.onDomMount.asHtml foreach { elem => cancelable = subscription(elem) },
-        dsl.onDomUnmount foreach { cancelable.cancel() }
-      )
-    }
+    def asHtml[T : CancelSubscription](subscription: dom.html.Element => T): VDomModifier = apply(elem => subscription(elem.asInstanceOf[dom.html.Element]))
 
-    def asSvg(subscription: dom.svg.Element => Cancelable): VDomModifier = VDomModifier.delay {
-      var cancelable: Cancelable = null
-      VDomModifier(
-        dsl.onDomMount.asSvg foreach { elem => cancelable = subscription(elem) },
-        dsl.onDomUnmount foreach { cancelable.cancel() }
-      )
-    }
+    def asSvg[T : CancelSubscription](subscription: dom.svg.Element => T): VDomModifier = apply(elem => subscription(elem.asInstanceOf[dom.svg.Element]))
   }
 }
 

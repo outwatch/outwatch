@@ -9,7 +9,7 @@ import scala.scalajs.js.|
 
 
 
-@silent("dead code")
+@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/h", JSImport.Namespace, globalFallback = "h")
 object hProvider extends js.Object {
@@ -230,35 +230,35 @@ object Snabbdom extends js.Object {
 
 }
 
-@silent("unused|dead code")
+@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
 object SnabbdomClass extends js.Object {
   val default: js.Any = js.native
 }
 
-@silent("unused|dead code")
+@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
 object SnabbdomEventListeners extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("unused|dead code")
+@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
 object SnabbdomAttributes extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("unused|dead code")
+@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
 object SnabbdomProps extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("unused|dead code")
+@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
 object SnabbdomStyle extends js.Object {

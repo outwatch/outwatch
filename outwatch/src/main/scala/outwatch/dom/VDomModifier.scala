@@ -1,10 +1,9 @@
 package outwatch.dom
 
 import cats.Monoid
-import monix.execution.Scheduler
 import org.scalajs.dom._
-import outwatch.AsVDomModifier
 import outwatch.dom.helpers.NativeHelpers._
+import outwatch.reactive.{SinkObserver, Subscription, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
 
 import scala.scalajs.js
@@ -15,17 +14,26 @@ sealed trait VDomModifier
 object VDomModifier {
   @inline def empty: VDomModifier = EmptyModifier
 
-  @inline def apply[T](t: T)(implicit as: AsVDomModifier[T]): VDomModifier = as.asVDomModifier(t)
+  @inline def apply[T : Render](t: T): VDomModifier = Render[T].render(t)
 
-  def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
-    CompositeModifier(js.Array(modifier, modifier2) ++ modifiers)
+  def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier = {
+    val arr = js.Array[VDomModifier](modifier, modifier2)
+    modifiers.foreach(modifier => arr.push(modifier))
+    CompositeModifier(arr)
+  }
 
-  @inline def delay(modifier: => VDomModifier): VDomModifier = SyncEffectModifier(() => modifier)
+  @inline def delay[T : Render](modifier: => T): VDomModifier = SyncEffectModifier(() => VDomModifier(modifier))
 
   implicit object monoid extends Monoid[VDomModifier] {
     def empty: VDomModifier = VDomModifier.empty
     def combine(x: VDomModifier, y: VDomModifier): VDomModifier = VDomModifier(x, y)
   }
+
+  implicit object subscriptionOwner extends SubscriptionOwner[VDomModifier] {
+    @inline def own(owner: VDomModifier)(subscription: () => Subscription): VDomModifier = VDomModifier(managedFunction(subscription), owner)
+  }
+
+  @inline implicit def renderToVDomModifier[T : Render](value: T): VDomModifier = Render[T].render(value)
 }
 
 sealed trait StaticVDomModifier extends VDomModifier
@@ -76,15 +84,19 @@ final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVD
 
 case object EmptyModifier extends VDomModifier
 final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
-final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends VDomModifier
+final case class StreamModifier(subscription: SinkObserver[VDomModifier] => Subscription) extends VDomModifier
 final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
-final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
   def apply(args: VDomModifier*): VNode
   def append(args: VDomModifier*): VNode
   def prepend(args: VDomModifier*): VNode
+}
+object VNode {
+  implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
+    @inline def own(owner: VNode)(subscription: () => Subscription): VNode = owner.append(managedFunction(subscription))
+  }
 }
 sealed trait BasicVNode extends VNode {
   def nodeType: String
@@ -98,13 +110,13 @@ sealed trait BasicVNode extends VNode {
 }
 final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VDomModifier) extends VNode {
   @inline def apply(args: VDomModifier*): ThunkVNode = append(args: _*)
-  def append(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode(args))
-  def prepend(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args))
+  @inline def append(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args :_*))
 }
 final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRender: Boolean, renderFn: () => VDomModifier) extends VNode {
   @inline def apply(args: VDomModifier*): ConditionalVNode = append(args: _*)
-  def append(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args))
-  def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args))
+  @inline def append(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
   @inline def apply(args: VDomModifier*): HtmlVNode = append(args: _*)

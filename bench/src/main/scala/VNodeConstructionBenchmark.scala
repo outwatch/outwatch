@@ -5,7 +5,7 @@ import outwatch.dom.dsl._
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler
 import monix.execution.Scheduler
-import outwatch.dom.helpers.SnabbdomOps
+import outwatch.dom.interpreter.SnabbdomOps
 
 import org.scalajs.dom.{ document, window }
 import scala.scalajs.js
