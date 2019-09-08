@@ -1,7 +1,6 @@
 package outwatch.dom.helpers
 
 import cats.{Monoid, Functor, Bifunctor}
-import cats.effect.IO
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.{Observable, Observer, OverflowStrategy}
 import org.scalajs.dom.{Element, Event, html, svg}
@@ -34,9 +33,9 @@ trait EmitterBuilder[+O, +R] { self =>
 }
 
 object EmitterBuilder {
-  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs => 
+  @inline def apply[E <: Event](eventType: String): CustomEmitterBuilder[E, VDomModifier] = ofModifier[E](obs =>
     Emitter(
-      eventType, 
+      eventType,
       event => {
         obs.onNext(event.asInstanceOf[E])
         ()
@@ -103,7 +102,7 @@ object EmitterBuilder {
 
   implicit class ModifierActions[O](val builder: EmitterBuilder[O, VDomModifier]) extends AnyVal {
     def withLatest[T](emitter: EmitterBuilder[T, VDomModifier]): EmitterBuilder[(O, T), VDomModifier] = new CustomEmitterBuilder[(O, T), VDomModifier]({ sink =>
-      IO {
+      VDomModifier.delay {
         var lastValue: js.UndefOr[T] = js.undefined
         VDomModifier(
           emitter foreach { lastValue = _ },

@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.effect.IO
 import monix.reactive.subjects.PublishSubject
 
 class MonixOpsSpec extends JSDomAsyncSpec {
@@ -47,7 +48,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
 
     for {
 
-      handler <- Handler.create[(String, Int)].unsafeToFuture()
+      handler <- Handler.create[IO, (String, Int)].unsafeToFuture()
        lensed = handler.lens[Int](("harals", 0))(_._2)((tuple, num) => (tuple._1, num))
             _ = lensed.connect()
             _ = handler(handlerValue = _)
@@ -71,7 +72,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     var lensedValue: Int = -100
 
     for {
-      handler <- Handler.create[Int].unsafeToFuture()
+      handler <- Handler.create[IO, Int].unsafeToFuture()
        lensed = handler.mapObservable(_ - 1)
             _ = handler(handlerValue = _)
             _ = lensed(lensedValue = _)
@@ -91,7 +92,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     var lensedValue: Int = -100
 
     for {
-      handler <- Handler.create[Int].unsafeToFuture()
+      handler <- Handler.create[IO, Int].unsafeToFuture()
        lensed = handler.transformObservable(_.map(_ - 1))
             _ = handler(handlerValue = _)
             _ = lensed(lensedValue = _)
@@ -111,7 +112,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     var lensedValue: Int = -100
 
     for {
-      handler <- Handler.create[Int].unsafeToFuture()
+      handler <- Handler.create[IO, Int].unsafeToFuture()
         lensed = handler.mapObserver[Int](_ + 1)
              _ = handler(handlerValue = _)
              _ = lensed(lensedValue = _)
@@ -131,7 +132,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     var lensedValue: Int = -100
 
     for {
-      handler <- Handler.create[Int].unsafeToFuture()
+      handler <- Handler.create[IO, Int].unsafeToFuture()
        lensed = handler.transformObserver[Int](_.map(_ + 1))
             _ = lensed.connect()
             _ = handler(handlerValue = _)
@@ -152,7 +153,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     var lensedValue: Int = -100
 
     for {
-      handler <- Handler.create[Int].unsafeToFuture()
+      handler <- Handler.create[IO, Int].unsafeToFuture()
        lensed = handler.mapHandler[Int](_ + 1)(_ - 1)
             _ = handler(handlerValue = _)
             _ = lensed(lensedValue = _)
@@ -172,7 +173,7 @@ class MonixOpsSpec extends JSDomAsyncSpec {
     var lensedValue: Int = -100
 
     for {
-      handler <- Handler.create[Int].unsafeToFuture()
+      handler <- Handler.create[IO, Int].unsafeToFuture()
        lensed = handler.transformHandler[Int](_.map(_ + 1))(_.map(_ - 1))
             _ = lensed.connect()
             _ = handler(handlerValue = _)

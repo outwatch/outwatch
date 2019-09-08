@@ -2,11 +2,12 @@ package outwatch
 
 import scala.scalajs.js
 import org.scalajs.dom.{document, html}
-import outwatch.Deprecated.IgnoreWarnings.initEvent
-import outwatch.dom.OutWatch
-import outwatch.dom.dsl._
 import cats.effect.IO
+import outwatch.Deprecated.IgnoreWarnings.initEvent
+import outwatch.dom._
+import outwatch.dom.dsl._
 import snabbdom._
+
 
 class SnabbdomSpec extends JSDomAsyncSpec {
 
@@ -41,7 +42,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
 
-    Handler.create[Int](1).flatMap { clicks =>
+    Handler.create[IO](1).flatMap { clicks =>
 
       val nodes = clicks.map { i =>
         div(
@@ -60,7 +61,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                    node
                  }
 
-               _ <- OutWatch.renderInto("#app", div(nodes))
+               _ <- OutWatch.renderInto[IO]("#app", div(nodes))
 
         inputEvt <- IO {
                     val inputEvt = document.createEvent("HTMLEvents")
@@ -90,15 +91,12 @@ class SnabbdomSpec extends JSDomAsyncSpec {
   }
 
   it should "handle keys with nested observables" in {
-    import outwatch.dom._
-    import outwatch.dom.dsl._
-
     def getContent =
       IO(document.getElementById("content").innerHTML)
 
     for {
-      a <- outwatch.Handler.create[Int](0)
-      b <- outwatch.Handler.create[Int](100)
+      a <- Handler.create[IO](0)
+      b <- Handler.create[IO](100)
       vtree = div(
               a.map { a =>
                 div(
@@ -109,7 +107,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                 )
               }
             )
-          _ <- OutWatch.renderInto("#app", vtree)
+          _ <- OutWatch.renderInto[IO]("#app", vtree)
           c1 <- getContent
            _ <- IO.fromFuture(IO(a.onNext(1)))
           c2 <- getContent

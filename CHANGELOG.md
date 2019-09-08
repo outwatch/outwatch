@@ -4,6 +4,10 @@
 
 ...
 
+### August 2019
+* Refactor code to use cats effect typeclasses instead of directly committing to IO (#135)
+
+### Pre 2019
 * Add `OutwatchTracing.error: Observable[Throwable]` to get notified about errors in your reactive components.
 
 * Make `VDomModifier` non-side effecting by default. No dom-access or subscriptions happen when constructing VNodes. This means that a modifier does not need be wrapped in an `IO`. Instead `div` just returns a `VNode` and `href := "meh"` just returns an `Attribute`. If you apply side effects via a handler, or from your own code, you will have an `IO` around your node: `Handler.create("text").map(div(_)): IO[VNode]`. You can now transparently embed the `IO` into your main logic or unwrap the IO to use with `Outwatch.renderInto`. You can also use `IO[VDomModifier]` in your code as before: `div(ioNode: IO[VNode], ioMod: IO[VDomModifier])`. These `IO` modifiers are represented as an `EffectModifier`. The whole construction is still referentially transparent, just much simpler and less intrusive.

@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.effect.IO
 import cats.syntax.functor._
 import monix.execution.Scheduler
 import org.scalajs.dom.Element
@@ -32,7 +31,7 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream(valueStream: ValueObservable[Seq[ChildCommand]])(implicit scheduler: Scheduler): IO[ValueObservable[VDomModifier]] = IO {
+  def stream(valueStream: ValueObservable[Seq[ChildCommand]])(implicit scheduler: Scheduler): VDomModifier = VDomModifier.delay {
     val children = new js.Array[VNodeProxyNode]
 
     valueStream.map { cmds =>

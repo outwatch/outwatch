@@ -1,28 +1,29 @@
 package outwatch.dom
 
+import cats.effect.SyncIO
 import monix.execution.Scheduler
 import org.scalajs.dom.{ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent}
 import outwatch.dom.helpers.{ChildStreamReceiverBuilder, ChildrenStreamReceiverBuilder}
 
 trait Handlers {
-  @deprecated("Use Handler.create[MouseEvent] instead", "0.11.0")
-  def createMouseHandler()(implicit s: Scheduler) = Handler.create[MouseEvent]
-  @deprecated("Use Handler.create[KeyboardEvent] instead", "0.11.0")
-  def createKeyboardHandler()(implicit s: Scheduler) = Handler.create[KeyboardEvent]
-  @deprecated("Use Handler.create[DragEvent] instead", "0.11.0")
-  def createDragHandler()(implicit s: Scheduler) = Handler.create[DragEvent]
-  @deprecated("Use Handler.create[ClipboardEvent] instead", "0.11.0")
-  def createClipboardHandler()(implicit s: Scheduler) = Handler.create[ClipboardEvent]
+  @deprecated("Use Handler.create[F, MouseEvent] instead", "0.11.0")
+  def createMouseHandler()(implicit s: Scheduler) = Handler.create[SyncIO, MouseEvent]
+  @deprecated("Use Handler.create[F, KeyboardEvent] instead", "0.11.0")
+  def createKeyboardHandler()(implicit s: Scheduler) = Handler.create[SyncIO, KeyboardEvent]
+  @deprecated("Use Handler.create[F, DragEvent] instead", "0.11.0")
+  def createDragHandler()(implicit s: Scheduler) = Handler.create[SyncIO, DragEvent]
+  @deprecated("Use Handler.create[F, ClipboardEvent] instead", "0.11.0")
+  def createClipboardHandler()(implicit s: Scheduler) = Handler.create[SyncIO, ClipboardEvent]
 
-  @deprecated("Use Handler.create[String] instead", "0.11.0")
-  def createStringHandler(defaultValues: String)(implicit s: Scheduler) = Handler.create[String](defaultValues)
-  @deprecated("Use Handler.create[Boolean] instead", "0.11.0")
-  def createBoolHandler(defaultValues: Boolean)(implicit s: Scheduler) = Handler.create[Boolean](defaultValues)
-  @deprecated("Use Handler.create[Double] instead", "0.11.0")
-  def createNumberHandler(defaultValues: Double)(implicit s: Scheduler) = Handler.create[Double](defaultValues)
+  @deprecated("Use Handler.create[F] instead", "0.11.0")
+  def createStringHandler(defaultValues: String)(implicit s: Scheduler) = Handler.create[SyncIO](defaultValues)
+  @deprecated("Use Handler.create[F] instead", "0.11.0")
+  def createBoolHandler(defaultValues: Boolean)(implicit s: Scheduler) = Handler.create[SyncIO](defaultValues)
+  @deprecated("Use Handler.create[F] instead", "0.11.0")
+  def createNumberHandler(defaultValues: Double)(implicit s: Scheduler) = Handler.create[SyncIO](defaultValues)
 
-  @deprecated("Use Handler.create[T] instead", "0.11.0")
-  def createHandler[T](defaultValues: T)(implicit s: Scheduler) = Handler.create[T](defaultValues)
+  @deprecated("Use Handler.create[F, T] instead", "0.11.0")
+  def createHandler[T](defaultValues: T)(implicit s: Scheduler) = Handler.create[SyncIO](defaultValues)
 }
 object Handlers extends Handlers
 
