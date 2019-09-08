@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.effect.SyncIO
 import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.execution.ExecutionModel.SynchronousExecution
@@ -72,9 +73,9 @@ object ChildrenPerformance extends js.JSApp {
   def runChildren(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler = Handler.create[Int](0).unsafeRunSync
-    val handler2 = Handler.create[Int](0).unsafeRunSync
-    val handler3 = Handler.create[Int].unsafeRunSync
+    val handler = Handler.unsafe[Int](0)
+    val handler2 = Handler.unsafe[Int](0)
+    val handler3 = Handler.unsafe[Int]
 
     val vtree = div(
       id := elemId,
@@ -104,7 +105,7 @@ object ChildrenPerformance extends js.JSApp {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
       handler.onNext(i)
@@ -118,9 +119,9 @@ object ChildrenPerformance extends js.JSApp {
   def runThunks(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler = Handler.create[Int](0).unsafeRunSync
-    val handler2 = Handler.create[Int](0).unsafeRunSync
-    val handler3 = Handler.create[Int].unsafeRunSync
+    val handler = Handler.unsafe[Int](0)
+    val handler2 = Handler.unsafe[Int](0)
+    val handler3 = Handler.unsafe[Int]
 
     val vtree = div(
       id := elemId,
@@ -150,7 +151,7 @@ object ChildrenPerformance extends js.JSApp {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
       handler.onNext(i)
@@ -164,7 +165,7 @@ object ChildrenPerformance extends js.JSApp {
   def runCommands(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler3 = Handler.create[Int].unsafeRunSync
+    val handler3 = Handler.unsafe[Int]
 
     def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3)
     def node2(j: Int) = div(
@@ -173,8 +174,8 @@ object ChildrenPerformance extends js.JSApp {
       handler3
     )
 
-    val handler = Handler.create[ChildCommand](ChildCommand.ReplaceAll(js.Array(node1(0)))).unsafeRunSync
-    val handler2 = Handler.create[ChildCommand](ChildCommand.ReplaceAll(js.Array(node2(0)))).unsafeRunSync
+    val handler = Handler.unsafe[ChildCommand](ChildCommand.ReplaceAll(js.Array(node1(0))))
+    val handler2 = Handler.unsafe[ChildCommand](ChildCommand.ReplaceAll(js.Array(node2(0))))
 
     val vtree = div(
       id := elemId,
@@ -191,7 +192,7 @@ object ChildrenPerformance extends js.JSApp {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto(node, vtree).unsafeRunSync()
+    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     var node1Counter = 0
     var node2Counter = 0

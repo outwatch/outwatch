@@ -9,6 +9,7 @@ import outwatch.util.Store.Reducer
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+
 class StoreSpec extends AnyFlatSpec with Matchers {
   implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
@@ -20,14 +21,14 @@ class StoreSpec extends AnyFlatSpec with Matchers {
 
   type Model = Int
 
-  def reduce(state: Model, action: CounterAction): Model = action match {
-    case Initial => ???
-    case Plus => state + 1
-    case Minus => state - 1
+  val reduce: Reducer[CounterAction, Model] = Reducer { 
+    case (_, Initial) => ???
+    case (state, Plus) => state + 1
+    case (state, Minus) => state - 1
   }
 
   "A Store" should "emit its initial state to multiple subscribers" in {
-    val store = Store.create[IO, CounterAction, Model](Initial, 0, Reducer(reduce _)).unsafeRunSync()
+    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
 
     var a: Option[Model] = None
     var b: Option[Model] = None
@@ -46,7 +47,7 @@ class StoreSpec extends AnyFlatSpec with Matchers {
   }
 
   "A Store" should "emit consecutive states to multiple subscribers" in {
-    val store = Store.create[IO, CounterAction, Model](Initial, 0, Reducer(reduce _)).unsafeRunSync()
+    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
 
     var a: Option[Model] = None
     var b: Option[Model] = None
@@ -73,7 +74,7 @@ class StoreSpec extends AnyFlatSpec with Matchers {
   }
 
   "A Store" should "emit its current state to new subscribers" in {
-    val store = Store.create[IO, CounterAction, Model](Initial, 0, Reducer(reduce _)).unsafeRunSync()
+    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
 
     (1 to 10).foreach(_ => store.onNext(Plus))
 

@@ -1,6 +1,7 @@
 package outwatch
 
 import scala.concurrent.Future
+import cats.effect.ContextShift
 import cats.effect.IO
 import monix.execution.Ack.Continue
 import monix.execution.ExecutionModel.SynchronousExecution
@@ -68,6 +69,7 @@ trait LocalStorageMock {
 trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock { self: Suite =>
 
   val scheduler: TrampolineScheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
+  implicit val cs: ContextShift[IO] = IO.contextShift(scheduler)
 
   override def beforeEach(): Unit = {
 

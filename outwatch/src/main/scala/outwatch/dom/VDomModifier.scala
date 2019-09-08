@@ -1,7 +1,6 @@
 package outwatch.dom
 
 import cats.Monoid
-import cats.effect.IO
 import monix.execution.Scheduler
 import org.scalajs.dom._
 import outwatch.AsVDomModifier
@@ -20,6 +19,8 @@ object VDomModifier {
 
   def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier =
     CompositeModifier(js.Array(modifier, modifier2) ++ modifiers)
+
+  @inline def delay(modifier: => VDomModifier): VDomModifier = SyncEffectModifier(() => modifier)
 
   implicit object monoid extends Monoid[VDomModifier] {
     def empty: VDomModifier = VDomModifier.empty
@@ -76,7 +77,7 @@ final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVD
 case object EmptyModifier extends VDomModifier
 final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
 final case class ModifierStreamReceiver(stream: ValueObservable[VDomModifier]) extends VDomModifier
-final case class EffectModifier(effect: IO[VDomModifier]) extends VDomModifier
+final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
 final case class SchedulerAction(action: Scheduler => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
 
