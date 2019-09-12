@@ -17,9 +17,7 @@ object VDomModifier {
   @inline def apply[T : Render](t: T): VDomModifier = Render[T].render(t)
 
   def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier = {
-    val arr = js.Array[VDomModifier](modifier, modifier2)
-    modifiers.foreach(modifier => arr.push(modifier))
-    CompositeModifier(arr)
+    CompositeModifier(Seq(modifier, modifier2, CompositeModifier(modifiers)))
   }
 
   @inline def delay[T : Render](modifier: => T): VDomModifier = SyncEffectModifier(() => VDomModifier(modifier))
@@ -83,7 +81,7 @@ final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, 
 final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVDomModifier
 
 case object EmptyModifier extends VDomModifier
-final case class CompositeModifier(modifiers: js.Array[_ <: VDomModifier]) extends VDomModifier
+final case class CompositeModifier(modifiers: Iterable[VDomModifier]) extends VDomModifier
 final case class StreamModifier(subscription: SinkObserver[VDomModifier] => Subscription) extends VDomModifier
 final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier

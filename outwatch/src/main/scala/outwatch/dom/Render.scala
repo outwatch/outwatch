@@ -4,7 +4,6 @@ import outwatch.reactive._
 import outwatch.effect.RunSyncEffect
 
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
 import scala.concurrent.Future
 import scala.util.Success
 
@@ -26,28 +25,19 @@ object Render {
     CompositeModifier(value.map(VDomModifier(_)))
 
   implicit object ArrayModifier extends Render[Array[VDomModifier]] {
-    @inline def render(value: Array[VDomModifier]): VDomModifier = CompositeModifier(value.toJSArray)
+    @inline def render(value: Array[VDomModifier]): VDomModifier = CompositeModifier(value)
   }
 
   implicit def arrayModifier[T : Render]: Render[Array[T]] = { (value: Array[T]) =>
-    var i = 0
-    val n = value.length
-    val arr = new js.Array[VDomModifier](n)
-    while (i < n) {
-      arr(i) = VDomModifier(value(i))
-      i += 1
-    }
-    CompositeModifier(arr)
+    CompositeModifier(value.map(VDomModifier(_)))
   }
 
   implicit object SeqModifier extends Render[Seq[VDomModifier]] {
-    @inline def render(value: Seq[VDomModifier]): VDomModifier = CompositeModifier(value.toJSArray)
+    @inline def render(value: Seq[VDomModifier]): VDomModifier = CompositeModifier(value)
   }
 
   implicit def seqModifier[T : Render]: Render[Seq[T]] = { (value: Seq[T]) =>
-    val arr = new js.Array[VDomModifier]()
-    value.foreach { value => arr.push(VDomModifier(value)) }
-    CompositeModifier(arr)
+    CompositeModifier(value.map(VDomModifier(_)))
   }
 
   implicit object OptionModifier extends Render[Option[VDomModifier]] {
