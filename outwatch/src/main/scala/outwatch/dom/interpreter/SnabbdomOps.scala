@@ -65,6 +65,14 @@ private[outwatch] object SnabbdomOps {
        thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.arguments)
    }
 
+   private val newNodeId: () => Int = {
+     var vNodeIdCounter = 0
+     () => {
+      vNodeIdCounter += 1
+      vNodeIdCounter
+     }
+   }
+
    type SetImmediate = js.Function1[js.Function0[Unit], Int]
    type ClearImmediate = js.Function1[Int, Unit]
    private val (setImmediateRef, clearImmediateRef): (SetImmediate, ClearImmediate) = {
@@ -82,10 +90,9 @@ private[outwatch] object SnabbdomOps {
    private def toRawSnabbdomProxy(node: BasicVNode): VNodeProxy = {
 
     val vNodeNS = getNamespace(node)
+    val vNodeId: Int = newNodeId()
 
     val nativeModifiers = NativeModifiers.from(node.modifiers)
-
-    val vNodeId = nativeModifiers.##
 
     if (nativeModifiers.subscribables.isEmpty) {
       // if no dynamic/subscribable content, then just create a simple proxy
