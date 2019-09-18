@@ -9,14 +9,14 @@ import outwatch.effect.RunSyncEffect
 
 trait ManagedSubscriptions {
 
-  @inline def managedFunction[T : CancelSubscription](subscription: () => T): VDomModifier = managedElement(_ => subscription())
-
   @inline def managed[F[_] : RunSyncEffect, T : CancelSubscription](subscription: F[T]): VDomModifier = managedFunction(() => RunSyncEffect[F].unsafeRun(subscription))
 
   def managed[F[_] : RunSyncEffect : Applicative : Functor, T : CancelSubscription : Monoid](sub1: F[T], sub2: F[T], subscriptions: F[T]*): VDomModifier = {
     val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
     managed(composite)
   }
+
+  @inline def managedFunction[T : CancelSubscription](subscription: () => T): VDomModifier = SubscriptionModifier(() => Subscription.lift(subscription()))
 
   object managedElement {
     def apply[T : CancelSubscription](subscription: dom.Element => T): VDomModifier = VDomModifier.delay {

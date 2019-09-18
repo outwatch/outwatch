@@ -104,6 +104,7 @@ private[outwatch] object SnabbdomOps {
 
       var proxy: VNodeProxy = null
       var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
+      var prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
       var lastTimeout: Option[Int] = None
       var isActive: Boolean = false
 
@@ -115,7 +116,7 @@ private[outwatch] object SnabbdomOps {
         patchIsNeeded = false
 
         // update the current proxy with the new state
-        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, nextModifiers)
+        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers, appendModifiers = nextModifiers)
         nextModifiers = separatedModifiers.nextModifiers
         val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
         newProxy._update = proxy._update
@@ -167,27 +168,29 @@ private[outwatch] object SnabbdomOps {
 
       // move to one of the stream hooks
       // hooks for subscribing and unsubscribing the streamable content
-      nativeModifiers.modifiers.push(InsertHook { p =>
-        VNodeProxy.copyInto(p, proxy)
-        isActive = true
-        start()
-      })
-      nativeModifiers.modifiers.push(PostPatchHook { (o, p) =>
-        VNodeProxy.copyInto(p, proxy)
-        proxy._update.foreach(_(proxy))
-        if (o._id != p._id) {
+      prependModifiers = js.Array[StaticVDomModifier](
+        InsertHook { p =>
+          VNodeProxy.copyInto(p, proxy)
           isActive = true
           start()
-        } else if (isActive) {
-          start()
-        } else {
+        },
+        PostPatchHook { (o, p) =>
+          VNodeProxy.copyInto(p, proxy)
+          proxy._update.foreach(_(proxy))
+          if (o._id != p._id) {
+            isActive = true
+            start()
+          } else if (isActive) {
+            start()
+          } else {
+            stop()
+          }
+        },
+        DomUnmountHook { _ =>
+          isActive = false
           stop()
         }
-      })
-      nativeModifiers.modifiers.push(DomUnmountHook { _ =>
-        isActive = false
-        stop()
-      })
+      )
 
       // premature subcription: We will now subscribe, eventhough the node is not yet mounted
       // but we try to get the initial values from the observables synchronously and that
@@ -198,7 +201,7 @@ private[outwatch] object SnabbdomOps {
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers)
+      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)
       nextModifiers = separatedModifiers.nextModifiers
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 

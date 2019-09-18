@@ -37,7 +37,7 @@ private[outwatch] class SeparatedModifiers {
 }
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: MutableNestedArray[StaticVDomModifier], extraModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined): SeparatedModifiers = {
+  def from(modifiers: MutableNestedArray[StaticVDomModifier], prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined, appendModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined): SeparatedModifiers = {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
 
@@ -173,8 +173,9 @@ private[outwatch] object SeparatedModifiers {
         ()
     }
 
+    prependModifiers.foreach(_.foreach(append))
     modifiers.foreach(append)
-    extraModifiers.foreach(_.foreach(append))
+    appendModifiers.foreach(_.foreach(append))
 
     separatedModifiers
   }
@@ -267,6 +268,7 @@ private[outwatch] object NativeModifiers {
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
         case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier => appendStream(m)
+        case s: SubscriptionModifier => subscribables.push(new Subscribable(_ => s.subscription()))
         case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
       }
     }

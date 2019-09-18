@@ -83,6 +83,7 @@ final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVD
 case object EmptyModifier extends VDomModifier
 final case class CompositeModifier(modifiers: Iterable[VDomModifier]) extends VDomModifier
 final case class StreamModifier(subscription: SinkObserver[VDomModifier] => Subscription) extends VDomModifier
+final case class SubscriptionModifier(subscription: () => Subscription) extends VDomModifier
 final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
 
