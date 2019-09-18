@@ -16,9 +16,11 @@ object VDomModifier {
 
   @inline def apply[T : Render](t: T): VDomModifier = Render[T].render(t)
 
-  def apply(modifier: VDomModifier, modifier2: VDomModifier, modifiers: VDomModifier*): VDomModifier = {
-    CompositeModifier(Seq(modifier, modifier2, CompositeModifier(modifiers)))
-  }
+  def apply(modifier: VDomModifier, modifier2: VDomModifier): VDomModifier =
+    CompositeModifier(Seq(modifier, modifier2))
+
+  def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifiers: VDomModifier*): VDomModifier =
+    CompositeModifier(Seq(modifier, modifier2, modifier3, CompositeModifier(modifiers)))
 
   @inline def delay[T : Render](modifier: => T): VDomModifier = SyncEffectModifier(() => VDomModifier(modifier))
 
