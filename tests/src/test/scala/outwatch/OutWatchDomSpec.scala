@@ -243,15 +243,15 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val mods = Seq(
       VDomModifier(Observable.empty[VDomModifier]),
       div(id := "1"),
-      div(id := "2")
-      // div(), div() //TODO: this should also work, but key is derived from hashCode of VTree (which in this case is equal)
+      div(id := "2"),
+      div(), div()
     )
 
     val streamable = NativeModifiers.from(mods)
     val seps =  SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
-    proxies.get.length shouldBe 2
+    proxies.get.length shouldBe 4
     streamable.subscribables.isEmpty shouldBe false
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods))
@@ -259,9 +259,13 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     val key1 = proxy.children.get(0).key
     val key2 = proxy.children.get(1).key
+    val key3 = proxy.children.get(2).key
+    val key4 = proxy.children.get(3).key
 
     key1.isDefined shouldBe false
     key2.isDefined shouldBe false
+    key3.isDefined shouldBe false
+    key4.isDefined shouldBe false
   }
 
   it should "keep existing key for child nodes" in {
