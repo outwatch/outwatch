@@ -49,7 +49,7 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
 
   @inline def discard: R = forwardTo(SinkObserver.empty)
 
-  @inline def foreach(action: O => Unit): R = forwardTo(SinkObserver.create(action, OutwatchTracing.errorSubject.onNext))
+  @inline def foreach(action: O => Unit): R = forwardTo(SinkObserver.create(action))
   @inline def foreach(action: => Unit): R = foreach(_ => action)
 
   @inline def doSync[G[_] : RunSyncEffect](action: G[Unit]): R = useSync(action).discard

@@ -23,8 +23,8 @@ object SinkObserver {
 
   @inline def lift[F[_] : Sink, A](sink: F[A]): SinkObserver[A] =  create(Sink[F].onNext(sink), Sink[F].onError(sink))
 
-  def create[A](consume: A => Unit, failure: Throwable => Unit = t => throw t): SinkObserver[A] = new SinkObserver[A] {
-    def onNext(value: A): Unit = consume(value)
+  def create[A](consume: A => Unit, failure: Throwable => Unit = UnhandledErrorReporter.errorSubject.onError): SinkObserver[A] = new SinkObserver[A] {
+    def onNext(value: A): Unit = recovered(consume(value), onError)
     def onError(error: Throwable): Unit = failure(error)
   }
 

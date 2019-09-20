@@ -13,7 +13,7 @@ object OutwatchTracing {
 
   // a stream about unhandled errors in the reactive part of outwatch, with a
   // default subscription that will print the error to notify the user.
-  def error: SourceStream[Throwable] = errorSubject.withDefaultSubscription(SinkObserver.create[Throwable](reportError, reportError))
+  def error: SourceStream[Throwable] = SourceStream.merge(errorSubject, UnhandledErrorReporter.error).withDefaultSubscription(SinkObserver.create[Throwable](reportError, reportError))
 
   private def reportError(error: Throwable): Unit =
     dom.console.error(error.getMessage + "\n" + error.getStackTrace.mkString("\n"))
