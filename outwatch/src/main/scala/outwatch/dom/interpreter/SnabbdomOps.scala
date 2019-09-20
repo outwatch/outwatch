@@ -6,6 +6,7 @@ import outwatch.reactive._
 import snabbdom._
 
 import scala.scalajs.js
+import scala.annotation.tailrec
 
 private[outwatch] object SnabbdomOps {
   // currently async patching is disabled, because it yields flickering render results.
@@ -111,6 +112,7 @@ private[outwatch] object SnabbdomOps {
       var patchIsRunning = false
       var patchIsNeeded = false
 
+      @tailrec
       def doPatch(): Unit = {
         patchIsRunning = true
         patchIsNeeded = false
@@ -127,7 +129,7 @@ private[outwatch] object SnabbdomOps {
         patch(proxy, newProxy)
 
         patchIsRunning = false
-        if (patchIsNeeded) invokeDoPatch(async = false)
+        if (patchIsNeeded) doPatch()
       }
 
       def resetTimeout(): Unit = {
@@ -136,11 +138,11 @@ private[outwatch] object SnabbdomOps {
       }
 
       def asyncDoPatch(): Unit = {
+        resetTimeout()
         lastTimeout = Some(setImmediateRef(() => doPatch()))
       }
 
       def invokeDoPatch(async: Boolean): Unit = if (isActive) {
-        resetTimeout()
         if (patchIsRunning) {
           patchIsNeeded = true
         } else {
