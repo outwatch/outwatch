@@ -219,8 +219,8 @@ object SourceStream {
 
   def combineLatestMap[SA[_]: Source, SB[_]: Source, A, B, R](sourceA: SA[A])(sourceB: SB[B])(f: (A, B) => R): SourceStream[R] = new SourceStream[R] {
     def subscribe[G[_]: Sink](sink: G[_ >: R]): Subscription = {
-      var latestA = Option.empty[A]
-      var latestB = Option.empty[B]
+      var latestA: js.UndefOr[A] = js.undefined
+      var latestB: js.UndefOr[B] = js.undefined
 
       def send(): Unit = for {
         a <- latestA
@@ -230,14 +230,14 @@ object SourceStream {
       Subscription.composite(
         Source[SA].subscribe(sourceA)(SinkObserver.create[A](
           { value =>
-            latestA = Some(value)
+            latestA = value
             send()
           },
           Sink[G].onError(sink)
         )),
         Source[SB].subscribe(sourceB)(SinkObserver.create[B](
           { value =>
-            latestB = Some(value)
+            latestB = value
             send()
           },
           Sink[G].onError(sink)
@@ -248,7 +248,7 @@ object SourceStream {
 
   def withLatestFrom[SA[_]: Source, SB[_]: Source, A, B, R](source: SA[A])(latest: SB[B])(f: (A, B) => R): SourceStream[R] = new SourceStream[R] {
     def subscribe[G[_]: Sink](sink: G[_ >: R]): Subscription = {
-      var latestValue = Option.empty[B]
+      var latestValue: js.UndefOr[B] = js.undefined
 
       Subscription.composite(
         Source[SA].subscribe(source)(SinkObserver.create[A](
@@ -256,7 +256,7 @@ object SourceStream {
           Sink[G].onError(sink)
         )),
         Source[SB].subscribe(latest)(SinkObserver.create[B](
-          value => latestValue = Some(value),
+          value => latestValue = value,
           Sink[G].onError(sink)
         ))
       )
@@ -283,12 +283,12 @@ object SourceStream {
   def debounceMillis[S[_]: Source, A](source: S[A])(duration: Int): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       import org.scalajs.dom
-      var lastTimeout = Option.empty[Int]
+      var lastTimeout: js.UndefOr[Int] = js.undefined
 
       Source[S].subscribe(source)(SinkObserver.create[A](
         { value =>
           lastTimeout.foreach(dom.window.clearTimeout)
-          lastTimeout = Some(dom.window.setTimeout(() => Sink[G].onNext(sink)(value), duration.toDouble))
+          lastTimeout = dom.window.setTimeout(() => Sink[G].onNext(sink)(value), duration.toDouble)
         },
         Sink[G].onError(sink)
       ))
@@ -303,7 +303,7 @@ object SourceStream {
   def delayMillis[S[_]: Source, A](source: S[A])(duration: Int): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       import org.scalajs.dom
-      var lastTimeout = Option.empty[Int]
+      var lastTimeout: js.UndefOr[Int] = js.undefined
       var isCancel = false
 
       // TODO: we onyl actually cancel the last timeout. The check isCancel
@@ -315,7 +315,7 @@ object SourceStream {
         },
         Source[S].subscribe(source)(SinkObserver.create[A](
           { value =>
-            lastTimeout = Some(dom.window.setTimeout(() => if (!isCancel) Sink[G].onNext(sink)(value), duration.toDouble))
+            lastTimeout = dom.window.setTimeout(() => if (!isCancel) Sink[G].onNext(sink)(value), duration.toDouble)
           },
           Sink[G].onError(sink)
         ))
@@ -325,13 +325,13 @@ object SourceStream {
 
   def distinct[S[_]: Source, A : Eq](source: S[A]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      var lastValue = Option.empty[A]
+      var lastValue: js.UndefOr[A] = js.undefined
 
       Source[S].subscribe(source)(SinkObserver.create[A](
         { value =>
             val shouldSend = lastValue.forall(lastValue => !Eq[A].eqv(lastValue, value))
             if (shouldSend) {
-              lastValue = Some(value)
+              lastValue = value
               Sink[G].onNext(sink)(value)
             }
         },
