@@ -597,6 +597,20 @@ button(EmitterBuilder.combine(onMouseUp.use(false), onMouseDown.use(true)).forea
 
 Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
 
+##### Global events
+
+There are helpers for getting a stream of global `document` or `window` events, where you get a `outwatch.reactive.SourceStream` for these events. For example:
+
+```scala
+import outwatch.dom.dsl._
+
+events.document.onClick.foreach { event => console.log("Click Event", event) }
+
+events.window.onStorage.foreach { event => console.log("Storage Event", event) }
+
+div(emitter(events.document.onClick) --> sink)
+```
+
 #### Managing dynamic state
 
 We have seen how to render dynamic content. But how to manage dynamic state? You want to have a reactive variable to hold a variable for you, so you can write into it and stream values from it.
