@@ -52,11 +52,16 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline def foreach(action: O => Unit): R = forwardTo(SinkObserver.create(action))
   @inline def foreach(action: => Unit): R = foreach(_ => action)
 
-  @inline def doSync[G[_] : RunSyncEffect](action: G[Unit]): R = useSync(action).discard
-  @inline def doAsync[G[_] : Effect](action: G[Unit]): R = useAsync(action).discard
+  @inline def foreachSync[G[_] : RunSyncEffect](action: O => G[Unit]): R = mapSync(action).discard
+  @inline def doSync[G[_] : RunSyncEffect](action: G[Unit]): R = foreachSync(_ => action)
+
+  @inline def foreachAsync[G[_] : Effect](action: O => G[Unit]): R = concatMapAsync(action).discard
+  @inline def doAsync[G[_] : Effect](action: G[Unit]): R = foreachAsync(_ => action)
 
   @inline def map[T](f: O => T): EmitterBuilderExecution[T, R, Exec] = transformWithExec(_.map(f))
+
   @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilderExecution[T, R, Exec] = transformWithExec(_.collect(f))
+
   @inline def filter(predicate: O => Boolean): EmitterBuilderExecution[O, R, Exec] = transformWithExec(_.filter(predicate))
 
   @inline def use[T](value: T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
@@ -109,7 +114,7 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
     transformWithExec[SourceStream, T](source => SourceStream.mapSync(source)(f))
 
   @inline def transformLift[F[_] : Source : LiftSource, OO >: O, T](f: F[OO] => F[T]): EmitterBuilder[T, R] =
-    transformWithExec[F, T]((s: SourceStream[OO]) => f(s.lift[F]))
+    transformWithExec[F, T]((s: SourceStream[OO]) => f(s.liftSource[F]))
 
   // do not expose transform with current exec but just normal Emitterbuilder. This tranform might be async
   @inline def transform[F[_] : Source, T](f: SourceStream[O] => F[T]): EmitterBuilder[T, R] = transformWithExec(f)
@@ -145,7 +150,7 @@ object EmitterBuilder {
   }
 
   @inline final class Transform[S[_] : Source, +I, +O, +R: SubscriptionOwner, Exec <: Execution](base: EmitterBuilderExecution[I, R, Exec], transformF: SourceStream[I] => S[O]) extends EmitterBuilderExecution[O, R, Exec] {
-    @inline private[helpers] def transformWithExec[F[_] : Source, T](f: SourceStream[O] => F[T]): EmitterBuilderExecution[T, R, Exec] = new Transform(this, f)
+    @inline private[helpers] def transformWithExec[F[_] : Source, T](f: SourceStream[O] => F[T]): EmitterBuilderExecution[T, R, Exec] = new Transform[F, I, T, R, Exec](base, s => f(SourceStream.lift(transformF(s))))
     @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = {
       val connectable = SinkObserver.redirect[F, S, O, I](sink)(transformF)
       SubscriptionOwner[R].own(base.forwardTo(connectable.sink))(() => connectable.connect())

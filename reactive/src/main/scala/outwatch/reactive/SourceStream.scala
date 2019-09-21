@@ -516,7 +516,7 @@ object SourceStream {
   }
 
   @inline implicit class Operations[A](val source: SourceStream[A]) extends AnyVal {
-    @inline def lift[G[_]: LiftSource]: G[A] = LiftSource[G].lift(source)
+    @inline def liftSource[G[_]: LiftSource]: G[A] = LiftSource[G].lift(source)
     @inline def mergeMap[S[_]: Source, B](f: A => S[B]): SourceStream[B] = SourceStream.mergeMap(source)(f)
     @inline def switchMap[S[_]: Source, B](f: A => S[B]): SourceStream[B] = SourceStream.switchMap(source)(f)
     @inline def combineLatest[S[_]: Source, B, R](combined: S[B]): SourceStream[(A,B)] = SourceStream.combineLatest(source)(combined)

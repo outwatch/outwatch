@@ -370,7 +370,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val sub = PublishSubject[String]
 
     val node = div(nodes.startWith(Seq(
-      span(managedFunction { () => sub subscribe observer.lift[Observer.Sync] })
+      span(managedFunction { () => sub subscribe observer.liftSink[Observer.Sync] })
     )))
 
     sub.onNext("pre")

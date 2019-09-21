@@ -98,7 +98,7 @@ object SinkObserver {
   }
 
   @inline implicit class Operations[A](val sink: SinkObserver[A]) extends AnyVal {
-    @inline def lift[G[_] : LiftSink]: G[A] = LiftSink[G].lift(sink)
+    @inline def liftSink[G[_] : LiftSink]: G[A] = LiftSink[G].lift(sink)
     @inline def contramap[B](f: B => A): SinkObserver[B] = SinkObserver.contramap(sink)(f)
     @inline def contramapFilter[B](f: B => Option[A]): SinkObserver[B] = SinkObserver.contramapFilter(sink)(f)
     @inline def contracollect[B](f: PartialFunction[B, A]): SinkObserver[B] = SinkObserver.contracollect(sink)(f)

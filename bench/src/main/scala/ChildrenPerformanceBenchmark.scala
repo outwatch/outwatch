@@ -31,7 +31,7 @@ object ChildrenPerformance extends js.JSApp {
     import scala.concurrent.duration._
     setupJsDom()
 
-    bench.util.runComparison(childrenBenchmark, List(100), 5 minutes)
+    bench.util.runComparison(childrenBenchmark, List(100), 5.minutes)
   }
 
   val childrenBenchmark = Comparison("Patching", Seq(

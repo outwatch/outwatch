@@ -19,7 +19,7 @@ object VNodeConstructionBenchmark extends js.JSApp {
   def main(): Unit = {
     import scala.concurrent.duration._
 
-    bench.util.runComparison(vnodes, List(1), 60 seconds)
+    bench.util.runComparison(vnodes, List(1), 60.seconds)
   }
 
   val vnodes = Comparison("VNode Construction", Seq(
