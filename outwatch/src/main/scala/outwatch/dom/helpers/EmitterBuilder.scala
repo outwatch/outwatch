@@ -79,10 +79,10 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline def withLatest[F[_] : Source, T](latest: F[T]): EmitterBuilderExecution[(O, T), R, Exec] =
     transformWithExec[SourceStream, (O, T)](source => SourceStream.withLatestFrom(source)(latest)(_ -> _))
 
-  @inline def scan[F[_] : Source, T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
+  @inline def scan[T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[SourceStream, T](source => SourceStream.scan(source)(seed)(f))
 
-  @inline def scanSingle[F[_] : Source, T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan(seed)((t,_) => f(t))
+  @inline def scanSingle[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan(seed)((t,_) => f(t))
 
   @inline def debounce(duration: FiniteDuration): EmitterBuilder[O, R] =
     transformWithExec[SourceStream, O](source => SourceStream.debounce(source)(duration))
@@ -96,7 +96,7 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline def delay(duration: FiniteDuration): EmitterBuilder[O, R] =
     transformWithExec[SourceStream, O](source => SourceStream.delay(source)(duration))
 
-  @inline def delayMillis[S[_]: Source, A](millis: Int): EmitterBuilder[O, R] =
+  @inline def delayMillis(millis: Int): EmitterBuilder[O, R] =
     transformWithExec[SourceStream, O](source => SourceStream.delayMillis(source)(millis))
 
   @inline def concatMapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] =
