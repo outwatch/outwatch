@@ -67,7 +67,7 @@ object SinkObserver {
     def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
   }
 
-  def filter[F[_] : Sink, A](sink: F[_ >: A])(f: A => Boolean): SinkObserver[A] = new SinkObserver[A] {
+  def contrafilter[F[_] : Sink, A](sink: F[_ >: A])(f: A => Boolean): SinkObserver[A] = new SinkObserver[A] {
     def onNext(value: A): Unit = recovered(if (f(value)) Sink[F].onNext(sink)(value), onError)
     def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
   }
@@ -102,7 +102,7 @@ object SinkObserver {
     @inline def contramap[B](f: B => A): SinkObserver[B] = SinkObserver.contramap(sink)(f)
     @inline def contramapFilter[B](f: B => Option[A]): SinkObserver[B] = SinkObserver.contramapFilter(sink)(f)
     @inline def contracollect[B](f: PartialFunction[B, A]): SinkObserver[B] = SinkObserver.contracollect(sink)(f)
-    @inline def filter(f: A => Boolean): SinkObserver[A] = SinkObserver.filter(sink)(f)
+    @inline def contrafilter(f: A => Boolean): SinkObserver[A] = SinkObserver.contrafilter(sink)(f)
     @inline def redirect[F[_] : Source, B]()(f: SourceStream[B] => F[A]): SinkObserver.Connectable[B] = SinkObserver.redirect(sink)(f)
   }
 

@@ -153,7 +153,7 @@ object SourceStream {
   }
 
   def filter[F[_]: Source, A](source: F[A])(f: A => Boolean): SourceStream[A] = new SourceStream[A] {
-    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = Source[F].subscribe(source)(SinkObserver.filter[G, A](sink)(f))
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = Source[F].subscribe(source)(SinkObserver.contrafilter[G, A](sink)(f))
   }
 
   def mapTry[F[_]: Source, A, B](source: F[A])(f: A => Try[B]): SourceStream[B] = new SourceStream[B] {
@@ -448,7 +448,7 @@ object SourceStream {
       def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
         var counter = 0
         val subscription = Subscription.variable()
-        subscription() = Source[F].subscribe(source)(SinkObserver.filter(sink) { _ =>
+        subscription() = Source[F].subscribe(source)(SinkObserver.contrafilter(sink) { _ =>
           if (num > counter) {
             counter += 1
             true
@@ -469,7 +469,7 @@ object SourceStream {
     else new SourceStream[A] {
       def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
         var counter = 0
-        Source[F].subscribe(source)(SinkObserver.filter(sink) { _ =>
+        Source[F].subscribe(source)(SinkObserver.contrafilter(sink) { _ =>
           if (num > counter) {
             counter += 1
             false
@@ -482,7 +482,7 @@ object SourceStream {
   def dropWhile[F[_]: Source, A](source: F[A])(predicate: A => Boolean): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       var finishedDrop = false
-      Source[F].subscribe(source)(SinkObserver.filter[G, A](sink) { v =>
+      Source[F].subscribe(source)(SinkObserver.contrafilter[G, A](sink) { v =>
         if (finishedDrop) true
         else if (predicate(v)) false
         else {
