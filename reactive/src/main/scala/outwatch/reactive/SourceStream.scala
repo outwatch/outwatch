@@ -411,7 +411,9 @@ object SourceStream {
       subscribers.push(observer)
 
       if (currentSubscription == null) {
-        currentSubscription = Source[F].subscribe(source)(SinkObserver.create[A](
+        val variable = Subscription.variable()
+        currentSubscription = variable
+        variable() = Source[F].subscribe(source)(SinkObserver.create[A](
           value => subscribers.foreach(_.onNext(value)),
           err => subscribers.foreach(_.onError(err)),
         ))
