@@ -3,13 +3,14 @@ package outwatch.ext.monix
 import _root_.monix.execution.{Ack, Scheduler, Cancelable}
 import _root_.monix.reactive.{Observable, Observer}
 import _root_.monix.reactive.observers.Subscriber
-import _root_.monix.reactive.subjects.{ReplaySubject, BehaviorSubject}
+import _root_.monix.reactive.subjects.{ReplaySubject, BehaviorSubject, PublishSubject}
 
 import scala.concurrent.Future
 
 object MonixHandler {
   def create[T]: MonixHandler[T] = ReplaySubject.createLimited(1)
   def create[T](seed:T): MonixHandler[T] = BehaviorSubject[T](seed)
+  def publish[T]: MonixHandler[T] = PublishSubject[T]
 }
 
 object MonixProHandler {

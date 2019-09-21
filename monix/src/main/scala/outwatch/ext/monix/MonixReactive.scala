@@ -12,14 +12,14 @@ trait MonixReactive {
 
   // Sink
 
-  implicit object variableSink extends Sink[Var] {
+  implicit object monixVariableSink extends Sink[Var] {
     def onNext[A](sink: Var[A])(value: A): Unit = { sink := value; () }
 
     def onError[A](sink: Var[A])(error: Throwable): Unit = throw error
   }
 
   //TODO: unsafe because of backpressure and ignored ACK
-  implicit object observerSink extends Sink[Observer] {
+  implicit object monixObserverSink extends Sink[Observer] {
     def onNext[A](sink: Observer[A])(value: A): Unit = {
       sink.onNext(value)
       ()
@@ -31,7 +31,7 @@ trait MonixReactive {
     }
   }
 
-  implicit object observerLiftSink extends LiftSink[Observer.Sync] {
+  implicit object monixObserverLiftSink extends LiftSink[Observer.Sync] {
     def lift[G[_] : Sink, A](sink: G[A]): Observer.Sync[A] = new Observer.Sync[A] {
       def onNext(value: A): Ack = { Sink[G].onNext(sink)(value); Ack.Continue }
       def onError(error: Throwable): Unit = Sink[G].onError(sink)(error)
@@ -41,7 +41,7 @@ trait MonixReactive {
 
   // Source
 
-  implicit def observableSource(implicit scheduler: Scheduler): Source[Observable] = new Source[Observable] {
+  implicit def monixObservableSource(implicit scheduler: Scheduler): Source[Observable] = new Source[Observable] {
     def subscribe[G[_] : Sink, A](source: Observable[A])(sink: G[_ >: A]): Subscription = {
       val sub = source.subscribe(
         { v => Sink[G].onNext(sink)(v); Ack.Continue },
@@ -51,7 +51,7 @@ trait MonixReactive {
     }
   }
 
-  implicit object observableLiftSource extends LiftSource[Observable] {
+  implicit object monixObservableLiftSource extends LiftSource[Observable] {
     def lift[G[_] : Source, A](source: G[A]): Observable[A] = Observable.create[A](OverflowStrategy.Unbounded) { observer =>
       val sub = Source[G].subscribe(source)(observer)
       Cancelable(() => sub.cancel())
@@ -59,7 +59,7 @@ trait MonixReactive {
   }
 
   // Subscription
-  implicit object cancelableCancelSubscription extends CancelSubscription[Cancelable] {
+  implicit object monixCancelSubscription extends CancelSubscription[Cancelable] {
     def cancel(subscription: Cancelable): Unit = subscription.cancel()
   }
 
@@ -68,13 +68,14 @@ trait MonixReactive {
   type MonixHandler[T] = MonixProHandler[T,T]
 
   implicit object monixCreateHandler extends CreateHandler[MonixHandler] {
-    def create[A]: MonixHandler[A] = MonixHandler.create[A]
-    def create[A](seed: A): MonixHandler[A] = MonixHandler.create[A](seed)
+    def variable[A]: MonixHandler[A] = MonixHandler.create[A]
+    def variable[A](seed: A): MonixHandler[A] = MonixHandler.create[A](seed)
+    def publisher[A]: MonixHandler[A] = MonixHandler.publish[A]
   }
 
   implicit object monixCreateProHandler extends CreateProHandler[MonixProHandler] {
-    def create[I,O](f: I => O): MonixProHandler[I,O] = MonixProHandler.create(f)
-    def create[I,O](seed: I)(f: I => O): MonixProHandler[I,O] = MonixProHandler.create(seed)(f)
+    def apply[I,O](f: I => O): MonixProHandler[I,O] = MonixProHandler.create(f)
+    def apply[I,O](seed: I)(f: I => O): MonixProHandler[I,O] = MonixProHandler.create(seed)(f)
     @inline def from[SI[_] : Sink, SO[_] : Source, I,O](sink: SI[I], source: SO[O]): MonixProHandler[I, O] = MonixProHandler(LiftSink[Observer].lift(sink), LiftSource[Observable].lift(source))
   }
 

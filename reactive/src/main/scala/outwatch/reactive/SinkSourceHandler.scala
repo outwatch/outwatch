@@ -69,12 +69,13 @@ object SinkSourceHandler {
   @inline def from[SI[_] : Sink, SO[_] : Source, I, O](sink: SI[I], source: SO[O]): SinkSourceHandler[I, O] = new SinkSourceCombinator[SI, SO, I, O](sink, source)
 
   object createHandler extends CreateHandler[Simple] {
-    @inline def create[A]: SinkSourceHandler[A, A] = SinkSourceHandler.apply[A]
-    @inline def create[A](seed: A): SinkSourceHandler[A, A] = SinkSourceHandler.apply[A](seed)
+    @inline def publisher[A]: SinkSourceHandler[A, A] = SinkSourceHandler.publish[A]
+    @inline def variable[A]: SinkSourceHandler[A, A] = SinkSourceHandler.apply[A]
+    @inline def variable[A](seed: A): SinkSourceHandler[A, A] = SinkSourceHandler.apply[A](seed)
   }
   object createProHandler extends CreateProHandler[SinkSourceHandler] {
-    @inline def create[I,O](f: I => O): SinkSourceHandler[I,O] = SinkSourceHandler.map(f)
-    @inline def create[I,O](seed: I)(f: I => O): SinkSourceHandler[I,O] = SinkSourceHandler.map(seed)(f)
+    @inline def apply[I,O](f: I => O): SinkSourceHandler[I,O] = SinkSourceHandler.map(f)
+    @inline def apply[I,O](seed: I)(f: I => O): SinkSourceHandler[I,O] = SinkSourceHandler.map(seed)(f)
     @inline def from[SI[_] : Sink, SO[_] : Source, I,O](sink: SI[I], source: SO[O]): SinkSourceHandler[I, O] = SinkSourceHandler.from(sink, source)
   }
 }
