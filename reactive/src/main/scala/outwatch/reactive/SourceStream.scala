@@ -371,7 +371,7 @@ object SourceStream {
     promise.future
   }
 
-  @inline def mapSync[S[_]: Source, G[_]: RunSyncEffect, A, B](source: S[A])(f: A => G[B]): SourceStream[B] = mapTry(source)(v => Try(RunSyncEffect[G].unsafeRun(f(v))))
+  @inline def mapSync[S[_]: Source, G[_]: RunSyncEffect, A, B](source: S[A])(f: A => G[B]): SourceStream[B] = map(source)(v => RunSyncEffect[G].unsafeRun(f(v)))
 
   def withDefaultSubscription[S[_]: Source, F[_]: Sink, A](source: S[A])(sink: F[A]): SourceStream[A] = new SourceStream[A] {
     private var defaultSubscription = Source[S].subscribe(source)(sink)

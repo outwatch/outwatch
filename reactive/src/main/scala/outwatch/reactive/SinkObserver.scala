@@ -2,6 +2,8 @@ package outwatch.reactive
 
 import cats.{MonoidK, Contravariant}
 
+import scala.util.control.NonFatal
+
 trait SinkObserver[-A] {
   def onNext(value: A): Unit
   def onError(error: Throwable): Unit
@@ -51,22 +53,22 @@ object SinkObserver {
   }
 
   def contramap[F[_] : Sink, A, B](sink: F[A])(f: B => A): SinkObserver[B] = new SinkObserver[B] {
-    def onNext(value: B): Unit = Sink[F].onNext(sink)(f(value))
+    def onNext(value: B): Unit = recovered(Sink[F].onNext(sink)(f(value)), onError)
     def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
   }
 
   def contramapFilter[F[_] : Sink, A, B](sink: F[A])(f: B => Option[A]): SinkObserver[B] = new SinkObserver[B] {
-    def onNext(value: B): Unit = f(value).foreach(Sink[F].onNext(sink))
+    def onNext(value: B): Unit = recovered(f(value).foreach(Sink[F].onNext(sink)), onError)
     def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
   }
 
   def contracollect[F[_] : Sink, A, B](sink: F[A])(f: PartialFunction[B, A]): SinkObserver[B] = new SinkObserver[B] {
-    def onNext(value: B): Unit = { f.runWith(Sink[F].onNext(sink))(value); () }
+    def onNext(value: B): Unit = recovered({ f.runWith(Sink[F].onNext(sink))(value); () }, onError)
     def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
   }
 
   def filter[F[_] : Sink, A](sink: F[_ >: A])(f: A => Boolean): SinkObserver[A] = new SinkObserver[A] {
-    def onNext(value: A): Unit = if (f(value)) Sink[F].onNext(sink)(value)
+    def onNext(value: A): Unit = recovered(if (f(value)) Sink[F].onNext(sink)(value), onError)
     def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
   }
 
@@ -103,4 +105,6 @@ object SinkObserver {
     @inline def filter(f: A => Boolean): SinkObserver[A] = SinkObserver.filter(sink)(f)
     @inline def redirect[F[_] : Source, B]()(f: SourceStream[B] => F[A]): SinkObserver.Connectable[B] = SinkObserver.redirect(sink)(f)
   }
+
+  @inline private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }
 }
