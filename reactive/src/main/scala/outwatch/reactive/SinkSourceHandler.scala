@@ -4,13 +4,13 @@ import scala.scalajs.js
 
 trait SinkSourceHandler[-I, +O] extends SinkObserver[I] with SourceStream[O]
 
-class SinkSourceVariable[I, O](private var current: Option[O], convert: I => O) extends SinkSourceHandler[I, O] {
+class SinkSourceVariable[I, O](private var current: js.UndefOr[O], convert: I => O) extends SinkSourceHandler[I, O] {
 
   private val subscribers = new js.Array[SinkObserver[O]]
 
   def onNext(value: I): Unit = {
     val converted = convert(value)
-    current = Some(converted)
+    current = converted
     subscribers.foreach(_.onNext(converted))
   }
 
@@ -54,11 +54,11 @@ class SinkSourcePublisher[I, O](convert: I => O) extends SinkSourceHandler[I, O]
 object SinkSourceHandler {
   type Simple[T] = SinkSourceHandler[T,T]
 
-  @inline def apply[O]: SinkSourceHandler.Simple[O] = new SinkSourceVariable[O, O](None, identity)
-  @inline def apply[O](seed: O): SinkSourceHandler.Simple[O] = new SinkSourceVariable[O, O](Some(seed), identity)
+  @inline def apply[O]: SinkSourceHandler.Simple[O] = new SinkSourceVariable[O, O](js.undefined, identity)
+  @inline def apply[O](seed: O): SinkSourceHandler.Simple[O] = new SinkSourceVariable[O, O](seed, identity)
 
-  @inline def map[I, O](convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](None, convert)
-  @inline def map[I, O](seed: I)(convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](Some(convert(seed)), convert)
+  @inline def map[I, O](convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](js.undefined, convert)
+  @inline def map[I, O](seed: I)(convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](convert(seed), convert)
 
   object publish {
     @inline def apply[O]: SinkSourceHandler.Simple[O] = new SinkSourcePublisher[O, O](identity)
