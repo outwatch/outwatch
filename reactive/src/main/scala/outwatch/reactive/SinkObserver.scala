@@ -30,7 +30,7 @@ object SinkObserver {
     def onError(error: Throwable): Unit = failure(error)
   }
 
-  def combine[F[_] : Sink, A](sinks: F[A]*): SinkObserver[A] = combineSeq(sinks)
+  @inline def combine[F[_] : Sink, A](sinks: F[A]*): SinkObserver[A] = combineSeq(sinks)
 
   def combineSeq[F[_] : Sink, A](sinks: Seq[F[A]]): SinkObserver[A] = new SinkObserver[A] {
     def onNext(value: A): Unit = {

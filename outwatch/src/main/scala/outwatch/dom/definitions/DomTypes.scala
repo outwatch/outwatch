@@ -9,13 +9,15 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.helpers._
 import outwatch.reactive.EventSourceStream
-
 import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
-  type Attribute[T, _] = AttributeBuilder[T, Attr]
+  type ReflectedAttribute[T, _] = AttributeBuilder[T, Attr]
+  type Attribute[T] = BasicAttrBuilder[T]
   type Property[T, _] = PropBuilder[T]
   type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VDomModifier]
+  type HtmlTag[T] = HtmlVNode
+  type SvgTag[T] = SvgVNode
 }
 
 private[outwatch] object CodecBuilder {
@@ -32,34 +34,30 @@ private[outwatch] object CodecBuilder {
 
 // Tags
 
-private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[TagBuilder.Tag, dom.html.Element] with builders.SvgTagBuilder[TagBuilder.Tag, dom.svg.Element] {
+private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[BuilderTypes.HtmlTag, dom.html.Element] with builders.SvgTagBuilder[BuilderTypes.SvgTag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array())
-  protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array())
-}
-
-private[outwatch] object TagBuilder {
-  type Tag[T] = BasicVNode
+  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array())
+  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array())
 }
 
 trait Tags
-  extends EmbedTags[TagBuilder.Tag]
-  with GroupingTags[TagBuilder.Tag]
-  with TextTags[TagBuilder.Tag]
-  with FormTags[TagBuilder.Tag]
-  with SectionTags[TagBuilder.Tag]
-  with TableTags[TagBuilder.Tag]
+  extends EmbedTags[BuilderTypes.HtmlTag]
+  with GroupingTags[BuilderTypes.HtmlTag]
+  with TextTags[BuilderTypes.HtmlTag]
+  with FormTags[BuilderTypes.HtmlTag]
+  with SectionTags[BuilderTypes.HtmlTag]
+  with TableTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with TagHelpers
 
 trait TagsExtra
-  extends DocumentTags[TagBuilder.Tag]
-  with MiscTags[TagBuilder.Tag]
+  extends DocumentTags[BuilderTypes.HtmlTag]
+  with MiscTags[BuilderTypes.HtmlTag]
   with TagBuilder
 
 trait TagsSvg
-  extends SvgTags[TagBuilder.Tag]
+  extends SvgTags[BuilderTypes.SvgTag]
   with TagBuilder
 
 // all Attributes
@@ -71,12 +69,12 @@ trait Attributes
 
 // Html Attrs
 trait HtmlAttrs
-  extends attrs.HtmlAttrs[BasicAttrBuilder]
-  with reflectedAttrs.ReflectedHtmlAttrs[BuilderTypes.Attribute]
+  extends attrs.HtmlAttrs[BuilderTypes.Attribute]
+  with reflectedAttrs.ReflectedHtmlAttrs[BuilderTypes.ReflectedAttribute]
   with props.Props[BuilderTypes.Property]
-  with canonical.CanonicalComplexHtmlKeys[BuilderTypes.Attribute, BasicAttrBuilder, BuilderTypes.Property]
-  with builders.HtmlAttrBuilder[BasicAttrBuilder]
-  with builders.ReflectedHtmlAttrBuilder[BuilderTypes.Attribute]
+  with canonical.CanonicalComplexHtmlKeys[BuilderTypes.ReflectedAttribute, BuilderTypes.Attribute, BuilderTypes.Property]
+  with builders.HtmlAttrBuilder[BuilderTypes.Attribute]
+  with builders.ReflectedHtmlAttrBuilder[BuilderTypes.ReflectedAttribute]
   with builders.PropBuilder[BuilderTypes.Property] {
 
   override protected def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
@@ -94,16 +92,17 @@ trait HtmlAttrs
     new PropBuilder(key, codec.encode)
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className = new AccumAttrBuilder[String](
+  override lazy val className: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
     "class",
-    reflectedAttr(attrKey = "class", propKey = "className", attrCodec = codecs.StringAsIsCodec, propCodec = codecs.StringAsIsCodec), (v1, v2) => s"$v1 $v2"
+    identity,
+    (v1, v2) => s"$v1 $v2"
   )
 }
 
 // Svg Attrs
 trait SvgAttrs
-  extends attrs.SvgAttrs[BasicAttrBuilder]
-  with builders.SvgAttrBuilder[BasicAttrBuilder] {
+  extends attrs.SvgAttrs[BuilderTypes.Attribute]
+  with builders.SvgAttrBuilder[BuilderTypes.Attribute] {
 
   // According to snabbdom documentation, the namespace can be ignore as it is handled automatically.
   override protected def svgAttr[V](key: String, codec: codecs.Codec[V, String], namespace: Option[String]): BasicAttrBuilder[V] =

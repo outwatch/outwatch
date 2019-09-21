@@ -14,19 +14,33 @@ sealed trait VDomModifier
 object VDomModifier {
   @inline def empty: VDomModifier = EmptyModifier
 
+  @inline def apply(): VDomModifier = empty
+
   @inline def apply[T : Render](t: T): VDomModifier = Render[T].render(t)
 
-  def apply(modifier: VDomModifier, modifier2: VDomModifier): VDomModifier =
-    CompositeModifier(Seq(modifier, modifier2))
+  @inline def apply(modifier: VDomModifier, modifier2: VDomModifier): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2))
 
-  def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifiers: VDomModifier*): VDomModifier =
-    CompositeModifier(Seq(modifier, modifier2, modifier3, CompositeModifier(modifiers)))
+  @inline def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2, modifier3))
+
+  @inline def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifier4: VDomModifier): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4))
+
+  @inline def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifier4: VDomModifier, modifier5: VDomModifier): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5))
+
+  @inline def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifier4: VDomModifier, modifier5: VDomModifier, modifier6: VDomModifier): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6))
+
+  @inline def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifier4: VDomModifier, modifier5: VDomModifier, modifier6: VDomModifier, modifier7: VDomModifier, modifiers: VDomModifier*): VDomModifier =
+    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, CompositeModifier(modifiers)))
 
   @inline def delay[T : Render](modifier: => T): VDomModifier = SyncEffectModifier(() => VDomModifier(modifier))
 
   implicit object monoid extends Monoid[VDomModifier] {
-    def empty: VDomModifier = VDomModifier.empty
-    def combine(x: VDomModifier, y: VDomModifier): VDomModifier = VDomModifier(x, y)
+    @inline def empty: VDomModifier = VDomModifier.empty
+    @inline def combine(x: VDomModifier, y: VDomModifier): VDomModifier = VDomModifier(x, y)
   }
 
   implicit object subscriptionOwner extends SubscriptionOwner[VDomModifier] {
@@ -109,23 +123,23 @@ sealed trait BasicVNode extends VNode {
   def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VDomModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
   @inline def thunkStatic(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = thunkConditional(key)(false)(renderFn)
 }
-final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VDomModifier) extends VNode {
+@inline final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VDomModifier) extends VNode {
   @inline def apply(args: VDomModifier*): ThunkVNode = append(args: _*)
-  @inline def append(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode(args: _*))
-  @inline def prepend(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args :_*))
+  def append(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode(args: _*))
+  def prepend(args: VDomModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args :_*))
 }
-final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRender: Boolean, renderFn: () => VDomModifier) extends VNode {
+@inline final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRender: Boolean, renderFn: () => VDomModifier) extends VNode {
   @inline def apply(args: VDomModifier*): ConditionalVNode = append(args: _*)
-  @inline def append(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args: _*))
-  @inline def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
+  def append(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode(args: _*))
+  def prepend(args: VDomModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
   @inline def apply(args: VDomModifier*): HtmlVNode = append(args: _*)
-  @inline def append(args: VDomModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
-  @inline def prepend(args: VDomModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
+  def append(args: VDomModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
+  def prepend(args: VDomModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VDomModifier]) extends BasicVNode {
   @inline def apply(args: VDomModifier*): SvgVNode = append(args: _*)
-  @inline def append(args: VDomModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
-  @inline def prepend(args: VDomModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
+  def append(args: VDomModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
+  def prepend(args: VDomModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
 }

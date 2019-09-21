@@ -37,7 +37,7 @@ object Subscription {
         current = subscription
       }
 
-    @inline def cancel(): Unit =
+    def cancel(): Unit =
       if (current != null) {
         current.cancel()
         current = null

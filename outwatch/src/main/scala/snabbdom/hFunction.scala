@@ -203,7 +203,7 @@ object VNodeProxy {
     text = string
   }
 
-  def updateInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
+  def updateInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source ne target) {
     target.sel = source.sel
     target.key = source.key
     target.data = source.data
@@ -215,7 +215,7 @@ object VNodeProxy {
     target._unmount = source._unmount
   }
 
-  def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source != target) {
+  def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source ne target) {
     updateInto(source, target)
     target._update = source._update
     target._args = source._args

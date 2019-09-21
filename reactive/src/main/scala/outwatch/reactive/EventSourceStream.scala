@@ -12,7 +12,7 @@ import scala.scalajs.js
 // might be async and event handling/bubbling is done sync.
 
 final class EventSourceStream[+EV] private(target: dom.EventTarget, eventType: String, operator: EV => Unit) extends SourceStream[EV] {
-  private lazy val base: SourceStream[EV] = SourceStream.create { sink =>
+  private val base: SourceStream[EV] = SourceStream.create { sink =>
     var isCancel = false
 
     val eventHandler: js.Function1[EV, Unit] = { v =>

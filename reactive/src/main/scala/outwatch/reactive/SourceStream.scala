@@ -92,7 +92,7 @@ object SourceStream {
     }
   }
 
-  def interval(delay: FiniteDuration): SourceStream[Long] = intervalMillis(delay.toMillis.toInt)
+  @inline def interval(delay: FiniteDuration): SourceStream[Long] = intervalMillis(delay.toMillis.toInt)
 
   def intervalMillis(delay: Int): SourceStream[Long] = new SourceStream[Long] {
     def subscribe[G[_]: Sink](sink: G[_ >: Long]): Subscription = {
@@ -117,11 +117,11 @@ object SourceStream {
     }
   }
 
-  @inline def concatFuture[T](values: Future[T]*): SourceStream[T] = fromIterable(values).concatMapFuture(identity)
+  def concatFuture[T](values: Future[T]*): SourceStream[T] = fromIterable(values).concatMapFuture(identity)
 
-  @inline def concatAsync[F[_] : Effect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).concatMapAsync(identity)
+  def concatAsync[F[_] : Effect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).concatMapAsync(identity)
 
-  @inline def concatSync[F[_] : RunSyncEffect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).mapSync(identity)
+  def concatSync[F[_] : RunSyncEffect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).mapSync(identity)
 
   def merge[S[_]: Source, A](sources: S[A]*): SourceStream[A] = mergeSeq(sources)
 
@@ -165,7 +165,7 @@ object SourceStream {
     ))
   }
 
-  @inline def recover[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, A]): SourceStream[A] = recoverOption(source)(f andThen (Some(_)))
+  def recover[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, A]): SourceStream[A] = recoverOption(source)(f andThen (Some(_)))
 
   def recoverOption[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
@@ -293,7 +293,7 @@ object SourceStream {
     }
   }
 
-  def debounce[S[_]: Source, A](source: S[A])(duration: FiniteDuration): SourceStream[A] = debounceMillis(source)(duration.toMillis.toInt)
+  @inline def debounce[S[_]: Source, A](source: S[A])(duration: FiniteDuration): SourceStream[A] = debounceMillis(source)(duration.toMillis.toInt)
 
   def debounceMillis[S[_]: Source, A](source: S[A])(duration: Int): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
@@ -311,9 +311,9 @@ object SourceStream {
   }
 
   //TODO setImmediate?
-  def async[S[_]: Source, A](source: S[A]): SourceStream[A] = delayMillis(source)(0)
+  @inline def async[S[_]: Source, A](source: S[A]): SourceStream[A] = delayMillis(source)(0)
 
-  def delay[S[_]: Source, A](source: S[A])(duration: FiniteDuration): SourceStream[A] = delayMillis(source)(duration.toMillis.toInt)
+  @inline def delay[S[_]: Source, A](source: S[A])(duration: FiniteDuration): SourceStream[A] = delayMillis(source)(duration.toMillis.toInt)
 
   def delayMillis[S[_]: Source, A](source: S[A])(duration: Int): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {

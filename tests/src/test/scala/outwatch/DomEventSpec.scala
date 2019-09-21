@@ -300,7 +300,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
       div(
-        button(id := "click", onClick.transformLift(transformer) --> stream),
+        button(id := "click", onClick.transformLifted(transformer) --> stream),
         span(id := "num", state.map(nums => nums.map(num => span(num.toString))))
       )
     }

@@ -65,7 +65,7 @@ private[outwatch] object SeparatedModifiers {
     // the proxies will then have different OutwatchStates and we then need to
     // call the unmount hook of the oldProxy.
     postPatchHook = { (oldProxy, proxy) =>
-      if (proxy._id != oldProxy._id) {
+      if (!NativeModifiers.equalsVNodeIds(proxy._id, oldProxy._id)) {
         oldProxy._unmount.foreach(_(oldProxy))
       }
     }: Hooks.HookPairFn
@@ -125,8 +125,8 @@ private[outwatch] object SeparatedModifiers {
         ()
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
-        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldProxy, proxy) =>
-          if (proxy._id != oldProxy._id) {
+        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
+          if (!NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
             h.trigger(proxy)
           }
         })
@@ -137,14 +137,14 @@ private[outwatch] object SeparatedModifiers {
         ()
       case h: DomUpdateHook =>
         postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
-          if (proxy._id == oldproxy._id) {
+          if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
             h.trigger(proxy, proxy)
           }
         })
         ()
       case h: DomPreUpdateHook =>
         prePatchHook = createHooksPair[VNodeProxy](prePatchHook, { (oldproxy, proxy) =>
-          if (proxy._id == oldproxy._id) {
+          if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
             h.trigger(oldproxy, proxy)
           }
         })
@@ -292,7 +292,7 @@ private[outwatch] object NativeModifiers {
           h.trigger(p)
         },
         PostPatchHook { (o, p) =>
-          if (o._id != p._id || !triggered) h.trigger(p)
+          if (!triggered || !equalsVNodeIds(o._id, p._id)) h.trigger(p)
           triggered = true
         })
     case h: DomPreUpdateHook =>
@@ -305,7 +305,7 @@ private[outwatch] object NativeModifiers {
           triggered = true
         },
         PrePatchHook { (o, p) =>
-          if (triggered && o._id == p._id) h.trigger(o, p)
+          if (triggered && equalsVNodeIds(o._id, p._id)) h.trigger(o, p)
           triggered = true
         }
       )
@@ -319,7 +319,7 @@ private[outwatch] object NativeModifiers {
           triggered = true
         },
         PostPatchHook { (o, p) =>
-          if (triggered && o._id == p._id) h.trigger(o, p)
+          if (triggered && equalsVNodeIds(o._id, p._id)) h.trigger(o, p)
           triggered = true
         }
       )
@@ -334,14 +334,19 @@ private[outwatch] object NativeModifiers {
         h,
         InsertHook { _ => triggered = true },
         UpdateHook { (o, p) =>
-          if (triggered && o._id == p._id) isOpen = false
+          if (triggered && equalsVNodeIds(o._id, p._id)) isOpen = false
           triggered = true
         },
         NextVDomModifier(UpdateHook { (o, p) =>
-          if (isOpen && o._id == p._id) h.trigger(p)
+          if (isOpen && equalsVNodeIds(o._id, p._id)) h.trigger(p)
           isOpen = true
         })
       )
+  }
+
+  @inline def equalsVNodeIds(oid: js.UndefOr[Int], nid: js.UndefOr[Int]): Boolean = {
+    // Just doing oid == nid in scala does boxes-runtime equals
+    oid.fold(nid.isEmpty)(oid => nid.fold(false)(_ == oid))
   }
 }
 

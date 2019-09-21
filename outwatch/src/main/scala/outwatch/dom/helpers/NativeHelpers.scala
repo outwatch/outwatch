@@ -18,14 +18,20 @@ private[outwatch] object NativeHelpers {
 
   @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
-  @inline def appendSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = other match {
-    case wrappedOther:js.WrappedArray[T] => source.concat(wrappedOther.array)
-    case _                               => source ++ other
+  @noinline def appendSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
+    case wrappedOther:js.WrappedArray[T] =>
+      if (source.isEmpty) wrappedOther.array else source.concat(wrappedOther.array)
+    case _ =>
+      val arr = new js.Array[T]()
+      source.foreach(arr.push(_))
+      other.foreach(arr.push(_))
+      arr
   }
 
-  @inline def prependSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = other match {
-    case wrappedOther:js.WrappedArray[T] => wrappedOther.array.concat(source)
-    case _                               =>
+  @noinline def prependSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
+    case wrappedOther:js.WrappedArray[T] =>
+      if (source.isEmpty) wrappedOther.array else wrappedOther.array.concat(source)
+    case _ =>
       val arr = new js.Array[T]()
       other.foreach(arr.push(_))
       source.foreach(arr.push(_))

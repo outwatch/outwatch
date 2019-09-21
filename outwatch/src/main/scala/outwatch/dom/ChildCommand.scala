@@ -1,6 +1,5 @@
 package outwatch.dom
 
-import cats.implicits._
 import org.scalajs.dom.Element
 import outwatch.dom.interpreter.SnabbdomOps
 import outwatch.reactive.SourceStream

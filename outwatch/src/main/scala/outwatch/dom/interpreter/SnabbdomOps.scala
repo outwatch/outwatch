@@ -179,7 +179,7 @@ private[outwatch] object SnabbdomOps {
         PostPatchHook { (o, p) =>
           VNodeProxy.copyInto(p, proxy)
           proxy._update.foreach(_(proxy))
-          if (o._id != p._id) {
+          if (!NativeModifiers.equalsVNodeIds(o._id, p._id)) {
             isActive = true
             start()
           } else if (isActive) {

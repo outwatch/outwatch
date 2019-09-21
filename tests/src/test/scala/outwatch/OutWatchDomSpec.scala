@@ -2228,7 +2228,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     var incCounter =  0
     var mapCounter = 0
-    val innerMod  = onClick.transform(_ => clicks.map { c => mapCounter += 1; c }) foreach { incCounter += 1 }
+    val innerMod  = onClick.transformLift(_ => clicks.map { c => mapCounter += 1; c }) foreach { incCounter += 1 }
     val modHandler = Handler.unsafe[VDomModifier](innerMod)
 
     val innerNode = div(modHandler)
