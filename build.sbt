@@ -6,7 +6,7 @@ inThisBuild(Seq(
 
   organization := "io.github.outwatch",
 
-  scalaVersion := "2.12.9",
+  scalaVersion := "2.12.10",
 
   crossScalaVersions := Seq("2.12.10", "2.13.0"),
 
