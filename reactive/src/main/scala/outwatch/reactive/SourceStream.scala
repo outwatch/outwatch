@@ -54,7 +54,14 @@ object SourceStream {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = produce(LiftSink[F].lift(sink))
   }
 
-  def fromEffect[F[_]: Effect, A](effect: F[A]): SourceStream[A] = new SourceStream[A] {
+  def fromSync[F[_]: RunSyncEffect, A](effect: F[A]): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      Sink[G].onNext(sink)(RunSyncEffect[F].unsafeRun(effect))
+      Subscription.empty
+    }
+  }
+
+  def fromAsync[F[_]: Effect, A](effect: F[A]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       //TODO: proper cancel effects?
       var isCancel = false
@@ -110,6 +117,12 @@ object SourceStream {
     }
   }
 
+  @inline def concatFuture[T](values: Future[T]*): SourceStream[T] = fromIterable(values).concatMapFuture(identity)
+
+  @inline def concatAsync[F[_] : Effect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).concatMapAsync(identity)
+
+  @inline def concatSync[F[_] : RunSyncEffect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).mapSync(identity)
+
   def merge[S[_]: Source, A](sources: S[A]*): SourceStream[A] = mergeSeq(sources)
 
   def mergeSeq[S[_]: Source, A](sources: Seq[S[A]]): SourceStream[A] = new SourceStream[A] {
@@ -152,13 +165,15 @@ object SourceStream {
     ))
   }
 
-  def recover[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, A]): SourceStream[A] = new SourceStream[A] {
+  @inline def recover[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, A]): SourceStream[A] = recoverOption(source)(f andThen (Some(_)))
+
+  def recoverOption[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       Source[F].subscribe(source)(SinkObserver.create[A](
         Sink[G].onNext(sink),
         { error =>
           f.lift(error) match {
-            case Some(v) => Sink[G].onNext(sink)(v)
+            case Some(v) => v.foreach(Sink[G].onNext(sink)(_))
             case None => Sink[G].onError(sink)(error)
           }
         }
@@ -510,6 +525,7 @@ object SourceStream {
     @inline def filter(f: A => Boolean): SourceStream[A] = SourceStream.filter(source)(f)
     @inline def scan[B](seed: B)(f: (B, A) => B): SourceStream[B] = SourceStream.scan(source)(seed)(f)
     @inline def recover(f: PartialFunction[Throwable, A]): SourceStream[A] = SourceStream.recover(source)(f)
+    @inline def recoverOption(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = SourceStream.recoverOption(source)(f)
     @inline def share: SourceStream[A] = SourceStream.share(source)
     @inline def prepend(value: A): SourceStream[A] = SourceStream.prepend(source)(value)
     @inline def startWith(values: Iterable[A]): SourceStream[A] = SourceStream.startWith(source)(values)

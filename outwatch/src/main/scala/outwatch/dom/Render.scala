@@ -85,10 +85,10 @@ object Render {
     SyncEffectModifier(() => VDomModifier(RunSyncEffect[F].unsafeRun(effect)))
 
   implicit def effectRender[F[_] : Effect]: Render[F[VDomModifier]] = (effect: F[VDomModifier]) =>
-    StreamModifier(SourceStream.fromEffect(effect).subscribe(_))
+    StreamModifier(SourceStream.fromAsync(effect).subscribe(_))
 
   implicit def effectRenderAs[F[_] : Effect, T : Render]: Render[F[T]] = (effect: F[T]) =>
-    StreamModifier(SourceStream.fromEffect(effect).map(VDomModifier(_)).subscribe(_))
+    StreamModifier(SourceStream.fromAsync(effect).map(VDomModifier(_)).subscribe(_))
 
   implicit object FutureRender extends Render[Future[VDomModifier]] {
     def render(future: Future[VDomModifier]) = future.value match {
