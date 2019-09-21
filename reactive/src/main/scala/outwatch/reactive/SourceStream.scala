@@ -479,6 +479,20 @@ object SourceStream {
     }
   }
 
+  def dropWhile[F[_]: Source, A](source: F[A])(predicate: A => Boolean): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      var finishedDrop = false
+      Source[F].subscribe(source)(SinkObserver.filter[G, A](sink) { v =>
+        if (finishedDrop) true
+        else if (predicate(v)) false
+        else {
+          finishedDrop = true
+          true
+        }
+      })
+    }
+  }
+
   implicit object source extends Source[SourceStream] {
     @inline def subscribe[G[_]: Sink, A](source: SourceStream[A])(sink: G[_ >: A]): Subscription = source.subscribe(sink)
   }
@@ -531,6 +545,7 @@ object SourceStream {
     @inline def startWith(values: Iterable[A]): SourceStream[A] = SourceStream.startWith(source)(values)
     @inline def take(num: Int): SourceStream[A] = SourceStream.take(source)(num)
     @inline def drop(num: Int): SourceStream[A] = SourceStream.drop(source)(num)
+    @inline def dropWhile(predicate: A => Boolean): SourceStream[A] = SourceStream.dropWhile(source)(predicate)
     @inline def withDefaultSubscription[G[_] : Sink](sink: G[A]): SourceStream[A] = SourceStream.withDefaultSubscription(source)(sink)
   }
 }
