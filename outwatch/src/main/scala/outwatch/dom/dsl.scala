@@ -1,4 +1,4 @@
-package outwatch.dom
+  package outwatch.dom
 
 import outwatch.dom.definitions._
 
@@ -8,9 +8,6 @@ object dsl extends Attributes with Tags with Styles {
     object svg extends TagsSvg
   }
   object attributes extends Attributes {
-    object attrs extends HtmlAttrs
-    object events extends Events
-    object outwatch extends OutwatchAttributes
     object svg extends SvgAttrs
   }
   object svg extends SvgAttrs with TagsSvg
