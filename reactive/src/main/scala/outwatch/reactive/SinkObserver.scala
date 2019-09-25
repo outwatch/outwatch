@@ -25,7 +25,7 @@ object SinkObserver {
 
   @inline def lift[F[_] : Sink, A](sink: F[A]): SinkObserver[A] =  create(Sink[F].onNext(sink), Sink[F].onError(sink))
 
-  def create[A](consume: A => Unit, failure: Throwable => Unit = UnhandledErrorReporter.errorSubject.onError): SinkObserver[A] = new SinkObserver[A] {
+  def create[A](consume: A => Unit, failure: Throwable => Unit = UnhandledErrorReporter.errorSubject.onNext): SinkObserver[A] = new SinkObserver[A] {
     def onNext(value: A): Unit = recovered(consume(value), onError)
     def onError(error: Throwable): Unit = failure(error)
   }
@@ -103,7 +103,7 @@ object SinkObserver {
     @inline def contramapFilter[B](f: B => Option[A]): SinkObserver[B] = SinkObserver.contramapFilter(sink)(f)
     @inline def contracollect[B](f: PartialFunction[B, A]): SinkObserver[B] = SinkObserver.contracollect(sink)(f)
     @inline def contrafilter(f: A => Boolean): SinkObserver[A] = SinkObserver.contrafilter(sink)(f)
-    @inline def redirect[F[_] : Source, B]()(f: SourceStream[B] => F[A]): SinkObserver.Connectable[B] = SinkObserver.redirect(sink)(f)
+    @inline def redirect[F[_] : Source, B](f: SourceStream[B] => F[A]): SinkObserver.Connectable[B] = SinkObserver.redirect(sink)(f)
   }
 
   @inline private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }

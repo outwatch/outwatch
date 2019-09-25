@@ -15,7 +15,7 @@ trait MonixReactive {
   implicit object monixVariableSink extends Sink[Var] {
     def onNext[A](sink: Var[A])(value: A): Unit = { sink := value; () }
 
-    def onError[A](sink: Var[A])(error: Throwable): Unit = throw error
+    def onError[A](sink: Var[A])(error: Throwable): Unit = UnhandledErrorReporter.errorSubject.onNext(error)
   }
 
   //TODO: unsafe because of backpressure and ignored ACK
