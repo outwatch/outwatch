@@ -56,7 +56,7 @@ object SourceStream {
 
   def fromSync[F[_]: RunSyncEffect, A](effect: F[A]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      Sink[G].onNext(sink)(RunSyncEffect[F].unsafeRun(effect))
+      recovered(Sink[G].onNext(sink)(RunSyncEffect[F].unsafeRun(effect)), Sink[G].onError(sink)(_))
       Subscription.empty
     }
   }
@@ -122,6 +122,57 @@ object SourceStream {
   def concatAsync[F[_] : Effect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).concatMapAsync(identity)
 
   def concatSync[F[_] : RunSyncEffect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).mapSync(identity)
+
+  def concatFuture[T, S[_] : Source](value: Future[T], source: S[T]): SourceStream[T] = new SourceStream[T] {
+    def subscribe[G[_]: Sink](sink: G[_ >: T]): Subscription = {
+      var isCancel = false
+      val subscription = Subscription.variable()
+
+      value.onComplete { either =>
+        if (!isCancel) {
+          either match {
+            case Success(value) => Sink[G].onNext(sink)(value)
+            case Failure(error) => Sink[G].onError(sink)(error)
+          }
+          subscription() = Source[S].subscribe(source)(sink)
+        }
+      }
+
+      subscription() = Subscription(() => isCancel = true)
+
+      subscription
+    }
+  }
+
+  def concatAsync[F[_] : Effect, T, S[_] : Source](effect: F[T], source: S[T]): SourceStream[T] = new SourceStream[T] {
+    def subscribe[G[_]: Sink](sink: G[_ >: T]): Subscription = {
+      //TODO: proper cancel effects?
+      var isCancel = false
+      val subscription = Subscription.variable()
+
+      Effect[F].runAsync(effect)(either => IO {
+        if (!isCancel) {
+          either match {
+            case Right(value) => Sink[G].onNext(sink)(value)
+            case Left(error)  => Sink[G].onError(sink)(error)
+          }
+          subscription() = Source[S].subscribe(source)(sink)
+        }
+      }).unsafeRunSync()
+
+      subscription() = Subscription(() => isCancel = true)
+
+      subscription
+    }
+  }
+
+
+  def concatSync[F[_] : RunSyncEffect, T, S[_] : Source](effect: F[T], source: S[T]): SourceStream[T] = new SourceStream[T] {
+    def subscribe[G[_]: Sink](sink: G[_ >: T]): Subscription = {
+      recovered(Sink[G].onNext(sink)(RunSyncEffect[F].unsafeRun(effect)), Sink[G].onError(sink)(_))
+      Source[S].subscribe(source)(sink)
+    }
+  }
 
   def merge[S[_]: Source, A](sources: S[A]*): SourceStream[A] = mergeSeq(sources)
 
@@ -550,4 +601,6 @@ object SourceStream {
     @inline def dropWhile(predicate: A => Boolean): SourceStream[A] = SourceStream.dropWhile(source)(predicate)
     @inline def withDefaultSubscription[G[_] : Sink](sink: G[A]): SourceStream[A] = SourceStream.withDefaultSubscription(source)(sink)
   }
+
+  @inline private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }
 }
