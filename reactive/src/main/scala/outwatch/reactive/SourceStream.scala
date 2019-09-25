@@ -461,24 +461,20 @@ object SourceStream {
 
   def share[F[_]: Source, A](source: F[A]): SourceStream[A] = new SourceStream[A] {
     private var currentSubscription: Subscription = null
-    private val subscribers = new js.Array[SinkObserver[A]]
+    private val handler = SinkSourceHandler.publish[A]
 
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      val observer = SinkObserver.lift(sink)
-      subscribers.push(observer)
+      val subscription = handler.subscribe(sink)
 
       if (currentSubscription == null) {
         val variable = Subscription.variable()
         currentSubscription = variable
-        variable() = Source[F].subscribe(source)(SinkObserver.create[A](
-          value => subscribers.foreach(_.onNext(value)),
-          err => subscribers.foreach(_.onError(err)),
-        ))
+        variable() = Source[F].subscribe[SinkObserver, A](source)(handler)
       }
 
       Subscription { () =>
-        JSArrayHelper.removeElement(subscribers)(observer)
-        if (subscribers.isEmpty) {
+        subscription.cancel()
+        if (handler.isEmpty) {
           currentSubscription.cancel()
           currentSubscription = null
         }
