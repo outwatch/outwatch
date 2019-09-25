@@ -461,7 +461,7 @@ object SourceStream {
 
   def share[F[_]: Source, A](source: F[A]): SourceStream[A] = new SourceStream[A] {
     private var currentSubscription: Subscription = null
-    private val handler = SinkSourceHandler.publish[A]
+    private val handler = new SinkSourcePublisher[A,A](identity)
 
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       val subscription = handler.subscribe(sink)

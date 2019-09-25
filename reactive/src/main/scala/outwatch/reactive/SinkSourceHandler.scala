@@ -78,16 +78,16 @@ class SinkSourcePublisher[I, O](convert: I => O) extends SinkSourceHandler[I, O]
 object SinkSourceHandler {
   type Simple[T] = SinkSourceHandler[T,T]
 
-  def apply[O]: SinkSourceVariable[O,O] = new SinkSourceVariable[O, O](js.undefined, identity)
-  def apply[O](seed: O): SinkSourceVariable[O,O] = new SinkSourceVariable[O, O](seed, identity)
+  def apply[O]: Simple[O] = new SinkSourceVariable[O, O](js.undefined, identity)
+  def apply[O](seed: O): Simple[O] = new SinkSourceVariable[O, O](seed, identity)
 
-  def map[I, O](convert: I => O): SinkSourceVariable[I, O] = new SinkSourceVariable[I, O](js.undefined, convert)
-  def map[I, O](seed: I)(convert: I => O): SinkSourceVariable[I, O] = new SinkSourceVariable[I, O](convert(seed), convert)
+  def map[I, O](convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](js.undefined, convert)
+  def map[I, O](seed: I)(convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](convert(seed), convert)
 
   object publish {
-    def apply[O]: SinkSourcePublisher[O,O] = new SinkSourcePublisher[O, O](identity)
+    def apply[O]: Simple[O] = new SinkSourcePublisher[O, O](identity)
 
-    def map[I, O](convert: I => O): SinkSourcePublisher[I, O] = new SinkSourcePublisher[I, O](convert)
+    def map[I, O](convert: I => O): SinkSourceHandler[I, O] = new SinkSourcePublisher[I, O](convert)
   }
 
   @inline def from[SI[_] : Sink, SO[_] : Source, I, O](sink: SI[I], source: SO[O]): SinkSourceHandler[I, O] = new SinkSourceCombinator[SI, SO, I, O](sink, source)
