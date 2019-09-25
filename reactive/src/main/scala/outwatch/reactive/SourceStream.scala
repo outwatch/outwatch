@@ -12,6 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.concurrent.duration.FiniteDuration
 
 trait SourceStream[+A] {
+  //TODO: def subscribe[G[_]: Sink, F[_] : Sync](sink: G[_ >: A]): F[Subscription]
   def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription
 
   @inline final def subscribe(): Subscription = subscribe(SinkObserver.empty)
@@ -90,6 +91,11 @@ object SourceStream {
 
       Subscription(() => isCancel = true)
     }
+  }
+
+  def failed[S[_]: Source, A](source: S[A]): SourceStream[Throwable] = new SourceStream[Throwable] {
+    def subscribe[G[_]: Sink](sink: G[_ >: Throwable]): Subscription =
+      Source[S].subscribe(source)(SinkObserver.create[A](_ => (), Sink[G].onError(sink)(_)))
   }
 
   @inline def interval(delay: FiniteDuration): SourceStream[Long] = intervalMillis(delay.toMillis.toInt)
@@ -480,6 +486,10 @@ object SourceStream {
     }
   }
 
+  @inline def prependSync[S[_]: Source, A, F[_] : RunSyncEffect](source: S[A])(value: F[A]): SourceStream[A] = concatSync[F, A, S](value, source)
+  @inline def prependAsync[S[_]: Source, A, F[_] : Effect](source: S[A])(value: F[A]): SourceStream[A] = concatAsync[F, A, S](value, source)
+  @inline def prependFuture[S[_]: Source, A](source: S[A])(value: Future[A]): SourceStream[A] = concatFuture[A, S](value, source)
+
   def prepend[F[_]: Source, A](source: F[A])(value: A): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       Sink[G].onNext(sink)(value)
@@ -595,6 +605,9 @@ object SourceStream {
     @inline def recoverOption(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = SourceStream.recoverOption(source)(f)
     @inline def share: SourceStream[A] = SourceStream.share(source)
     @inline def prepend(value: A): SourceStream[A] = SourceStream.prepend(source)(value)
+    @inline def prependSync[F[_] : RunSyncEffect](value: F[A]): SourceStream[A] = SourceStream.prependSync(source)(value)
+    @inline def prependAsync[F[_] : Effect](value: F[A]): SourceStream[A] = SourceStream.prependAsync(source)(value)
+    @inline def prependFuture(value: Future[A]): SourceStream[A] = SourceStream.prependFuture(source)(value)
     @inline def startWith(values: Iterable[A]): SourceStream[A] = SourceStream.startWith(source)(values)
     @inline def take(num: Int): SourceStream[A] = SourceStream.take(source)(num)
     @inline def drop(num: Int): SourceStream[A] = SourceStream.drop(source)(num)
