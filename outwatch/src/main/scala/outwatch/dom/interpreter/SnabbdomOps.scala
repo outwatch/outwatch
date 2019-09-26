@@ -106,7 +106,7 @@ private[outwatch] object SnabbdomOps {
       var proxy: VNodeProxy = null
       var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
       var prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
-      var lastTimeout: Option[Int] = None
+      var lastTimeout: js.UndefOr[Int] = js.undefined
       var isActive: Boolean = false
 
       var patchIsRunning = false
@@ -134,12 +134,12 @@ private[outwatch] object SnabbdomOps {
 
       def resetTimeout(): Unit = {
         lastTimeout.foreach(clearImmediateRef)
-        lastTimeout = None
+        lastTimeout = js.undefined
       }
 
       def asyncDoPatch(): Unit = {
         resetTimeout()
-        lastTimeout = Some(setImmediateRef(() => doPatch()))
+        lastTimeout = setImmediateRef(() => doPatch())
       }
 
       def invokeDoPatch(async: Boolean): Unit = if (isActive) {
