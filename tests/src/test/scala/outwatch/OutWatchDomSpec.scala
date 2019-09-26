@@ -1714,6 +1714,171 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
+  it should "work for not overpatching keep proxy from previous patch" in {
+    val handler = Handler.unsafe[Int]
+    val handler2 = Handler.unsafe[Int]
+
+    var inserted = 0
+    var destroyed = 0
+    var patched = 0
+    var inserted2 = 0
+    var uninserted2 = 0
+    var patched2 = 0
+    var insertedHeinz = 0
+    var uninsertedHeinz = 0
+    var patchedHeinz = 0
+    var insertedKlara = 0
+    var uninsertedKlara = 0
+    var patchedKlara = 0
+
+    val node = div(
+      id := "strings",
+      handler.map(i => if (i == 0) VDomModifier.empty else div(i, onSnabbdomPostPatch.foreach { patched += 1 }, onSnabbdomInsert.foreach { inserted += 1 }, onSnabbdomDestroy.foreach{  destroyed += 1 })),
+      div("heinz", onSnabbdomPostPatch.foreach { patchedHeinz += 1 }, onSnabbdomInsert.foreach { insertedHeinz += 1 }, onSnabbdomDestroy.foreach{  uninsertedHeinz += 1 }),
+      handler2.map(i => if (i == 0) VDomModifier.empty else div(i, onSnabbdomPostPatch.foreach { patched2 += 1 }, onSnabbdomInsert.foreach { inserted2 += 1 }, onSnabbdomDestroy.foreach{  uninserted2 += 1 })),
+      div("klara", onSnabbdomPostPatch.foreach { patchedKlara += 1 }, onSnabbdomInsert.foreach { insertedKlara += 1 }, onSnabbdomDestroy.foreach{  uninsertedKlara += 1 }),
+    )
+
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
+
+      val element = document.getElementById("strings")
+
+      element.innerHTML shouldBe """<div>heinz</div><div>klara</div>"""
+      inserted shouldBe 0
+      destroyed shouldBe 0
+      patched shouldBe 0
+      inserted2 shouldBe 0
+      uninserted2 shouldBe 0
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler.onNext(1)
+      element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>klara</div>"""
+      inserted shouldBe 1
+      destroyed shouldBe 0
+      patched shouldBe 0
+      inserted2 shouldBe 0
+      uninserted2 shouldBe 0
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler2.onNext(99)
+      element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>99</div><div>klara</div>"""
+      inserted shouldBe 1
+      destroyed shouldBe 0
+      patched shouldBe 0
+      inserted2 shouldBe 1
+      uninserted2 shouldBe 0
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler2.onNext(0)
+      element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>klara</div>"""
+      inserted shouldBe 1
+      destroyed shouldBe 0
+      patched shouldBe 0
+      inserted2 shouldBe 1
+      uninserted2 shouldBe 1
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler.onNext(0)
+      element.innerHTML shouldBe """<div>heinz</div><div>klara</div>"""
+      inserted shouldBe 1
+      destroyed shouldBe 1
+      patched shouldBe 0
+      inserted2 shouldBe 1
+      uninserted2 shouldBe 1
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler2.onNext(3)
+      element.innerHTML shouldBe """<div>heinz</div><div>3</div><div>klara</div>"""
+      inserted shouldBe 1
+      destroyed shouldBe 1
+      patched shouldBe 0
+      inserted2 shouldBe 2
+      uninserted2 shouldBe 1
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler.onNext(2)
+      element.innerHTML shouldBe """<div>2</div><div>heinz</div><div>3</div><div>klara</div>"""
+      inserted shouldBe 2
+      destroyed shouldBe 1
+      patched shouldBe 0
+      inserted2 shouldBe 2
+      uninserted2 shouldBe 1
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler.onNext(18)
+      element.innerHTML shouldBe """<div>18</div><div>heinz</div><div>3</div><div>klara</div>"""
+      inserted shouldBe 2
+      destroyed shouldBe 1
+      patched shouldBe 1
+      inserted2 shouldBe 2
+      uninserted2 shouldBe 1
+      patched2 shouldBe 0
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+
+      handler2.onNext(19)
+      element.innerHTML shouldBe """<div>18</div><div>heinz</div><div>19</div><div>klara</div>"""
+      inserted shouldBe 2
+      destroyed shouldBe 1
+      patched shouldBe 1
+      inserted2 shouldBe 2
+      uninserted2 shouldBe 1
+      patched2 shouldBe 1
+      insertedHeinz shouldBe 1
+      uninsertedHeinz shouldBe 0
+      patchedHeinz shouldBe 0
+      insertedKlara shouldBe 1
+      uninsertedKlara shouldBe 0
+      patchedKlara shouldBe 0
+    }
+  }
+
   it should "work for nested observables with seq modifiers " in {
 
     Handler.createF[IO]("b").flatMap { innerHandler =>
