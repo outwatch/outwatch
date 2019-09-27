@@ -134,6 +134,8 @@ object SourceStream {
       var isCancel = false
       val subscription = Subscription.variable()
 
+      subscription() = Subscription(() => isCancel = true)
+
       value.onComplete { either =>
         if (!isCancel) {
           either match {
@@ -143,8 +145,6 @@ object SourceStream {
           subscription() = Source[S].subscribe(source)(sink)
         }
       }
-
-      subscription() = Subscription(() => isCancel = true)
 
       subscription
     }
@@ -156,6 +156,8 @@ object SourceStream {
       var isCancel = false
       val subscription = Subscription.variable()
 
+      subscription() = Subscription(() => isCancel = true)
+
       Effect[F].runAsync(effect)(either => IO {
         if (!isCancel) {
           either match {
@@ -165,8 +167,6 @@ object SourceStream {
           subscription() = Source[S].subscribe(source)(sink)
         }
       }).unsafeRunSync()
-
-      subscription() = Subscription(() => isCancel = true)
 
       subscription
     }

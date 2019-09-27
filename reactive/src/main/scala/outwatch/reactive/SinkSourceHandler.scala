@@ -27,8 +27,8 @@ class SinkSourceVariable[I, O](private var current: js.UndefOr[O], convert: I =>
 
   def subscribe[G[_] : Sink](sink: G[_ >: O]): Subscription = {
     val observer = SinkObserver.lift(sink)
-    current.foreach(observer.onNext)
     subscribers.push(observer)
+    current.foreach(observer.onNext)
     Subscription { () =>
       if (isRunning) subscribers = subscribers.filter(_ != observer)
       else JSArrayHelper.removeElement(subscribers)(observer)
