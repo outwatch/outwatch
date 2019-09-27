@@ -459,22 +459,27 @@ object SourceStream {
     }
   }
 
-  def share[F[_]: Source, A](source: F[A]): SourceStream[A] = new SourceStream[A] {
+  @inline def share[F[_]: Source, A](source: F[A]): SourceStream[A] = pipeThrough(source)(SinkSourceHandler.publish[A])
+  @inline def shareWithLatest[F[_]: Source, A](source: F[A]): SourceStream[A] = pipeThrough(source)(SinkSourceHandler[A])
+
+  def pipeThrough[F[_]: Source, A, S[_] : Source : Sink](source: F[A])(pipe: S[A]): SourceStream[A] = new SourceStream[A] {
+    private var subscribers = 0
     private var currentSubscription: Subscription = null
-    private val handler = new SinkSourcePublisher[A,A](identity)
 
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      val subscription = handler.subscribe(sink)
+      subscribers += 1
+      val subscription = Source[S].subscribe(pipe)(sink)
 
       if (currentSubscription == null) {
         val variable = Subscription.variable()
         currentSubscription = variable
-        variable() = Source[F].subscribe[SinkObserver, A](source)(handler)
+        variable() = Source[F].subscribe(source)(pipe)
       }
 
       Subscription { () =>
         subscription.cancel()
-        if (handler.isEmpty) {
+        subscribers -= 1
+        if (subscribers == 0) {
           currentSubscription.cancel()
           currentSubscription = null
         }
@@ -600,6 +605,7 @@ object SourceStream {
     @inline def recover(f: PartialFunction[Throwable, A]): SourceStream[A] = SourceStream.recover(source)(f)
     @inline def recoverOption(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = SourceStream.recoverOption(source)(f)
     @inline def share: SourceStream[A] = SourceStream.share(source)
+    @inline def shareWithLatest: SourceStream[A] = SourceStream.shareWithLatest(source)
     @inline def prepend(value: A): SourceStream[A] = SourceStream.prepend(source)(value)
     @inline def prependSync[F[_] : RunSyncEffect](value: F[A]): SourceStream[A] = SourceStream.prependSync(source)(value)
     @inline def prependAsync[F[_] : Effect](value: F[A]): SourceStream[A] = SourceStream.prependAsync(source)(value)
