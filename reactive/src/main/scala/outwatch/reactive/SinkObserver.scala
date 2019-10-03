@@ -32,45 +32,46 @@ object SinkObserver {
 
   @inline def combine[F[_] : Sink, A](sinks: F[A]*): SinkObserver[A] = combineSeq(sinks)
 
-  def combineSeq[F[_] : Sink, A](sinks: Seq[F[A]]): SinkObserver[A] = new SinkObserver[A] {
-    def onNext(value: A): Unit = {
-      sinks.foreach(Sink[F].onNext(_)(value))
-    }
-    def onError(error: Throwable): Unit = {
-      sinks.foreach(Sink[F].onError(_)(error))
-    }
-  }
+  def combineSeq[F[_] : Sink, A](sinks: Seq[F[A]]): SinkObserver[A] = SinkObserver.create[A](
+    value => sinks.foreach(Sink[F].onNext(_)(value)),
+    error => sinks.foreach(Sink[F].onError(_)(error)),
+  )
 
-  def combineVaried[F[_] : Sink, G[_] : Sink, A](sinkA: F[A], sinkB: G[A]): SinkObserver[A] = new SinkObserver[A] {
-    def onNext(value: A): Unit = {
+  def combineVaried[F[_] : Sink, G[_] : Sink, A](sinkA: F[A], sinkB: G[A]): SinkObserver[A] = SinkObserver.create[A](
+    { value =>
       Sink[F].onNext(sinkA)(value)
       Sink[G].onNext(sinkB)(value)
-    }
-    def onError(error: Throwable): Unit = {
+    },
+    { error =>
       Sink[F].onError(sinkA)(error)
       Sink[G].onError(sinkB)(error)
-    }
-  }
+    },
+  )
 
-  def contramap[F[_] : Sink, A, B](sink: F[A])(f: B => A): SinkObserver[B] = new SinkObserver[B] {
-    def onNext(value: B): Unit = recovered(Sink[F].onNext(sink)(f(value)), onError)
-    def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
-  }
+  def contramap[F[_] : Sink, A, B](sink: F[_ >: A])(f: B => A): SinkObserver[B] = SinkObserver.create[B](
+    value => Sink[F].onNext(sink)(f(value)),
+    error => Sink[F].onError(sink)(error),
+  )
 
-  def contramapFilter[F[_] : Sink, A, B](sink: F[A])(f: B => Option[A]): SinkObserver[B] = new SinkObserver[B] {
-    def onNext(value: B): Unit = recovered(f(value).foreach(Sink[F].onNext(sink)), onError)
-    def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
-  }
+  def contramapFilter[F[_] : Sink, A, B](sink: F[_ >: A])(f: B => Option[A]): SinkObserver[B] = SinkObserver.create[B](
+    value => f(value).foreach(Sink[F].onNext(sink)),
+    error => Sink[F].onError(sink)(error),
+  )
 
-  def contracollect[F[_] : Sink, A, B](sink: F[A])(f: PartialFunction[B, A]): SinkObserver[B] = new SinkObserver[B] {
-    def onNext(value: B): Unit = recovered({ f.runWith(Sink[F].onNext(sink))(value); () }, onError)
-    def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
-  }
+  def contracollect[F[_] : Sink, A, B](sink: F[_ >: A])(f: PartialFunction[B, A]): SinkObserver[B] = SinkObserver.create[B](
+    value => { f.runWith(Sink[F].onNext(sink))(value); () },
+    error => Sink[F].onError(sink)(error),
+  )
 
-  def contrafilter[F[_] : Sink, A](sink: F[_ >: A])(f: A => Boolean): SinkObserver[A] = new SinkObserver[A] {
-    def onNext(value: A): Unit = recovered(if (f(value)) Sink[F].onNext(sink)(value), onError)
-    def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
-  }
+  def contrafilter[F[_] : Sink, A](sink: F[_ >: A])(f: A => Boolean): SinkObserver[A] = SinkObserver.create[A](
+    value => if (f(value)) Sink[F].onNext(sink)(value),
+    error => Sink[F].onError(sink)(error),
+  )
+
+  def doOnError[F[_] : Sink, A](sink: F[_ >: A])(f: Throwable => Unit): SinkObserver[A] = SinkObserver.create[A](
+    value => Sink[F].onNext(sink)(value),
+    error => f(error),
+  )
 
   def redirect[F[_] : Sink, G[_] : Source, A, B](sink: F[_ >: A])(transform: SourceStream[B] => G[A]): Connectable[B] = {
     val handler = SinkSourceHandler.publish[B]
@@ -84,7 +85,6 @@ object SinkObserver {
 
   implicit object sink extends Sink[SinkObserver] {
     @inline def onNext[A](sink: SinkObserver[A])(value: A): Unit = sink.onNext(value)
-
     @inline def onError[A](sink: SinkObserver[A])(error: Throwable): Unit = sink.onError(error)
   }
 
@@ -106,5 +106,5 @@ object SinkObserver {
     @inline def redirect[F[_] : Source, B](f: SourceStream[B] => F[A]): SinkObserver.Connectable[B] = SinkObserver.redirect(sink)(f)
   }
 
-  @inline private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }
+  private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }
 }

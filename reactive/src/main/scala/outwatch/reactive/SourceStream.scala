@@ -8,19 +8,15 @@ import cats.effect.{ Effect, IO }
 import scala.scalajs.js
 import scala.util.{ Success, Failure, Try }
 import scala.util.control.NonFatal
-import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.FiniteDuration
+
 
 trait SourceStream[+A] {
   //TODO: def subscribe[G[_]: Sink, F[_] : Sync](sink: G[_ >: A]): F[Subscription]
   def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription
-
-  @inline final def subscribe(): Subscription = subscribe(SinkObserver.empty)
-
-  @inline final def foreach(f: A => Unit): Subscription = subscribe(SinkObserver.create(f))
 }
 object SourceStream {
-
   // Only one execution context in javascript that is a queued execution
   // context using the javascript event loop. We skip the implicit execution
   // context and just fire on the global one. As it is most likely what you
@@ -55,6 +51,16 @@ object SourceStream {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = produce(LiftSink[F].lift(sink))
   }
 
+  def fromTry[A](value: Try[A]): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      value match {
+        case Success(a) => Sink[G].onNext(sink)(a)
+        case Failure(error) => Sink[G].onError(sink)(error)
+      }
+      Subscription.empty
+    }
+  }
+
   def fromSync[F[_]: RunSyncEffect, A](effect: F[A]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       recovered(Sink[G].onNext(sink)(RunSyncEffect[F].unsafeRun(effect)), Sink[G].onError(sink)(_))
@@ -78,20 +84,7 @@ object SourceStream {
     }
   }
 
-  def fromFuture[A](future: Future[A]): SourceStream[A] = new SourceStream[A] {
-    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      var isCancel = false
-
-      future.onComplete { either =>
-        if (!isCancel) either match {
-          case Success(value) => Sink[G].onNext(sink)(value)
-          case Failure(error) => Sink[G].onError(sink)(error)
-        }
-      }
-
-      Subscription(() => isCancel = true)
-    }
-  }
+  def fromFuture[A](future: Future[A]): SourceStream[A] = fromAsync(IO.fromFuture(IO.pure(future))(IO.contextShift(global)))
 
   def failed[S[_]: Source, A](source: S[A]): SourceStream[Throwable] = new SourceStream[Throwable] {
     def subscribe[G[_]: Sink](sink: G[_ >: Throwable]): Subscription =
@@ -123,40 +116,20 @@ object SourceStream {
     }
   }
 
-  def concatFuture[T](values: Future[T]*): SourceStream[T] = fromIterable(values).concatMapFuture(identity)
-
   def concatAsync[F[_] : Effect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).concatMapAsync(identity)
 
   def concatSync[F[_] : RunSyncEffect, T](effects: F[T]*): SourceStream[T] = fromIterable(effects).mapSync(identity)
 
-  def concatFuture[T, S[_] : Source](value: Future[T], source: S[T]): SourceStream[T] = new SourceStream[T] {
-    def subscribe[G[_]: Sink](sink: G[_ >: T]): Subscription = {
-      var isCancel = false
-      val subscription = Subscription.variable()
-
-      subscription() = Subscription(() => isCancel = true)
-
-      value.onComplete { either =>
-        if (!isCancel) {
-          either match {
-            case Success(value) => Sink[G].onNext(sink)(value)
-            case Failure(error) => Sink[G].onError(sink)(error)
-          }
-          subscription() = Source[S].subscribe(source)(sink)
-        }
-      }
-
-      subscription
-    }
-  }
+  def concatFuture[T](values: Future[T]*): SourceStream[T] = fromIterable(values).concatMapFuture(identity)
 
   def concatAsync[F[_] : Effect, T, S[_] : Source](effect: F[T], source: S[T]): SourceStream[T] = new SourceStream[T] {
     def subscribe[G[_]: Sink](sink: G[_ >: T]): Subscription = {
       //TODO: proper cancel effects?
       var isCancel = false
-      val subscription = Subscription.variable()
+      val consecutive = Subscription.consecutive()
 
-      subscription() = Subscription(() => isCancel = true)
+      consecutive += (() => Subscription(() => isCancel = true))
+      consecutive += (() => Source[S].subscribe(source)(sink))
 
       Effect[F].runAsync(effect)(either => IO {
         if (!isCancel) {
@@ -164,14 +137,15 @@ object SourceStream {
             case Right(value) => Sink[G].onNext(sink)(value)
             case Left(error)  => Sink[G].onError(sink)(error)
           }
-          subscription() = Source[S].subscribe(source)(sink)
+          consecutive.switch()
         }
       }).unsafeRunSync()
 
-      subscription
+      consecutive
     }
   }
 
+  def concatFuture[T, S[_] : Source](value: Future[T], source: S[T]): SourceStream[T] = concatAsync(IO.fromFuture(IO.pure(value))(IO.contextShift(global)), source)
 
   def concatSync[F[_] : RunSyncEffect, T, S[_] : Source](effect: F[T], source: S[T]): SourceStream[T] = new SourceStream[T] {
     def subscribe[G[_]: Sink](sink: G[_ >: T]): Subscription = {
@@ -184,7 +158,11 @@ object SourceStream {
 
   def mergeSeq[S[_]: Source, A](sources: Seq[S[A]]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      Subscription.compositeFromIterable(sources.map(Source[S].subscribe(_)(sink)))
+      val subscriptions = sources.map { source =>
+        Source[S].subscribe(source)(sink)
+      }
+
+      Subscription.compositeFromIterable(subscriptions)
     }
   }
 
@@ -194,6 +172,28 @@ object SourceStream {
         Source[SA].subscribe(sourceA)(sink),
         Source[SB].subscribe(sourceB)(sink)
       )
+    }
+  }
+
+  def switch[S[_]: Source, A](sources: S[A]*): SourceStream[A] = switchSeq(sources)
+
+  def switchSeq[S[_]: Source, A](sources: Seq[S[A]]): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      val variable = Subscription.variable()
+      sources.foreach { source =>
+        variable() = Source[S].subscribe(source)(sink)
+      }
+
+      variable
+    }
+  }
+
+  def switchVaried[SA[_]: Source, SB[_]: Source, A](sourceA: SA[A], sourceB: SB[A]): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      val variable = Subscription.variable()
+      variable() = Source[SA].subscribe(sourceA)(sink)
+      variable() = Source[SB].subscribe(sourceB)(sink)
+      variable
     }
   }
 
@@ -226,15 +226,12 @@ object SourceStream {
 
   def recoverOption[F[_]: Source, A](source: F[A])(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      Source[F].subscribe(source)(SinkObserver.create[A](
-        Sink[G].onNext(sink),
-        { error =>
-          f.lift(error) match {
-            case Some(v) => v.foreach(Sink[G].onNext(sink)(_))
-            case None => Sink[G].onError(sink)(error)
-          }
+      Source[F].subscribe(source)(SinkObserver.doOnError(sink) { error =>
+        f.lift(error) match {
+          case Some(v) => v.foreach(Sink[G].onNext(sink)(_))
+          case None => Sink[G].onError(sink)(error)
         }
-      ))
+      })
     }
   }
 
@@ -244,30 +241,27 @@ object SourceStream {
 
       Sink[G].onNext(sink)(seed)
 
-      Source[F].subscribe(source)(SinkObserver.create[A](
-        { value =>
-          val result = f(state, value)
-          state = result
-          Sink[G].onNext(sink)(result)
-        },
-        Sink[G].onError(sink)
-      ))
+      Source[F].subscribe(source)(SinkObserver.contramap[G, B, A](sink) { value =>
+        val result = f(state, value)
+        state = result
+        result
+      })
     }
   }
 
   def mergeMap[SA[_]: Source, SB[_]: Source, A, B](sourceA: SA[A])(f: A => SB[B]): SourceStream[B] = new SourceStream[B] {
     def subscribe[G[_]: Sink](sink: G[_ >: B]): Subscription = {
-      val subscriptions = Subscription.builder()
+      val builder = Subscription.builder()
 
-      subscriptions += Source[SA].subscribe(sourceA)(SinkObserver.create[A](
+      val subscription = Source[SA].subscribe(sourceA)(SinkObserver.create[A](
         { value =>
           val sourceB = f(value)
-          subscriptions += Source[SB].subscribe(sourceB)(sink)
+          builder += Source[SB].subscribe(sourceB)(sink)
         },
-        Sink[G].onError(sink)
+        Sink[G].onError(sink),
       ))
 
-      subscriptions
+      Subscription.composite(subscription, builder)
     }
   }
 
@@ -280,19 +274,53 @@ object SourceStream {
           val sourceB = f(value)
           current() = Source[SB].subscribe(sourceB)(sink)
         },
-        Sink[G].onError(sink)
+        Sink[G].onError(sink),
       ))
 
       Subscription.composite(current, subscription)
     }
   }
 
+  def concatMapAsync[S[_]: Source, F[_]: Effect, A, B](sourceA: S[A])(f: A => F[B]): SourceStream[B] = new SourceStream[B] {
+    def subscribe[G[_]: Sink](sink: G[_ >: B]): Subscription = {
+      val consecutive = Subscription.consecutive()
+
+      val subscription = Source[S].subscribe(sourceA)(SinkObserver.create[A](
+        { value =>
+          val effect = f(value)
+          consecutive += { () =>
+            //TODO: proper cancel effects?
+            var isCancel = false
+            Effect[F].runAsync(effect)(either => IO {
+              if (!isCancel) {
+                either match {
+                  case Right(value) => Sink[G].onNext(sink)(value)
+                  case Left(error)  => Sink[G].onError(sink)(error)
+                }
+                consecutive.switch()
+              }
+            }).unsafeRunSync()
+
+            Subscription(() => isCancel = true)
+          }
+        },
+        Sink[G].onError(sink),
+      ))
+
+      Subscription.composite(subscription, consecutive)
+    }
+  }
+
+  @inline def concatMapFuture[S[_]: Source, A, B](source: S[A])(f: A => Future[B]): SourceStream[B] = concatMapAsync(source)(v => IO.fromFuture(IO.pure(f(v)))(IO.contextShift(global)))
+
+  @inline def mapSync[S[_]: Source, F[_]: RunSyncEffect, A, B](source: S[A])(f: A => F[B]): SourceStream[B] = map(source)(v => RunSyncEffect[F].unsafeRun(f(v)))
+
   @inline def combineLatest[SA[_]: Source, SB[_]: Source, A, B](sourceA: SA[A])(sourceB: SB[B]): SourceStream[(A,B)] = combineLatestMap(sourceA)(sourceB)(_ -> _)
 
   def combineLatestMap[SA[_]: Source, SB[_]: Source, A, B, R](sourceA: SA[A])(sourceB: SB[B])(f: (A, B) => R): SourceStream[R] = new SourceStream[R] {
     def subscribe[G[_]: Sink](sink: G[_ >: R]): Subscription = {
-      var latestA: js.UndefOr[A] = js.undefined
-      var latestB: js.UndefOr[B] = js.undefined
+      var latestA: Option[A] = None
+      var latestB: Option[B] = None
 
       def send(): Unit = for {
         a <- latestA
@@ -302,17 +330,17 @@ object SourceStream {
       Subscription.composite(
         Source[SA].subscribe(sourceA)(SinkObserver.create[A](
           { value =>
-            latestA = value
+            latestA = Some(value)
             send()
           },
-          Sink[G].onError(sink)
+          Sink[G].onError(sink),
         )),
         Source[SB].subscribe(sourceB)(SinkObserver.create[B](
           { value =>
-            latestB = value
+            latestB = Some(value)
             send()
           },
-          Sink[G].onError(sink)
+          Sink[G].onError(sink),
         ))
       )
     }
@@ -320,16 +348,16 @@ object SourceStream {
 
   def withLatestFrom[SA[_]: Source, SB[_]: Source, A, B, R](source: SA[A])(latest: SB[B])(f: (A, B) => R): SourceStream[R] = new SourceStream[R] {
     def subscribe[G[_]: Sink](sink: G[_ >: R]): Subscription = {
-      var latestValue: js.UndefOr[B] = js.undefined
+      var latestValue: Option[B] = None
 
       Subscription.composite(
         Source[SA].subscribe(source)(SinkObserver.create[A](
           value => latestValue.foreach(latestValue => Sink[G].onNext(sink)(f(value, latestValue))),
-          Sink[G].onError(sink)
+          Sink[G].onError(sink),
         )),
         Source[SB].subscribe(latest)(SinkObserver.create[B](
-          value => latestValue = value,
-          Sink[G].onError(sink)
+          value => latestValue = Some(value),
+          Sink[G].onError(sink),
         ))
       )
     }
@@ -345,7 +373,7 @@ object SourceStream {
           counter += 1
           Sink[G].onNext(sink)((value, index))
         },
-        Sink[G].onError(sink)
+        Sink[G].onError(sink),
       ))
     }
   }
@@ -356,14 +384,26 @@ object SourceStream {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       import org.scalajs.dom
       var lastTimeout: js.UndefOr[Int] = js.undefined
+      var isCancel = false
 
-      Source[S].subscribe(source)(SinkObserver.create[A](
-        { value =>
+      Subscription.composite(
+        Subscription { () =>
+          isCancel = true
           lastTimeout.foreach(dom.window.clearTimeout)
-          lastTimeout = dom.window.setTimeout(() => Sink[G].onNext(sink)(value), duration.toDouble)
         },
-        Sink[G].onError(sink)
-      ))
+        Source[S].subscribe(source)(SinkObserver.create[A](
+          { value =>
+            lastTimeout.foreach { id =>
+              dom.window.clearTimeout(id)
+            }
+            lastTimeout = dom.window.setTimeout(
+              () =>  if (!isCancel) Sink[G].onNext(sink)(value),
+              duration.toDouble
+            )
+          },
+          Sink[G].onError(sink),
+        ))
+      )
     }
   }
 
@@ -387,9 +427,12 @@ object SourceStream {
         },
         Source[S].subscribe(source)(SinkObserver.create[A](
           { value =>
-            lastTimeout = dom.window.setTimeout(() => if (!isCancel) Sink[G].onNext(sink)(value), duration.toDouble)
+            lastTimeout = dom.window.setTimeout(
+              () => if (!isCancel) Sink[G].onNext(sink)(value),
+              duration.toDouble
+            )
           },
-          Sink[G].onError(sink)
+          Sink[G].onError(sink),
         ))
       )
     }
@@ -397,53 +440,22 @@ object SourceStream {
 
   def distinct[S[_]: Source, A : Eq](source: S[A]): SourceStream[A] = new SourceStream[A] {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
-      var lastValue: js.UndefOr[A] = js.undefined
+      var lastValue: Option[A] = None
 
       Source[S].subscribe(source)(SinkObserver.create[A](
         { value =>
             val shouldSend = lastValue.forall(lastValue => !Eq[A].eqv(lastValue, value))
             if (shouldSend) {
-              lastValue = value
+              lastValue = Some(value)
               Sink[G].onNext(sink)(value)
             }
         },
-        Sink[G].onError(sink)
+        Sink[G].onError(sink),
       ))
     }
   }
 
   @inline def distinctOnEquals[S[_]: Source, A](source: S[A]): SourceStream[A] = distinct(source)(Source[S], Eq.fromUniversalEquals)
-
-  def concatMapFuture[S[_]: Source, A, B](source: S[A])(f: A => Future[B]): SourceStream[B] = new SourceStream[B] {
-    def subscribe[G[_]: Sink](sink: G[_ >: B]): Subscription = {
-      var lastFuture = Future.successful(())
-
-      Source[S].subscribe(source)(SinkObserver.create[A](
-        { value =>
-          lastFuture = lastFuture
-            .flatMap(_ => f(value))
-            .map(value => Sink[G].onNext(sink)(value))
-            .recover { case NonFatal(error) => Sink[G].onError(sink)(error) }
-        },
-        Sink[G].onError(sink)
-      ))
-    }
-  }
-
-  def concatMapAsync[S[_]: Source, G[_]: Effect, A, B](source: S[A])(f: A => G[B]): SourceStream[B] = concatMapFuture(source) { value =>
-    val promise = Promise[B]()
-
-    Effect[G].runAsync(f(value))(either => IO {
-      either match {
-        case Right(value) => promise.success(value)
-        case Left(error)  => promise.failure(error)
-      }
-    }).unsafeRunSync()
-
-    promise.future
-  }
-
-  @inline def mapSync[S[_]: Source, G[_]: RunSyncEffect, A, B](source: S[A])(f: A => G[B]): SourceStream[B] = map(source)(v => RunSyncEffect[G].unsafeRun(f(v)))
 
   def withDefaultSubscription[S[_]: Source, F[_]: Sink, A](source: S[A])(sink: F[A]): SourceStream[A] = new SourceStream[A] {
     private var defaultSubscription = Source[S].subscribe(source)(sink)
@@ -461,6 +473,7 @@ object SourceStream {
 
   @inline def share[F[_]: Source, A](source: F[A]): SourceStream[A] = pipeThrough(source)(SinkSourceHandler.publish[A])
   @inline def shareWithLatest[F[_]: Source, A](source: F[A]): SourceStream[A] = pipeThrough(source)(SinkSourceHandler[A])
+  @inline def shareWithLatestAndSeed[F[_]: Source, A](source: F[A])(seed: A): SourceStream[A] = pipeThrough(source)(SinkSourceHandler[A](seed))
 
   def pipeThrough[F[_]: Source, A, S[_] : Source : Sink](source: F[A])(pipe: S[A]): SourceStream[A] = new SourceStream[A] {
     private var subscribers = 0
@@ -505,7 +518,8 @@ object SourceStream {
     }
   }
 
-  //TODO write as explicit SinkObserver instead of filter, more readable.
+  @inline def head[F[_]: Source, A](source: F[A]): SourceStream[A] = take(source)(1)
+
   def take[F[_]: Source, A](source: F[A])(num: Int): SourceStream[A] = {
     if (num <= 0) SourceStream.empty
     else new SourceStream[A] {
@@ -527,7 +541,24 @@ object SourceStream {
     }
   }
 
-  //TODO write as explicit SinkObserver instead of filter, more readable.
+  def takeWhile[F[_]: Source, A](source: F[A])(predicate: A => Boolean): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      var finishedTake = false
+      val subscription = Subscription.variable()
+      subscription() = Source[F].subscribe(source)(SinkObserver.contrafilter[G, A](sink) { v =>
+        if (finishedTake) false
+        else if (predicate(v)) true
+        else {
+          finishedTake = true
+          subscription.cancel()
+          false
+        }
+      })
+
+      subscription
+    }
+  }
+
   def drop[F[_]: Source, A](source: F[A])(num: Int): SourceStream[A] = {
     if (num <= 0) SourceStream.lift(source)
     else new SourceStream[A] {
@@ -581,6 +612,7 @@ object SourceStream {
 
   @inline implicit class Operations[A](val source: SourceStream[A]) extends AnyVal {
     @inline def liftSource[G[_]: LiftSource]: G[A] = LiftSource[G].lift(source)
+    @inline def failed: SourceStream[Throwable] = SourceStream.failed(source)
     @inline def mergeMap[S[_]: Source, B](f: A => S[B]): SourceStream[B] = SourceStream.mergeMap(source)(f)
     @inline def switchMap[S[_]: Source, B](f: A => S[B]): SourceStream[B] = SourceStream.switchMap(source)(f)
     @inline def combineLatest[S[_]: Source, B, R](combined: S[B]): SourceStream[(A,B)] = SourceStream.combineLatest(source)(combined)
@@ -606,16 +638,21 @@ object SourceStream {
     @inline def recoverOption(f: PartialFunction[Throwable, Option[A]]): SourceStream[A] = SourceStream.recoverOption(source)(f)
     @inline def share: SourceStream[A] = SourceStream.share(source)
     @inline def shareWithLatest: SourceStream[A] = SourceStream.shareWithLatest(source)
+    @inline def shareWithLatestAndSeed(seed: A): SourceStream[A] = SourceStream.shareWithLatestAndSeed(source)(seed)
     @inline def prepend(value: A): SourceStream[A] = SourceStream.prepend(source)(value)
     @inline def prependSync[F[_] : RunSyncEffect](value: F[A]): SourceStream[A] = SourceStream.prependSync(source)(value)
     @inline def prependAsync[F[_] : Effect](value: F[A]): SourceStream[A] = SourceStream.prependAsync(source)(value)
     @inline def prependFuture(value: Future[A]): SourceStream[A] = SourceStream.prependFuture(source)(value)
     @inline def startWith(values: Iterable[A]): SourceStream[A] = SourceStream.startWith(source)(values)
+    @inline def head: SourceStream[A] = SourceStream.head(source)
     @inline def take(num: Int): SourceStream[A] = SourceStream.take(source)(num)
+    @inline def takeWhile(predicate: A => Boolean): SourceStream[A] = SourceStream.takeWhile(source)(predicate)
     @inline def drop(num: Int): SourceStream[A] = SourceStream.drop(source)(num)
     @inline def dropWhile(predicate: A => Boolean): SourceStream[A] = SourceStream.dropWhile(source)(predicate)
     @inline def withDefaultSubscription[G[_] : Sink](sink: G[A]): SourceStream[A] = SourceStream.withDefaultSubscription(source)(sink)
+    @inline def subscribe(): Subscription = source.subscribe(SinkObserver.empty)
+    @inline def foreach(f: A => Unit): Subscription = source.subscribe(SinkObserver.create(f))
   }
 
-  @inline private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }
+  private def recovered[T](action: => Unit, onError: Throwable => Unit) = try action catch { case NonFatal(t) => onError(t) }
 }

@@ -4,10 +4,11 @@ import cats.Monoid
 
 import scala.scalajs.js
 
-sealed trait Subscription {
+trait Subscription {
   def cancel(): Unit
 }
 object Subscription {
+
   class Builder extends Subscription {
     private var buffer = new js.Array[Subscription]()
 
@@ -41,7 +42,44 @@ object Subscription {
       if (current != null) {
         current.cancel()
         current = null
+    }
+  }
+
+  class Consecutive extends Subscription {
+    private var latest: Subscription = null
+    private var subscriptions: js.Array[() => Subscription] = new js.Array[() => Subscription]
+
+    def switch(): Unit = if (latest != null) {
+      latest.cancel()
+      latest = null
+      if (subscriptions != null && subscriptions.nonEmpty) {
+        val nextSubscription = subscriptions(0)
+        val variable = Subscription.variable()
+        latest = variable
+        subscriptions.splice(0, deleteCount = 1)
+        variable() = nextSubscription()
+        ()
       }
+    }
+
+    def +=(subscription: () => Subscription): Unit = if (subscriptions != null) {
+      if (latest == null) {
+        val variable = Subscription.variable()
+        latest = variable
+        variable() = subscription()
+      } else {
+        subscriptions.push(subscription)
+        ()
+      }
+    }
+
+    def cancel(): Unit = if (subscriptions != null) {
+      subscriptions = null
+      if (latest != null) {
+        latest.cancel()
+        latest = null
+      }
+    }
   }
 
   object Empty extends Subscription {
@@ -62,7 +100,10 @@ object Subscription {
   }
 
   @inline def builder(): Builder = new Builder
+
   @inline def variable(): Variable = new Variable
+
+  @inline def consecutive(): Consecutive = new Consecutive
 
   implicit object monoid extends Monoid[Subscription] {
     @inline def empty = Subscription.empty

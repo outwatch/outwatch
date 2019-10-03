@@ -4,17 +4,15 @@ import scala.scalajs.js
 
 trait SinkSourceHandler[-I, +O] extends SinkObserver[I] with SourceStream[O]
 
-class SinkSourceVariable[I, O](private var current: js.UndefOr[O], convert: I => O) extends SinkSourceHandler[I, O] {
+class SinkSourceVariable[I, O](private var current: Option[O], convert: I => O) extends SinkSourceHandler[I, O] {
 
   private var subscribers = new js.Array[SinkObserver[O]]
   private var isRunning = false
 
-  @inline def isEmpty = subscribers.isEmpty
-
   def onNext(value: I): Unit = {
     isRunning = true
     val converted = convert(value)
-    current = converted
+    current = Some(converted)
     subscribers.foreach(_.onNext(converted))
     isRunning = false
   }
@@ -40,8 +38,6 @@ class SinkSourcePublisher[I, O](convert: I => O) extends SinkSourceHandler[I, O]
 
   private var subscribers = new js.Array[SinkObserver[O]]
   private var isRunning = false
-
-  @inline def isEmpty = subscribers.isEmpty
 
   def onNext(value: I): Unit = {
     isRunning = true
@@ -78,11 +74,11 @@ class SinkSourcePublisher[I, O](convert: I => O) extends SinkSourceHandler[I, O]
 object SinkSourceHandler {
   type Simple[T] = SinkSourceHandler[T,T]
 
-  def apply[O]: Simple[O] = new SinkSourceVariable[O, O](js.undefined, identity)
-  def apply[O](seed: O): Simple[O] = new SinkSourceVariable[O, O](seed, identity)
+  def apply[O]: Simple[O] = new SinkSourceVariable[O, O](None, identity)
+  def apply[O](seed: O): Simple[O] = new SinkSourceVariable[O, O](Some(seed), identity)
 
-  def map[I, O](convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](js.undefined, convert)
-  def map[I, O](seed: I)(convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](convert(seed), convert)
+  def map[I, O](convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](None, convert)
+  def map[I, O](seed: I)(convert: I => O): SinkSourceHandler[I, O] = new SinkSourceVariable[I, O](Some(convert(seed)), convert)
 
   object publish {
     def apply[O]: Simple[O] = new SinkSourcePublisher[O, O](identity)
@@ -91,6 +87,12 @@ object SinkSourceHandler {
   }
 
   @inline def from[SI[_] : Sink, SO[_] : Source, I, O](sink: SI[I], source: SO[O]): SinkSourceHandler[I, O] = new SinkSourceCombinator[SI, SO, I, O](sink, source)
+
+  @inline implicit class Operations[I,O](val handler: SinkSourceHandler[I,O]) extends AnyVal {
+    @inline def transformSource[S[_] : Source, O2](g: SourceStream[O] => S[O2]): SinkSourceHandler[I, O2] = from[SinkObserver, S, I, O2](handler, g(handler))
+    @inline def transformSink[G[_] : Sink, I2](f: SinkObserver[I] => G[I2]): SinkSourceHandler[I2, O] = from[G, SourceStream, I2, O](f(handler), handler)
+    @inline def transformHandler[G[_] : Sink, S[_] : Source, I2, O2](f: SinkObserver[I] => G[I2])(g: SourceStream[O] => S[O2]): SinkSourceHandler[I2, O2] = from(f(handler), g(handler))
+  }
 
   object createHandler extends CreateHandler[Simple] {
     @inline def publisher[A]: SinkSourceHandler[A, A] = SinkSourceHandler.publish[A]
