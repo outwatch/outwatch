@@ -98,7 +98,7 @@ private[outwatch] object SnabbdomOps {
     if (nativeModifiers.subscribables.isEmpty) {
       // if no dynamic/subscribable content, then just create a simple proxy
       createProxy(SeparatedModifiers.from(nativeModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
-    } else {
+    } else if (nativeModifiers.hasStream) {
       // if there is streamable content, we update the initial proxy with
       // in subscribe and unsubscribe callbacks. We subscribe and unsubscribe
       // based in dom events.
@@ -168,7 +168,6 @@ private[outwatch] object SnabbdomOps {
         nativeModifiers.subscribables.foreach(_.unsubscribe())
       }
 
-      // move to one of the stream hooks
       // hooks for subscribing and unsubscribing the streamable content
       prependModifiers = js.Array[StaticVDomModifier](
         InsertHook { p =>
@@ -208,6 +207,44 @@ private[outwatch] object SnabbdomOps {
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
       proxy
+    } else {
+      // simpler version with only subscriptions, no streams.
+      val sink = SinkObserver.empty
+      var isActive = false
+
+      def start(): Unit = if (!isActive) {
+        isActive = true
+        nativeModifiers.subscribables.foreach { subscribable =>
+          subscribable.subscribe(sink)
+        }
+      }
+
+      def stop(): Unit = if (isActive) {
+        isActive = false
+        nativeModifiers.subscribables.foreach(_.unsubscribe())
+      }
+
+      // hooks for subscribing and unsubscribing the streamable content
+      val prependModifiers = js.Array[StaticVDomModifier](
+        InsertHook { _ =>
+          start()
+        },
+        PostPatchHook { (o, p) =>
+          if (!NativeModifiers.equalsVNodeIds(o._id, p._id)) {
+            start()
+          }
+        },
+        DomUnmountHook { _ =>
+          stop()
+        }
+      )
+
+      // premature subcription
+      start()
+
+      // create the proxy from the modifiers
+      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)
+      createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
     }
   }
 }

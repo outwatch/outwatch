@@ -207,7 +207,8 @@ private[outwatch] object SeparatedModifiers {
 
 private[outwatch] class NativeModifiers(
   val modifiers: MutableNestedArray[StaticVDomModifier],
-  val subscribables: MutableNestedArray[Subscribable]
+  val subscribables: MutableNestedArray[Subscribable],
+  val hasStream: Boolean
 )
 private[outwatch] class Subscribable(
   newSubscription: SinkObserver[Unit] => Subscription
@@ -233,6 +234,7 @@ private[outwatch] object NativeModifiers {
   def from(appendModifiers: js.Array[_ <: VDomModifier]): NativeModifiers = {
     val allModifiers = new MutableNestedArray[StaticVDomModifier]()
     val allSubscribables = new MutableNestedArray[Subscribable]()
+    var hasStream = false
 
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVDomModifier], modifier: VDomModifier, inStream: Boolean): Unit = {
 
@@ -242,6 +244,7 @@ private[outwatch] object NativeModifiers {
       }
 
       @inline def appendStream(mod: StreamModifier): Unit = {
+        hasStream = true
 
         val streamedModifiers = new MutableNestedArray[StaticVDomModifier]()
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
@@ -275,7 +278,7 @@ private[outwatch] object NativeModifiers {
 
     appendModifiers.foreach(append(allSubscribables, allModifiers, _, inStream = false))
 
-    new NativeModifiers(allModifiers, allSubscribables)
+    new NativeModifiers(allModifiers, allSubscribables, hasStream)
   }
 
   // if a dom mount hook is streamed, we want to emulate an intuitive interface as if they were static.
