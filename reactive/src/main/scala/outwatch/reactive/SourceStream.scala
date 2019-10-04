@@ -43,7 +43,10 @@ object SourceStream {
     }
   }
 
-  @inline def lift[F[_]: Source, A](source: F[A]): SourceStream[A] = create(Source[F].subscribe(source))
+  @inline def lift[F[_]: Source, A](source: F[A]): SourceStream[A] = source match {
+    case source: SourceStream[A@unchecked] => source
+    case _ => create(Source[F].subscribe(source))
+  }
 
   @inline def create[A](produce: SinkObserver[A] => Subscription): SourceStream[A] = createLift[SinkObserver, A](produce)
 
