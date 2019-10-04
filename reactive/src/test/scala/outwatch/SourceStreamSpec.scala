@@ -37,6 +37,41 @@ class SourceStreamSpec extends FlatSpec with Matchers {
     received shouldBe List(4,3)
   }
 
+  it should "dropUntil" in {
+    var received = List.empty[Int]
+    val handler = SinkSourceHandler[Int](0)
+    val until = SinkSourceHandler[Unit]
+    val stream = handler.dropUntil(until)
+
+    stream.subscribe(SinkObserver.create[Int](received ::= _))
+
+    received shouldBe List()
+
+    handler.onNext(1)
+
+    received shouldBe List()
+
+    until.onNext(())
+
+    received shouldBe List()
+
+    handler.onNext(2)
+
+    received shouldBe List(2)
+
+    handler.onNext(3)
+
+    received shouldBe List(3,2)
+
+    until.onNext(())
+
+    received shouldBe List(3,2)
+
+    handler.onNext(4)
+
+    received shouldBe List(4,3,2)
+  }
+
   it should "takeWhile" in {
     var mapped = List.empty[Int]
     var received = List.empty[Int]
@@ -48,6 +83,45 @@ class SourceStreamSpec extends FlatSpec with Matchers {
 
     mapped shouldBe List(3,2,1)
     received shouldBe List(2,1)
+  }
+
+  it should "takeUntil" in {
+    var received = List.empty[Int]
+    val handler = SinkSourceHandler[Int](0)
+    val until = SinkSourceHandler[Unit]
+    val stream = handler.takeUntil(until)
+
+    stream.subscribe(SinkObserver.create[Int](received ::= _))
+
+    received shouldBe List(0)
+
+    handler.onNext(1)
+
+    received shouldBe List(1,0)
+
+    handler.onNext(2)
+
+    received shouldBe List(2,1,0)
+
+    until.onNext(())
+
+    received shouldBe List(2,1,0)
+
+    handler.onNext(3)
+
+    received shouldBe List(2,1,0)
+
+    handler.onNext(4)
+
+    received shouldBe List(2,1,0)
+
+    until.onNext(())
+
+    received shouldBe List(2,1,0)
+
+    handler.onNext(5)
+
+    received shouldBe List(2,1,0)
   }
 
   it should "share" in {

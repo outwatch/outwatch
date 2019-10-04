@@ -559,6 +559,25 @@ object SourceStream {
     }
   }
 
+  def takeUntil[F[_]: Source, FU[_]: Source, A](source: F[A])(until: FU[Unit]): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      var finishedTake = false
+      val subscription = Subscription.builder()
+
+      subscription += Source[FU].subscribe(until)(SinkObserver.create[Unit](
+        { _ =>
+          finishedTake = true
+          subscription.cancel()
+        },
+        Sink[G].onError(sink)(_)
+      ))
+
+      if (!finishedTake) subscription += Source[F].subscribe(source)(SinkObserver.contrafilter[G, A](sink)(_ => !finishedTake))
+
+      subscription
+    }
+  }
+
   def drop[F[_]: Source, A](source: F[A])(num: Int): SourceStream[A] = {
     if (num <= 0) SourceStream.lift(source)
     else new SourceStream[A] {
@@ -585,6 +604,25 @@ object SourceStream {
           true
         }
       })
+    }
+  }
+
+  def dropUntil[F[_]: Source, FU[_]: Source, A](source: F[A])(until: FU[Unit]): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      var finishedDrop = false
+
+      val untilSubscription = Subscription.variable()
+      untilSubscription() = Source[FU].subscribe(until)(SinkObserver.create[Unit](
+        { _ =>
+          finishedDrop = true
+          untilSubscription.cancel()
+        },
+        Sink[G].onError(sink)(_)
+      ))
+
+      val subscription = Source[F].subscribe(source)(SinkObserver.contrafilter[G, A](sink)(_ => finishedDrop))
+
+      Subscription.composite(subscription, untilSubscription)
     }
   }
 
@@ -647,8 +685,10 @@ object SourceStream {
     @inline def head: SourceStream[A] = SourceStream.head(source)
     @inline def take(num: Int): SourceStream[A] = SourceStream.take(source)(num)
     @inline def takeWhile(predicate: A => Boolean): SourceStream[A] = SourceStream.takeWhile(source)(predicate)
+    @inline def takeUntil[F[_]: Source](until: F[Unit]): SourceStream[A] = SourceStream.takeUntil(source)(until)
     @inline def drop(num: Int): SourceStream[A] = SourceStream.drop(source)(num)
     @inline def dropWhile(predicate: A => Boolean): SourceStream[A] = SourceStream.dropWhile(source)(predicate)
+    @inline def dropUntil[F[_]: Source](until: F[Unit]): SourceStream[A] = SourceStream.dropUntil(source)(until)
     @inline def withDefaultSubscription[G[_] : Sink](sink: G[A]): SourceStream[A] = SourceStream.withDefaultSubscription(source)(sink)
     @inline def subscribe(): Subscription = source.subscribe(SinkObserver.empty)
     @inline def foreach(f: A => Unit): Subscription = source.subscribe(SinkObserver.create(f))
