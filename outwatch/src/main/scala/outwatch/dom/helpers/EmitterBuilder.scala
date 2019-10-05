@@ -197,11 +197,19 @@ object EmitterBuilder {
     def bimap[A, B, C, D](fab: EmitterBuilder[A,B])(f: A => C, g: B => D): EmitterBuilder[C,D] = fab.map(f).mapResult(g)
   }
 
-  @inline implicit class HandlerIntegration[O, R : Monoid, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
+  @inline implicit class HandlerIntegrationMonoid[O, R : Monoid, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
     @inline def handled(f: SourceStream[O] => R): SyncIO[R] = handledF[SyncIO](f)
 
     @inline def handledF[F[_] : SyncCats](f: SourceStream[O] => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
       Monoid[R].combine(builder.forwardTo(handler), f(handler))
+    }
+  }
+
+  @inline implicit class HandlerIntegration[O, R, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
+    @inline def handledWith(f: (R, SourceStream[O]) => R): SyncIO[R] = handledWithF[SyncIO](f)
+
+    @inline def handledWithF[F[_] : SyncCats](f: (R, SourceStream[O]) => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
+      f(builder.forwardTo(handler), handler)
     }
   }
 
