@@ -416,6 +416,34 @@ object SourceStream {
     }
   }
 
+  @inline def sample[S[_]: Source, A](source: S[A])(duration: FiniteDuration): SourceStream[A] = sampleMillis(source)(duration.toMillis.toInt)
+
+  def sampleMillis[S[_]: Source, A](source: S[A])(duration: Int): SourceStream[A] = new SourceStream[A] {
+    def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
+      import org.scalajs.dom
+      var isCancel = false
+      var lastValue: Option[A] = None
+
+      def send(): Unit = {
+        lastValue.foreach(Sink[G].onNext(sink))
+        lastValue = None
+      }
+
+      val intervalId = dom.window.setInterval(() => if (!isCancel) send(), duration.toDouble)
+
+      Subscription.composite(
+        Subscription { () =>
+          isCancel = true
+          dom.window.clearInterval(intervalId)
+        },
+        Source[S].subscribe(source)(SinkObserver.createUnhandled[A](
+          value => lastValue = Some(value),
+          Sink[G].onError(sink),
+        ))
+      )
+    }
+  }
+
   //TODO setImmediate?
   @inline def async[S[_]: Source, A](source: S[A]): SourceStream[A] = delayMillis(source)(0)
 
@@ -668,6 +696,8 @@ object SourceStream {
     @inline def zipWithIndex: SourceStream[(A, Int)] = SourceStream.zipWithIndex(source)
     @inline def debounce(duration: FiniteDuration): SourceStream[A] = SourceStream.debounce(source)(duration)
     @inline def debounceMillis(millis: Int): SourceStream[A] = SourceStream.debounceMillis(source)(millis)
+    @inline def sample(duration: FiniteDuration): SourceStream[A] = SourceStream.sample(source)(duration)
+    @inline def sampleMillis(millis: Int): SourceStream[A] = SourceStream.sampleMillis(source)(millis)
     @inline def async: SourceStream[A] = SourceStream.async(source)
     @inline def delay(duration: FiniteDuration): SourceStream[A] = SourceStream.delay(source)(duration)
     @inline def delayMillis(millis: Int): SourceStream[A] = SourceStream.delayMillis(source)(millis)
