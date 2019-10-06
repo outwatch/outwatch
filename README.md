@@ -447,7 +447,7 @@ div(
 )
 ```
 
-If you have an effect that is synchronous in nature, you should consider using a sync effect type instead for performance reasons. A sync effect can be rendered in one go, whereas an async effect will patch the dom after it is finished.
+If you have an effect that is synchronous in nature, you should consider using a sync effect type instead for performance reasons. A sync effect can be rendered in one go, whereas an async effect might need to patch the dom after it is finished.
 
 #### Rendering Sync Effects
 
