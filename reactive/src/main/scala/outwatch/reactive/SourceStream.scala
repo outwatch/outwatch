@@ -91,6 +91,10 @@ object SourceStream {
 
   def fromFuture[A](future: Future[A]): SourceStream[A] = fromAsync(IO.fromFuture(IO.pure(future))(IO.contextShift(global)))
 
+  def transformSink[F[_]: Source, A,B](source: F[A])(transform: SinkObserver[_ >: B] => SinkObserver[A]): SourceStream[B] = new SourceStream[B] {
+    def subscribe[G[_]: Sink](sink: G[_ >: B]): Subscription = Source[F].subscribe(source)(transform(SinkObserver.lift(sink)))
+  }
+
   def failed[S[_]: Source, A](source: S[A]): SourceStream[Throwable] = new SourceStream[Throwable] {
     def subscribe[G[_]: Sink](sink: G[_ >: Throwable]): Subscription =
       Source[S].subscribe(source)(SinkObserver.create[A](_ => (), Sink[G].onError(sink)(_)))
