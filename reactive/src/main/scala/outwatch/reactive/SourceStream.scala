@@ -667,6 +667,7 @@ object SourceStream {
     @inline def withLatestFrom[S[_]: Source, B, R](latest: S[B])(f: (A, B) => R): SourceStream[R] = SourceStream.withLatestFrom(source)(latest)(f)
     @inline def zipWithIndex: SourceStream[(A, Int)] = SourceStream.zipWithIndex(source)
     @inline def debounce(duration: FiniteDuration): SourceStream[A] = SourceStream.debounce(source)(duration)
+    @inline def debounceMillis(millis: Int): SourceStream[A] = SourceStream.debounceMillis(source)(millis)
     @inline def async: SourceStream[A] = SourceStream.async(source)
     @inline def delay(duration: FiniteDuration): SourceStream[A] = SourceStream.delay(source)(duration)
     @inline def delayMillis(millis: Int): SourceStream[A] = SourceStream.delayMillis(source)(millis)
