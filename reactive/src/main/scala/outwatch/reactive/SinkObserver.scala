@@ -109,6 +109,7 @@ object SinkObserver {
     @inline def contramapFilter[B](f: B => Option[A]): SinkObserver[B] = SinkObserver.contramapFilter(sink)(f)
     @inline def contracollect[B](f: PartialFunction[B, A]): SinkObserver[B] = SinkObserver.contracollect(sink)(f)
     @inline def contrafilter(f: A => Boolean): SinkObserver[A] = SinkObserver.contrafilter(sink)(f)
+    @inline def doOnError(f: Throwable => Unit): SinkObserver[A] = SinkObserver.doOnError(sink)(f)
     @inline def redirect[F[_] : Source, B](f: SourceStream[B] => F[A]): SinkObserver.Connectable[B] = SinkObserver.redirect(sink)(f)
   }
 
