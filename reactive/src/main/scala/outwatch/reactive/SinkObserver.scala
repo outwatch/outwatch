@@ -23,12 +23,17 @@ object SinkObserver {
   )
   @inline def connectable[T](sink: SinkObserver[T], connect: () => Subscription): Connectable[T] = new Connectable(sink, connect)
 
-  @inline def lift[F[_] : Sink, A](sink: F[A]): SinkObserver[A] =  sink match {
+  def lift[F[_] : Sink, A](sink: F[A]): SinkObserver[A] =  sink match {
     case sink: SinkObserver[A@unchecked] => sink
     case _ => new SinkObserver[A] {
       def onNext(value: A): Unit = Sink[F].onNext(sink)(value)
       def onError(error: Throwable): Unit = Sink[F].onError(sink)(error)
     }
+  }
+
+  @inline def createUnhandled[A](consume: A => Unit, failure: Throwable => Unit = UnhandledErrorReporter.errorSubject.onNext): SinkObserver[A] = new SinkObserver[A] {
+    def onNext(value: A): Unit = consume(value)
+    def onError(error: Throwable): Unit = failure(error)
   }
 
   def create[A](consume: A => Unit, failure: Throwable => Unit = UnhandledErrorReporter.errorSubject.onNext): SinkObserver[A] = new SinkObserver[A] {

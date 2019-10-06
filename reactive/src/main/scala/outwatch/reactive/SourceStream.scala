@@ -43,7 +43,7 @@ object SourceStream {
     }
   }
 
-  @inline def lift[F[_]: Source, A](source: F[A]): SourceStream[A] = source match {
+  def lift[F[_]: Source, A](source: F[A]): SourceStream[A] = source match {
     case source: SourceStream[A@unchecked] => source
     case _ => new SourceStream[A] {
       def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = Source[F].subscribe(source)(sink)
@@ -97,7 +97,7 @@ object SourceStream {
 
   def failed[S[_]: Source, A](source: S[A]): SourceStream[Throwable] = new SourceStream[Throwable] {
     def subscribe[G[_]: Sink](sink: G[_ >: Throwable]): Subscription =
-      Source[S].subscribe(source)(SinkObserver.create[A](_ => (), Sink[G].onError(sink)(_)))
+      Source[S].subscribe(source)(SinkObserver.createUnhandled[A](_ => (), Sink[G].onError(sink)(_)))
   }
 
   @inline def interval(delay: FiniteDuration): SourceStream[Long] = intervalMillis(delay.toMillis.toInt)
@@ -223,7 +223,7 @@ object SourceStream {
   }
 
   def mapTry[F[_]: Source, A, B](source: F[A])(f: A => Try[B]): SourceStream[B] = new SourceStream[B] {
-    def subscribe[G[_]: Sink](sink: G[_ >: B]): Subscription = Source[F].subscribe(source)(SinkObserver.create[A](
+    def subscribe[G[_]: Sink](sink: G[_ >: B]): Subscription = Source[F].subscribe(source)(SinkObserver.createUnhandled[A](
       value => f(value) match {
         case Success(b) => Sink[G].onNext(sink)(b)
         case Failure(error) => Sink[G].onError(sink)(error)
@@ -364,7 +364,7 @@ object SourceStream {
           value => latestValue.foreach(latestValue => Sink[G].onNext(sink)(f(value, latestValue))),
           Sink[G].onError(sink),
         )),
-        Source[SB].subscribe(latest)(SinkObserver.create[B](
+        Source[SB].subscribe(latest)(SinkObserver.createUnhandled[B](
           value => latestValue = Some(value),
           Sink[G].onError(sink),
         ))
@@ -376,7 +376,7 @@ object SourceStream {
     def subscribe[G[_]: Sink](sink: G[_ >: (A, Int)]): Subscription = {
       var counter = 0
 
-      Source[S].subscribe(source)(SinkObserver.create[A](
+      Source[S].subscribe(source)(SinkObserver.createUnhandled[A](
         { value =>
           val index = counter
           counter += 1
@@ -451,7 +451,7 @@ object SourceStream {
     def subscribe[G[_]: Sink](sink: G[_ >: A]): Subscription = {
       var lastValue: Option[A] = None
 
-      Source[S].subscribe(source)(SinkObserver.create[A](
+      Source[S].subscribe(source)(SinkObserver.createUnhandled[A](
         { value =>
             val shouldSend = lastValue.forall(lastValue => !Eq[A].eqv(lastValue, value))
             if (shouldSend) {
@@ -573,7 +573,7 @@ object SourceStream {
       var finishedTake = false
       val subscription = Subscription.builder()
 
-      subscription += Source[FU].subscribe(until)(SinkObserver.create[Unit](
+      subscription += Source[FU].subscribe(until)(SinkObserver.createUnhandled[Unit](
         { _ =>
           finishedTake = true
           subscription.cancel()
@@ -621,7 +621,7 @@ object SourceStream {
       var finishedDrop = false
 
       val untilSubscription = Subscription.variable()
-      untilSubscription() = Source[FU].subscribe(until)(SinkObserver.create[Unit](
+      untilSubscription() = Source[FU].subscribe(until)(SinkObserver.createUnhandled[Unit](
         { _ =>
           finishedDrop = true
           untilSubscription.cancel()
