@@ -2,7 +2,7 @@ package outwatch.dom
 
 import org.scalajs.dom.Element
 import outwatch.dom.interpreter.SnabbdomOps
-import outwatch.reactive.SourceStream
+import outwatch.reactive.{Source, SourceStream}
 
 import scala.scalajs.js
 
@@ -30,10 +30,10 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream(valueStream: SourceStream[Seq[ChildCommand]]): VDomModifier = VDomModifier.delay {
+  def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]]): VDomModifier = VDomModifier.delay {
     val children = new js.Array[VNodeProxyNode]
 
-    valueStream.map { cmds =>
+    SourceStream.map(valueStream) { cmds =>
       val idToIndex: ChildId => Int = {
         case ChildId.Key(key) => children.indexWhere { tree =>
           tree.proxy.key.fold(false)((k: Key.Value) => k == key)
