@@ -45,7 +45,7 @@ lazy val outwatch = project
     normalizedName := "outwatch",
 
     libraryDependencies ++= Seq(
-      "io.monix"      %%% "monix"       % "3.0.0",
+      "io.monix"      %%% "monix"       % "3.1.0",
       "org.scala-js"  %%% "scalajs-dom" % "0.9.8",
       "com.raquo"     %%% "domtypes" % "0.9.6",
       "org.typelevel" %%% "cats-core" % "2.0.0",
