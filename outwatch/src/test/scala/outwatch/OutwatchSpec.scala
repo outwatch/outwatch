@@ -8,9 +8,11 @@ import monix.execution.schedulers.TrampolineScheduler
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
 import org.scalajs.dom.{document, window}
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest._
 import outwatch.Deprecated.IgnoreWarnings.initEvent
+import org.scalatest.flatspec.{ AnyFlatSpec, AsyncFlatSpec }
+import org.scalatest.matchers.should.Matchers
 
 trait EasySubscribe {
 
@@ -82,7 +84,7 @@ trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe w
 
 }
 
-abstract class JSDomSpec extends FlatSpec with OutwatchSpec {
+abstract class JSDomSpec extends AnyFlatSpec with OutwatchSpec {
   implicit def executionContext = scheduler
 }
 abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
