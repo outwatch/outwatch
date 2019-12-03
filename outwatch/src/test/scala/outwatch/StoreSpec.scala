@@ -4,11 +4,12 @@ import cats.effect.IO
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.Scheduler
 import monix.execution.schedulers.TrampolineScheduler
-import org.scalatest.{FlatSpec, Matchers}
 import outwatch.util._
 import outwatch.util.Store.Reducer
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class StoreSpec extends FlatSpec with Matchers {
+class StoreSpec extends AnyFlatSpec with Matchers {
   implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
   sealed trait CounterAction
