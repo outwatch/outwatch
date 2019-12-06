@@ -47,11 +47,11 @@ lazy val outwatch = project
     libraryDependencies ++= Seq(
       "io.monix"      %%% "monix"       % "3.0.0",
       "org.scala-js"  %%% "scalajs-dom" % "0.9.7",
-      "com.raquo"     %%% "domtypes" % "0.9.5",
+      "com.raquo"     %%% "domtypes" % "0.9.6",
       "org.typelevel" %%% "cats-core" % "2.0.0",
       "org.typelevel" %%% "cats-effect" % "2.0.0",
 
-      "org.scalatest" %%% "scalatest" % "3.0.8" % Test,
+      "org.scalatest" %%% "scalatest" % "3.1.0" % Test,
       compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.3" cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % "1.4.3" % Provided cross CrossVersion.full,
     ),
