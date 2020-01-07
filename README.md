@@ -68,7 +68,7 @@ To configure hot reloading with webpack devserver, check out [build.sbt](https:/
 If anything is not working, cross-check how things are done in the template.
 
 ## Bugs and Feedback
-For bugs, questions and discussions please use [Github Issues](https://github.com/OutWatch/outwatch/issues).
+For bugs, questions and discussions please use [GitHub Issues](https://github.com/OutWatch/outwatch/issues).
 
 
 ## Community
