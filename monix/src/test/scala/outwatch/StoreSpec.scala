@@ -4,8 +4,7 @@ import cats.effect.IO
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.Scheduler
 import monix.execution.schedulers.TrampolineScheduler
-import outwatch.util._
-import outwatch.util.Store.Reducer
+import outwatch.ext.monix.util._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

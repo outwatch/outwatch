@@ -1,7 +1,8 @@
 package outwatch
 
 import cats.effect.IO
-import org.scalatest.{AnyFlatSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
 import outwatch.reactive._
 
 class SourceStreamSpec extends AnyFlatSpec with Matchers {

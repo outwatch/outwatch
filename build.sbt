@@ -79,9 +79,7 @@ lazy val outwatchReactive = project
     normalizedName := "outwatch-reactive",
 
     libraryDependencies ++= Seq(
-      "io.monix"      %%% "monix"       % "3.1.0",
       "org.scala-js"  %%% "scalajs-dom" % "0.9.8",
-      "com.raquo"     %%% "domtypes" % "0.9.7",
       "org.typelevel" %%% "cats-core" % "2.0.0",
       "org.typelevel" %%% "cats-effect" % "2.0.0",
     )
@@ -97,7 +95,7 @@ lazy val outwatchMonix = project
     normalizedName := "outwatch-monix",
 
     libraryDependencies ++= Seq(
-      "io.monix"      %%% "monix"       % "3.0.0",
+      "io.monix"      %%% "monix"       % "3.1.0",
     )
   )
 
@@ -111,7 +109,7 @@ lazy val outwatch = project
     normalizedName := "outwatch",
 
     libraryDependencies ++= Seq(
-      "com.raquo"     %%% "domtypes" % "0.9.5"
+      "com.raquo"     %%% "domtypes" % "0.9.7",
     ),
 
     npmDependencies in Compile ++= Seq(
