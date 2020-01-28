@@ -1,10 +1,10 @@
 package outwatch
 
 import cats.effect.IO
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{AnyFlatSpec, Matchers}
 import outwatch.reactive._
 
-class SourceStreamSpec extends FlatSpec with Matchers {
+class SourceStreamSpec extends AnyFlatSpec with Matchers {
 
   "SourceStream" should "map" in {
     var mapped = List.empty[Int]
