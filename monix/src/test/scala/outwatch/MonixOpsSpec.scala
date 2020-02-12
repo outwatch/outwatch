@@ -11,7 +11,8 @@ import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.{Cancelable, Scheduler}
 import monix.execution.Ack.Continue
 import monix.execution.schedulers.TrampolineScheduler
-import org.scalatest.{AsyncFlatSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.flatspec.AsyncFlatSpec
 
 class MonixOpsSpec extends AsyncFlatSpec with Matchers {
   implicit val scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
