@@ -2,7 +2,7 @@ package outwatch.dom
 
 import org.scalajs.dom.Element
 import outwatch.dom.interpreter.SnabbdomOps
-import outwatch.reactive.{Source, SourceStream}
+import colibri.{Source, Observable}
 
 import scala.scalajs.js
 
@@ -33,7 +33,7 @@ object ChildCommand {
   def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]]): VDomModifier = VDomModifier.delay {
     val children = new js.Array[VNodeProxyNode]
 
-    SourceStream.map(valueStream) { cmds =>
+    Observable.map(valueStream) { cmds =>
       val idToIndex: ChildId => Int = {
         case ChildId.Key(key) => children.indexWhere { tree =>
           tree.proxy.key.fold(false)((k: Key.Value) => k == key)

@@ -9,10 +9,10 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import colibri.ext.monix._
 import outwatch.ext.monix.handler._
 
-import outwatch.ext.monix.util.LocalStorage
+import outwatch.util.LocalStorage
 
 import scala.scalajs.js
 

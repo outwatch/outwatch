@@ -78,11 +78,23 @@ lazy val outwatchReactive = project
     name := "OutWatch-Reactive",
     normalizedName := "outwatch-reactive",
 
+    resolvers ++=
+      ("jitpack" at "https://jitpack.io") ::
+      Nil,
+
     libraryDependencies ++= Seq(
-      "org.scala-js"  %%% "scalajs-dom" % "0.9.8",
-      "org.typelevel" %%% "cats-core" % "2.0.0",
-      "org.typelevel" %%% "cats-effect" % "2.0.0",
+      "com.github.cornerman.colibri" %%% "colibri" % "c15ac06",
     )
+  )
+
+lazy val outwatchUtil = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
+  .in(file("util"))
+  .settings(librarySettings)
+  .settings(
+    name := "OutWatch-Util",
+    normalizedName := "outwatch-util",
   )
 
 lazy val outwatchMonix = project
@@ -95,6 +107,7 @@ lazy val outwatchMonix = project
     normalizedName := "outwatch-monix",
 
     libraryDependencies ++= Seq(
+      "com.github.cornerman.colibri" %%% "colibri-monix" % "c15ac06",
       "io.monix"      %%% "monix"       % "3.1.0",
     )
   )
@@ -108,6 +121,10 @@ lazy val outwatch = project
     name := "OutWatch",
     normalizedName := "outwatch",
 
+    resolvers ++=
+      ("jitpack" at "https://jitpack.io") ::
+      Nil,
+
     libraryDependencies ++= Seq(
       "com.raquo"     %%% "domtypes" % "0.9.7",
     ),
@@ -119,7 +136,7 @@ lazy val outwatch = project
 
 lazy val tests = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchMonix)
+  .dependsOn(outwatchMonix, outwatchUtil)
   .settings(commonSettings)
   .settings(
     skip in publish := true,
@@ -136,6 +153,7 @@ lazy val bench = project
     resolvers ++=
       ("jitpack" at "https://jitpack.io") ::
       Nil,
+
     libraryDependencies ++=
       "com.github.fdietze.bench" %%% "bench" % "555e14b" ::
       Nil,
@@ -158,4 +176,4 @@ lazy val root = project
     name := "outwatch-root",
     skip in publish := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchReactive, tests, bench)
+  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, tests, bench)

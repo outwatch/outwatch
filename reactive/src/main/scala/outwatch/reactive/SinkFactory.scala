@@ -1,7 +1,10 @@
 package outwatch.reactive
 
+import colibri._
+
 //TODO: should have createsink typeclass to create without lift overhead
 @inline final class SinkFactory[S[_] : LiftSink] {
-  @inline def empty: S[Any] = SinkObserver.empty.liftSink[S]
-  @inline def create[A](consume: A => Unit, failure: Throwable => Unit = UnhandledErrorReporter.errorSubject.onNext(_)): S[A] = SinkObserver.create(consume, failure).liftSink[S]
+  @inline def empty: S[Any] = Observer.empty.liftSink[S]
+  @inline def create[A](consume: A => Unit): S[A] = Observer.create(consume).liftSink[S]
+  @inline def create[A](consume: A => Unit, failure: Throwable => Unit): S[A] = Observer.create(consume, failure).liftSink[S]
 }

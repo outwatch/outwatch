@@ -5,6 +5,7 @@ import org.scalajs.dom._
 
 import outwatch.dom._
 import outwatch.dom.dsl._
+
 import outwatch.reactive.handler._
 
 import scala.collection.mutable

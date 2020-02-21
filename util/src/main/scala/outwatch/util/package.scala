@@ -1,6 +1,6 @@
-package outwatch.ext.monix
+package outwatch
 
-import monix.reactive.Observable
+import colibri.Observable
 
 package object util {
   /**

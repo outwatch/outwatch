@@ -4,7 +4,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.helpers.MutableNestedArray
 import outwatch.dom.helpers.NativeHelpers._
-import outwatch.reactive._
+import colibri._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
 
 import scala.scalajs.js
@@ -211,17 +211,17 @@ private[outwatch] class NativeModifiers(
   val hasStream: Boolean
 )
 private[outwatch] class Subscribable(
-  newSubscription: SinkObserver[Unit] => Subscription
+  newCancelable: Observer[Unit] => Cancelable
 ) {
-  var subscription: Subscription = null
+  var subscription: Cancelable = null
 
-  def subscribe(sink: SinkObserver[Unit]): Unit = if (subscription == null) {
+  def subscribe(sink: Observer[Unit]): Unit = if (subscription == null) {
     // this is a weird function, it ignores a subsription, eventhough it does not know
     // wether this specific observer is already subscribed. In this case it is okay,
     // because this is an internal class that only ever is called with the same observer
-    val variable = Subscription.variable()
+    val variable = Cancelable.variable()
     subscription = variable
-    variable() = newSubscription(sink)
+    variable() = newCancelable(sink)
   }
 
   def unsubscribe(): Unit = if (subscription != null) {
@@ -250,7 +250,7 @@ private[outwatch] object NativeModifiers {
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
         subscribables.push(new Subscribable(
-          sink => mod.subscription(SinkObserver.contramap[SinkObserver, Unit, VDomModifier](sink) { modifier =>
+          sink => mod.subscription(Observer.contramap[Observer, Unit, VDomModifier](sink) { modifier =>
             streamedSubscribables.foreach(_.unsubscribe())
             streamedSubscribables.clear()
             streamedModifiers.clear()
@@ -271,7 +271,7 @@ private[outwatch] object NativeModifiers {
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
         case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier => appendStream(m)
-        case s: SubscriptionModifier => subscribables.push(new Subscribable(_ => s.subscription()))
+        case s: CancelableModifier => subscribables.push(new Subscribable(_ => s.subscription()))
         case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
       }
     }

@@ -8,9 +8,9 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import colibri.ext.monix._
 import outwatch.ext.monix.handler._
-import outwatch.ext.monix.util._
+import outwatch.util._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
 
@@ -82,8 +82,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
-        button(id := "plus", "+", onClick.use(Plus) -->[Observer] store),
-        button(id := "minus", "-", onClick.use(Minus) -->[Observer] store),
+        button(id := "plus", "+", onClick.use(Plus) -->[colibri.Observer] store),
+        button(id := "minus", "-", onClick.use(Minus) -->[colibri.Observer] store),
         span(id:="counter")(
           state.map(_.count)
         ),

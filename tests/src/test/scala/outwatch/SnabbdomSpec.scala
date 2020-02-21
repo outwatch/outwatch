@@ -7,7 +7,7 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import colibri.ext.monix._
 import outwatch.ext.monix.handler._
 
 import snabbdom._

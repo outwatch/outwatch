@@ -3,7 +3,7 @@ package outwatch.dom
 import cats.Monoid
 import org.scalajs.dom._
 import outwatch.dom.helpers.NativeHelpers._
-import outwatch.reactive.{SinkObserver, Subscription, SubscriptionOwner}
+import colibri.{Observer, Cancelable, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
 
 import scala.scalajs.js
@@ -44,7 +44,7 @@ object VDomModifier {
   }
 
   implicit object subscriptionOwner extends SubscriptionOwner[VDomModifier] {
-    @inline def own(owner: VDomModifier)(subscription: () => Subscription): VDomModifier = VDomModifier(managedFunction(subscription), owner)
+    @inline def own(owner: VDomModifier)(subscription: () => Cancelable): VDomModifier = VDomModifier(managedFunction(subscription), owner)
   }
 
   @inline implicit def renderToVDomModifier[T : Render](value: T): VDomModifier = Render[T].render(value)
@@ -98,8 +98,8 @@ final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVD
 
 case object EmptyModifier extends VDomModifier
 final case class CompositeModifier(modifiers: Iterable[VDomModifier]) extends VDomModifier
-final case class StreamModifier(subscription: SinkObserver[VDomModifier] => Subscription) extends VDomModifier
-final case class SubscriptionModifier(subscription: () => Subscription) extends VDomModifier
+final case class StreamModifier(subscription: Observer[VDomModifier] => Cancelable) extends VDomModifier
+final case class CancelableModifier(subscription: () => Cancelable) extends VDomModifier
 final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
 
@@ -110,7 +110,7 @@ sealed trait VNode extends VDomModifier {
 }
 object VNode {
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
-    @inline def own(owner: VNode)(subscription: () => Subscription): VNode = owner.append(managedFunction(subscription))
+    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(managedFunction(subscription))
   }
 }
 sealed trait BasicVNode extends VNode {

@@ -451,7 +451,7 @@ If you have an effect that is synchronous in nature, you should consider using a
 
 #### Rendering Sync Effects
 
-You can render synchronous effects like `cats.effect.SyncIO` or `monix.eval.Coeval` as well (we currently use our own typeclass `outwatch.effect.RunSyncEffect` and will port to `cats.effect.SyncEffect` as soon as it is available). The effect will be run sync whenever an element is rendered with this modifier. Example:
+You can render synchronous effects like `cats.effect.SyncIO` or `monix.eval.Coeval` as well (we currently use our own typeclass `colibri.effect.RunSyncEffect` and will port to `cats.effect.SyncEffect` as soon as it is available). The effect will be run sync whenever an element is rendered with this modifier. Example:
 ```scala
 div(
   SyncIO {
@@ -521,14 +521,14 @@ You can use observables, streams and reactive variables as if they were a `VDomM
 import outwatch.dom._
 import outwatch.dom.dsl._
 
-import outwatch.reactive.SourceStream
+import colibri.Observable
 
 import concurrent.duration._
 
 object Main {
   def main(args: Array[String]): Unit = {
 
-    val counter = SourceStream.interval(1 second)
+    val counter = Observable.interval(1 second)
     val counterComponent = div("count: ", counter)
 
     OutWatch.renderReplace[IO]("#app", counterComponent).unsafeRunSync()
@@ -564,7 +564,7 @@ object Main {
 Attributes can also take dynamic values.
 
 ```scala
-val color = SourceStream.interval(1 second).map(i => if(i % 2 == 0) "deepskyblue" else "gold")
+val color = Observable.interval(1 second).map(i => if(i % 2 == 0) "deepskyblue" else "gold")
 div(width := "100px", height := "100px", backgroundColor <-- color)
 ```
 
@@ -572,12 +572,12 @@ div(width := "100px", height := "100px", backgroundColor <-- color)
 You can stream arbitrary `VDomModifiers`.
 
 ```scala
-val dynamicSize: SourceStream[VDomModifier] = SourceStream.interval(1 second).map(i => fontSize := s"${i}px")
+val dynamicSize: Observable[VDomModifier] = Observable.interval(1 second).map(i => fontSize := s"${i}px")
 div("Hello!", dynamicSize)
 ```
 
 ```scala
-val nodeStream: SourceStream[VNode] = SourceStream(div("I am delayed!")).delay(5.seconds)
+val nodeStream: Observable[VNode] = Observable(div("I am delayed!")).delay(5.seconds)
 div("Hello ", nodeStream)
 ```
 
@@ -599,7 +599,7 @@ Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` 
 
 ##### Global events
 
-There are helpers for getting a stream of global `document` or `window` events, where you get a `outwatch.reactive.SourceStream` for these events. For example:
+There are helpers for getting a stream of global `document` or `window` events, where you get a `colibri.Observable` for these events. For example:
 
 ```scala
 import outwatch.dom.dsl._
@@ -620,7 +620,7 @@ We have seen how to render dynamic content. But how to manage dynamic state? You
 Let's implement a counter in a button. OutWatch provides `Handler`, which is a factory to create a reactive variable (more details later):
 
 ```scala
-import outwatch.reactive.handler._
+import colibri.handler._
 
 // Handler.create returns `SyncIO`
 val counter: SyncIO[VNode] = Handler.create[Int](0).map { handler =>
@@ -657,17 +657,17 @@ A more involved example is an input field where you want to capture the current 
 
 ##### Handler factories
 
-Methods like `Handler.create` are available for different streaming libarries (e.g. our own `outwatch.reactive` and `monix`):
+Methods like `Handler.create` are available for different streaming libarries (e.g. our own `colibri` and `monix`):
 
 ```scala
-import outwatch.reactive.handler._ // or outwatch.ext.monix.handler._
+import colibri.handler._ // or outwatch.ext.monix.handler._
 
 val handler: SyncIO[Handler[Int]] = Handler.create[Int](1)
 val source: HandlerSource[Int] = HandlerSource[Int](3)
 val sink: HandlerSink[Int] = HandlerSink.create(onNext, onError)
 ```
 
-You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `outwatch.reactive.handler._` to `outwatch.ext.monix.handler._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
+You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `colibri.handler._` to `outwatch.ext.monix.handler._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
 
 ##### Referential transparency
 
@@ -773,7 +773,7 @@ managedElement.asSvg { ??? }
 We have prepared typeclasses for integrating streaming libaries:
 - `Sink[F[_]]` can send values and errors into `F` has an `onNext` and `onError` method.
 - `Source[F[_]]` can subscribe to `F` with a `Sink` (returns a cancelable subscription)
-- `CancelSubscription[T]` can cancel `T` to stop a subscription
+- `CancelCancelable[T]` can cancel `T` to stop a subscription
 - `LiftSink[F[_]]` can lift a `Sink` into type `F`
 - `LiftSource[F[_]]` can lift a `Source` into type `F`
 - `CreateHandler[F[_]]` how to create subject in `F`
@@ -781,7 +781,7 @@ We have prepared typeclasses for integrating streaming libaries:
 
 Most important here are `Sink` and `Source`. `Source` allows you use your observable as a `VDomModifier`. `Sink` allows you to use your observer on the right-hand side of `-->`.
 
-Source Code: [Source.scala](reactive/src/main/scala/outwatch/reactive/Source.scala), [Sink.scala](reactive/src/main/scala/outwatch/reactive/Sink.scala)
+Source Code: [Source.scala](reactive/src/main/scala/colibri/Source.scala), [Sink.scala](reactive/src/main/scala/colibri/Sink.scala)
 
 Example: [Implmentation for Monix](monix/src/main/scala/outwatch/ext/monix/MonixReactive.scala)
 

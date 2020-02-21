@@ -5,7 +5,7 @@ import org.scalajs.dom.Element
 import outwatch.dom._
 import outwatch.dom.helpers._
 import snabbdom.VNodeProxy
-import outwatch.reactive.{Source, SinkObserver, Subscription}
+import colibri.{Source, Observer, Cancelable}
 
 import scala.scalajs.js
 
@@ -15,13 +15,13 @@ import scala.scalajs.js
   */
 trait OutwatchAttributes {
 
-  private def proxyElementEmitter(f: js.Function1[VNodeProxy, Unit] => VDomModifier): SinkObserver[dom.Element] => VDomModifier =
+  private def proxyElementEmitter(f: js.Function1[VNodeProxy, Unit] => VDomModifier): Observer[dom.Element] => VDomModifier =
     obs => f(p => p.elm.foreach(obs.onNext(_)))
-  private def proxyElementFirstEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): SinkObserver[dom.Element] => VDomModifier =
+  private def proxyElementFirstEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[dom.Element] => VDomModifier =
     obs => f((o,_) => o.elm.foreach(obs.onNext(_)))
-  private def proxyElementPairEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): SinkObserver[(dom.Element, dom.Element)] => VDomModifier =
+  private def proxyElementPairEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(dom.Element, dom.Element)] => VDomModifier =
     obs => f((o,p) => o.elm.foreach(oe => p.elm.foreach(pe => obs.onNext((oe,pe)))))
-  private def proxyElementPairOptionEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): SinkObserver[(Option[dom.Element], Option[dom.Element])] => VDomModifier =
+  private def proxyElementPairOptionEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(Option[dom.Element], Option[dom.Element])] => VDomModifier =
     obs => f((o,p) => {
       obs.onNext((o.elm.toOption, p.elm.toOption))
       ()
@@ -80,7 +80,7 @@ trait AttributeHelpers { self: Attributes =>
 
   @inline def emitter[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VDomModifier] = EmitterBuilder.fromSource(source)
 
-  @inline def cancelable(cancel: () => Unit): Subscription = Subscription(cancel)
+  @inline def cancelable(cancel: () => Unit): Cancelable = Cancelable(cancel)
 }
 
 trait TagHelpers {

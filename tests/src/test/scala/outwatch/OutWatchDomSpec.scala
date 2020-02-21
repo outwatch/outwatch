@@ -16,10 +16,10 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import outwatch.dom.interpreter._
-import outwatch.ext.monix._
+import colibri.ext.monix._
 import outwatch.ext.monix.handler._
 import outwatch.reactive.handler.{Handler => Internal}
-import outwatch.reactive._
+import colibri._
 
 import scala.collection.immutable.Seq
 import scala.collection.mutable
@@ -1674,7 +1674,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val counter: VDomModifier = button(
       id := "click",
       Handler.create[Int].map { handler =>
-        VDomModifier(onClick.scanSingle(0)(_ + 1) --> handler, handler)
+        VDomModifier(onClick.scanSingle0(0)(_ + 1) --> handler, handler)
       }
     )
 
@@ -1696,7 +1696,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   it should "to render basic handler with scan directly from EmitterBuilder" in {
     val counter: VDomModifier = button(
       id := "click",
-      onClick.scanSingle(0)(_ + 1).handled(VDomModifier(_))
+      onClick.scanSingle0(0)(_ + 1).handled(VDomModifier(_))
     )
 
     val vtree = div(counter)
@@ -3039,7 +3039,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       id := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") SourceStream(b.thunk("component")(myString)(VDomModifier("empty", mountHooks)))
+        if (myString == "empty") colibri.Observable(b.thunk("component")(myString)(VDomModifier("empty", mountHooks)))
         else myInner.map[VNode](s => div(s, mountHooks)).prepend(b(id <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
           VDomModifier(cls := "b", myString, mountHooks, thunkContent)

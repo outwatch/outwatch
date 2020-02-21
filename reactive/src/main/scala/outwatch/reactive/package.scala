@@ -1,5 +1,7 @@
 package outwatch
 
+import colibri._
+
 package object reactive {
-  val handler = HandlerEnvironment[SinkObserver, SourceStream, SinkSourceHandler.Simple, SinkSourceHandler](SinkObserver.liftSink, SourceStream.liftSource, SinkSourceHandler.createHandler, SinkSourceHandler.createProHandler)
+  val handler = HandlerEnvironment[Observer, Observable, Subject, ProSubject]
 }

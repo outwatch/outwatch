@@ -1,5 +1,7 @@
 package outwatch.reactive
 
+import colibri._
+
 trait HandlerEnvironment[SinkT[-_], SourceT[+_], HandlerT[_], ProHandlerT[-_, +_]] {
 
   type HandlerSink[-T] = SinkT[T]
@@ -16,7 +18,7 @@ trait HandlerEnvironment[SinkT[-_], SourceT[+_], HandlerT[_], ProHandlerT[-_, +_
 }
 
 object HandlerEnvironment {
-  def apply[SinkT[-_] : LiftSink, SourceT[+__] : LiftSource, HandlerT[_] : CreateHandler, ProHandlerT[-_,+_] : CreateProHandler]: HandlerEnvironment[SinkT, SourceT, HandlerT, ProHandlerT] =
+  def apply[SinkT[-_] : LiftSink, SourceT[+__] : LiftSource, HandlerT[_] : CreateSubject, ProHandlerT[-_,+_] : CreateProSubject]: HandlerEnvironment[SinkT, SourceT, HandlerT, ProHandlerT] =
     new HandlerEnvironment[SinkT, SourceT, HandlerT, ProHandlerT] {
       val Handler = new HandlerFactory[Handler]
       val ProHandler = new ProHandlerFactory[ProHandler]

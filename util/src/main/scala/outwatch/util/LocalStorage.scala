@@ -1,19 +1,17 @@
-package outwatch.ext.monix.util
+package outwatch.util
 
 import cats.effect.Sync
 import cats.implicits._
-import monix.eval.Task
-import monix.execution.Scheduler
-import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
 import org.scalajs.dom.window.{localStorage, sessionStorage}
 
 import outwatch.dom.dsl.events
-import outwatch.ext.monix._, handler._
+import outwatch.reactive.handler._
+import colibri._
 
 class Storage(domStorage: dom.Storage) {
-  private def subjectWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]])(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+  private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Handler[Option[String]]] = {
     val storage = new dom.ext.Storage(domStorage)
 
     for {
@@ -21,22 +19,22 @@ class Storage(domStorage: dom.Storage) {
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
-      val connectable = h.transformHandler[Option[String]](o => transform(o).distinctUntilChanged) { input =>
+      h.transformSubject[Observer, Observable, Option[String], Option[String]] { o =>
+        val c = o.redirect((o: Observable[Option[String]]) => transform(o).distinct)
+        c.connect()
+        c.sink
+      } { input =>
         input.doOnNext {
-          case Some(data) => Task(storage.update(key, data))
-          case None => Task(storage.remove(key))
+          case Some(data) => storage.update(key, data)
+          case None => storage.remove(key)
         }
       }
-
-      connectable.connect()
-
-      connectable
     }
   }
 
   private def storageEventsForKey[F[_]: Sync](key: String): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
-    events.window.onStorage.liftSource[Observable].collect {
+    events.window.onStorage.collect {
       case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
         // newValue is either String or null if removed or cleared
         // Option() transformes this to Some(string) or None
@@ -46,18 +44,18 @@ class Storage(domStorage: dom.Storage) {
         None
     }
 
-  def handlerWithoutEvents[F[_]: Sync](key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
-    subjectWithTransform(key, identity)
+  def handlerWithoutEvents[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
+    handlerWithTransform(key, identity)
   }
 
-  def handlerWithEventsOnly[F[_]: Sync](key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+  def handlerWithEventsOnly[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    subjectWithTransform(key, _ => storageEvents)
+    handlerWithTransform(key, _ => storageEvents)
   }
 
-  def handler[F[_]: Sync](key: String)(implicit scheduler: Scheduler): F[Handler[Option[String]]] = {
+  def handler[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
-    subjectWithTransform(key, Observable(_, storageEvents).merge)
+    handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
 }
 

@@ -1,7 +1,7 @@
 package outwatch.dom.helpers
 
 import outwatch.dom._
-import outwatch.reactive.{Source, SourceStream}
+import colibri.{Source, Observable}
 
 import scala.language.dynamics
 
@@ -11,7 +11,7 @@ trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
   @inline def :=(value: T): A = assign(value)
 
   def :=?(value: Option[T]): Option[A] = value.map(assign)
-  def <--[F[_] : Source](source: F[_ <: T]): VDomModifier = VDomModifier(SourceStream.map(source)(assign))
+  def <--[F[_] : Source](source: F[_ <: T]): VDomModifier = VDomModifier(Observable.map(source)(assign))
 }
 
 object AttributeBuilder {

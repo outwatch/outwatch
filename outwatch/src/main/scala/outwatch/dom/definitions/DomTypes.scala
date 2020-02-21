@@ -8,7 +8,7 @@ import com.raquo.domtypes.jsdom.defs.tags._
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.helpers._
-import outwatch.reactive.EventSourceStream
+import colibri.Observable
 import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
@@ -121,17 +121,17 @@ trait Events
 // Window / Document events
 
 private[outwatch] abstract class SourceEventPropBuilder(target: dom.EventTarget)
-  extends builders.EventPropBuilder[EventSourceStream, dom.Event] {
-  override def eventProp[V <: dom.Event](key: String): EventSourceStream[V] = EventSourceStream[V](target, key)
+  extends builders.EventPropBuilder[Observable.Synchronous, dom.Event] {
+  override def eventProp[V <: dom.Event](key: String): Observable.Synchronous[V] = Observable.ofEvent[V](target, key)
 }
 
 abstract class WindowEvents
   extends SourceEventPropBuilder(dom.window)
-  with eventProps.WindowEventProps[EventSourceStream]
+  with eventProps.WindowEventProps[Observable.Synchronous]
 
 abstract class DocumentEvents
   extends SourceEventPropBuilder(dom.document)
-  with eventProps.DocumentEventProps[EventSourceStream]
+  with eventProps.DocumentEventProps[Observable.Synchronous]
 
 // Styles
 

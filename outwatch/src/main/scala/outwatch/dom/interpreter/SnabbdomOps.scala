@@ -2,7 +2,7 @@ package outwatch.dom.interpreter
 
 import outwatch.dom._
 import outwatch.dom.helpers._
-import outwatch.reactive._
+import colibri._
 import snabbdom._
 
 import scala.scalajs.js
@@ -151,7 +151,7 @@ private[outwatch] object SnabbdomOps {
         }
       }
 
-      val patchSink = SinkObserver.create[Unit](
+      val patchSink = Observer.create[Unit](
         _ => invokeDoPatch(async = asyncPatchEnabled),
         OutwatchTracing.errorSubject.onNext
       )
@@ -209,7 +209,7 @@ private[outwatch] object SnabbdomOps {
       proxy
     } else {
       // simpler version with only subscriptions, no streams.
-      val sink = SinkObserver.empty
+      val sink = Observer.empty
       var isActive = false
 
       def start(): Unit = if (!isActive) {

@@ -4,9 +4,9 @@ import cats.effect.SyncIO
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.reactive.handler._
-// import outwatch.ext.monix._
-// import outwatch.ext.monix.handler._
+// import outwatch.reactive.handler._
+import colibri.ext.monix._
+import outwatch.ext.monix.handler._
 
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler

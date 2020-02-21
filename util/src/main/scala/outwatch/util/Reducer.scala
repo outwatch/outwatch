@@ -1,7 +1,7 @@
-package outwatch.ext.monix.util
+package outwatch.util
 
 import cats.implicits._
-import monix.reactive.{Observable, ObservableLike}
+import colibri._
 
 object Reducer {
   /**
@@ -24,6 +24,6 @@ object Reducer {
   /**
    * Creates a Reducer with an optional IO effect.
    */
-  def withOptionalEffects[F[_]: ObservableLike, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = (s: M, a: A) =>
-    f(s, a).map(_.fold[Observable[A]](Observable.empty)(Observable.from))
+  def withOptionalEffects[F[_]: Source, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = (s: M, a: A) =>
+    f(s, a).map(_.fold[Observable[A]](Observable.empty)(Observable.lift(_)))
 }

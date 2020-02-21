@@ -1,18 +1,18 @@
-package outwatch.ext.monix.util
+package outwatch.util
 
 import cats.effect.IO
-import monix.execution.Scheduler
-import monix.reactive.Observable
+import colibri._
+
 import org.scalajs.dom.ext.Ajax.InputData
 import org.scalajs.dom.ext.{Ajax, AjaxException}
 import org.scalajs.dom.{Blob, XMLHttpRequest}
 
-import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.ArrayBuffer
 import scala.scalajs.js.|
 import cats.effect.ContextShift
 
+import scala.concurrent.{ExecutionContext, Future}
 
 object Http {
   final case class Request(url: String,
@@ -72,7 +72,7 @@ object Http {
     responseType = request.responseType
   )
 
-  private def request(observable: Observable[Request], requestType: HttpRequestType)(implicit s: Scheduler): Observable[Response] =
+  private def request(observable: Observable[Request], requestType: HttpRequestType)(implicit ec: ExecutionContext): Observable[Response] =
     observable.switchMap { request =>
       Observable.fromFuture(
         ajax(request.copy(method = requestType.toString))
@@ -81,26 +81,26 @@ object Http {
             case AjaxException(req) => toResponse(req)
           }
       )
-    }.share
+    }.publish
 
-  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType)(implicit s: Scheduler) =
+  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType)(implicit ec: ExecutionContext) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)
 
   def single(request: Request, method: HttpRequestType)(implicit cs: ContextShift[IO]): IO[Response] =
     IO.fromFuture(IO(ajax(request.copy(method = method.toString)))).map(toResponse _)
 
-  def getWithUrl(urls: Observable[String])(implicit s: Scheduler) = requestWithUrl(urls, Get)
+  def getWithUrl(urls: Observable[String])(implicit ec: ExecutionContext) = requestWithUrl(urls, Get)
 
-  def get(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Get)
+  def get(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Get)
 
-  def post(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Post)
+  def post(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Post)
 
-  def delete(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Delete)
+  def delete(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Delete)
 
-  def put(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Put)
+  def put(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Put)
 
-  def options(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Options)
+  def options(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Options)
 
-  def head(requests: Observable[Request])(implicit s: Scheduler) = request(requests, Head)
+  def head(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Head)
 
 }
