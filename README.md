@@ -52,13 +52,13 @@ If you are curious and want to try the state of the current `master` branch, add
 
 ```scala
 resolvers += "jitpack" at "https://jitpack.io"
-libraryDependencies += "com.github.outwatch" % "outwatch" % "master-SNAPSHOT"
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch" % "master-SNAPSHOT"
 ```
 
 When using [JitPack](https://jitpack.io), it is often more useful to point to a specific commit, to make your builds reproducible:
 
 ```scala
-libraryDependencies += "com.github.outwatch" % "outwatch" % "f07849c81"
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch" % "f07849c81"
 ```
 
 Like that you can try the latest features from specific commits on `master`, other branches or PRs.
