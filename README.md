@@ -631,7 +631,7 @@ val counter: SyncIO[VNode] = Handler.create[Int](0).map { handler =>
 Alternative version of a `counter`:
 ```scala
 val counter = button(
-    onClick.scanSingle(0)(_ + 1).handled { source =>
+    onClick.useScan0(0)(_ + 1).handled { source =>
         VDomModifier("Counter: ", source)
     }
 )

@@ -89,12 +89,12 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   def scan[T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[T](source => Observable.scan(source)(seed)(f))
 
-  def scanSingle[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan(seed)((t,_) => f(t))
+  def useScan[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan(seed)((t,_) => f(t))
 
   def scan0[T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[T](source => Observable.scan0(source)(seed)(f))
 
-  def scanSingle0[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan0(seed)((t,_) => f(t))
+  def useScan0[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan0(seed)((t,_) => f(t))
 
   def debounce(duration: FiniteDuration): EmitterBuilder[O, R] =
     transformWithExec[O](source => Observable.debounce(source)(duration))

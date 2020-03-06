@@ -1674,7 +1674,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val counter: VDomModifier = button(
       id := "click",
       Handler.create[Int].map { handler =>
-        VDomModifier(onClick.scanSingle0(0)(_ + 1) --> handler, handler)
+        VDomModifier(onClick.useScan0(0)(_ + 1) --> handler, handler)
       }
     )
 
@@ -1696,7 +1696,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   it should "to render basic handler with scan directly from EmitterBuilder" in {
     val counter: VDomModifier = button(
       id := "click",
-      onClick.scanSingle0(0)(_ + 1).handled(VDomModifier(_))
+      onClick.useScan0(0)(_ + 1).handled(VDomModifier(_))
     )
 
     val vtree = div(counter)
