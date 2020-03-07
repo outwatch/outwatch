@@ -19,7 +19,7 @@ class Storage(domStorage: dom.Storage) {
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
-      h.transformSubject[Observer, Observable, Option[String], Option[String]] { o =>
+      h.transformSubject[Option[String]] { o =>
         val c = o.redirect((o: Observable[Option[String]]) => transform(o).distinct)
         c.connect()
         c.sink
