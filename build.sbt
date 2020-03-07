@@ -61,6 +61,11 @@ lazy val librarySettings = commonSettings ++ Seq(
   pomExtra :=
     <developers>
         <developer>
+        <id>jk</id>
+        <name>Johannes Karoff</name>
+        <url>https://github.com/cornerman</url>
+        </developer>
+        <developer>
         <id>ltj</id>
         <name>Luka Jacobowitz</name>
         <url>https://github.com/LukaJCB</url>
