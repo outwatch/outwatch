@@ -1,4 +1,4 @@
-package outwatch.dom
+package outwatch
 
 import cats.{Applicative, Functor, Monoid}
 import cats.implicits._

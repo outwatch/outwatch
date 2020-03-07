@@ -1,4 +1,4 @@
-package outwatch.dom
+package outwatch
 
 import colibri._
 import colibri.effect.RunSyncEffect

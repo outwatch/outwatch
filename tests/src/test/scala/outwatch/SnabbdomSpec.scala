@@ -5,8 +5,7 @@ import org.scalajs.dom.{document, html}
 import cats.effect.IO
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch.dsl._
 import colibri.ext.monix._
 import outwatch.ext.monix.handler._
 
@@ -127,7 +126,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
   it should "correctly handle boolean attributes" in {
 
     val message    = "Hello World"
-    val attributes = js.Dictionary[dom.Attr.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
+    val attributes = js.Dictionary[Attr.Value]("bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
     val expected   = s"""<span id="msg" bool1="" string1="true" string0="false">$message</span>"""
 
     for {

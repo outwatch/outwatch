@@ -1,7 +1,7 @@
-package outwatch.dom.interpreter
+package outwatch.interpreter
 
-import outwatch.dom._
-import outwatch.dom.helpers._
+import outwatch._
+import outwatch.helpers._
 import colibri._
 import snabbdom._
 

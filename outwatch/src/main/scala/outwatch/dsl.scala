@@ -1,6 +1,6 @@
-  package outwatch.dom
+  package outwatch
 
-import outwatch.dom.definitions._
+import outwatch.definitions._
 
 object dsl extends Attributes with Tags with Styles {
   object tags extends Tags {

@@ -1,4 +1,4 @@
-package outwatch.dom.helpers
+package outwatch.helpers
 
 import com.github.ghik.silencer.silent
 import scala.scalajs.js

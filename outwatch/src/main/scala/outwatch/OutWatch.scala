@@ -1,10 +1,10 @@
-package outwatch.dom
+package outwatch
 
 import cats.effect.Sync
 import cats.implicits._
 import org.scalajs.dom
 import org.scalajs.dom._
-import outwatch.dom.interpreter.SnabbdomOps
+import outwatch.interpreter.SnabbdomOps
 import snabbdom.{VNodeProxy, patch}
 
 object OutWatch {

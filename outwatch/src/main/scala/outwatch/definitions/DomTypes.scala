@@ -1,4 +1,4 @@
-package outwatch.dom.definitions
+package outwatch.definitions
 
 import com.raquo.domtypes.generic.defs.complex.canonical
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
@@ -6,8 +6,8 @@ import com.raquo.domtypes.generic.{builders, codecs, keys}
 import com.raquo.domtypes.jsdom.defs.eventProps
 import com.raquo.domtypes.jsdom.defs.tags._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.helpers._
+import outwatch._
+import outwatch.helpers._
 import colibri.Observable
 import scala.scalajs.js
 

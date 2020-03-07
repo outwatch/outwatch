@@ -1,9 +1,9 @@
-package outwatch.dom.interpreter
+package outwatch.interpreter
 
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.helpers.MutableNestedArray
-import outwatch.dom.helpers.NativeHelpers._
+import outwatch._
+import outwatch.helpers.MutableNestedArray
+import outwatch.helpers.NativeHelpers._
 import colibri._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
 

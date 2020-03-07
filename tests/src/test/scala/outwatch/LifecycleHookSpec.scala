@@ -3,8 +3,7 @@ package outwatch
 import cats.effect.IO
 import org.scalajs.dom._
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch.dsl._
 
 import outwatch.reactive.handler._
 

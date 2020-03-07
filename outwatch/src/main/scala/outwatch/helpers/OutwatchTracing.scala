@@ -1,4 +1,4 @@
-package outwatch.dom.helpers
+package outwatch.helpers
 
 import colibri._
 import colibri.helpers.UnhandledErrorReporter

@@ -12,10 +12,9 @@ import snabbdom.{DataObject, Hooks, hFunction, VNodeProxy}
 import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers._
-import outwatch.dom.interpreter._
+import outwatch.dsl._
+import outwatch.helpers._
+import outwatch.interpreter._
 import colibri.ext.monix._
 import outwatch.ext.monix.handler._
 import outwatch.reactive.handler.{Handler => Internal}
@@ -540,7 +539,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       stringBuilder("f") := false
     )
 
-    val attributes = js.Dictionary[dom.Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
+    val attributes = js.Dictionary[Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = hFunction("div", new DataObject { attrs = attributes; hook = Hooks.empty })
 
     val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)

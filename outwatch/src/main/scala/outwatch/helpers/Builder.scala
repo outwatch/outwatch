@@ -1,6 +1,6 @@
-package outwatch.dom.helpers
+package outwatch.helpers
 
-import outwatch.dom._
+import outwatch._
 import colibri.{Source, Observable}
 
 import scala.language.dynamics

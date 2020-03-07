@@ -1,8 +1,8 @@
-package outwatch.dom
+package outwatch
 
 import cats.Monoid
 import org.scalajs.dom._
-import outwatch.dom.helpers.NativeHelpers._
+import outwatch.helpers.NativeHelpers._
 import colibri.{Observer, Cancelable, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
 

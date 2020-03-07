@@ -7,8 +7,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch.dsl._
 import colibri.ext.monix._
 import outwatch.ext.monix.handler._
 

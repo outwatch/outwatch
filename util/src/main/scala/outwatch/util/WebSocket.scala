@@ -1,7 +1,7 @@
 package outwatch.util
 
 import cats.effect.IO
-import outwatch.dom.helpers._
+import outwatch.helpers._
 import colibri._
 import org.scalajs.dom.{Event, MessageEvent}
 

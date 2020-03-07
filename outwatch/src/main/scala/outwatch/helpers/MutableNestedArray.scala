@@ -1,4 +1,4 @@
-package outwatch.dom.helpers
+package outwatch.helpers
 
 import scala.scalajs.js
 import scala.scalajs.js.|

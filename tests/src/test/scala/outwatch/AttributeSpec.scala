@@ -1,8 +1,7 @@
 package outwatch
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.interpreter.SnabbdomOps
+import outwatch.dsl._
+import outwatch.interpreter.SnabbdomOps
 
 import scala.scalajs.js
 
@@ -205,7 +204,7 @@ class AttributeSpec extends JSDomSpec {
   }
 
   "svg" should "should work with tags and attributes" in {
-    import outwatch.dom.dsl.svg._
+    import outwatch.dsl.svg._
     val node = SnabbdomOps.toSnabbdom(svg(
       path(fill := "red", d := "M 100 100 L 300 100 L 200 300 z")
     ))

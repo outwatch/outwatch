@@ -6,7 +6,7 @@ import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
 import org.scalajs.dom.window.{localStorage, sessionStorage}
 
-import outwatch.dom.dsl.events
+import outwatch.dsl.events
 import outwatch.reactive.handler._
 import colibri._
 

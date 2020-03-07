@@ -1,9 +1,9 @@
-package outwatch.dom.definitions
+package outwatch.definitions
 
 import org.scalajs.dom
 import org.scalajs.dom.Element
-import outwatch.dom._
-import outwatch.dom.helpers._
+import outwatch._
+import outwatch.helpers._
 import snabbdom.VNodeProxy
 import colibri.{Source, Observer, Cancelable}
 

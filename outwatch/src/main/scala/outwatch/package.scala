@@ -1,9 +1,7 @@
-package outwatch
-
 import com.raquo.domtypes.generic.keys
-import outwatch.dom.helpers.BasicStyleBuilder
+import outwatch.helpers.BasicStyleBuilder
 
-package object dom extends ManagedSubscriptions {
+package object outwatch extends ManagedSubscriptions {
   type EmitterBuilder[+O, +R] = EmitterBuilderExecution[O, R, EmitterBuilder.Execution]
 
   //TODO: invent typeclass CanBuildStyle[F[_]]

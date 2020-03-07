@@ -1,7 +1,7 @@
-package outwatch.dom
+package outwatch
 
 import org.scalajs.dom.Element
-import outwatch.dom.interpreter.SnabbdomOps
+import outwatch.interpreter.SnabbdomOps
 import colibri.{Source, Observable}
 
 import scala.scalajs.js
@@ -10,7 +10,7 @@ sealed trait ChildCommand
 object ChildCommand {
   sealed trait ChildId
   object ChildId {
-    case class Key(key: outwatch.dom.Key.Value) extends ChildId
+    case class Key(key: outwatch.Key.Value) extends ChildId
     case class Element(elem: org.scalajs.dom.Element) extends ChildId
   }
 

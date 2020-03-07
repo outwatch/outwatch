@@ -3,8 +3,8 @@
 Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI can be made reactive and allows for easy integration of third-party FRP libraries (for example [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx) or [airstream](https://github.com/raquo/airstream)). We integrate tightly with [cats](https://github.com/typelevel/cats) and [cats-effect](https://github.com/typelevel/cats-effect) to build safe web applications. In OutWatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.
 
 ```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 
 val hello = h1("Hello World")
 
@@ -113,8 +113,8 @@ In your html file, create an element, which you want to replace by dynamic conte
 To render html content with outwatch, create a component and render it into the given element:
 
 ```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -518,8 +518,8 @@ You can use observables, streams and reactive variables as if they were a `VDomM
 
 
 ```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 
 import colibri.Observable
 
@@ -539,8 +539,8 @@ object Main {
 You can write the same application with monix:
 
 ```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 
 import monix.reactive.Observable
 import monix.execution.Scheduler.Implicits.global
@@ -602,7 +602,7 @@ Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` 
 There are helpers for getting a stream of global `document` or `window` events, where you get a `colibri.Observable` for these events. For example:
 
 ```scala
-import outwatch.dom.dsl._
+import outwatch.dsl._
 
 events.document.onClick.foreach { event => console.log("Click Event", event) }
 

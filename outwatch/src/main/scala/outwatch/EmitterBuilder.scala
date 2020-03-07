@@ -1,4 +1,4 @@
-package outwatch.dom
+package outwatch
 
 import cats.{Monoid, Functor, Bifunctor}
 import cats.effect.{Effect, Sync => SyncCats, SyncIO}
