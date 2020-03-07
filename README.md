@@ -266,7 +266,7 @@ div(
 
 If you think there is something missing in Scala Dom Types, please open a PR or Issue. Usually it's just one line of code.
 
-Source Code: [DomTypes.scala](outwatch/src/main/scala/outwatch/dom/definitions/DomTypes.scala)
+Source Code: [DomTypes.scala](outwatch/src/main/scala/outwatch/definitions/DomTypes.scala)
 
 
 #### Data attributes
@@ -277,7 +277,7 @@ div(data.payload := "17")
 // <div data-payload="17"></div>
 ```
 
-Source Code: [OutwatchAttributes.scala](outwatch/src/main/scala/outwatch/dom/definitions/OutwatchAttributes.scala#L75), [Builder.scala](outwatch/src/main/scala/outwatch/dom/helpers/Builder.scala#L35)
+Source Code: [OutwatchAttributes.scala](outwatch/src/main/scala/outwatch/definitions/OutwatchAttributes.scala#L75), [Builder.scala](outwatch/src/main/scala/outwatch/helpers/Builder.scala#L35)
 
 
 #### SVG
@@ -335,7 +335,7 @@ Every `VNode` contains a sequence of `VDomModifier`. A `VNode` is a `VDomModifie
 
 There are implicits for converting primitives, `Option[VDomModifier]`, `Seq[VDomModifier]` to `VDomModifier`.
 
-Source Code: [Render.scala](outwatch/src/main/scala/outwatch/dom/Render.scala)
+Source Code: [Render.scala](outwatch/src/main/scala/outwatch/Render.scala)
 
 #### Grouping Modifiers
 To make a set of modifiers reusable you can group them to become one `VDomModifier`.
@@ -351,7 +351,7 @@ If you want to reuse the `bigFont`, but want to overwrite one of its properties,
 val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
 ```
 
-You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](outwatch/src/main/scala/outwatch/dom/package.scala) object.
+You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](outwatch/src/main/scala/outwatch/package.scala) object.
 
 
 #### Components
@@ -411,7 +411,7 @@ div(
 // </div>
 ```
 
-Source Code: [VDomModifier.scala](outwatch/src/main/scala/outwatch/dom/VDomModifier.scala#L92)
+Source Code: [VDomModifier.scala](outwatch/src/main/scala/outwatch/VDomModifier.scala#L92)
 
 
 ##### Use-Case: Flexbox
@@ -508,7 +508,7 @@ val person = Person("Hans", age = 48)
 div(person)
 ```
 
-Source Code: [Render.scala](outwatch/src/main/scala/outwatch/dom/Render.scala)
+Source Code: [Render.scala](outwatch/src/main/scala/outwatch/Render.scala)
 
 ### Dynamic Content
 
@@ -544,6 +544,7 @@ import outwatch.dsl._
 
 import monix.reactive.Observable
 import monix.execution.Scheduler.Implicits.global
+import colibri.ext.monix._
 
 import concurrent.duration._
 
@@ -582,7 +583,7 @@ div("Hello ", nodeStream)
 ```
 
 #### Events and EmitterBuilders
-We are working with dom elements and want to react to events of these dom elements. For this, there is [EmitterBuilder](outwatch/src/main/scala/outwatch/dom/helpers/EmitterBuilder.scala). For example, take the `click` event for which `onClick` is an `EmitterBuilder`:
+We are working with dom elements and want to react to events of these dom elements. For this, there is [EmitterBuilder](outwatch/src/main/scala/outwatch/EmitterBuilder.scala). For example, take the `click` event for which `onClick` is an `EmitterBuilder`:
 
 ```scala
 button(onClick.foreach { println("Element was clicked!") })
@@ -595,7 +596,7 @@ button(EmitterBuilder.combine(onMouseUp.use(false), onMouseDown.use(true)).forea
 // this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
 ```
 
-Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
+Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` (`EmitterBuilder.ofSource`) or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
 
 ##### Global events
 
@@ -620,7 +621,7 @@ We have seen how to render dynamic content. But how to manage dynamic state? You
 Let's implement a counter in a button. OutWatch provides `Handler`, which is a factory to create a reactive variable (more details later):
 
 ```scala
-import colibri.handler._
+import outwatch.reactive.handler._
 
 // Handler.create returns `SyncIO`
 val counter: SyncIO[VNode] = Handler.create[Int](0).map { handler =>
@@ -660,14 +661,14 @@ A more involved example is an input field where you want to capture the current 
 Methods like `Handler.create` are available for different streaming libarries (e.g. our own `colibri` and `monix`):
 
 ```scala
-import colibri.handler._ // or outwatch.ext.monix.handler._
+import outwatch.reactive.handler._ // or outwatch.ext.monix.handler._
 
 val handler: SyncIO[Handler[Int]] = Handler.create[Int](1)
 val source: HandlerSource[Int] = HandlerSource[Int](3)
 val sink: HandlerSink[Int] = HandlerSink.create(onNext, onError)
 ```
 
-You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `colibri.handler._` to `outwatch.ext.monix.handler._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
+You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `outwatch.reactive.handler._` to `outwatch.ext.monix.handler._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
 
 ##### Referential transparency
 
@@ -770,24 +771,11 @@ managedElement.asSvg { ??? }
 
 #### Using other streaming libraries
 
-We have prepared typeclasses for integrating streaming libaries:
-- `Sink[F[_]]` can send values and errors into `F` has an `onNext` and `onError` method.
-- `Source[F[_]]` can subscribe to `F` with a `Sink` (returns a cancelable subscription)
-- `CancelCancelable[T]` can cancel `T` to stop a subscription
-- `LiftSink[F[_]]` can lift a `Sink` into type `F`
-- `LiftSource[F[_]]` can lift a `Source` into type `F`
-- `CreateHandler[F[_]]` how to create subject in `F`
-- `CreateProHandler[F[_,_]]` how to create subject in `F` which has differnt input/output types.
-
-Most important here are `Sink` and `Source`. `Source` allows you use your observable as a `VDomModifier`. `Sink` allows you to use your observer on the right-hand side of `-->`.
-
-Source Code: [Source.scala](reactive/src/main/scala/colibri/Source.scala), [Sink.scala](reactive/src/main/scala/colibri/Sink.scala)
-
-Example: [Implmentation for Monix](monix/src/main/scala/outwatch/ext/monix/MonixReactive.scala)
+We use the library [`colibri`](https://github.com/cornerman/colibri) for a minimal reactive library and for typeclasses around streaming. These typeclasses like `Source` and `Sink` allow to integrate third-party libraries for streaming easily.
 
 ### Debugging
 
-Source Code: [OutwatchTracing.scala](outwatch/src/main/scala/outwatch/dom/helpers/OutwatchTracing.scala)
+Source Code: [OutwatchTracing.scala](outwatch/src/main/scala/outwatch/helpers/OutwatchTracing.scala)
 
 #### Tracing snabbdom patches
 
@@ -806,7 +794,6 @@ helpers.OutwatchTracing.error.foreach { case throwable =>
   org.scalajs.dom.console.log(s"Exception while patching an Outwatch compontent: ${throwable.getMessage}")
 }
 ```
-
 
 
 ## LICENSE
