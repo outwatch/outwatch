@@ -6,7 +6,7 @@ import outwatch._
 import outwatch.dsl._
 // import outwatch.reactive.handler._
 import colibri.ext.monix._
-import outwatch.ext.monix.handler._
+import outwatch.reactive.handlers.monix._
 
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler

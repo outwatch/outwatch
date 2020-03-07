@@ -661,14 +661,14 @@ A more involved example is an input field where you want to capture the current 
 Methods like `Handler.create` are available for different streaming libarries (e.g. our own `colibri` and `monix`):
 
 ```scala
-import outwatch.reactive.handler._ // or outwatch.ext.monix.handler._
+import outwatch.reactive.handler._ // or outwatch.reactive.handlers.monix._
 
 val handler: SyncIO[Handler[Int]] = Handler.create[Int](1)
 val source: HandlerSource[Int] = HandlerSource[Int](3)
 val sink: HandlerSink[Int] = HandlerSink.create(onNext, onError)
 ```
 
-You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `outwatch.reactive.handler._` to `outwatch.ext.monix.handler._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
+You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `outwatch.reactive.handler._` to `outwatch.reactive.handlers.monix._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
 
 ##### Referential transparency
 

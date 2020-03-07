@@ -8,7 +8,7 @@ import outwatch.Deprecated.IgnoreWarnings.initEvent
 
 import outwatch.dsl._
 import colibri.ext.monix._
-import outwatch.ext.monix.handler._
+import outwatch.reactive.handlers.monix._
 import outwatch.util._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
