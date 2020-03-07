@@ -2,6 +2,7 @@ package outwatch
 
 import cats.Monoid
 import org.scalajs.dom._
+import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
 import colibri.{Observer, Cancelable, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
@@ -37,6 +38,9 @@ object VDomModifier {
     CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, CompositeModifier(modifiers)))
 
   @inline def delay[T : Render](modifier: => T): VDomModifier = SyncEffectModifier(() => VDomModifier(modifier))
+
+  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
+  @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
   implicit object monoid extends Monoid[VDomModifier] {
     @inline def empty: VDomModifier = VDomModifier.empty
