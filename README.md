@@ -59,14 +59,20 @@ resolvers += "jitpack" at "https://jitpack.io"
 libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch" % "master-SNAPSHOT"
 ```
 
-If you want support for Monix in OutWatch, you need to add the following dependency as well:
-```scala
-libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-monix" % "master-SNAPSHOT"
-```
-
 If you want to use utilities for `Store`, `WebSocket` or `Http`, add the following:
 ```scala
 libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-util" % "master-SNAPSHOT"
+```
+
+If you want support for Monix in OutWatch, you need to add the following dependency as well:
+```scala
+libraryDependencies += "com.github.cornerman.colibri" %%% "colibri-monix" % "master-SNAPSHOT"
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-monix" % "master-SNAPSHOT" // for handler factories
+```
+
+If you want support for scala.rx in OutWatch, you need to add the following dependency as well:
+```scala
+libraryDependencies += "com.github.cornerman.colibri" %%% "colibri-rx" % "master-SNAPSHOT"
 ```
 
 When using [JitPack](https://jitpack.io), it is often more useful to point to a specific commit, to make your builds reproducible:
@@ -772,6 +778,17 @@ managedElement.asSvg { ??? }
 #### Using other streaming libraries
 
 We use the library [`colibri`](https://github.com/cornerman/colibri) for a minimal reactive library and for typeclasses around streaming. These typeclasses like `Source` and `Sink` allow to integrate third-party libraries for streaming easily.
+
+For using outwatch with monix:
+```scala
+import colibri.ext.monix._
+import outwatch.reactive.handlers.monix._ // for handler factories
+```
+
+For using outwatch with scala.rx:
+```scala
+import colibri.ext.rx._
+```
 
 ### Debugging
 

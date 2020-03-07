@@ -88,7 +88,7 @@ lazy val outwatchReactive = project
       Nil,
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri" % "de17495",
+      "com.github.cornerman.colibri" %%% "colibri" % "4979072",
     )
   )
 
@@ -112,7 +112,7 @@ lazy val outwatchMonix = project
     normalizedName := "outwatch-monix",
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri-monix" % "de17495",
+      "com.github.cornerman.colibri" %%% "colibri-monix" % "4979072",
       "io.monix"      %%% "monix"       % "3.1.0",
     )
   )
