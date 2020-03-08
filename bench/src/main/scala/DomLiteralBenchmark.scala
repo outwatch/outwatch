@@ -1,7 +1,7 @@
 package outwatch
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler
 import monix.execution.Scheduler
@@ -15,7 +15,7 @@ object DomLiteralBenchmark extends js.JSApp {
   def main(): Unit = {
     import scala.concurrent.duration._
 
-    bench.util.runComparison(domLiterals, List(1), 60 seconds)
+    bench.util.runComparison(domLiterals, List(1), 60.seconds)
   }
 
   val domLiterals = Comparison("Dom Literals", Seq(

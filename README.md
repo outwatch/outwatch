@@ -1,17 +1,21 @@
 # OutWatch - Functional and reactive Web-Frontend Library with Reactive Programming, VirtualDom and Scala [![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://scala-js.org/assets/badges/scalajs-0.6.15.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
 
-```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
-import monix.execution.Scheduler.Implicits.global
+Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI can be made reactive and allows for easy integration of third-party FRP libraries (for example [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx) or [airstream](https://github.com/raquo/airstream)). We integrate tightly with [cats](https://github.com/typelevel/cats) and [cats-effect](https://github.com/typelevel/cats-effect) to build safe web applications. In OutWatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.
 
-OutWatch.renderInto("#app", h1("Hello World")).unsafeRunSync()
+```scala
+import outwatch._
+import outwatch.dsl._
+
+val hello = h1("Hello World")
+
+val app = OutWatch.renderInto[IO]("#app", hello)
+
+// Nothing happend yet, you just described your web application.
+// Now it's time to push the start button:
+app.unsafeRunSync()
 ```
 
-Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI is made reactive with [Monix](https://monix.io/).
-
 You can find more examples and features at the end of this readme.
-
 
 ## Getting started
 ### Start with a template
@@ -53,6 +57,22 @@ If you are curious and want to try the state of the current `master` branch, add
 ```scala
 resolvers += "jitpack" at "https://jitpack.io"
 libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch" % "master-SNAPSHOT"
+```
+
+If you want to use utilities for `Store`, `WebSocket` or `Http`, add the following:
+```scala
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-util" % "master-SNAPSHOT"
+```
+
+If you want support for Monix in OutWatch, you need to add the following dependency as well:
+```scala
+libraryDependencies += "com.github.cornerman.colibri" %%% "colibri-monix" % "master-SNAPSHOT"
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-monix" % "master-SNAPSHOT" // for handler factories
+```
+
+If you want support for scala.rx in OutWatch, you need to add the following dependency as well:
+```scala
+libraryDependencies += "com.github.cornerman.colibri" %%% "colibri-rx" % "master-SNAPSHOT"
 ```
 
 When using [JitPack](https://jitpack.io), it is often more useful to point to a specific commit, to make your builds reproducible:
@@ -99,16 +119,15 @@ In your html file, create an element, which you want to replace by dynamic conte
 To render html content with outwatch, create a component and render it into the given element:
 
 ```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
-import monix.execution.Scheduler.Implicits.global
+import outwatch._
+import outwatch.dsl._
 
 object Main {
   def main(args: Array[String]): Unit = {
     
     val myComponent = div("Hello World")
 
-    OutWatch.renderReplace("#app", myComponent).unsafeRunSync()
+    OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
   }
 }
 ```
@@ -216,8 +235,6 @@ div(cls := "myclass")
 // <div class="myclass"></div>
 ```
 
-Source Code: [OutwatchAttributes.scala](src/main/scala/outwatch/dom/OutwatchAttributes.scala#L65)
-
 
 #### Overriding attributes
 Attributes and styles with the same name will be overwritten. Last wins.
@@ -226,8 +243,6 @@ Attributes and styles with the same name will be overwritten. Last wins.
 div(color := "blue", color := "green")
 // <div style="color: green"></div>
 ```
-
-Source Code: [DomUtils.scala](src/main/scala/outwatch/dom/helpers/DomUtils.scala#L8)
 
 #### Class accumulation
 Classes are not overwritten, they accumulate.
@@ -257,7 +272,7 @@ div(
 
 If you think there is something missing in Scala Dom Types, please open a PR or Issue. Usually it's just one line of code.
 
-Source Code: [DomTypes.scala](src/main/scala/outwatch/dom/DomTypes.scala)
+Source Code: [DomTypes.scala](outwatch/src/main/scala/outwatch/definitions/DomTypes.scala)
 
 
 #### Data attributes
@@ -268,7 +283,7 @@ div(data.payload := "17")
 // <div data-payload="17"></div>
 ```
 
-Source Code: [OutwatchAttributes.scala](src/main/scala/outwatch/dom/OutwatchAttributes.scala#L70), [Builder.scala](src/main/scala/outwatch/dom/helpers/Builder.scala#L39)
+Source Code: [OutwatchAttributes.scala](outwatch/src/main/scala/outwatch/definitions/OutwatchAttributes.scala#L75), [Builder.scala](outwatch/src/main/scala/outwatch/helpers/Builder.scala#L35)
 
 
 #### SVG
@@ -314,10 +329,6 @@ div(
 // </div>
 ```
 
-Source Code: [AsVDomModifier.scala](src/main/scala/outwatch/AsVDomModifier.scala)
-
-
-
 #### Types
 The important types we were using in the examples above are `VNode` and `VDomModifier`:
 
@@ -330,6 +341,7 @@ Every `VNode` contains a sequence of `VDomModifier`. A `VNode` is a `VDomModifie
 
 There are implicits for converting primitives, `Option[VDomModifier]`, `Seq[VDomModifier]` to `VDomModifier`.
 
+Source Code: [Render.scala](outwatch/src/main/scala/outwatch/Render.scala)
 
 #### Grouping Modifiers
 To make a set of modifiers reusable you can group them to become one `VDomModifier`.
@@ -340,7 +352,12 @@ div("Argh!", bigFont)
 // <div style="font-size: 40px; font-weight: bold;">Argh!</div>
 ```
 
-You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](src/main/scala/outwatch/dom/package.scala) object.
+If you want to reuse the `bigFont`, but want to overwrite one of its properties, you can combine two `VDomModifier`. Here the latter `fontSize` will overwrite the one from `bigFont`:
+```scala
+val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
+```
+
+You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](outwatch/src/main/scala/outwatch/package.scala) object.
 
 
 #### Components
@@ -400,10 +417,10 @@ div(
 // </div>
 ```
 
-Source Code: [VDomModifier.scala](src/main/scala/outwatch/dom/VDomModifier.scala#L146)
+Source Code: [VDomModifier.scala](outwatch/src/main/scala/outwatch/VDomModifier.scala#L92)
 
 
-#### Use-Case: Flexbox
+##### Use-Case: Flexbox
 When working with [Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/), you can set styles for the **container** and **children**. With `VNode.apply()` you can have all flexbox-related styles in one place. The child-components don't have to know anything about flexbox, even though they get specific styles assigned.
 
 ```scala
@@ -425,16 +442,92 @@ div(
 // </div>
 ```
 
+#### Rendering Async Effects
 
-### Dynamic Content
-To visualize updates, use an `Observable[VDomModifier]` as if it was a `VDomModifier`.
+You can render any `cats.effect.Effect` type like `cats.effect.IO` or `monix.eval.Task`. The effect will be run async whenever an element is rendered with this modifier. So you can do:
+```scala
+div(
+  IO {
+    doSomething
+  }
+)
+```
+
+If you have an effect that is synchronous in nature, you should consider using a sync effect type instead for performance reasons. A sync effect can be rendered in one go, whereas an async effect might need to patch the dom after it is finished.
+
+#### Rendering Sync Effects
+
+You can render synchronous effects like `cats.effect.SyncIO` or `monix.eval.Coeval` as well (we currently use our own typeclass `colibri.effect.RunSyncEffect` and will port to `cats.effect.SyncEffect` as soon as it is available). The effect will be run sync whenever an element is rendered with this modifier. Example:
+```scala
+div(
+  SyncIO {
+    doSomething
+  }
+)
+```
+
+Alternatively you can do the following to achieve the same effect:
+```scala
+div(
+  VDomModifier.delay {
+    doSomething
+  }
+)
+```
+
+#### Rendering Futures
+
+You can render Futures as well:
+```scala
+div(
+  Future {
+    doSomething
+  }
+)
+```
+
+#### Rendering Custom Types
+
+You can render any custom type! Say you have the following type:
 
 ```scala
-import outwatch.dom._
-import outwatch.dom.dsl._
+case class Person(name: String, age: Int)
+```
 
-import monix.reactive.Observable
-import monix.execution.Scheduler.Implicits.global
+And now you want to be able to render a `Person` just like a normal modifier. This can be done by providing an instance of the `Render` typeclass:
+```scala
+object Person {
+
+  implicit object PersonRender extends Render[Person] {
+    def render(person: Person): VDomModifier = div(
+        b(person.name), span(person.age, marginLeft := "5px")
+    )
+  }
+
+}
+```
+
+Thats it, now you can just use `Person` in your dom definitions:
+```scala
+val person = Person("Hans", age = 48)
+
+div(person)
+```
+
+Source Code: [Render.scala](outwatch/src/main/scala/outwatch/Render.scala)
+
+### Dynamic Content
+
+Dynamic content can be displayed as well. OutWatch comes with its own *minimal* reactive library that you can just start using. Additionally we have first-class support for third-party streaming libraries.
+
+You can use observables, streams and reactive variables as if they were a `VDomModifier`.
+
+
+```scala
+import outwatch._
+import outwatch.dsl._
+
+import colibri.Observable
 
 import concurrent.duration._
 
@@ -444,13 +537,35 @@ object Main {
     val counter = Observable.interval(1 second)
     val counterComponent = div("count: ", counter)
 
-    OutWatch.renderReplace("#app", counterComponent).unsafeRunSync()
+    OutWatch.renderReplace[IO]("#app", counterComponent).unsafeRunSync()
+  }
+}
+```
+
+You can write the same application with monix:
+
+```scala
+import outwatch._
+import outwatch.dsl._
+
+import monix.reactive.Observable
+import monix.execution.Scheduler.Implicits.global
+import colibri.ext.monix._
+
+import concurrent.duration._
+
+object Main {
+  def main(args: Array[String]): Unit = {
+
+    val counter = Observable.interval(1 second) // using monix observable
+    val counterComponent = div("count: ", counter)
+
+    OutWatch.renderReplace[IO]("#app", counterComponent).unsafeRunSync()
   }
 }
 ```
 
 **Important:** In your application, `OutWatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Obvervable`, `Subject` and/or `Handler` and then instantiate it only once with this method call. Before that, no `Observable` subscription will happen.
-
 
 #### Dynamic attributes
 Attributes can also take dynamic values.
@@ -464,74 +579,238 @@ div(width := "100px", height := "100px", backgroundColor <-- color)
 You can stream arbitrary `VDomModifiers`.
 
 ```scala
-val dynamicSize:Observable[VDomModifier] = Observable.interval(1 second).map(i => fontSize := s"${i}px")
+val dynamicSize: Observable[VDomModifier] = Observable.interval(1 second).map(i => fontSize := s"${i}px")
 div("Hello!", dynamicSize)
 ```
 
 ```scala
-val nodeStream:Observable[VNode] = Observable.interval(1 second).map(i => div(s"Number $i"))
+val nodeStream: Observable[VNode] = Observable(div("I am delayed!")).delay(5.seconds)
 div("Hello ", nodeStream)
 ```
 
-
-### Advanced
-
-### Using other streaming libraries than Monix
-
-We have prepared the two typeclasses `AsValueObservable` and `AsObserver` to work with arbitrary streaming libraries. `AsValueObservable` is for the reading part of the stream, and `AsObserver` is for the writing part.
-
-Example: To use outwatch with [scala.rx](https://github.com/lihaoyi/scala.rx):
+#### Events and EmitterBuilders
+We are working with dom elements and want to react to events of these dom elements. For this, there is [EmitterBuilder](outwatch/src/main/scala/outwatch/EmitterBuilder.scala). For example, take the `click` event for which `onClick` is an `EmitterBuilder`:
 
 ```scala
-import rx._
-import monix.reactive._
-import monix.execution._
+button(onClick.foreach { println("Element was clicked!") })
+```
 
-implicit object RxAsValueObservable extends AsValueObservable[Rx] {
-  override def as[T](stream: Rx[T]): ValueObservable[T] = new ValueObservable[T]{
-    def value = Option(stream.now)
-    def observable = Observable.create[T](OverflowStrategy.Unbounded) { observer =>
-      implicit val ctx = Ctx.Owner.Unsafe
-      val obs = stream.triggerLater(observer.onNext(_))
-      Cancelable(() => obs.kill())
-    }
-  }
-}
+You can further `combine`, `map`, `collect`, `filter` and `transform` `EmitterBuilder`:
 
-implicit object VarAsObserver extends AsObserver[Var] {
-  override def as[T](stream: Var[_ >: T]): Observer[T] = new Observer.Sync[T] {
-    override def onNext(elem: T): Ack = {
-      stream() = elem
-      Ack.Continue
-    }
-    override def onError(ex: Throwable): Unit = throw ex
-    override def onComplete(): Unit = ()
-  }
-}
+```scala
+button(EmitterBuilder.combine(onMouseUp.use(false), onMouseDown.use(true)).foreach { isDown => println("Button is down? " + isDown })
+// this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
+```
 
-// if you want to use managed()
-implicit def obsToCancelable(obs: Obs): Cancelable = {
-  Cancelable(() => obs.kill())
+Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` (`EmitterBuilder.ofSource`) or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
+
+##### Global events
+
+There are helpers for getting a stream of global `document` or `window` events, where you get a `colibri.Observable` for these events. For example:
+
+```scala
+import outwatch.dsl._
+
+events.document.onClick.foreach { event => console.log("Click Event", event) }
+
+events.window.onStorage.foreach { event => console.log("Storage Event", event) }
+
+div(emitter(events.document.onClick) --> sink)
+```
+
+#### Managing dynamic state
+
+We have seen how to render dynamic content. But how to manage dynamic state? You want to have a reactive variable to hold a variable for you, so you can write into it and stream values from it.
+
+##### Example: Counter
+
+Let's implement a counter in a button. OutWatch provides `Handler`, which is a factory to create a reactive variable (more details later):
+
+```scala
+import outwatch.reactive.handler._
+
+// Handler.create returns `SyncIO`
+val counter: SyncIO[VNode] = Handler.create[Int](0).map { handler =>
+    button(onClick(handler.map(_ + 1)) --> handler, "Counter: ", handler)
 }
 ```
 
-### debugging snabbdom patches
+Alternative version of a `counter`:
+```scala
+val counter = button(
+    onClick.useScan0(0)(_ + 1).handled { source =>
+        VDomModifier("Counter: ", source)
+    }
+)
+```
 
+##### Example: Input Field
+
+A more involved example is an input field where you want to capture the current value:
+```scala
+  def render: SyncIO[VNode] = for {
+    handler <- Handler.create[String]("Initial")
+  } yield {
+    div(
+      label( "Example!" ),
+      input(
+        value <-- handler, // by writing into the `handler`, you could change the input value
+        onChange.value --> handler
+      ),
+      div("Current Value:", handler)
+    )
+  }
+```
+
+##### Handler factories
+
+Methods like `Handler.create` are available for different streaming libarries (e.g. our own `colibri` and `monix`):
+
+```scala
+import outwatch.reactive.handler._ // or outwatch.reactive.handlers.monix._
+
+val handler: SyncIO[Handler[Int]] = Handler.create[Int](1)
+val source: HandlerSource[Int] = HandlerSource[Int](3)
+val sink: HandlerSink[Int] = HandlerSink.create(onNext, onError)
+```
+
+You typically just want one of these Environments in scope, the types would name-clash overwise. And the handler environment is totally optional, you can create your Handlers of the library of your choice yourself and everything will work out of the box without the environment. The environment is just to have a vocabulary of how to create sources, sinks, handlers without using concrete types names from third-party libraries. This way you can switch a whole file to another streaming library by merely changing an import from `outwatch.reactive.handler._` to `outwatch.reactive.handlers.monix._`. Of course, this will never cover all complex details that might be needed, but is target for basic use-cases and should be enough for most things. You have the streaming typeclasses as well to abstract further over your types.
+
+##### Referential transparency
+
+The factory `Handler.create` returns a `SyncIO` to be referential transparent. Take the counter example:
+
+```scala
+
+def getCounterComponent: SyncIO[VNode] = Handler.create(0).map { handler => // alternative: Handler.createF[IO]
+    button(onClick(handler.map(_ + 1)) --> handler, handler)
+}
+
+def getUnsafeCounterComponent: VNode = {
+    val handler = Handler.unsafe(0)
+    button(onClick(handler.map(_ + 1)) --> handler, handler)
+}
+
+// We can test whether the above functions are referential transparent
+
+// The first one is referential transparent, because component1 and component2 are equivalent
+val counter = getCounterComponent
+val component1 = div(counter, counter) // two counter buttons with separate state
+val component2 = div(getCounterComponent, getCounterComponent) // two counter buttons with separate state
+
+// The second one is not, because component1 and component2 behave differently
+val counter = getUnsafeCounterComponent
+val component1 = div(counter, counter) // two counter buttons which share the same state
+val component2 = div(getUnsafeCounterComponent, getUnsafeCounterComponent) // two counter buttons with separate state
+
+// For the first one, you can share the state explicitly
+val component = counter.map { counter => div(counter, counter) }
+```
+
+Why should we care? Because referential transparent functions can easily be refactored without affecting the meaning of the program and it is easier to reason about them.
+If you do not care about this, you could use `Handler.unsafe` or create the `Handler` yourself with the streaming library of your choice.
+
+#### Lifecycle Mangement
+
+OutWatch automatically handles subscriptions of streams and observables in your components. You desribe your component with static and dynamic content (handlers, event emitters, `-->` and `<--`). When using these components, the needed subscriptions will be tight to the lifecycle of the respective dom elements and are managed for you. So whenever an element is mounted the subscriptions are run and whenever it is unmounted the subscriptions are killed.
+
+If you ever need to manually subscribe to a stream, you can let OutWatch manage them for you:
+```scala
+div(
+  managed(SyncIO { observable.subscribe(...) }) // this subscription is now bound to the lifetime of the outer div element
+)
+```
+
+### Advanced
+
+#### Accessing the DOM Element
+
+Sometimes you need to access the underlying DOM element of a component. But a VNode in OutWatch is just a description of a dom element and we can create multiple different elements from one VNode. Therefore, there is no static element attached to a component. Though, you can get access to the dom element via hooks (callbacks):
+```scala
+div(
+    onDomMount.foreach { element => // the element into which this node is mounted
+        ???
+    },
+    onDomUnmount.foreach { element => // the element from which this node is unmounted
+        ???
+    }
+)
+```
+
+We have a higher-level API to work with these kinds of callbacks, called `managedElement`, which can be used like this:
+```scala
+div(
+    managedElement { element => // the element into which this node is mounted
+        ??? // do something with the dom element
+        cancelable(() => ???) // cleanup when the dom element is unmounted
+    }
+)
+```
+
+You can also get the current element when handling dom events, for example onClick:
+```scala
+div(
+    onClick.asElement.foreach { element =>
+        ???
+    } // this is the same as onClick.map(_.currentTarget)
+)
+```
+
+If the emitter does not emit events or elements, but you still want to access the current element, you can combine it with another emitter. For example:
+```scala
+div(
+    emitter(someObservable).useLatestEmitter(onDomMount).foreach { element =>
+        ???
+    }
+)
+```
+
+If you need an HTML or SVG Element instead of just an Element, you can do:
+```scala
+onDomMount.asHtml --> ???
+onDomMount.asSvg --> ???
+onClick.asHtml --> ???
+onClick.asSvg --> ???
+managedElement.asHtml { ??? }
+managedElement.asSvg { ??? }
+```
+
+#### Using other streaming libraries
+
+We use the library [`colibri`](https://github.com/cornerman/colibri) for a minimal reactive library and for typeclasses around streaming. These typeclasses like `Source` and `Sink` allow to integrate third-party libraries for streaming easily.
+
+For using outwatch with monix:
+```scala
+import colibri.ext.monix._
+import outwatch.reactive.handlers.monix._ // for handler factories
+```
+
+For using outwatch with scala.rx:
+```scala
+import colibri.ext.rx._
+```
+
+### Debugging
+
+Source Code: [OutwatchTracing.scala](outwatch/src/main/scala/outwatch/helpers/OutwatchTracing.scala)
+
+#### Tracing snabbdom patches
+
+Show what patches snabbdom emits:
 ```scala
 helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
   org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
 }
 ```
 
-### tracing exceptions in your components
+#### Tracing exceptions in your components
 
-Dynamic components with `Observables` can have errors. This is if `onError` is called on the underlying `Observer`. You can trace them in OutWatch with:`
+Dynamic components with `Observables` can have errors. This is if `onError` is called on the underlying `Observer`. You can trace them in OutWatch with:
 ```scala
 helpers.OutwatchTracing.error.foreach { case throwable =>
   org.scalajs.dom.console.log(s"Exception while patching an Outwatch compontent: ${throwable.getMessage}")
 }
 ```
-
 
 
 ## LICENSE
