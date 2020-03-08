@@ -8,7 +8,9 @@ import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element}
 import outwatch.Deprecated.IgnoreWarnings.initEvent
 import monix.reactive.Observable
-import snabbdom.{DataObject, Hooks, hFunction, VNodeProxy}
+import outwatch.helpers._
+import outwatch.dsl._
+import snabbdom.{DataObject, Hooks, VNodeProxy}
 import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
 
@@ -35,6 +37,18 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val event = document.createEvent("Events")
     initEvent(event)(eventType, canBubbleArg = true, cancelableArg = false)
     elem.dispatchEvent(event)
+  }
+
+  def newProxy(tagName: String, dataObject: DataObject, string: String) = new VNodeProxy {
+    sel = tagName
+    data = dataObject
+    text = string
+  }
+
+  def newProxy(tagName: String, dataObject: DataObject, childProxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined) = new VNodeProxy {
+    sel = tagName
+    data = dataObject
+    children = childProxies
   }
 
   "Properties" should "be separated correctly" in {
@@ -173,13 +187,13 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   val fixture = Fixture(
-    hFunction(
+    newProxy(
       "div",
       new DataObject {
         attrs = js.Dictionary[Attr.Value]("class" -> "red", "id" -> "msg")
         hook = Hooks.empty
       },
-      js.Array(hFunction("span", new DataObject { hook = Hooks.empty }, "Hello"))
+      js.Array(newProxy("span", new DataObject { hook = Hooks.empty }, "Hello"))
     )
   )
 
@@ -540,7 +554,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
     val attributes = js.Dictionary[Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
-    val expected = hFunction("div", new DataObject { attrs = attributes; hook = Hooks.empty })
+    val expected = newProxy("div", new DataObject { attrs = attributes; hook = Hooks.empty })
 
     val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
     snabbdomNode._id = js.undefined
