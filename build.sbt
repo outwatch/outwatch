@@ -23,7 +23,7 @@ inThisBuild(Seq(
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
-  addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.4" cross CrossVersion.full),
+  addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full),
 
   requireJsDomEnv in Test := true,
 
@@ -31,7 +31,7 @@ lazy val commonSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.scalatest" %%% "scalatest" % "3.1.1" % Test,
-    "com.github.ghik" % "silencer-lib" % "1.4.4" % Provided cross CrossVersion.full,
+    "com.github.ghik" % "silencer-lib" % "1.6.0" % Provided cross CrossVersion.full,
   ),
 
   scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value).map(v =>
