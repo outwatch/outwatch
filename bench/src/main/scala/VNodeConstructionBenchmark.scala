@@ -1,11 +1,11 @@
 package outwatch
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler
 import monix.execution.Scheduler
-import outwatch.dom.helpers.SnabbdomOps
+import outwatch.interpreter.SnabbdomOps
 
 import org.scalajs.dom.{ document, window }
 import scala.scalajs.js
@@ -19,7 +19,7 @@ object VNodeConstructionBenchmark extends js.JSApp {
   def main(): Unit = {
     import scala.concurrent.duration._
 
-    bench.util.runComparison(vnodes, List(1), 60 seconds)
+    bench.util.runComparison(vnodes, List(1), 60.seconds)
   }
 
   val vnodes = Comparison("VNode Construction", Seq(
