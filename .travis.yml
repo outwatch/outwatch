@@ -6,7 +6,6 @@ scala:
   - 2.13.0
 
 jdk:
-  - openjdk8
   - openjdk11
 
 env:
