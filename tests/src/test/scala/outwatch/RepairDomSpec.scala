@@ -518,7 +518,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
     RepairDom.repairNode(proxy)
 
     fragileNode.innerHTML shouldBe originalNode.innerHTML
-    propMap(fragileNode).filterKeys(key => !Set("0", "1")(key)) shouldBe propMap(originalNode).filterKeys(key => !Set("0", "1")(key)) // filter out the weird option children in the propertymap. they are fine.
+    propMap(fragileNode).filter{ case (key,_) => !Set("0", "1")(key)} shouldBe propMap(originalNode).filter{case (key,_) => !Set("0", "1")(key)} // filter out the weird option children in the propertymap. they are fine.
     styleMap(fragileNode) shouldBe styleMap(originalNode)
     attributeMap(fragileNode) shouldBe attributeMap(originalNode)
     datasetMap(fragileNode) shouldBe datasetMap(originalNode)
