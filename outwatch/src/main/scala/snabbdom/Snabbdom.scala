@@ -42,7 +42,7 @@ object DataObject {
   type StyleValue = String | js.Dictionary[String]
   type KeyValue = String | Double | Int // https://github.com/snabbdom/snabbdom#key--string--number
 
-  def empty: DataObject = new DataObject { }
+  def empty: DataObject = new DataObject {}
 }
 
 // These are the original facades for snabbdom thunk. But we implement our own, so that for equality checks, the equals method is used.
@@ -96,14 +96,14 @@ object thunk {
   }
 
   @inline private def prepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
-    if (shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
+    if(shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
     else VNodeProxy.updateInto(source = oldProxy, target = thunk)
   }
 
   @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
     var i = 0
-    while (i < maxIndex) {
-      if (predicate(i)) return true
+    while(i < maxIndex) {
+      if(predicate(i)) return true
       i += 1
     }
     false
@@ -150,7 +150,7 @@ object patch {
 
   def apply(firstNode: VNodeProxy, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 
-  def apply(firstNode: org.scalajs.dom.Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
+  def apply(firstNode: Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
 }
 
 trait VNodeProxy extends js.Object {
@@ -197,7 +197,6 @@ object VNodeProxy {
 object Snabbdom extends js.Object {
   @silent("never used|dead code")
   def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
-
 }
 
 @silent("never used|dead code")
@@ -238,5 +237,5 @@ object SnabbdomStyle extends js.Object {
 @js.native
 @JSImport("snabbdom/tovnode", JSImport.Default)
 object tovnode extends js.Function1[Element, VNodeProxy] {
-  def apply(element: Element):VNodeProxy = js.native
+  def apply(element: Element): VNodeProxy = js.native
 }
