@@ -181,4 +181,4 @@ lazy val root = project
     name := "outwatch-root",
     skip in publish := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, tests, bench)
+  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, tests)
