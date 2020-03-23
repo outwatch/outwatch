@@ -75,6 +75,12 @@ If you want support for scala.rx in OutWatch, you need to add the following depe
 libraryDependencies += "com.github.cornerman.colibri" %%% "colibri-rx" % "master-SNAPSHOT"
 ```
 
+We have prepared some wrappers for javascript libraries:
+```scala
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-libs-hammerjs" % "master-SNAPSHOT" // for hammer-js
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch-libs-clipboardjs" % "master-SNAPSHOT" // for clipboard-js
+```
+
 When using [JitPack](https://jitpack.io), it is often more useful to point to a specific commit, to make your builds reproducible:
 
 ```scala

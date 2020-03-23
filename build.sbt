@@ -127,6 +127,35 @@ lazy val outwatchRepairDom = project
     normalizedName := "outwatch-repairdom",
   )
 
+lazy val outwatchLibsHammerJs = project
+  .in(file("libs/hammerjs"))
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
+  .settings(librarySettings)
+  .settings(
+    name := "OutWatch-libs-HammerJs",
+    normalizedName := "outwatch-libs-hammerjs",
+
+    npmDependencies in Compile ++=
+        "hammerjs" -> "2.0.8" ::
+        "propagating-hammerjs" -> "1.4.6" ::
+        Nil
+  )
+
+lazy val outwatchLibsClipboardJs = project
+  .in(file("libs/clipboardjs"))
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
+  .settings(librarySettings)
+  .settings(
+    name := "OutWatch-libs-ClipboardJs",
+    normalizedName := "outwatch-libs-clipboardjs",
+
+    npmDependencies in Compile ++=
+        "clipboard" -> "2.0.4" ::
+        Nil
+  )
+
 lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -192,4 +221,4 @@ lazy val root = project
     name := "outwatch-root",
     skip in publish := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
+  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, outwatchRepairDom, outwatchLibsHammerJs, outwatchLibsClipboardJs, tests)
