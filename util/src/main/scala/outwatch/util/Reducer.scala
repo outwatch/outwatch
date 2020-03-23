@@ -14,7 +14,8 @@ object Reducer {
    * However, this only effects immediate emissions of the Effects Observable, delayed emissions should be fine.
    * @param f The Reducing Function returning the (Model, Effects) tuple.
    */
-  def withEffects[A, M](f: (M, A) => (M, Observable[A])): Reducer[A, M] = f
+  def withEffects[F[_]: ObservableLike, A, M](f: (M, A) => (M, F[A])): Reducer[A, M] = (s: M, a: A) =>
+    f(s, a).map(ObservableLike[F].toObservable)
 
   /**
    * Creates a reducer which just transforms the state, without additional effects.
@@ -22,8 +23,8 @@ object Reducer {
   def apply[A, M](f: (M, A) => M): Reducer[A, M] = (s: M, a: A) => f(s, a) -> Observable.empty
 
   /**
-   * Creates a Reducer with an optional IO effect.
+   * Creates a Reducer with an optional effect.
    */
-  def withOptionalEffects[F[_]: Source, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = (s: M, a: A) =>
-    f(s, a).map(_.fold[Observable[A]](Observable.empty)(Observable.lift(_)))
+  def withOptionalEffects[F[_]: ObservableLike, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = (s: M, a: A) =>
+    f(s, a).map(_.fold[Observable[A]](Observable.empty)(ObservableLike[F].toObservable))
 }
