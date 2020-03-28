@@ -135,7 +135,13 @@ abstract class WindowEvents
 
 abstract class DocumentEvents
   extends SourceEventPropBuilder(dom.document)
-  with eventProps.DocumentEventProps[Observable.Synchronous]
+  with eventProps.DocumentEventProps[Observable.Synchronous] {
+
+  def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
+    outwatch.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    outwatch.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
+  ).prepend(false)
+}
 
 // Styles
 
