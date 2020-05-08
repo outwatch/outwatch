@@ -113,7 +113,7 @@ lazy val outwatchMonix = project
 
     libraryDependencies ++= Seq(
       "com.github.cornerman.colibri" %%% "colibri-monix" % "54ccb64",
-      "io.monix"      %%% "monix"       % "3.1.0",
+      "io.monix"      %%% "monix"       % "3.2.1",
     )
   )
 
