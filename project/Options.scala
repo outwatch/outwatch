@@ -79,9 +79,7 @@ object Options {
     "2.11" -> options211,
   )
 
-  val scalajsOptions = Seq(
-    "-P:scalajs:sjsDefinedByDefault",
-  )
+  val scalajsOptions = Nil
 
   def allOptionsForVersion(v: String, js: Boolean): Seq[String] =
     versionBasedOptions.getOrElse(v, Nil) ++ (if(js) scalajsOptions else Nil)
