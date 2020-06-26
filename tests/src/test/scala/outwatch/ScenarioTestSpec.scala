@@ -4,10 +4,9 @@ import cats.effect.IO
 import org.scalajs.dom.{html, _}
 import monix.reactive.{Observable, Observer}
 import org.scalatest.Assertion
-import outwatch.Deprecated.IgnoreWarnings.initEvent
-
 import outwatch.dsl._
 import colibri.ext.monix._
+import org.scalajs.dom.raw.EventInit
 import outwatch.reactive.handlers.monix._
 import outwatch.util._
 
@@ -27,9 +26,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
             count = Observable(plusOne, minusOne).merge.scan(0)(_ + _).startWith(Seq(0))
 
              node = div(div(
-                        button(id := "plus", "+", onClick --> handlePlus),
-                        button(id := "minus", "-", onClick --> handleMinus),
-                        span(id:="counter", count)
+                        button(idAttr := "plus", "+", onClick --> handlePlus),
+                        button(idAttr := "minus", "-", onClick --> handleMinus),
+                        span(idAttr :="counter", count)
                     ))
                 r <- IO {
                       val root = document.createElement("div")
@@ -38,9 +37,10 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                     }
                 _ <- OutWatch.renderInto[IO](r, node)
             event <- IO {
-                      val event = document.createEvent("Events")
-                      initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-                      event
+                      new Event("click", new EventInit {
+                        bubbles = true
+                        cancelable = false
+                      })
                     }
                 _ <- IO {
                       getCounter.innerHTML shouldBe 0.toString
@@ -81,12 +81,12 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
-        button(id := "plus", "+", onClick.use(Plus) -->[colibri.Observer] store),
-        button(id := "minus", "-", onClick.use(Minus) -->[colibri.Observer] store),
-        span(id:="counter")(
+        button(idAttr := "plus", "+", onClick.use(Plus) -->[colibri.Observer] store),
+        button(idAttr := "minus", "-", onClick.use(Minus) -->[colibri.Observer] store),
+        span(idAttr :="counter")(
           state.map(_.count)
         ),
-        span(id := "iterations")(
+        span(idAttr := "iterations")(
           state.map(_.iterations)
         )
       )
@@ -103,9 +103,10 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       node <- node
       _ <- OutWatch.renderInto[IO](r, node)
       e <- IO {
-            val event = document.createEvent("Events")
-            initEvent(event)("click", canBubbleArg = true, cancelableArg = false)
-            event
+            new Event("click", new EventInit {
+              bubbles = true
+              cancelable = false
+            })
           }
       _ <- IO {
             getCounter.innerHTML shouldBe 0.toString
@@ -149,9 +150,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     val node = Handler.createF[IO, String].map { nameHandler =>
       div(
         label("Name:"),
-        input(id := "input", tpe := "text", onInput.value --> nameHandler),
+        input(idAttr := "input", tpe := "text", onInput.value --> nameHandler),
         hr(),
-        h1(id := "greeting", greetStart, nameHandler)
+        h1(idAttr := "greeting", greetStart, nameHandler)
       )
     }
 
@@ -164,9 +165,10 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       node  <- node
           _ <- OutWatch.renderInto[IO](r, node)
       event <- IO {
-                val evt = document.createEvent("HTMLEvents")
-                initEvent(evt)("input", canBubbleArg = false, cancelableArg = true)
-                evt
+                new Event("input", new EventInit {
+                  bubbles = false
+                  cancelable = true
+                })
               }
           g1 <- getGreeting(event, name1)
           g2 <- getGreeting(event, name2)
@@ -199,9 +201,10 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
     val test: IO[Assertion] = for {
       evt <- IO {
-        val clickEvt = document.createEvent("Events")
-        initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
-        clickEvt
+        new Event("click", new EventInit {
+          bubbles = true
+          cancelable = true
+        })
       }
       e1 <- createDiv
        _ <- OutWatch.renderInto[IO](e1, component1)
@@ -223,7 +226,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     def TodoComponent(title: String, deleteStream: Observer[String]) =
       li(
         span(title),
-        button(id:= title, onClick.use(title) --> deleteStream, "Delete")
+        button(idAttr := title, onClick.use(title) --> deleteStream, "Delete")
       )
 
     def TextFieldComponent(labelText: String, outputStream: Observer[String]) = for {
@@ -245,8 +248,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     } yield div(
         emitter(confirm) --> outputStream,
         label(labelText),
-        input(id:= "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
-        button(id := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
+        input(idAttr := "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
+        button(idAttr := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
 
 
@@ -276,7 +279,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
     } yield div(
         textFieldComponent,
-        ul(id:= "list", state)
+        ul(idAttr := "list", state)
       )
 
     val test: IO[Assertion] = for {
@@ -291,15 +294,17 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       _ <- OutWatch.renderInto[IO](root, vtree)
 
       inputEvt <- IO {
-        val inputEvt = document.createEvent("HTMLEvents")
-        initEvent(inputEvt)("input", canBubbleArg = false, cancelableArg = true)
-        inputEvt
+        new Event("input", new EventInit {
+          bubbles = false
+          cancelable = true
+        })
       }
 
       clickEvt <- IO {
-        val clickEvt = document.createEvent("Events")
-        initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
-        clickEvt
+        new Event("click", new EventInit {
+          bubbles = true
+          cancelable = true
+        })
       }
 
          inputE <- IO(document.getElementById("input").asInstanceOf[html.Input])

@@ -307,7 +307,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
   // attributes
   "RepairDom: Attributes" should "removed attribute" in {
     testCase(
-      vNode = div(id := "ich"),
+      vNode = div(idAttr := "ich"),
       corruption = { elem =>
         elem.removeAttribute("id")
       }
@@ -325,7 +325,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "replaced attribute" in {
     testCase(
-      vNode = div(id := "ich"),
+      vNode = div(idAttr := "ich"),
       corruption = { elem =>
         elem.setAttribute("id", "wir")
       }
@@ -334,7 +334,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "added attribute" in {
     testCase(
-      vNode = div(id := "ich"),
+      vNode = div(idAttr := "ich"),
       corruption = { elem =>
         elem.setAttribute("color", "tomato")
       }
@@ -347,7 +347,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
   // repairing is already handled by repairAttributes
   "RepairDom: Data-Attributes" should "removed data attribute" in {
     testCase(
-      vNode = div(data.id := "ich"),
+      vNode = div(data.idAttr := "ich"),
       corruption = { elem =>
         elem.dataset -= "id"
       }
@@ -365,7 +365,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "replaced data attribute" in {
     testCase(
-      vNode = div(data.id := "ich"),
+      vNode = div(data.idAttr := "ich"),
       corruption = { elem =>
         elem.dataset("id") = "wir"
       }
@@ -374,7 +374,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "added data attribute" in {
     testCase(
-      vNode = div(data.id := "ich"),
+      vNode = div(data.idAttr := "ich"),
       corruption = { elem =>
         elem.dataset("color") = "tomato"
       }

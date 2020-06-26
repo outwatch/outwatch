@@ -177,14 +177,14 @@ div(true, 0, 1000L, 3.0)
 Attributes are put inside the tag.
 
 ```scala
-div(id := "test")
+div(idAttr := "test")
 // <div id="test"></div>
 ```
 
 The order of content and attributes does not matter.
 
 ```scala
-div("How ", id := "test", "are", title := "cool", " you?")
+div("How ", idAttr := "test", "are", title := "cool", " you?")
 // <div id="test" title="cool">How are you?</div>
 ```
 
@@ -207,7 +207,7 @@ div(backgroundColor := "powderblue", border := "2px solid #222", "Hello")
 Again, the order of styles, attributes and inner tags does not matter:
 
 ```scala
-div(h1("Welcome to my website"), backgroundColor := "powderblue", id := "header")
+div(h1("Welcome to my website"), backgroundColor := "powderblue", idAttr := "header")
 // <div style="background-color: powderblue" id="header">Welcome to my website</div>
 ```
 
@@ -338,7 +338,7 @@ The important types we were using in the examples above are `VNode` and `VDomMod
 
 ```scala
 val vnode: VNode = div()
-val modifiers: List[VDomModifier] = List("Hello", id := "main", color := "tomato", vnode)
+val modifiers: List[VDomModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
 ```
 
 Every `VNode` contains a sequence of `VDomModifier`. A `VNode` is a `VDomModifier` itself.

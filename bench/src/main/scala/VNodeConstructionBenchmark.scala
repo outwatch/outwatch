@@ -33,7 +33,7 @@ object VNodeConstructionBenchmark extends js.JSApp {
       "10 literal attrs",
       { size =>
         SnabbdomOps.toSnabbdom(div(
-          id := "a",
+          idAttr := "a",
           min := "wo",
           max := "wa",
           src := "x",

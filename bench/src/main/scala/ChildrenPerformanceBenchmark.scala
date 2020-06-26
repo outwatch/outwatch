@@ -83,8 +83,8 @@ object ChildrenPerformance extends js.JSApp {
     val handler3 = Handler.unsafe[Int]
 
     val vtree = div(
-      id := elemId,
-      span(id := "pete", "Go!"),
+      idAttr := elemId,
+      span(idAttr := "pete", "Go!"),
       onClick foreach {},
       onDomMount foreach {},
       onDomUnmount foreach {},
@@ -129,8 +129,8 @@ object ChildrenPerformance extends js.JSApp {
     val handler3 = Handler.unsafe[Int]
 
     val vtree = div(
-      id := elemId,
-      span(id := "pete", "Go!"),
+      idAttr := elemId,
+      span(idAttr := "pete", "Go!"),
       onClick foreach {},
       onDomMount foreach {},
       onDomUnmount foreach {},
@@ -183,8 +183,8 @@ object ChildrenPerformance extends js.JSApp {
     val handler2 = Handler.unsafe[ChildCommand](ChildCommand.ReplaceAll(js.Array(node2(0))))
 
     val vtree = div(
-      id := elemId,
-      span(id := "pete", "Go!"),
+      idAttr := elemId,
+      span(idAttr := "pete", "Go!"),
       onClick foreach {},
       onDomMount foreach {},
       onDomUnmount foreach {},

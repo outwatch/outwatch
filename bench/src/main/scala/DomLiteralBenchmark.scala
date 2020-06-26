@@ -29,7 +29,7 @@ object DomLiteralBenchmark extends js.JSApp {
       "10 literal attrs",
       { size =>
         div(
-          id := "a",
+          idAttr := "a",
           min := "wo",
           max := "wa",
           src := "x",
