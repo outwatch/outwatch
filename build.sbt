@@ -141,7 +141,7 @@ lazy val outwatch = project
       Nil,
 
     libraryDependencies ++= Seq(
-      "com.raquo"     %%% "domtypes" % "0.9.7",
+      "com.raquo"     %%% "domtypes" % "0.10.0",
     ),
 
     npmDependencies in Compile ++= Seq(
