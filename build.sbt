@@ -88,7 +88,7 @@ lazy val outwatchReactive = project
       Nil,
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri" % "54ccb64",
+      "com.github.cornerman.colibri" %%% "colibri" % "0b2299d",
     )
   )
 
@@ -112,7 +112,7 @@ lazy val outwatchMonix = project
     normalizedName := "outwatch-monix",
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri-monix" % "54ccb64",
+      "com.github.cornerman.colibri" %%% "colibri-monix" % "0b2299d",
       "io.monix"      %%% "monix"       % "3.2.2",
     )
   )
@@ -141,7 +141,7 @@ lazy val outwatch = project
       Nil,
 
     libraryDependencies ++= Seq(
-      "com.raquo"     %%% "domtypes" % "0.9.7",
+      "com.raquo"     %%% "domtypes" % "0.10.0",
     ),
 
     npmDependencies in Compile ++= Seq(
@@ -171,7 +171,7 @@ lazy val bench = project
       Nil,
 
     libraryDependencies ++=
-      "com.github.fdietze.bench" %%% "bench" % "555e14b" ::
+      "com.github.fdietze.bench" %%% "bench" % "5ffab44" ::
       Nil,
 
     scalaJSStage in Compile := FullOptStage,

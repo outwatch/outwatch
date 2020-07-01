@@ -78,9 +78,9 @@ private[outwatch] object SnabbdomOps {
    type ClearImmediate = js.Function1[Int, Unit]
    private val (setImmediateRef, clearImmediateRef): (SetImmediate, ClearImmediate) = {
       if (!js.isUndefined(js.Dynamic.global.setImmediate))
-        (js.Dynamic.global.setImmediate.bind(js.Dynamic.global).asInstanceOf[SetImmediate], js.Dynamic.global.clearImmediate.bind(js.Dynamic.global).asInstanceOf[ClearImmediate])
+        (js.Dynamic.global.setImmediate.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearImmediate.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
       else
-        (js.Dynamic.global.setTimeout.bind(js.Dynamic.global).asInstanceOf[SetImmediate], js.Dynamic.global.clearTimeout.bind(js.Dynamic.global).asInstanceOf[ClearImmediate])
+        (js.Dynamic.global.setTimeout.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearTimeout.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
     }
 
     // we are mutating the initial proxy with VNodeProxy.copyInto, because parents of this node have a reference to this proxy.
@@ -105,7 +105,7 @@ private[outwatch] object SnabbdomOps {
 
       var proxy: VNodeProxy = null
       var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
-      var prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
+      var _prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
       var lastTimeout: js.UndefOr[Int] = js.undefined
       var isActive: Boolean = false
 
@@ -118,7 +118,7 @@ private[outwatch] object SnabbdomOps {
         patchIsNeeded = false
 
         // update the current proxy with the new state
-        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers, appendModifiers = nextModifiers)
+        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers, appendModifiers = nextModifiers)
         nextModifiers = separatedModifiers.nextModifiers
         val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
         newProxy._update = proxy._update
@@ -169,7 +169,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      prependModifiers = js.Array[StaticVDomModifier](
+      _prependModifiers = js.Array[StaticVDomModifier](
         InsertHook { p =>
           VNodeProxy.copyInto(p, proxy)
           isActive = true
@@ -202,7 +202,7 @@ private[outwatch] object SnabbdomOps {
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)
+      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers)
       nextModifiers = separatedModifiers.nextModifiers
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 

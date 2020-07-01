@@ -5,7 +5,8 @@ import org.scalajs.dom.Element
 import outwatch._
 import outwatch.helpers._
 import snabbdom.VNodeProxy
-import colibri.{Source, Observer, Cancelable}
+import colibri.{Cancelable, Observer, Source}
+import com.raquo.domtypes.jsdom.defs.tags._
 
 import scala.scalajs.js
 
@@ -65,6 +66,53 @@ trait OutwatchAttributes {
 
   /** Snabbdom Key Attribute */
   @inline def key = KeyBuilder
+}
+
+trait DocumentTagDeprecations[T[_ <: dom.html.Element]] { self: DocumentTags[T] =>
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def link = linkTag
+}
+
+trait EmbedTagDeprecations[T[_ <: dom.html.Element]] { self: EmbedTags[T] =>
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def `object` = objectTag
+  
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def param = paramTag
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def map = mapTag
+}
+
+trait HtmlAttributeDeprecations { self: Attributes =>
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def max = maxAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def min = minAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def step = stepAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def id = idAttr
+}
+
+trait SvgAttributeDeprecations { self: SvgAttrs =>
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def id = idAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def max = maxAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def min = minAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def offset = offsetAttr
+
+  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @inline def result = resultAttr
 }
 
 trait AttributeHelpers { self: Attributes =>

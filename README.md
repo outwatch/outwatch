@@ -1,4 +1,4 @@
-# OutWatch - Functional and reactive Web-Frontend Library with Reactive Programming, VirtualDom and Scala [![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://scala-js.org/assets/badges/scalajs-0.6.15.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
+# OutWatch - Functional and reactive Web-Frontend Library with Reactive Programming, VirtualDom and Scala [![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
 
 Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI can be made reactive and allows for easy integration of third-party FRP libraries (for example [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx) or [airstream](https://github.com/raquo/airstream)). We integrate tightly with [cats](https://github.com/typelevel/cats) and [cats-effect](https://github.com/typelevel/cats-effect) to build safe web applications. In OutWatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.
 
@@ -177,14 +177,14 @@ div(true, 0, 1000L, 3.0)
 Attributes are put inside the tag.
 
 ```scala
-div(id := "test")
+div(idAttr := "test")
 // <div id="test"></div>
 ```
 
 The order of content and attributes does not matter.
 
 ```scala
-div("How ", id := "test", "are", title := "cool", " you?")
+div("How ", idAttr := "test", "are", title := "cool", " you?")
 // <div id="test" title="cool">How are you?</div>
 ```
 
@@ -207,7 +207,7 @@ div(backgroundColor := "powderblue", border := "2px solid #222", "Hello")
 Again, the order of styles, attributes and inner tags does not matter:
 
 ```scala
-div(h1("Welcome to my website"), backgroundColor := "powderblue", id := "header")
+div(h1("Welcome to my website"), backgroundColor := "powderblue", idAttr := "header")
 // <div style="background-color: powderblue" id="header">Welcome to my website</div>
 ```
 
@@ -338,7 +338,7 @@ The important types we were using in the examples above are `VNode` and `VDomMod
 
 ```scala
 val vnode: VNode = div()
-val modifiers: List[VDomModifier] = List("Hello", id := "main", color := "tomato", vnode)
+val modifiers: List[VDomModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
 ```
 
 Every `VNode` contains a sequence of `VDomModifier`. A `VNode` is a `VDomModifier` itself.
