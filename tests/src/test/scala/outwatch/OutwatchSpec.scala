@@ -1,19 +1,18 @@
 package outwatch
 
-import scala.concurrent.Future
-import cats.effect.ContextShift
-import cats.effect.IO
+import cats.effect.{ContextShift, IO}
 import monix.execution.Ack.Continue
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
-import org.scalajs.dom.{document, window}
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest._
-import outwatch.Deprecated.IgnoreWarnings.initEvent
-import org.scalatest.flatspec.{ AnyFlatSpec, AsyncFlatSpec }
+import org.scalajs.dom.raw.EventInit
+import org.scalajs.dom.{Event, document, window}
+import org.scalatest.{BeforeAndAfterEach, _}
+import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.Future
 
 trait EasySubscribe {
 
@@ -55,8 +54,10 @@ trait LocalStorageMock {
     if (key == null) window.localStorage.clear()
     else window.localStorage.setItem(key, newValue)
 
-    val event = document.createEvent("Events")
-    initEvent(event)("storage", canBubbleArg = true, cancelableArg = false)
+    val event = new Event("storage", new EventInit {
+      bubbles = true
+      cancelable = false
+    })
     event.asInstanceOf[js.Dynamic].key = key
     event.asInstanceOf[js.Dynamic].newValue = newValue
     event.asInstanceOf[js.Dynamic].oldValue = oldValue

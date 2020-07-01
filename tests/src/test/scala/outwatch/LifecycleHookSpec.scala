@@ -613,7 +613,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     var counter = 0
     val node = div(
-      id := "strings",
+      idAttr := "strings",
       otherHandler.map(div(_)),
       handler.map { case (keyText, text) =>
         counter += 1
@@ -747,7 +747,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     var counter = 0
     val node = div(
-      id := "strings",
+      idAttr := "strings",
       otherHandler.map(div(_)),
       handler.map { text =>
         counter += 1

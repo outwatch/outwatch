@@ -1,15 +1,14 @@
 package outwatch
 
-import scala.scalajs.js
-import org.scalajs.dom.{document, html}
 import cats.effect.IO
-import outwatch.Deprecated.IgnoreWarnings.initEvent
-
-import outwatch.dsl._
 import colibri.ext.monix._
+import org.scalajs.dom.raw.EventInit
+import org.scalajs.dom.{Event, document, html}
+import outwatch.dsl._
 import outwatch.reactive.handlers.monix._
-
 import snabbdom._
+
+import scala.scalajs.js
 
 class SnabbdomSpec extends JSDomAsyncSpec {
 
@@ -55,8 +54,8 @@ class SnabbdomSpec extends JSDomAsyncSpec {
       val nodes = clicks.map { i =>
         div(
           attributes.key := s"key-$i",
-          span(onClick.use(if (i == 1) 2 else 1) --> clicks, s"This is number $i", id := "btn"),
-          input(id := "input")
+          span(onClick.use(if (i == 1) 2 else 1) --> clicks, s"This is number $i", idAttr := "btn"),
+          input(idAttr := "input")
         )
       }
 
@@ -72,15 +71,17 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                _ <- OutWatch.renderInto[IO]("#app", div(nodes))
 
         inputEvt <- IO {
-                    val inputEvt = document.createEvent("HTMLEvents")
-                    initEvent(inputEvt)("input", canBubbleArg = false, cancelableArg = true)
-                    inputEvt
+                    new Event("input", new EventInit {
+                      bubbles = false
+                      cancelable = true
+                    })
                   }
 
         clickEvt <- IO {
-                    val clickEvt = document.createEvent("Events")
-                    initEvent(clickEvt)("click", canBubbleArg = true, cancelableArg = true)
-                    clickEvt
+                    new Event("click", new EventInit {
+                      bubbles = true
+                      cancelable = true
+                    })
                   }
 
              btn <- IO(document.getElementById("btn"))
@@ -108,10 +109,10 @@ class SnabbdomSpec extends JSDomAsyncSpec {
       vtree = div(
               a.map { a =>
                 div(
-                  id := "content",
+                  idAttr := "content",
                   dsl.key := "bla",
                   a,
-                  b.map { b => div(id := "meh", b) }
+                  b.map { b => div(idAttr := "meh", b) }
                 )
               }
             )

@@ -42,7 +42,7 @@ private[outwatch] object NativeHelpers {
 
   @noinline def appendSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
     case wrappedOther:js.WrappedArray[T] =>
-      if (source.isEmpty) wrappedOther.array else source.concat(wrappedOther.array)
+      if (source.isEmpty) wrappedOther else source.concat(wrappedOther)
     case _ =>
       val arr = new js.Array[T]()
       source.foreach(arr.push(_))
@@ -52,11 +52,23 @@ private[outwatch] object NativeHelpers {
 
   @noinline def prependSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
     case wrappedOther:js.WrappedArray[T] =>
-      if (source.isEmpty) wrappedOther.array else wrappedOther.array.concat(source)
+      if (source.isEmpty) wrappedOther else (wrappedOther: js.Array[T]).concat(source)
     case _ =>
       val arr = new js.Array[T]()
       other.foreach(arr.push(_))
       source.foreach(arr.push(_))
       arr
+  }
+
+  // See: https://www.scala-js.org/doc/interoperability/global-scope.html#dynamically-lookup-a-global-variable-given-its-name
+  lazy val globalObject: js.Dynamic = {
+    import js.Dynamic.{global => g}
+    if (js.typeOf(g.global) != "undefined" && (g.global.Object eq g.Object)) {
+      // Node.js environment detected
+      g.global
+    } else {
+      // In all other well-known environment, we can use the global `this`
+      js.special.fileLevelThis.asInstanceOf[js.Dynamic]
+    }
   }
 }

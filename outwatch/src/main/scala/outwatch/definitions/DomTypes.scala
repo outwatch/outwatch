@@ -50,11 +50,13 @@ trait Tags
   with TableTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with TagHelpers
+  with EmbedTagDeprecations[BuilderTypes.HtmlTag]
 
 trait TagsExtra
   extends DocumentTags[BuilderTypes.HtmlTag]
   with MiscTags[BuilderTypes.HtmlTag]
   with TagBuilder
+  with DocumentTagDeprecations[BuilderTypes.HtmlTag]
 
 trait TagsSvg
   extends SvgTags[BuilderTypes.SvgTag]
@@ -66,6 +68,7 @@ trait Attributes
   with Events
   with AttributeHelpers
   with OutwatchAttributes
+  with HtmlAttributeDeprecations
 
 // Html Attrs
 trait HtmlAttrs
@@ -102,7 +105,8 @@ trait HtmlAttrs
 // Svg Attrs
 trait SvgAttrs
   extends attrs.SvgAttrs[BuilderTypes.Attribute]
-  with builders.SvgAttrBuilder[BuilderTypes.Attribute] {
+  with builders.SvgAttrBuilder[BuilderTypes.Attribute]
+  with SvgAttributeDeprecations {
 
   // According to snabbdom documentation, the namespace can be ignore as it is handled automatically.
   override protected def svgAttr[V](key: String, codec: codecs.Codec[V, String], namespace: Option[String]): BasicAttrBuilder[V] =
