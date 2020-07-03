@@ -77,7 +77,7 @@ private[outwatch] object SnabbdomOps {
    type SetImmediate = js.Function1[js.Function0[Unit], Int]
    type ClearImmediate = js.Function1[Int, Unit]
    private val (setImmediateRef, clearImmediateRef): (SetImmediate, ClearImmediate) = {
-      if (!js.isUndefined(js.Dynamic.global.setImmediate))
+     if (js.typeOf(js.Dynamic.global.setImmediate) != "undefined")
         (js.Dynamic.global.setImmediate.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearImmediate.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
       else
         (js.Dynamic.global.setTimeout.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearTimeout.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
