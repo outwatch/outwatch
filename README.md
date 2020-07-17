@@ -38,11 +38,17 @@ Changes to the code will trigger a recompile and automatically refresh the page 
 Install `java`, `sbt` and  `nodejs`, if you haven't already.
 Create a new SBT project and add the ScalaJS and Scala-js-bundler plugin to your `plugins.sbt`:
 ```scala
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.25")
-addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.13.1")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.1.1")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.18.0")
 ```
-Then add the outwatch dependency to your `build.sbt`.
 
+Then add the outwatch dependency to your `build.sbt`, you can depend on the current `master` branch:
+```scala
+resolvers += "jitpack" at "https://jitpack.io"
+libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch" % "master-SNAPSHOT"
+```
+
+If you want to use the latest stable release, you can use:
 ```scala
 libraryDependencies += "io.github.outwatch" %%% "outwatch" % "1.0.0-RC2"
 ```
@@ -50,13 +56,6 @@ libraryDependencies += "io.github.outwatch" %%% "outwatch" % "1.0.0-RC2"
 And enable the `scalajs-bundler` plugin:
 ```scala
 enablePlugins(ScalaJSBundlerPlugin)
-```
-
-If you are curious and want to try the state of the current `master` branch, add the following instead:
-
-```scala
-resolvers += "jitpack" at "https://jitpack.io"
-libraryDependencies += "com.github.outwatch.outwatch" %%% "outwatch" % "master-SNAPSHOT"
 ```
 
 If you want to use utilities for `Store`, `WebSocket` or `Http`, add the following:
