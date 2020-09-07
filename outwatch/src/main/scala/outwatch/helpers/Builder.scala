@@ -58,7 +58,7 @@ object AttributeBuilder {
   @inline def remove: RemoveStyleBuilder[T] = new RemoveStyleBuilder[T](name)
   @inline def destroy: DestroyStyleBuilder[T] = new DestroyStyleBuilder[T](name)
 
-  @inline def accum: AccumStyleBuilder[T] = accum(",")
+  @inline def accum: AccumStyleBuilder[T] = accum(";")
   @inline def accum(s: String): AccumStyleBuilder[T] = accum(_ + s + _)
   @inline def accum(reducer: (String, String) => String) = new AccumStyleBuilder[T](name, reducer)
 }
