@@ -16,6 +16,10 @@ trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
 
 object AttributeBuilder {
   @inline implicit def toAttribute[A <: VDomModifier](builder: AttributeBuilder[Boolean, A]): A = builder := true
+
+  @inline def ofModifier[T, A <: VDomModifier](create: T => A): AttributeBuilder[T, A] = new AttributeBuilder[T, A] {
+    def assign(value: T): A = create(value)
+  }
 }
 
 // Attr
