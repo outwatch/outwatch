@@ -20,7 +20,7 @@ object RModifier {
 
   @inline def apply(): RModifier[Any] = empty
 
-  @inline def apply[T : Render](t: T): RModifier[Any] = Render[T].render(t)
+  @inline def apply[Env, T : Render[Env, ?]](t: T): RModifier[Env] = Render[Env, T].render(t)
 
   @inline def apply[Env](modifier: RModifier[Env], modifier2: RModifier[Env]): RModifier[Env] =
     RCompositeModifier[Env](js.Array(modifier, modifier2))
@@ -40,7 +40,7 @@ object RModifier {
   @inline def apply[Env](modifier: RModifier[Env], modifier2: RModifier[Env], modifier3: RModifier[Env], modifier4: RModifier[Env], modifier5: RModifier[Env], modifier6: RModifier[Env], modifier7: RModifier[Env], modifiers: RModifier[Env]*): RModifier[Env] =
     RCompositeModifier[Env](js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, RCompositeModifier(modifiers)))
 
-  @inline def delay[T : Render](modifier: => T): RModifier[Any] = RSyncEffectModifier[Any](() => RModifier(modifier))
+  @inline def delay[Env, T : Render[Env, ?]](modifier: => T): RModifier[Env] = RSyncEffectModifier[Env](() => RModifier(modifier))
 
   @inline def access[Env](modifier: Env => RModifier[Any]): RModifier[Env] = REnvModifier[Env](modifier)
 
@@ -61,7 +61,7 @@ object RModifier {
     @inline def own(owner: RModifier[Env])(subscription: () => Cancelable): RModifier[Env] = RModifier[Env](managedFunction(subscription), owner)
   }
 
-  @inline implicit def renderToModifier[T : Render](value: T): RModifier[Any] = Render[T].render(value)
+  @inline implicit def renderToModifier[Env, T : Render[Env, ?]](value: T): RModifier[Env] = Render[Env, T].render(value)
 }
 
 sealed trait StaticModifier extends RModifier[Any]
