@@ -333,38 +333,38 @@ div(
 ```
 
 #### Types
-The important types we were using in the examples above are `VNode` and `VDomModifier`:
+The important types we were using in the examples above are `VNode` and `Modifier`:
 
 ```scala
 val vnode: VNode = div()
-val modifiers: List[VDomModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
+val modifiers: List[Modifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
 ```
 
-Every `VNode` contains a sequence of `VDomModifier`. A `VNode` is a `VDomModifier` itself.
+Every `VNode` contains a sequence of `Modifier`. A `VNode` is a `Modifier` itself.
 
-There are implicits for converting primitives, `Option[VDomModifier]`, `Seq[VDomModifier]` to `VDomModifier`.
+There are implicits for converting primitives, `Option[Modifier]`, `Seq[Modifier]` to `Modifier`.
 
 Source Code: [Render.scala](outwatch/src/main/scala/outwatch/Render.scala)
 
 #### Grouping Modifiers
-To make a set of modifiers reusable you can group them to become one `VDomModifier`.
+To make a set of modifiers reusable you can group them to become one `Modifier`.
 
 ```scala
-val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
+val bigFont = Modifier(fontSize := "40px", fontWeight.bold)
 div("Argh!", bigFont)
 // <div style="font-size: 40px; font-weight: bold;">Argh!</div>
 ```
 
-If you want to reuse the `bigFont`, but want to overwrite one of its properties, you can combine two `VDomModifier`. Here the latter `fontSize` will overwrite the one from `bigFont`:
+If you want to reuse the `bigFont`, but want to overwrite one of its properties, you can combine two `Modifier`. Here the latter `fontSize` will overwrite the one from `bigFont`:
 ```scala
-val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
+val bigFont2 = Modifier(bigFont, fontSize := "99px")
 ```
 
-You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](outwatch/src/main/scala/outwatch/package.scala) object.
+You can also use a `Seq[Modifier]` directly instead of using `apply` defined in the [Modifier](outwatch/src/main/scala/outwatch/package.scala) object.
 
 
 #### Components
-Outwatch does not have the concept of a component itself. You can just pass the `VNode`s and `VDomModifier`s around and build your own abstractions using functions and classes. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
+Outwatch does not have the concept of a component itself. You can just pass the `VNode`s and `Modifier`s around and build your own abstractions using functions and classes. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
 
 ```scala
 def fancyHeadLine(content: String) = h1(borderBottom := "1px dashed tomato", content)
@@ -420,7 +420,7 @@ div(
 // </div>
 ```
 
-Source Code: [VDomModifier.scala](outwatch/src/main/scala/outwatch/VDomModifier.scala#L92)
+Source Code: [Modifier.scala](outwatch/src/main/scala/outwatch/Modifier.scala)
 
 
 ##### Use-Case: Flexbox
@@ -472,7 +472,7 @@ div(
 Alternatively you can do the following to achieve the same effect:
 ```scala
 div(
-  VDomModifier.delay {
+  Modifier.delay {
     doSomething
   }
 )
@@ -502,7 +502,7 @@ And now you want to be able to render a `Person` just like a normal modifier. Th
 object Person {
 
   implicit object PersonRender extends Render[Person] {
-    def render(person: Person): VDomModifier = div(
+    def render(person: Person): Modifier = div(
         b(person.name), span(person.age, marginLeft := "5px")
     )
   }
@@ -523,7 +523,7 @@ Source Code: [Render.scala](outwatch/src/main/scala/outwatch/Render.scala)
 
 Dynamic content can be displayed as well. OutWatch comes with its own *minimal* reactive library that you can just start using. Additionally we have first-class support for third-party streaming libraries.
 
-You can use observables, streams and reactive variables as if they were a `VDomModifier`.
+You can use observables, streams and reactive variables as if they were a `Modifier`.
 
 
 ```scala
@@ -582,7 +582,7 @@ div(width := "100px", height := "100px", backgroundColor <-- color)
 You can stream arbitrary `VDomModifiers`.
 
 ```scala
-val dynamicSize: Observable[VDomModifier] = Observable.interval(1 second).map(i => fontSize := s"${i}px")
+val dynamicSize: Observable[Modifier] = Observable.interval(1 second).map(i => fontSize := s"${i}px")
 div("Hello!", dynamicSize)
 ```
 
@@ -642,7 +642,7 @@ Alternative version of a `counter`:
 ```scala
 val counter = button(
     onClick.useScan0(0)(_ + 1).handled { source =>
-        VDomModifier("Counter: ", source)
+        Modifier("Counter: ", source)
     }
 )
 ```

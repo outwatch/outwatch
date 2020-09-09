@@ -15,7 +15,7 @@ private[outwatch] object BuilderTypes {
   type ReflectedAttribute[T, _] = AttributeBuilder[T, Attr]
   type Attribute[T] = BasicAttrBuilder[T]
   type Property[T, _] = PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VDomModifier]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, Modifier]
   type HtmlTag[T] = HtmlVNode
   type SvgTag[T] = SvgVNode
 }
@@ -37,8 +37,8 @@ private[outwatch] object CodecBuilder {
 private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[BuilderTypes.HtmlTag, dom.html.Element] with builders.SvgTagBuilder[BuilderTypes.SvgTag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array())
-  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array())
+  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array[Modifier]())
+  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array[Modifier]())
 }
 
 trait Tags

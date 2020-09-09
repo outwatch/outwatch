@@ -9,18 +9,18 @@ import snabbdom.{DataObject, Hooks, VNodeProxy}
 
 import scala.scalajs.js
 
-// This file is about interpreting VDomModifiers for building snabbdom virtual nodes.
+// This file is about interpreting Modifiers for building snabbdom virtual nodes.
 // We want to convert a div(modifiers) into a VNodeProxy that we can use for patching
 // with snabbdom.
 //
 // This code is really performance cirtical, because every patch call is preceeded by
-// interpreting all VDomModifiers involed. This code is written in a mutable fashion
+// interpreting all Modifiers involed. This code is written in a mutable fashion
 // using native js types to reduce overhead.
 
 // This represents the structured definition of a VNodeProxy (like snabbdom expects it).
 private[outwatch] class SeparatedModifiers {
   var hasOnlyTextChildren = true
-  var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
+  var nextModifiers: js.UndefOr[js.Array[StaticModifier]] = js.undefined
   var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
   var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]] = js.undefined
   var props: js.UndefOr[js.Dictionary[DataObject.PropValue]] = js.undefined
@@ -37,12 +37,12 @@ private[outwatch] class SeparatedModifiers {
 }
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: MutableNestedArray[StaticVDomModifier], prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined, appendModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined): SeparatedModifiers = {
+  def from(modifiers: MutableNestedArray[StaticModifier], prependModifiers: js.UndefOr[js.Array[StaticModifier]] = js.undefined, appendModifiers: js.UndefOr[js.Array[StaticModifier]] = js.undefined): SeparatedModifiers = {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
 
     @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
-    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVDomModifier])(nextModifiers = _)
+    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticModifier])(nextModifiers = _)
     @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
     @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
     @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
@@ -70,7 +70,7 @@ private[outwatch] object SeparatedModifiers {
       }
     }: Hooks.HookPairFn
 
-    def append(mod: StaticVDomModifier): Unit = mod match {
+    def append(mod: StaticModifier): Unit = mod match {
       case VNodeProxyNode(proxy) =>
         hasOnlyTextChildren = hasOnlyTextChildren && proxy.data.isEmpty && proxy.text.isDefined
         val proxies = assureProxies()
@@ -167,7 +167,7 @@ private[outwatch] object SeparatedModifiers {
       case h: DestroyHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
         ()
-      case n: NextVDomModifier =>
+      case n: NextModifier =>
         val nextModifiers = assureNextModifiers()
         nextModifiers += n.modifier
         ()
@@ -181,15 +181,15 @@ private[outwatch] object SeparatedModifiers {
   }
 }
 
-// Each VNode or each streamed CompositeVDomModifier contains static and
-// potentially dynamic content (i.e. streams). The contained VDomModifiers
-// within this VNode or this CompositeVDomModifier need to be transformed into
-// a list of static VDomModifiers (non-dynamic like attributes, vnode proxies,
+// Each VNode or each streamed CompositeModifier contains static and
+// potentially dynamic content (i.e. streams). The contained Modifiers
+// within this VNode or this CompositeModifier need to be transformed into
+// a list of static Modifiers (non-dynamic like attributes, vnode proxies,
 // ... that can directly be rendered) and a combined observable of all dynamic
 // content (like StreamModifier).
 //
 // The NativeModifier class represents exactly that: the static and dynamic
-// part of a list of VDomModifiers. The static part is an array of all
+// part of a list of Modifiers. The static part is an array of all
 // modifiers that are to-be-rendered at the current point in time. The dynamic
 // part is an observable that changes the previously mentioned array to reflect
 // the new state.
@@ -206,7 +206,7 @@ private[outwatch] object SeparatedModifiers {
 //    - dynamic changes: collections of callbacks that fill the array of active modifiers
 
 private[outwatch] class NativeModifiers(
-  val modifiers: MutableNestedArray[StaticVDomModifier],
+  val modifiers: MutableNestedArray[StaticModifier],
   val subscribables: MutableNestedArray[Subscribable],
   val hasStream: Boolean
 )
@@ -231,30 +231,31 @@ private[outwatch] class Subscribable(
 }
 
 private[outwatch] object NativeModifiers {
-  def from(appendModifiers: js.Array[_ <: VDomModifier]): NativeModifiers = {
-    val allModifiers = new MutableNestedArray[StaticVDomModifier]()
+  @inline def from(appendModifiers: js.Array[_ <: RModifier[Any]]): NativeModifiers = from[Any](appendModifiers, ())
+  def from[Env](appendModifiers: js.Array[_ <: RModifier[Env]], env: Env): NativeModifiers = {
+    val allModifiers = new MutableNestedArray[StaticModifier]()
     val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream = false
 
-    def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVDomModifier], modifier: VDomModifier, inStream: Boolean): Unit = {
+    def append[R](subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticModifier], modifier: RModifier[R], env: R, inStream: Boolean): Unit = {
 
-      @inline def appendStatic(mod: StaticVDomModifier): Unit = {
+      @inline def appendStatic(mod: StaticModifier): Unit = {
         modifiers.push(mod)
         ()
       }
 
-      @inline def appendStream(mod: StreamModifier): Unit = {
+      @inline def appendStream(mod: RStreamModifier[R]): Unit = {
         hasStream = true
 
-        val streamedModifiers = new MutableNestedArray[StaticVDomModifier]()
+        val streamedModifiers = new MutableNestedArray[StaticModifier]()
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
         subscribables.push(new Subscribable(
-          sink => mod.subscription(Observer.contramap[Observer, Unit, VDomModifier](sink) { modifier =>
+          sink => mod.subscription(Observer.contramap[Observer, Unit, RModifier[R]](sink) { modifier =>
             streamedSubscribables.foreach(_.unsubscribe())
             streamedSubscribables.clear()
             streamedModifiers.clear()
-            append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
+            append(streamedSubscribables, streamedModifiers, modifier, env, inStream = true)
           })
         ))
 
@@ -265,18 +266,22 @@ private[outwatch] object NativeModifiers {
 
       modifier match {
         case EmptyModifier => ()
-        case c: CompositeModifier => c.modifiers.foreach(append(subscribables, modifiers, _, inStream))
+        case c: RCompositeModifier[R] => c.modifiers.foreach(append(subscribables, modifiers, _, env, inStream))
         case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
-        case mod: StaticVDomModifier => appendStatic(mod)
-        case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
+        case mod: StaticModifier => appendStatic(mod)
+        case child: RVNode[R] => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, env)))
         case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
-        case m: StreamModifier => appendStream(m)
+        case m: RStreamModifier[R] => appendStream(m)
         case s: CancelableModifier => subscribables.push(new Subscribable(_ => s.subscription()))
-        case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
+        case m: RSyncEffectModifier[R] => append(subscribables, modifiers, m.unsafeRun(), env, inStream)
+        case m: REnvModifier[R] => append(subscribables, modifiers, m.modifier(env), env, inStream)
+        case m: ProvidedModifier => m.runWith(new ProvidedModifierConsumer {
+          def consume[R2](modifier: RModifier[R2], env: R2): Unit = append(subscribables, modifiers, modifier, env, inStream)
+        })
       }
     }
 
-    appendModifiers.foreach(append(allSubscribables, allModifiers, _, inStream = false))
+    appendModifiers.foreach(append(allSubscribables, allModifiers, _, env, inStream = false))
 
     new NativeModifiers(allModifiers, allSubscribables, hasStream)
   }
@@ -284,7 +289,7 @@ private[outwatch] object NativeModifiers {
   // if a dom mount hook is streamed, we want to emulate an intuitive interface as if they were static.
   // This means we need to translate the next update to a mount event and an unmount event for the previously
   // streamed hooks. the first update event needs to be ignored to emulate static update events.
-  private def mirrorStreamedDomHook(h: DomHook): js.Array[StaticVDomModifier] = h match {
+  private def mirrorStreamedDomHook(h: DomHook): js.Array[StaticModifier] = h match {
     case h: DomMountHook =>
       // trigger once for the next update event and always for each mount event.
       // if we are streamed in with an insert event, then ignore all update events.
@@ -340,7 +345,7 @@ private[outwatch] object NativeModifiers {
           if (triggered && equalsVNodeIds(o._id, p._id)) isOpen = false
           triggered = true
         },
-        NextVDomModifier(UpdateHook { (o, p) =>
+        NextModifier(UpdateHook { (o, p) =>
           if (isOpen && equalsVNodeIds(o._id, p._id)) h.trigger(p)
           isOpen = true
         })

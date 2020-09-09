@@ -3,6 +3,7 @@
 import outwatch.definitions._
 
 object dsl extends Attributes with Tags with Styles {
+
   object tags extends Tags {
     object extra extends TagsExtra
     object svg extends TagsSvg

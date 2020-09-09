@@ -30,7 +30,8 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]]): VDomModifier = VDomModifier.delay {
+  @inline def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]]): Modifier = stream[F, Any](valueStream, ())
+  def stream[F[_] : Source, Env](valueStream: F[Seq[ChildCommand]], env: Env): Modifier = Modifier.delay {
     val children = new js.Array[VNodeProxyNode]
 
     Observable.map(valueStream) { cmds =>
@@ -46,7 +47,7 @@ object ChildCommand {
       def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
 
       def replaceByIndex(index: Int, node: VNode): Unit = {
-        children(index) = VNodeProxyNode(SnabbdomOps.toSnabbdom(node))
+        children(index) = VNodeProxyNode(SnabbdomOps.toSnabbdom(node, env))
       }
 
       def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
@@ -58,7 +59,7 @@ object ChildCommand {
 
       def insertByIndex(index: Int, node: VNode): Unit = {
         if (isSaneIndex(index)) {
-          children.insert(index, VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
+          children.insert(index, VNodeProxyNode(SnabbdomOps.toSnabbdom(node, env)))
         }
       }
 
@@ -71,14 +72,14 @@ object ChildCommand {
 
       cmds foreach {
         case Append(node) =>
-          children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
+          children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, env)))
           ()
         case Prepend(node) =>
-          children.prepend(VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
+          children.prepend(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, env)))
         case ReplaceAll(list) =>
           children.clear()
           list.foreach { node =>
-            children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node)))
+            children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, env)))
           }
         case Insert(index, node) =>
           insertByIndex(index, node)
@@ -106,7 +107,7 @@ object ChildCommand {
           removeByIndex(idToIndex(id))
       }
 
-      CompositeModifier(children)
+      RCompositeModifier[Any](children)
     }
   }
 }

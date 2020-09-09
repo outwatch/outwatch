@@ -5,13 +5,13 @@ import colibri.{Source, Observable}
 
 import scala.language.dynamics
 
-trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
+trait AttributeBuilder[-T, +A <: Modifier] extends Any {
   def assign(value: T): A
 
   final def assignOption(value: Option[T]): Option[A] = value.map(assign)
 
-  final def toggle(value: T): AttributeBuilder[Boolean, VDomModifier] = AttributeBuilder.ofModifier { enabled =>
-    if (enabled) assign(value) else VDomModifier.empty
+  final def toggle(value: T): AttributeBuilder[Boolean, Modifier] = AttributeBuilder.ofModifier { enabled =>
+    if (enabled) assign(value) else Modifier.empty
   }
 
   @inline final def :=(value: T): A = assign(value)
@@ -24,9 +24,9 @@ trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
 }
 
 object AttributeBuilder {
-  @inline implicit def toAttribute[A <: VDomModifier](builder: AttributeBuilder[Boolean, A]): A = builder := true
+  @inline implicit def toAttribute[A <: Modifier](builder: AttributeBuilder[Boolean, A]): A = builder := true
 
-  @inline def ofModifier[T, A <: VDomModifier](create: T => A): AttributeBuilder[T, A] = new AttributeBuilder[T, A] {
+  @inline def ofModifier[T, A <: Modifier](create: T => A): AttributeBuilder[T, A] = new AttributeBuilder[T, A] {
     def assign(value: T): A = create(value)
   }
 }

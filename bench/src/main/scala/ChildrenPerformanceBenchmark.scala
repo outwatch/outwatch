@@ -138,13 +138,13 @@ object ChildrenPerformance extends js.JSApp {
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
         (0 to i).map { j =>
-          input.thunk("handler")(j)(VDomModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
+          input.thunk("handler")(j)(Modifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
         }
         //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
         (0 to i).map { j =>
-          div.thunk("handler2")(j)(VDomModifier(
+          div.thunk("handler2")(j)(Modifier(
             div("hans", cls := j.toString, onClick foreach {}, handler3),
             p(p),
             handler3

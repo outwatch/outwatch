@@ -40,21 +40,21 @@ private[outwatch] object NativeHelpers {
 
   @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
-  @noinline def appendSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
-    case wrappedOther:js.WrappedArray[T] =>
+  @noinline def appendSeq[F[-_], T, T2](source: js.Array[_ <: F[T]], other: collection.Seq[F[T2]]): js.Array[_ <: F[T with T2]] = if (other.isEmpty) source else other match {
+    case wrappedOther: js.WrappedArray[F[T2]] =>
       if (source.isEmpty) wrappedOther else source.concat(wrappedOther)
     case _ =>
-      val arr = new js.Array[T]()
+      val arr = new js.Array[F[T with T2]]()
       source.foreach(arr.push(_))
       other.foreach(arr.push(_))
       arr
   }
 
-  @noinline def prependSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
-    case wrappedOther:js.WrappedArray[T] =>
-      if (source.isEmpty) wrappedOther else (wrappedOther: js.Array[T]).concat(source)
+  @noinline def prependSeq[F[-_], T, T2](source: js.Array[_ <: F[T]], other: collection.Seq[F[T2]]): js.Array[_ <: F[T with T2]] = if (other.isEmpty) source else other match {
+    case wrappedOther: js.WrappedArray[F[T2]] =>
+      if (source.isEmpty) wrappedOther else wrappedOther.concat(source)
     case _ =>
-      val arr = new js.Array[T]()
+      val arr = new js.Array[F[T with T2]]()
       other.foreach(arr.push(_))
       source.foreach(arr.push(_))
       arr

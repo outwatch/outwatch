@@ -551,7 +551,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "correctly be compiled with currentTarget" in {
 
     Handler.createF[IO, String].flatMap { stringHandler =>
-      def modifier: VDomModifier = onDrag.value --> stringHandler
+      def modifier: Modifier = onDrag.value --> stringHandler
 
       Handler.createF[IO, String].flatMap { _ =>
 
