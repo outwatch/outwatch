@@ -117,6 +117,21 @@ lazy val outwatchMonix = project
     )
   )
 
+lazy val outwatchZIO = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
+  .in(file("zio"))
+  .settings(librarySettings)
+  .settings(
+    name := "OutWatch-ZIO",
+    normalizedName := "outwatch-zio",
+
+    libraryDependencies ++= Seq(
+      "dev.zio" %%% "zio" % "1.0.1",
+      "dev.zio" %%% "zio-interop-cats" % "2.1.4.0"
+    )
+  )
+
 lazy val outwatchRepairDom = project
   .in(file("repairdom"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -200,4 +215,4 @@ lazy val root = project
     name := "outwatch-root",
     skip in publish := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchSnabbdom, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
+  .aggregate(outwatch, outwatchMonix, outwatchZIO, outwatchSnabbdom, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
