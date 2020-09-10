@@ -30,10 +30,10 @@ trait OutwatchAttributes {
 
 
   /** Outwatch component life cycle hooks. */
-  lazy val onDomMount: EmitterBuilder.Sync[dom.Element, Modifier] = EmitterBuilder(proxyElementEmitter(DomMountHook))
-  lazy val onDomUnmount: EmitterBuilder.Sync[dom.Element, Modifier] = EmitterBuilder(proxyElementEmitter(DomUnmountHook))
-  lazy val onDomPreUpdate: EmitterBuilder.Sync[dom.Element, Modifier] = EmitterBuilder(proxyElementFirstEmitter(DomPreUpdateHook))
-  lazy val onDomUpdate: EmitterBuilder.Sync[dom.Element, Modifier] = EmitterBuilder(proxyElementFirstEmitter(DomUpdateHook))
+  lazy val onDomMount: EmitterBuilder.Sync[dom.Element, RModifier] = EmitterBuilder(proxyElementEmitter(DomMountHook))
+  lazy val onDomUnmount: EmitterBuilder.Sync[dom.Element, RModifier] = EmitterBuilder(proxyElementEmitter(DomUnmountHook))
+  lazy val onDomPreUpdate: EmitterBuilder.Sync[dom.Element, RModifier] = EmitterBuilder(proxyElementFirstEmitter(DomPreUpdateHook))
+  lazy val onDomUpdate: EmitterBuilder.Sync[dom.Element, RModifier] = EmitterBuilder(proxyElementFirstEmitter(DomUpdateHook))
 
   /**
     * Lifecycle hook for component insertion.
@@ -41,20 +41,20 @@ trait OutwatchAttributes {
     * This hook is invoked once the DOM element for a vnode has been inserted into the document
     * and the rest of the patch cycle is done.
     */
-  lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, Modifier] = EmitterBuilder(proxyElementEmitter(InsertHook))
+  lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, RModifier] = EmitterBuilder(proxyElementEmitter(InsertHook))
 
   /** Lifecycle hook for component prepatch. */
-  lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element],Option[dom.Element]), Modifier] = EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook))
+  lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element],Option[dom.Element]), RModifier] = EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook))
 
   /** Lifecycle hook for component updates. */
-  lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element,dom.Element), Modifier] = EmitterBuilder(proxyElementPairEmitter(UpdateHook))
+  lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element,dom.Element), RModifier] = EmitterBuilder(proxyElementPairEmitter(UpdateHook))
 
   /**
     * Lifecycle hook for component postpatch.
     *
     *  This hook is invoked every time a node has been patched against an older instance of itself.
     */
-  lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element,dom.Element), Modifier] = EmitterBuilder(proxyElementPairEmitter(PostPatchHook))
+  lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element,dom.Element), RModifier] = EmitterBuilder(proxyElementPairEmitter(PostPatchHook))
 
   /**
     * Lifecycle hook for component destruction.
@@ -62,7 +62,7 @@ trait OutwatchAttributes {
     * This hook is invoked on a virtual node when its DOM element is removed from the DOM
     * or if its parent is being removed from the DOM.
     */
-  lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, Modifier] = EmitterBuilder(proxyElementEmitter(DestroyHook))
+  lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, RModifier] = EmitterBuilder(proxyElementEmitter(DestroyHook))
 
   /** Snabbdom Key Attribute */
   @inline def key = KeyBuilder
@@ -127,7 +127,7 @@ trait AttributeHelpers { self: Attributes =>
   @inline def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   @inline def style[T](key: String) = new BasicStyleBuilder[T](key)
 
-  @inline def emitter[F[_] : Source, E](source: F[E]): EmitterBuilder[E, Modifier] = EmitterBuilder.fromSource(source)
+  @inline def emitter[F[_] : Source, E](source: F[E]): EmitterBuilder[E, RModifier] = EmitterBuilder.fromSource(source)
 
   @inline def cancelable(cancel: () => Unit): Cancelable = Cancelable(cancel)
 }

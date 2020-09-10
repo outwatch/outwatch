@@ -2,7 +2,8 @@ import com.raquo.domtypes.generic.keys
 import outwatch.helpers.BasicStyleBuilder
 
 package object outwatch extends ManagedSubscriptions {
-  type EmitterBuilder[+O, +R] = EmitterBuilderExecution[O, R, EmitterBuilder.Execution]
+  type REmitterBuilder[-Env, +O, +R[-_]] = EmitterBuilderExecution[Env, O, R, EmitterBuilder.Execution]
+  type EmitterBuilder[+O, +R[-_]] = REmitterBuilder[Any, O, R]
 
   type Modifier = RModifier[Any]
   @inline def Modifier = RModifier

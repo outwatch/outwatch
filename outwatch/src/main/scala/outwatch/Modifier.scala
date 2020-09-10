@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.Monoid
+import cats.{Monoid, MonoidK}
 import org.scalajs.dom._
 import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
@@ -51,11 +51,10 @@ object RModifier {
     @inline def empty: RModifier[Env] = RModifier.empty
     @inline def combine(x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
   }
-  //TODO: monoidk?
-  // implicit object monoid extends MonoidK[RModifier] {
-  //   @inline def empty[Env]: RModifier[Env] = RModifier.empty
-  //   @inline def combineK[Env](x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
-  // }
+  implicit object monoidk extends MonoidK[RModifier] {
+    @inline def empty[Env]: RModifier[Env] = RModifier.empty
+    @inline def combineK[Env](x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
+  }
 
   implicit def subscriptionOwner[Env]: SubscriptionOwner[RModifier[Env]] = new SubscriptionOwner[RModifier[Env]] {
     @inline def own(owner: RModifier[Env])(subscription: () => Cancelable): RModifier[Env] = RModifier[Env](managedFunction(subscription), owner)

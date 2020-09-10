@@ -15,7 +15,7 @@ private[outwatch] object BuilderTypes {
   type ReflectedAttribute[T, _] = AttributeBuilder[T, Attr]
   type Attribute[T] = BasicAttrBuilder[T]
   type Property[T, _] = PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, Modifier]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, RModifier]
   type HtmlTag[T] = HtmlVNode
   type SvgTag[T] = SvgVNode
 }
