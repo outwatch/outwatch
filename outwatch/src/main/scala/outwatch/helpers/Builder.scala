@@ -8,14 +8,19 @@ import scala.language.dynamics
 trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
   def assign(value: T): A
 
+  final def assignOption(value: Option[T]): Option[A] = value.map(assign)
+
   final def toggle(value: T): AttributeBuilder[Boolean, VDomModifier] = AttributeBuilder.ofModifier { enabled =>
     if (enabled) assign(value) else VDomModifier.empty
   }
 
   @inline final def :=(value: T): A = assign(value)
 
-  final def :=?(value: Option[T]): Option[A] = value.map(assign)
-  final def <--[F[_] : Source](source: F[_ <: T]): VDomModifier = VDomModifier(Observable.map(source)(assign))
+  @inline final def :=?(value: Option[T]): Option[A] = assignOption(value)
+
+  final def <--[F[_] : Source](source: F[_ <: T]): Observable[A] = Observable.map(source)(assign)
+
+  final def <--?[F[_] : Source](source: F[_ <: Option[T]]): Observable[Option[A]] = Observable.map(source)(assignOption)
 }
 
 object AttributeBuilder {
