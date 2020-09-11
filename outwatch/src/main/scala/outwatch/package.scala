@@ -2,13 +2,18 @@ import com.raquo.domtypes.generic.keys
 import outwatch.helpers.BasicStyleBuilder
 
 package object outwatch extends ManagedSubscriptions {
-  type REmitterBuilder[-Env, +O, +R[-_]] = EmitterBuilderExecution[Env, O, R, EmitterBuilder.Execution]
-  type EmitterBuilder[+O, +R[-_]] = REmitterBuilder[Any, O, R]
+  type EmitterBuilderExecution[+O, +R <: Modifier, +Exec <: EmitterBuilder.Execution] = REmitterBuilderExecution[Any, O, R, Exec]
+  type REmitterBuilder[-Env, +O, +R <: RModifier[Env]] = REmitterBuilderExecution[Env, O, R, EmitterBuilder.Execution]
+  type EmitterBuilder[+O, +R <: Modifier] = REmitterBuilder[Any, O, R]
+  type REmitterBuilderModifier[-Env, +O] = REmitterBuilder[Env, O, RModifier[Env]]
+  type EmitterBuilderModifier[+O] = EmitterBuilder[O, Modifier]
+  type REmitterBuilderNode[-Env, +O] = REmitterBuilder[Env, O, RVNode[Env]]
+  type EmitterBuilderNode[+O] = EmitterBuilder[O, VNode]
 
   type Modifier = RModifier[Any]
   @inline def Modifier = RModifier
   type VNode = RVNode[Any]
-  @inline def VNode = RVNode
+  // @inline def VNode = RVNode
   type BasicVNode = RBasicVNode[Any]
   // @inline def BasicVNode = RBasicVNode
   type ConditionalVNode = RConditionalVNode[Any]

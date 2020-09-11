@@ -4,7 +4,7 @@ import cats.{Monoid, MonoidK}
 import org.scalajs.dom._
 import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
-import colibri.{Observer, Cancelable, SubscriptionOwner}
+import colibri.{Observer, Cancelable}
 import snabbdom.{DataObject, VNodeProxy}
 
 import scala.scalajs.js
@@ -40,6 +40,8 @@ object RModifier {
   @inline def apply[Env](modifier: RModifier[Env], modifier2: RModifier[Env], modifier3: RModifier[Env], modifier4: RModifier[Env], modifier5: RModifier[Env], modifier6: RModifier[Env], modifier7: RModifier[Env], modifiers: RModifier[Env]*): RModifier[Env] =
     RCompositeModifier[Env](js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, RCompositeModifier(modifiers)))
 
+  @inline def composite[Env](modifiers: Iterable[RModifier[Env]]): RModifier[Env] = RCompositeModifier[Env](modifiers.toJSArray)
+
   @inline def delay[Env, T : Render[Env, ?]](modifier: => T): RModifier[Env] = RSyncEffectModifier[Env](() => RModifier(modifier))
 
   @inline def access[Env](modifier: Env => RModifier[Any]): RModifier[Env] = REnvModifier[Env](modifier)
@@ -47,17 +49,9 @@ object RModifier {
   @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
   @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
-  implicit def monoid[Env]: Monoid[RModifier[Env]] = new Monoid[RModifier[Env]] {
-    @inline def empty: RModifier[Env] = RModifier.empty
-    @inline def combine(x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
-  }
   implicit object monoidk extends MonoidK[RModifier] {
     @inline def empty[Env]: RModifier[Env] = RModifier.empty
     @inline def combineK[Env](x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
-  }
-
-  implicit def subscriptionOwner[Env]: SubscriptionOwner[RModifier[Env]] = new SubscriptionOwner[RModifier[Env]] {
-    @inline def own(owner: RModifier[Env])(subscription: () => Cancelable): RModifier[Env] = RModifier[Env](managedFunction(subscription), owner)
   }
 
   @inline implicit def renderToModifier[Env, T : Render[Env, ?]](value: T): RModifier[Env] = Render[Env, T].render(value)
@@ -122,11 +116,6 @@ sealed trait RVNode[-Env] extends RModifier[Env] {
   def append[R](args: RModifier[R]*): RVNode[Env with R]
   def prepend[R](args: RModifier[R]*): RVNode[Env with R]
   def apply[R](args: RModifier[R]*): RVNode[Env with R]
-}
-object RVNode {
-  implicit def subscriptionOwner[Env]: SubscriptionOwner[RVNode[Env]] = new SubscriptionOwner[RVNode[Env]] {
-    @inline def own(owner: RVNode[Env])(subscription: () => Cancelable): RVNode[Env] = owner.append(managedFunction(subscription))
-  }
 }
 
 sealed trait RBasicVNode[-Env] extends RVNode[Env] {
