@@ -6,9 +6,9 @@ package object outwatch extends ManagedSubscriptions {
   type REmitterBuilder[-Env, +O, +R <: RModifier[Env]] = REmitterBuilderExecution[Env, O, R, EmitterBuilder.Execution]
   type EmitterBuilder[+O, +R <: Modifier] = REmitterBuilder[Any, O, R]
   type REmitterBuilderModifier[-Env, +O] = REmitterBuilder[Env, O, RModifier[Env]]
-  type EmitterBuilderModifier[+O] = EmitterBuilder[O, Modifier]
+  type EmitterBuilderModifier[+O] = REmitterBuilderModifier[Any, O]
   type REmitterBuilderNode[-Env, +O] = REmitterBuilder[Env, O, RVNode[Env]]
-  type EmitterBuilderNode[+O] = EmitterBuilder[O, VNode]
+  type EmitterBuilderNode[+O] = REmitterBuilderNode[Any, O]
 
   type Modifier = RModifier[Any]
   @inline def Modifier = RModifier

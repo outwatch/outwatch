@@ -181,13 +181,13 @@ object EmitterBuilder {
   @inline final class Access[-Env, +O, Exec <: Execution](base: Env => EmitterBuilderExecution[O, Modifier, Exec]) extends REmitterBuilderExecution[Env, O, RModifier[Env], Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = new Access(env => base(env).transformSinkWithExec(f))
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = new Access(env => base(env).transformWithExec(f))
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): RModifier[Env] = ???
+    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): RModifier[Env] = Modifier.access(env => base(env).forwardTo(sink))
   }
 
   @inline final class Provide[-Env, +O, Exec <: Execution](base: REmitterBuilderExecution[Env, O, RModifier[Env], Exec], env: Env) extends EmitterBuilderExecution[O, Modifier, Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, Modifier, Exec] = new Provide(base.transformSinkWithExec(f), env)
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, Modifier, Exec] = new Provide(base.transformWithExec(f), env)
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): Modifier = ???
+    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): Modifier = base.forwardTo(sink).provide(env)
   }
 
   @inline def empty: EmitterBuilderExecution[Nothing, Modifier, Nothing] = Empty
@@ -223,81 +223,72 @@ object EmitterBuilder {
     def combine(x: REmitterBuilderExecution[Env, T, RModifier[Env], Exec], y: REmitterBuilderExecution[Env, T, RModifier[Env], Exec]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = EmitterBuilder.combine(x, y)
   }
 
-//  implicit def functor[Env, R]: Functor[EmitterBuilder[Env, ?, R]] = new Functor[EmitterBuilder[Env, ?, R]] {
-//    def map[A, B](fa: REmitterBuilder[Env, A, R])(f: A => B): REmitterBuilder[B, R] = fa.map(f)
-//  }
+  implicit def functor[Env, R <: RModifier[Env], Exec <: Execution]: Functor[REmitterBuilderExecution[Env, ?, R, Exec]] = new Functor[REmitterBuilderExecution[Env, ?, R, Exec]] {
+    def map[A, B](fa: REmitterBuilderExecution[Env, A, R, Exec])(f: A => B): REmitterBuilderExecution[Env, B, R, Exec] = fa.map(f)
+  }
 
-//  //TODO: REmitterBuilder
-//  implicit object bifunctor extends Bifunctor[EmitterBuilder] {
-//    def bimap[A, B, C, D](fab: EmitterBuilder[A, B])(f: A => C, g: B => D): EmitterBuilder[C, D] = fab.map(f).mapResult(g)
-//  }
-
-//  @inline implicit class HandlerIntegrationMonoid[Env, O, R, Exec <: Execution](builder: REmitterBuilderExecution[Env, O, R, Exec])(implicit monoid: Monoid[R]) {
-//    @inline def handled(f: Observable[O] => R): SyncIO[R] = handledF[SyncIO](f)
-
-//    @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
-//      Monoid[R].combine(builder.forwardTo(handler), f(handler))
-//    }
-//  }
-
-//  @inline implicit class HandlerIntegration[Env, O, R, Exec <: Execution](builder: REmitterBuilderExecution[Env, O, R, Exec]) {
-//    @inline def handledWith(f: (R, Observable[O]) => R): SyncIO[R] = handledWithF[SyncIO](f)
-
-//    @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
-//      f(builder.forwardTo(handler), handler)
-//    }
-//  }
-
-  // @inline implicit class EmitterOperations[O, R : Monoid, Exec <: Execution](builder: REmitterBuilderExecution[O, R, Exec]) {
-
-  //   @inline def withLatestEmitter[T](emitter: EmitterBuilder[T, R]): REmitterBuilderExecution[(O,T), SyncIO[R], Exec] = combineWithLatestEmitter(builder, emitter)
-
-  //   @inline def useLatestEmitter[T](emitter: EmitterBuilder[T, R]): REmitterBuilderExecution[T, SyncIO[R], Exec] = combineWithLatestEmitter(builder, emitter).map(_._2)
+  // implicit def bifunctor[Env, Exec <: Execution]: Bifunctor[REmitterBuilderExecution[Env, ?, ?, Exec]] = new Bifunctor[REmitterBuilderExecution[Env, ?, ?, Exec]] {
+  //   def bimap[A, B, C, D](fab: REmitterBuilderExecution[Env, A, B, Exec])(f: A => C, g: B => D): REmitterBuilderExecution[Env, C, D, Exec] = fab.map(f).mapResult(g)
   // }
 
-  // @inline implicit class EventActions[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-  //   def onlyOwnEvents: EmitterBuilder[O, R] = builder.filter(ev => ev.currentTarget == ev.target)
-  //   def preventDefault: EmitterBuilder.Sync[O, R] = builder.map { e => e.preventDefault; e }
-  //   def stopPropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopPropagation; e }
-  // }
+  @inline implicit class HandlerIntegration[Env, O, Exec <: Execution](val builder: REmitterBuilderExecution[Env, O, RModifier[Env], Exec]) extends AnyVal {
+    @inline def handled(f: Observable[O] => RModifier[Env]): SyncIO[RModifier[Env]] = handledF[SyncIO](f)
 
-  // @inline implicit class TargetAsInput[O <: Event, R](builder: EmitterBuilder.Sync[O, R]) {
-  //   object target {
-  //     @inline def value: EmitterBuilder.Sync[String, R] = builder.map(_.target.asInstanceOf[html.Input].value)
-  //     @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(_.target.asInstanceOf[html.Input].valueAsNumber)
-  //     @inline def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(_.target.asInstanceOf[html.Input].checked)
-  //   }
-  // }
+    @inline def handledF[F[_] : SyncCats](f: Observable[O] => RModifier[Env]): F[RModifier[Env]] = ??? //handledWithF[F]((r, o) => RModifier[Env](r, o))
 
-  // @inline implicit class CurrentTargetAsInput[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-  //   def value: EmitterBuilder.Sync[String, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].value)
-  //   def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].valueAsNumber)
-  //   def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].checked)
-  // }
+    @inline def handledWith(f: (RModifier[Env], Observable[O]) => RModifier[Env]): SyncIO[RModifier[Env]] = handledWithF[SyncIO](f)
 
-  // @inline implicit class CurrentTargetAsElement[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-  //   def asHtml: EmitterBuilder.Sync[html.Element, R] = builder.map(_.currentTarget.asInstanceOf[html.Element])
-  //   def asSvg: EmitterBuilder.Sync[svg.Element, R] = builder.map(_.currentTarget.asInstanceOf[svg.Element])
-  //   def asElement: EmitterBuilder.Sync[Element, R] = builder.map(_.currentTarget.asInstanceOf[Element])
-  // }
+    @inline def handledWithF[F[_] : SyncCats](f: (RModifier[Env], Observable[O]) => RModifier[Env]): F[RModifier[Env]] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
+      f(builder.forwardTo(handler), handler)
+    }
+  }
 
-  // @inline implicit class TypedElements[O <: Element, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-  //   @inline def asHtml: EmitterBuilder.Sync[html.Element, R] = builder.asInstanceOf[EmitterBuilder.Sync[html.Element, R]]
-  //   @inline def asSvg: EmitterBuilder.Sync[svg.Element, R] = builder.asInstanceOf[EmitterBuilder.Sync[svg.Element, R]]
-  // }
+  @inline implicit class EmitterOperations[Env, O, Exec <: Execution](val builder: REmitterBuilderExecution[Env, O, RModifier[Env], Exec]) extends AnyVal {
 
-  // @inline implicit class TypedElementTuples[E <: Element, R](val builder: EmitterBuilder.Sync[(E,E), R]) extends AnyVal {
-  //   @inline def asHtml: EmitterBuilder.Sync[(html.Element, html.Element), R] = builder.asInstanceOf[EmitterBuilder.Sync[(html.Element, html.Element), R]]
-  //   @inline def asSvg: EmitterBuilder.Sync[(svg.Element, svg.Element), R] = builder.asInstanceOf[EmitterBuilder.Sync[(svg.Element, svg.Element), R]]
-  // }
+    @inline def withLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O,T), RModifier[Env], Exec] = ??? //combineWithLatestEmitter(builder, emitter)
 
-  // @noinline private def combineWithLatestEmitter[O, T, R : Monoid, Exec <: Execution](sourceEmitter: REmitterBuilderExecution[O, R, Exec], latestEmitter: EmitterBuilder[T, R]): REmitterBuilderExecution[(O, T), SyncIO[R], Exec] =
-  //   new Custom[(O, T), SyncIO[R], Exec]({ sink =>
+    @inline def useLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = ??? //combineWithLatestEmitter(builder, emitter).map(_._2)
+  }
+
+  @inline implicit class EventActions[Env, O <: Event, R <: RModifier[Env]](val builder: EmitterBuilder.RSync[Env, O, R]) extends AnyVal {
+    @inline def onlyOwnEvents: EmitterBuilder.RSync[Env, O, R] = builder.filter(ev => ev.currentTarget == ev.target)
+    @inline def preventDefault: EmitterBuilder.RSync[Env, O, R] = builder.map { e => e.preventDefault; e }
+    @inline def stopPropagation: EmitterBuilder.RSync[Env, O, R] = builder.map { e => e.stopPropagation; e }
+
+    @inline def value: EmitterBuilder.RSync[Env, String, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].value)
+    @inline def valueAsNumber: EmitterBuilder.RSync[Env, Double, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].valueAsNumber)
+    @inline def checked: EmitterBuilder.RSync[Env, Boolean, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].checked)
+
+    @inline def asHtml: EmitterBuilder.RSync[Env, html.Element, R] = builder.map(_.currentTarget.asInstanceOf[html.Element])
+    @inline def asSvg: EmitterBuilder.RSync[Env, svg.Element, R] = builder.map(_.currentTarget.asInstanceOf[svg.Element])
+    @inline def asElement: EmitterBuilder.RSync[Env, Element, R] = builder.map(_.currentTarget.asInstanceOf[Element])
+  }
+
+  @inline implicit class TargetAsInput[Env, O <: Event, R <: RModifier[Env]](builder: EmitterBuilder.RSync[Env, O, R]) {
+    object target {
+      @inline def value: EmitterBuilder.RSync[Env, String, R] = builder.map(_.target.asInstanceOf[html.Input].value)
+      @inline def valueAsNumber: EmitterBuilder.RSync[Env, Double, R] = builder.map(_.target.asInstanceOf[html.Input].valueAsNumber)
+      @inline def checked: EmitterBuilder.RSync[Env, Boolean, R] = builder.map(_.target.asInstanceOf[html.Input].checked)
+    }
+  }
+
+  @inline implicit class TypedElements[Env, O <: Element, R <: RModifier[Env], Exec <: Execution](val builder: REmitterBuilderExecution[Env, O, R, Exec]) extends AnyVal {
+    @inline def asHtml: REmitterBuilderExecution[Env, html.Element, R, Exec] = builder.asInstanceOf[REmitterBuilderExecution[Env, html.Element, R, Exec]]
+    @inline def asSvg: REmitterBuilderExecution[Env, svg.Element, R, Exec] = builder.asInstanceOf[REmitterBuilderExecution[Env, svg.Element, R, Exec]]
+  }
+
+  @inline implicit class TypedElementTuples[Env, E <: Element, R <: RModifier[Env], Exec <: Execution](val builder: REmitterBuilderExecution[Env, (E,E), R, Exec]) extends AnyVal {
+    @inline def asHtml: REmitterBuilderExecution[Env, (html.Element, html.Element), R, Exec] = builder.asInstanceOf[REmitterBuilderExecution[Env, (html.Element, html.Element), R, Exec]]
+    @inline def asSvg: REmitterBuilderExecution[Env, (svg.Element, svg.Element), R, Exec] = builder.asInstanceOf[REmitterBuilderExecution[Env, (svg.Element, svg.Element), R, Exec]]
+  }
+
+  // @noinline private def combineWithLatestEmitter[Env, O, T, Exec <: Execution](sourceEmitter: REmitterBuilderExecution[Env, O, RModifier[Env], Exec], latestEmitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O, T), SyncIO[RModifier[Env]], Exec] =
+  //   new Custom[Env, (O, T), SyncIO[RModifier[Env]], Exec]({ sink =>
   //     import scala.scalajs.js
 
   //     SyncIO {
   //       var lastValue: js.UndefOr[T] = js.undefined
-  //       Monoid[R].combine(
+  //       RModifier(
   //         latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.onError)),
   //         sourceEmitter.forwardTo(Observer.create[O](
   //           { o =>
@@ -311,8 +302,8 @@ object EmitterBuilder {
   //     }
   //   })
 
-  // @noinline private def forwardToInTransform[F[_] : Sink, I, O, R](base: EmitterBuilder[I, R], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): R = {
+  // @noinline private def forwardToInTransform[Env, F[_] : Sink, I, O](base: REmitterBuilder[Env, I, RModifier[Env]], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): RModifier[Env] = {
   //   val connectable = Observer.redirect[F, Observable, O, I](sink)(transformF)
-  //   SubscriptionOwner[R].own(base.forwardTo(connectable.sink))(() => connectable.connect())
+  //   RModifier(base.forwardTo(connectable.sink), managedFunction(() => connectable.connect()))
   // }
 }

@@ -9,8 +9,14 @@ package object z {
   type ZRModifier[-Env] = RModifier[ZModifierEnv with Env]
   type ZModifier = ZRModifier[Any]
 
+  type ZREmitterBuilderExecution[-Env, +O, +R <: RModifier[Env], +Exec <: EmitterBuilder.Execution] = REmitterBuilderExecution[ZModifierEnv with Env, O, R, Exec]
+  type ZEmitterBuilderExecution[+O, +R <: Modifier, +Exec <: EmitterBuilder.Execution] = ZREmitterBuilderExecution[Any, O, R, Exec]
   type ZREmitterBuilder[-Env, +O, +R <: RModifier[Env]] = REmitterBuilder[ZModifierEnv with Env, O, R]
   type ZEmitterBuilder[+O, +R <: Modifier] = ZREmitterBuilder[Any, O, R]
+  type ZREmitterBuilderModifier[-Env, +O] = REmitterBuilder[ZModifierEnv with Env, O, RModifier[Env]]
+  type ZEmitterBuilderModifier[+O] = ZREmitterBuilderModifier[Any, O]
+  type ZREmitterBuilderNode[-Env, +O] = REmitterBuilder[ZModifierEnv with Env, O, RVNode[Env]]
+  type ZEmitterBuilderNode[+O] = ZREmitterBuilderNode[Any, O]
 
   object ZEmitterBuilder {
     type RSync[-Env, +O, +R <: RModifier[Env]] = EmitterBuilder.RSync[ZModifierEnv with Env, O, R]
