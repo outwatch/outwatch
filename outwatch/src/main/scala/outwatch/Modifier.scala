@@ -11,6 +11,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 sealed trait RModifier[-Env] {
+  type Self <: RModifier[Env]
   final def provide(env: Env): RModifier[Any] = ProvidedModifier(_.consume[Env](this, env))
   final def provideMap[R](map: R => Env): RModifier[R] = REnvModifier[R](env => provide(map(env)))
 }
@@ -106,8 +107,10 @@ final case class NextModifier(modifier: StaticModifier) extends StaticModifier
 case object EmptyModifier extends RModifier[Any]
 final case class CancelableModifier(subscription: () => Cancelable) extends RModifier[Any]
 final case class StringVNode(text: String) extends RModifier[Any]
-final case class ProvidedModifier(runWith: ProvidedModifierConsumer => Unit) extends RModifier[Any]
+final case class ProvidedModifier(runWith: ProvidedModifierConsumer[RModifier] => Unit) extends RModifier[Any]
 final case class REnvModifier[Env](modifier: Env => RModifier[Any]) extends RModifier[Env]
+// final case class ProvidedVNode(runWith: ProvidedModifierConsumer[RVNode] => Unit) extends RVNode[Any]
+// final case class REnvVNode[Env](modifier: Env => RVNode[Any]) extends RVNode[Env]
 final case class RCompositeModifier[Env](modifiers: Iterable[RModifier[Env]]) extends RModifier[Env]
 final case class RStreamModifier[Env](subscription: Observer[RModifier[Env]] => Cancelable) extends RModifier[Env]
 final case class RSyncEffectModifier[Env](unsafeRun: () => RModifier[Env]) extends RModifier[Env]
@@ -154,6 +157,6 @@ object RBasicVNode {
   @inline def apply[R](args: RModifier[R]*): RSvgVNode[Env with R] = append[R](args: _*)
 }
 
-trait ProvidedModifierConsumer {
-  def consume[Env](modifier: RModifier[Env], env: Env): Unit
+trait ProvidedModifierConsumer[R[E] <: RModifier[E]] {
+  def consume[Env](modifier: R[Env], env: Env): Unit
 }

@@ -227,10 +227,6 @@ object EmitterBuilder {
     def map[A, B](fa: REmitterBuilderExecution[Env, A, R, Exec])(f: A => B): REmitterBuilderExecution[Env, B, R, Exec] = fa.map(f)
   }
 
-  // implicit def bifunctor[Env, Exec <: Execution]: Bifunctor[REmitterBuilderExecution[Env, ?, ?, Exec]] = new Bifunctor[REmitterBuilderExecution[Env, ?, ?, Exec]] {
-  //   def bimap[A, B, C, D](fab: REmitterBuilderExecution[Env, A, B, Exec])(f: A => C, g: B => D): REmitterBuilderExecution[Env, C, D, Exec] = fab.map(f).mapResult(g)
-  // }
-
   @inline implicit class HandlerIntegration[Env, O, Exec <: Execution](val builder: REmitterBuilderExecution[Env, O, RModifier[Env], Exec]) extends AnyVal {
     @inline def handled(f: Observable[O] => RModifier[Env]): SyncIO[RModifier[Env]] = handledF[SyncIO](f)
 
@@ -245,9 +241,9 @@ object EmitterBuilder {
 
   @inline implicit class EmitterOperations[Env, O, Exec <: Execution](val builder: REmitterBuilderExecution[Env, O, RModifier[Env], Exec]) extends AnyVal {
 
-    @inline def withLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O,T), RModifier[Env], Exec] = ??? //combineWithLatestEmitter(builder, emitter)
+    @inline def withLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O,T), RModifier[Env], Exec] = combineWithLatestEmitter(builder, emitter)
 
-    @inline def useLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = ??? //combineWithLatestEmitter(builder, emitter).map(_._2)
+    @inline def useLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = combineWithLatestEmitter(builder, emitter).map(_._2)
   }
 
   @inline implicit class EventActions[Env, O <: Event, R <: RModifier[Env]](val builder: EmitterBuilder.RSync[Env, O, R]) extends AnyVal {
@@ -282,25 +278,25 @@ object EmitterBuilder {
     @inline def asSvg: REmitterBuilderExecution[Env, (svg.Element, svg.Element), R, Exec] = builder.asInstanceOf[REmitterBuilderExecution[Env, (svg.Element, svg.Element), R, Exec]]
   }
 
-  // @noinline private def combineWithLatestEmitter[Env, O, T, Exec <: Execution](sourceEmitter: REmitterBuilderExecution[Env, O, RModifier[Env], Exec], latestEmitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O, T), SyncIO[RModifier[Env]], Exec] =
-  //   new Custom[Env, (O, T), SyncIO[RModifier[Env]], Exec]({ sink =>
-  //     import scala.scalajs.js
+  @noinline private def combineWithLatestEmitter[Env, O, T, Exec <: Execution](sourceEmitter: REmitterBuilderExecution[Env, O, RModifier[Env], Exec], latestEmitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O, T), RModifier[Env], Exec] =
+    new Custom[Env, (O, T), RModifier[Env], Exec]({ sink =>
+      import scala.scalajs.js
 
-  //     SyncIO {
-  //       var lastValue: js.UndefOr[T] = js.undefined
-  //       RModifier(
-  //         latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.onError)),
-  //         sourceEmitter.forwardTo(Observer.create[O](
-  //           { o =>
-  //             lastValue.foreach { t =>
-  //               sink.onNext((o, t))
-  //             }
-  //           },
-  //           sink.onError
-  //         ))
-  //       )
-  //     }
-  //   })
+      RModifier(SyncIO {
+        var lastValue: js.UndefOr[T] = js.undefined
+        RModifier(
+          latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.onError)),
+          sourceEmitter.forwardTo(Observer.create[O](
+            { o =>
+              lastValue.foreach { t =>
+                sink.onNext((o, t))
+              }
+            },
+            sink.onError
+          ))
+        )
+      })
+    })
 
   // @noinline private def forwardToInTransform[Env, F[_] : Sink, I, O](base: REmitterBuilder[Env, I, RModifier[Env]], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): RModifier[Env] = {
   //   val connectable = Observer.redirect[F, Observable, O, I](sink)(transformF)
