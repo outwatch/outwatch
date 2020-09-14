@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.{Monoid, MonoidK}
+import cats.{Contravariant, MonoidK}
 import org.scalajs.dom._
 import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
@@ -53,6 +53,10 @@ object RModifier {
   implicit object monoidk extends MonoidK[RModifier] {
     @inline def empty[Env]: RModifier[Env] = RModifier.empty
     @inline def combineK[Env](x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
+  }
+
+  implicit object contravariant extends Contravariant[RModifier] {
+    def contramap[A, B](fa: RModifier[A])(f: B => A): RModifier[B] = fa.provideMap(f)
   }
 
   @inline implicit def renderToModifier[Env, T : Render[Env, ?]](value: T): RModifier[Env] = Render[Env, T].render(value)
