@@ -191,11 +191,12 @@ object EmitterBuilder {
   }
 
   @inline def empty: EmitterBuilderExecution[Nothing, Modifier, Nothing] = Empty
-  @inline def apply[Env, E, R <: RModifier[Env]](create: Observer[E] => R): EmitterBuilder.RSync[Env, E, R] = new Custom[Env, E, R, SyncExecution](sink => create(sink))
+  @inline def apply[E, R <: Modifier](create: Observer[E] => R): EmitterBuilder.Sync[E, R] = applyR(create)
+  @inline def applyR[Env, E, R <: RModifier[Env]](create: Observer[E] => R): EmitterBuilder.RSync[Env, E, R] = new Custom[Env, E, R, SyncExecution](sink => create(sink))
   @inline def ofModifier[E](create: Observer[E] => Modifier): EmitterBuilder.Sync[E, Modifier] = ofModifierR[Any, E](create)
-  @inline def ofModifierR[Env, E](create: Observer[E] => RModifier[Env]): EmitterBuilder.RSync[Env, E, RModifier[Env]] = apply[Env, E, RModifier[Env]](create)
+  @inline def ofModifierR[Env, E](create: Observer[E] => RModifier[Env]): EmitterBuilder.RSync[Env, E, RModifier[Env]] = applyR[Env, E, RModifier[Env]](create)
   @inline def ofNode[E](create: Observer[E] => VNode): EmitterBuilder.Sync[E, VNode] = ofNodeR[Any, E](create)
-  @inline def ofNodeR[Env, E](create: Observer[E] => RVNode[Env]): EmitterBuilder.RSync[Env, E, RVNode[Env]] = apply[Env, E, RVNode[Env]](create)
+  @inline def ofNodeR[Env, E](create: Observer[E] => RVNode[Env]): EmitterBuilder.RSync[Env, E, RVNode[Env]] = applyR[Env, E, RVNode[Env]](create)
   @inline def fromSource[F[_] : Source, E](source: F[E]): EmitterBuilder[E, Modifier] = new Stream[F, E](source)
 
   @inline def access[Env] = new PartiallyAppliedAccess[Env]
@@ -203,7 +204,7 @@ object EmitterBuilder {
     @inline def apply[O, Exec <: Execution](emitter: Env => EmitterBuilderExecution[O, Modifier, Exec]): REmitterBuilderExecution[Env, O, RModifier[Env], Exec] = new Access[Env, O, Exec](emitter)
   }
 
-  def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, Modifier] = apply[Any, E, Modifier] { sink =>
+  def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, Modifier] = apply { sink =>
     Emitter(eventType, e => sink.onNext(e.asInstanceOf[E]))
   }
 
@@ -216,7 +217,7 @@ object EmitterBuilder {
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")
   @inline def apply[E <: Event](eventType: String): EmitterBuilder.Sync[E, Modifier] = fromEvent[E](eventType)
   @deprecated("Use EmitterBuilder[E, O] instead", "0.11.0")
-  @inline def custom[Env, E, R <: RModifier[Env]](create: Observer[E] => R): EmitterBuilder.RSync[Env, E, R] = apply[Env, E, R](create)
+  @inline def custom[E, R <: Modifier](create: Observer[E] => R): EmitterBuilder.Sync[E, R] = apply(create)
 
   implicit def monoid[Env, T, Exec <: Execution]: Monoid[REmitterBuilderExecution[Env, T, RModifier[Env], Exec]] = new Monoid[REmitterBuilderExecution[Env, T, RModifier[Env], Exec]] {
     def empty: REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = EmitterBuilder.empty
@@ -240,7 +241,6 @@ object EmitterBuilder {
   }
 
   @inline implicit class EmitterOperations[Env, O, Exec <: Execution](val builder: REmitterBuilderExecution[Env, O, RModifier[Env], Exec]) extends AnyVal {
-
     @inline def withLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, (O,T), RModifier[Env], Exec] = combineWithLatestEmitter(builder, emitter)
 
     @inline def useLatestEmitter[T](emitter: REmitterBuilder[Env, T, RModifier[Env]]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = combineWithLatestEmitter(builder, emitter).map(_._2)
@@ -282,10 +282,10 @@ object EmitterBuilder {
     new Custom[Env, (O, T), RModifier[Env], Exec]({ sink =>
       import scala.scalajs.js
 
-      RModifier(SyncIO {
-        var lastValue: js.UndefOr[T] = js.undefined
+      RModifier.delay {
+        var lastValue: Option[T] = None
         RModifier(
-          latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.onError)),
+          latestEmitter.forwardTo(Observer.create[T](v => lastValue = Some(v), sink.onError)),
           sourceEmitter.forwardTo(Observer.create[O](
             { o =>
               lastValue.foreach { t =>
@@ -295,7 +295,7 @@ object EmitterBuilder {
             sink.onError
           ))
         )
-      })
+      }
     })
 
   // @noinline private def forwardToInTransform[Env, F[_] : Sink, I, O](base: REmitterBuilder[Env, I, RModifier[Env]], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): RModifier[Env] = {
