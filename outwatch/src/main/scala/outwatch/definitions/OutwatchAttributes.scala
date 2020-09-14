@@ -69,49 +69,49 @@ trait OutwatchAttributes {
 }
 
 trait DocumentTagDeprecations[T[_ <: dom.html.Element]] { self: DocumentTags[T] =>
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use linkTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def link = linkTag
 }
 
 trait EmbedTagDeprecations[T[_ <: dom.html.Element]] { self: EmbedTags[T] =>
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use objectTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def `object` = objectTag
-  
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+
+  @deprecated("removed to free up name for use in local variables, use paramTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def param = paramTag
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use mapTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def map = mapTag
 }
 
 trait HtmlAttributeDeprecations { self: Attributes =>
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use maxAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def max = maxAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use minAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def min = minAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use stepAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def step = stepAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use idAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def id = idAttr
 }
 
 trait SvgAttributeDeprecations { self: SvgAttrs =>
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use idAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def id = idAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use maxAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def max = maxAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use minAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def min = minAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use offsetAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def offset = offsetAttr
 
-  @deprecated("removed to free up name for use in local variables", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
+  @deprecated("removed to free up name for use in local variables, use resultAttr instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def result = resultAttr
 }
 
