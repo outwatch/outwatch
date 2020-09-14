@@ -3,6 +3,8 @@ package outwatch
 import colibri._
 import colibri.effect.RunSyncEffect
 
+import outwatch.helpers.AttributeBuilder
+
 import scala.scalajs.js
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
@@ -89,6 +91,11 @@ object Render {
 
   implicit object BooleanRender extends Render[Any, Boolean] {
     @inline def render(value: Boolean): Modifier = StringVNode(value.toString)
+  }
+
+  @inline implicit def AttributeBuilderRender[A <: Modifier]: Render[Any, AttributeBuilder[Boolean, A]] = new AttributeBuilderRender[A]
+  @inline private final class AttributeBuilderRender[A <: Modifier] extends Render[Any, AttributeBuilder[Boolean, A]] {
+    @inline def render(builder: AttributeBuilder[Boolean, A]) = builder := true
   }
 
   @inline implicit def KleisliRenderAs[F[_], Env, T](implicit r: Render[Any, F[T]]): Render[Env, Kleisli[F, Env, T]] = new KleisliRenderAsClass[F, Env, T]
