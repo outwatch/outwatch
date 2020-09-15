@@ -100,7 +100,7 @@ final case class UpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit])
 final case class PostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class DestroyHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 
-sealed trait DomHook extends SnabbdomHook
+sealed trait DomHook extends StaticModifier
 final case class DomMountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
 final case class DomUnmountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
 final case class DomUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
