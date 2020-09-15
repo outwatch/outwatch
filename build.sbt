@@ -127,25 +127,34 @@ lazy val outwatchRepairDom = project
     normalizedName := "outwatch-repairdom",
   )
 
+lazy val outwatchSnabbdom = project
+  .in(file("snabbdom"))
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .settings(librarySettings)
+  .settings(
+    name := "OutWatch-Snabbdom",
+    normalizedName := "outwatch-snabbdom",
+
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "1.1.0"
+    ),
+
+    npmDependencies in Compile ++= Seq(
+      "snabbdom" -> "git://github.com/outwatch/snabbdom.git#semver:0.7.5"
+    )
+  )
+
 lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchReactive)
+  .dependsOn(outwatchSnabbdom, outwatchReactive)
   .settings(librarySettings)
   .settings(
     name := "OutWatch",
     normalizedName := "outwatch",
 
-    resolvers ++=
-      ("jitpack" at "https://jitpack.io") ::
-      Nil,
-
     libraryDependencies ++= Seq(
       "com.raquo"     %%% "domtypes" % "0.10.1",
-    ),
-
-    npmDependencies in Compile ++= Seq(
-      "snabbdom" -> "git://github.com/outwatch/snabbdom.git#semver:0.7.5"
     )
   )
 
@@ -176,7 +185,6 @@ lazy val bench = project
 
     scalaJSStage in Compile := FullOptStage,
     scalacOptions ++= Seq ("-Xdisable-assertions"),
-    /* scalaJSUseMainModuleInitializer := true, */
 
     useYarn := true,
 
@@ -192,4 +200,4 @@ lazy val root = project
     name := "outwatch-root",
     skip in publish := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
+  .aggregate(outwatch, outwatchMonix, outwatchSnabbdom, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
