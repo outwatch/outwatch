@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.{Contravariant, MonoidK}
+import cats.{Contravariant, MonoidK, Monad, FlatMap}
 import org.scalajs.dom._
 import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
@@ -11,12 +11,18 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 sealed trait RModifier[-Env] {
-  type Self <: RModifier[Env]
-  final def provide(env: Env): RModifier[Any] = ProvidedModifier(_.consume[Env](this, env))
-  final def provideMap[R](map: R => Env): RModifier[R] = REnvModifier[R](env => provide(map(env)))
+  type Self[-R] <: RModifier[R]
+
+  def provide(env: Env): Self[Any]
+  def provideMap[R](map: R => Env): Self[R]
+
+  def append[R](args: RModifier[R]*): Self[Env with R]
+  def prepend[R](args: RModifier[R]*): Self[Env with R]
 }
 
 object RModifier {
+  type WithSelf[-Env, +RO[-X] <: RModifier[X]] = RModifier[Env] { type Self[-X] <: RO[X] }
+
   @inline def empty: RModifier[Any] = EmptyModifier
 
   @inline def apply(): RModifier[Any] = empty
@@ -62,7 +68,17 @@ object RModifier {
   @inline implicit def renderToModifier[Env, T : Render[Env, ?]](value: T): RModifier[Env] = Render[Env, T].render(value)
 }
 
-sealed trait StaticModifier extends RModifier[Any]
+sealed trait DefaultModifier[-Env] extends RModifier[Env] {
+  type Self[-R] = RModifier[R]
+
+  final def append[R](args: RModifier[R]*): RModifier[Env with R] = RModifier(this, RModifier.composite(args))
+  final def prepend[R](args: RModifier[R]*): RModifier[Env with R] = RModifier(RModifier.composite(args), this)
+
+  final def provide(env: Env): RModifier[Any] = ProvidedModifier(_.consume[Env](this, env))
+  final def provideMap[R](map: R => Env): RModifier[R] = REnvModifier[R](env => provide(map(env)))
+}
+
+sealed trait StaticModifier extends DefaultModifier[Any]
 
 final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticModifier
 
@@ -108,29 +124,31 @@ final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, 
 
 final case class NextModifier(modifier: StaticModifier) extends StaticModifier
 
-case object EmptyModifier extends RModifier[Any]
-final case class CancelableModifier(subscription: () => Cancelable) extends RModifier[Any]
-final case class StringVNode(text: String) extends RModifier[Any]
-final case class ProvidedModifier(runWith: ProvidedModifierConsumer[RModifier] => Unit) extends RModifier[Any]
-final case class REnvModifier[Env](modifier: Env => RModifier[Any]) extends RModifier[Env]
-// final case class ProvidedVNode(runWith: ProvidedModifierConsumer[RVNode] => Unit) extends RVNode[Any]
-// final case class REnvVNode[Env](modifier: Env => RVNode[Any]) extends RVNode[Env]
-final case class RCompositeModifier[Env](modifiers: Iterable[RModifier[Env]]) extends RModifier[Env]
-final case class RStreamModifier[Env](subscription: Observer[RModifier[Env]] => Cancelable) extends RModifier[Env]
-final case class RSyncEffectModifier[Env](unsafeRun: () => RModifier[Env]) extends RModifier[Env]
+case object EmptyModifier extends DefaultModifier[Any]
+final case class CancelableModifier(subscription: () => Cancelable) extends DefaultModifier[Any]
+final case class StringVNode(text: String) extends DefaultModifier[Any]
+final case class ProvidedModifier(runWith: ProvidedModifierConsumer[RModifier] => Unit) extends DefaultModifier[Any]
+final case class REnvModifier[Env](modifier: Env => RModifier[Any]) extends DefaultModifier[Env]
+final case class RCompositeModifier[Env](modifiers: Iterable[RModifier[Env]]) extends DefaultModifier[Env]
+final case class RStreamModifier[Env](subscription: Observer[RModifier[Env]] => Cancelable) extends DefaultModifier[Env]
+final case class RSyncEffectModifier[Env](unsafeRun: () => RModifier[Env]) extends DefaultModifier[Env]
 
 sealed trait RVNode[-Env] extends RModifier[Env] {
-  def append[R](args: RModifier[R]*): RVNode[Env with R]
-  def prepend[R](args: RModifier[R]*): RVNode[Env with R]
-  def apply[R](args: RModifier[R]*): RVNode[Env with R]
+  type Self[-R] <: RVNode[R]
+
+  def append[R](args: RModifier[R]*): Self[Env with R]
+  def prepend[R](args: RModifier[R]*): Self[Env with R]
+  @inline final def apply[R](args: RModifier[R]*): Self[Env with R] = append[R](args: _*)
+
+  final def provide(env: Env): Self[Any] = ???
+  final def provideMap[R](map: R => Env): Self[R] = ???
 }
 
 sealed trait RBasicVNode[-Env] extends RVNode[Env] {
+  type Self[-R] <: RBasicVNode[R]
+
   def nodeType: String
   def modifiers: js.Array[_ <: RModifier[Env]]
-  def append[R](args: RModifier[R]*): RBasicVNode[Env with R]
-  def prepend[R](args: RModifier[R]*): RBasicVNode[Env with R]
-  def apply[R](args: RModifier[R]*): RBasicVNode[Env with R]
 }
 object RBasicVNode {
   @inline implicit class RBasicVNodeOps[Env](val self: RBasicVNode[Env]) extends AnyVal {
@@ -140,25 +158,36 @@ object RBasicVNode {
   }
 }
 
-@inline final case class RThunkVNode[-Env](baseNode: RBasicVNode[Env], key: Key.Value, arguments: js.Array[Any], renderFn: () => RModifier[Env]) extends RVNode[Env] {
+sealed trait RExtendVNode[-Env] extends RVNode[Env] {
+  type Self[-R] <: RExtendVNode[R]
+}
+
+// final case class ProvidedVNode(runWith: ProvidedModifierConsumer[RVNode] => Unit) extends RVNode[Any]
+// final case class REnvVNode[Env](modifier: Env => RVNode[Any]) extends RVNode[Env]
+
+@inline final case class RThunkVNode[-Env](baseNode: RBasicVNode[Env], key: Key.Value, arguments: js.Array[Any], renderFn: () => RModifier[Env]) extends RExtendVNode[Env] {
+  type Self[-R] = RThunkVNode[R]
+
   def append[R](args: RModifier[R]*): RThunkVNode[Env with R] = copy(baseNode = baseNode.append(args: _*))
   def prepend[R](args: RModifier[R]*): RThunkVNode[Env with R] = copy(baseNode = baseNode.prepend(args :_*))
-  @inline def apply[R](args: RModifier[R]*): RThunkVNode[Env with R] = append[R](args: _*)
 }
-@inline final case class RConditionalVNode[-Env](baseNode: RBasicVNode[Env], key: Key.Value, shouldRender: Boolean, renderFn: () => RModifier[Env]) extends RVNode[Env] {
+@inline final case class RConditionalVNode[-Env](baseNode: RBasicVNode[Env], key: Key.Value, shouldRender: Boolean, renderFn: () => RModifier[Env]) extends RExtendVNode[Env] {
+  type Self[-R] = RConditionalVNode[R]
+
   def append[R](args: RModifier[R]*): RConditionalVNode[Env with R] = copy(baseNode = baseNode.append(args: _*))
   def prepend[R](args: RModifier[R]*): RConditionalVNode[Env with R] = copy(baseNode = baseNode.prepend(args :_*))
-  @inline def apply[R](args: RModifier[R]*): RConditionalVNode[Env with R] = append[R](args: _*)
 }
 @inline final case class RHtmlVNode[-Env](nodeType: String, modifiers: js.Array[_ <: RModifier[Env]]) extends RBasicVNode[Env] {
+  type Self[-R] = RHtmlVNode[R]
+
   def append[R](args: RModifier[R]*): RHtmlVNode[Env with R] = copy(modifiers = appendSeq(modifiers, args))
   def prepend[R](args: RModifier[R]*): RHtmlVNode[Env with R] = copy(modifiers = prependSeq(modifiers, args))
-  @inline def apply[R](args: RModifier[R]*): RHtmlVNode[Env with R] = append[R](args: _*)
 }
 @inline final case class RSvgVNode[-Env](nodeType: String, modifiers: js.Array[_ <: RModifier[Env]]) extends RBasicVNode[Env] {
+  type Self[-R] = RSvgVNode[R]
+
   def append[R](args: RModifier[R]*): RSvgVNode[Env with R] = copy(modifiers = appendSeq(modifiers, args))
   def prepend[R](args: RModifier[R]*): RSvgVNode[Env with R] = copy(modifiers = prependSeq(modifiers, args))
-  @inline def apply[R](args: RModifier[R]*): RSvgVNode[Env with R] = append[R](args: _*)
 }
 
 trait ProvidedModifierConsumer[R[E] <: RModifier[E]] {
