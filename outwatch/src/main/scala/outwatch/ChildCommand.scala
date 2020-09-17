@@ -107,7 +107,7 @@ object ChildCommand {
           removeByIndex(idToIndex(id))
       }
 
-      RCompositeModifier[Any](children)
+      Modifier.composite(children)
     }
   }
 }

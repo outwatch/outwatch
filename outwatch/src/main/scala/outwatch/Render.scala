@@ -100,7 +100,7 @@ object Render {
 
   @inline implicit def KleisliRenderAs[F[_], Env, T](implicit r: Render[Any, F[T]]): Render[Env, Kleisli[F, Env, T]] = new KleisliRenderAsClass[F, Env, T]
   @inline private final class KleisliRenderAsClass[F[_], Env, T](implicit r: Render[Any, F[T]]) extends Render[Env, Kleisli[F, Env, T]] {
-    @inline def render(kleisli: Kleisli[F, Env, T]) = REnvModifier[Env](env => r.render(kleisli.run(env)))
+    @inline def render(kleisli: Kleisli[F, Env, T]) = EnvModifier[Env](env => r.render(kleisli.run(env)))
   }
 
   @inline implicit def SyncEffectRender[F[_] : RunSyncEffect, Env]: Render[Env, F[RModifier[Env]]] = new SyncEffectRenderClass[F, Env]
@@ -170,6 +170,6 @@ object Render {
   }
   @noinline private def futureToModifier[Env](future: Future[RModifier[Env]])(implicit ec: ExecutionContext): RModifier[Env] = future.value match {
     case Some(Success(value)) => value
-    case _ => RStreamModifier(Observable.fromFuture(future).subscribe(_))
+    case _ => StreamModifier(Observable.fromFuture(future).subscribe(_))
   }
 }

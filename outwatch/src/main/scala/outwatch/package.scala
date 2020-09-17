@@ -27,12 +27,6 @@ package object outwatch {
   val HtmlVNode = RHtmlVNode
   type SvgVNode = RSvgVNode[Any]
   val SvgVNode = RSvgVNode
-  type CompositeModifier = RCompositeModifier[Any]
-  val CompositeModifier = RCompositeModifier
-  type StreamModifier = RStreamModifier[Any]
-  val StreamModifier = RStreamModifier
-  type SyncEffectModifier = RSyncEffectModifier[Any]
-  val SyncEffectModifier = RSyncEffectModifier
 
   @deprecated("use Modifier instead", "1.0.0")
   type VDomModifier = Modifier
