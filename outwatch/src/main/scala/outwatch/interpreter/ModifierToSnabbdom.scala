@@ -275,9 +275,7 @@ private[outwatch] object NativeModifiers {
         case s: CancelableModifier => subscribables.push(new Subscribable(_ => s.subscription()))
         case m: RSyncEffectModifier[R] => append(subscribables, modifiers, m.unsafeRun(), env, inStream)
         case m: REnvModifier[R] => append(subscribables, modifiers, m.modifier(env), env, inStream)
-        case m: ProvidedModifier => m.runWith(new ProvidedModifierConsumer[RModifier] {
-          def consume[R2](modifier: RModifier[R2], env: R2): Unit = append(subscribables, modifiers, modifier, env, inStream)
-        })
+        case m: ProvidedModifier[_] => append(subscribables, modifiers, m.modifier, m.env, inStream)
       }
     }
 

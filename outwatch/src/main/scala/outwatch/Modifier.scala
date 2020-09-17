@@ -131,7 +131,7 @@ sealed trait DefaultModifier[-Env] extends RModifier[Env] {
   final def append[R](args: RModifier[R]*): RModifier[Env with R] = RModifier(this, RModifier.composite(args))
   final def prepend[R](args: RModifier[R]*): RModifier[Env with R] = RModifier(RModifier.composite(args), this)
 
-  final def provide(env: Env): RModifier[Any] = ProvidedModifier(_.consume[Env](this, env))
+  final def provide(env: Env): RModifier[Any] = ProvidedModifier(this, env)
   final def provideMap[R](map: R => Env): RModifier[R] = REnvModifier[R](env => provide(map(env)))
 }
 
@@ -184,7 +184,7 @@ final case class NextModifier(modifier: StaticModifier) extends StaticModifier
 case object EmptyModifier extends DefaultModifier[Any]
 final case class CancelableModifier(subscription: () => Cancelable) extends DefaultModifier[Any]
 final case class StringVNode(text: String) extends DefaultModifier[Any]
-final case class ProvidedModifier(runWith: ProvidedModifierConsumer[RModifier] => Unit) extends DefaultModifier[Any]
+final case class ProvidedModifier[Env](modifier: RModifier[Env], env: Env) extends DefaultModifier[Any]
 final case class REnvModifier[Env](modifier: Env => RModifier[Any]) extends DefaultModifier[Env]
 final case class RCompositeModifier[Env](modifiers: Iterable[RModifier[Env]]) extends DefaultModifier[Env]
 final case class RStreamModifier[Env](subscription: Observer[RModifier[Env]] => Cancelable) extends DefaultModifier[Env]
@@ -245,8 +245,4 @@ sealed trait RExtendVNode[-Env] extends RVNode[Env] {
 
   def append[R](args: RModifier[R]*): RSvgVNode[Env with R] = copy(modifiers = appendSeq(modifiers, args))
   def prepend[R](args: RModifier[R]*): RSvgVNode[Env with R] = copy(modifiers = prependSeq(modifiers, args))
-}
-
-trait ProvidedModifierConsumer[R[E] <: RModifier[E]] {
-  def consume[Env](modifier: R[Env], env: Env): Unit
 }
