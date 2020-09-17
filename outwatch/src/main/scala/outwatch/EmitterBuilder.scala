@@ -157,7 +157,7 @@ object EmitterBuilder {
   @inline final class Stream[S[_] : Source, +O](source: S[O]) extends EmitterBuilderExecution[O, Modifier, Execution] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, Modifier, Execution] = new Stream(Observable.transformSink(source)(f))
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, Modifier, Execution] = new Stream(f(Observable.lift(source)))
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): Modifier = managedFunction(() => Source[S].subscribe(source)(sink))
+    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): Modifier = Modifier.managedFunction(() => Source[S].subscribe(source)(sink))
   }
 
   @inline final class Custom[-Env, +O, +R <: RModifier[Env], +Exec <: Execution](create: Observer[O] => R) extends REmitterBuilderExecution[Env, O, R, Exec] {
@@ -181,7 +181,7 @@ object EmitterBuilder {
   @inline final class Access[-Env, +O, Exec <: Execution](base: Env => EmitterBuilderExecution[O, Modifier, Exec]) extends REmitterBuilderExecution[Env, O, RModifier[Env], Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = new Access(env => base(env).transformSinkWithExec(f))
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = new Access(env => base(env).transformWithExec(f))
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): RModifier[Env] = Modifier.access(env => base(env).forwardTo(sink))
+    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): RModifier[Env] = RModifier.access(env => base(env).forwardTo(sink))
   }
 
   @inline final class Provide[-Env, +O, Exec <: Execution](base: REmitterBuilderExecution[Env, O, RModifier[Env], Exec], env: Env) extends EmitterBuilderExecution[O, Modifier, Exec] {
@@ -211,7 +211,7 @@ object EmitterBuilder {
   @inline def combine[Env, T, Exec <: Execution](builders: REmitterBuilderExecution[Env, T, RModifier[Env], Exec]*): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = combineSeq(builders)
 
   def combineSeq[Env, T, Exec <: Execution](builders: Seq[REmitterBuilderExecution[Env, T, RModifier[Env], Exec]]): REmitterBuilderExecution[Env, T, RModifier[Env], Exec] = new Custom[Env, T, RModifier[Env], Exec](sink =>
-    Modifier.composite(builders.map(_ --> sink))
+    RModifier.composite(builders.map(_ --> sink))
   )
 
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")

@@ -165,7 +165,7 @@ object Render {
   @noinline private def childCommandSeqToModifier[F[_] : Source, Env](source: F[Seq[ChildCommand]]): RModifier[Env] = ChildCommand.stream(source)
   @noinline private def childCommandToModifier[F[_] : Source, Env](source: F[ChildCommand]): RModifier[Env] = ChildCommand.stream(Observable.map(source)(Seq(_)))
   @noinline private def futureToModifierRender[Env, T: Render[Env, ?]](future: Future[T])(implicit ec: ExecutionContext): RModifier[Env] = future.value match {
-    case Some(Success(value)) => Modifier(value)
+    case Some(Success(value)) => RModifier(value)
     case _ => StreamModifier(Observable.fromFuture(future).map(RModifier(_)).subscribe(_))
   }
   @noinline private def futureToModifier[Env](future: Future[RModifier[Env]])(implicit ec: ExecutionContext): RModifier[Env] = future.value match {

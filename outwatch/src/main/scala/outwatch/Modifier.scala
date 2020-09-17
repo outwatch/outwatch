@@ -1,11 +1,18 @@
 package outwatch
 
-import cats.{Contravariant, MonoidK, Monad, FlatMap}
-import org.scalajs.dom._
+import cats._
+import cats.implicits._
+
 import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
-import colibri.{Observer, Cancelable}
+
+import colibri._
+import colibri.effect.RunSyncEffect
+
 import snabbdom.{DataObject, VNodeProxy}
+
+import org.scalajs.dom
+import org.scalajs.dom._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -20,10 +27,39 @@ sealed trait RModifier[-Env] {
   def prepend[R](args: RModifier[R]*): Self[Env with R]
 }
 
-object RModifier {
+trait RModifierOps {
   @inline def empty: RModifier[Any] = EmptyModifier
 
   @inline def apply(): RModifier[Any] = empty
+
+  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
+  @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
+
+  @inline def managed[F[_] : RunSyncEffect, T : CanCancel](subscription: F[T]): Modifier = managedFunction(() => RunSyncEffect[F].unsafeRun(subscription))
+
+  def managed[F[_] : RunSyncEffect : Applicative : Functor, T : CanCancel : Monoid](sub1: F[T], sub2: F[T], subscriptions: F[T]*): Modifier = {
+    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
+    managed(composite)
+  }
+
+  @inline def managedFunction[T : CanCancel](subscription: () => T): Modifier = CancelableModifier(() => Cancelable.lift(subscription()))
+
+  object managedElement {
+    def apply[T : CanCancel](subscription: dom.Element => T): Modifier = Modifier.delay {
+      var lastSub: js.UndefOr[T] = js.undefined
+      Modifier(
+        dsl.onDomMount foreach { elem => lastSub = subscription(elem) },
+        dsl.onDomUnmount foreach { lastSub.foreach(CanCancel[T].cancel) }
+      )
+    }
+
+    def asHtml[T : CanCancel](subscription: dom.html.Element => T): Modifier = apply(elem => subscription(elem.asInstanceOf[dom.html.Element]))
+
+    def asSvg[T : CanCancel](subscription: dom.svg.Element => T): Modifier = apply(elem => subscription(elem.asInstanceOf[dom.svg.Element]))
+  }
+}
+
+object RModifier extends RModifierOps {
 
   @inline def apply[Env, T : Render[Env, ?]](t: T): RModifier[Env] = Render[Env, T].render(t)
 
@@ -51,9 +87,6 @@ object RModifier {
 
   @inline def access[Env](modifier: Env => RModifier[Any]): RModifier[Env] = REnvModifier[Env](modifier)
 
-  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
-  @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
-
   implicit object monoidk extends MonoidK[RModifier] {
     @inline def empty[Env]: RModifier[Env] = RModifier.empty
     @inline def combineK[Env](x: RModifier[Env], y: RModifier[Env]): RModifier[Env] = RModifier[Env](x, y)
@@ -64,6 +97,32 @@ object RModifier {
   }
 
   @inline implicit def renderToModifier[Env, T : Render[Env, ?]](value: T): RModifier[Env] = Render[Env, T].render(value)
+}
+
+object Modifier extends RModifierOps {
+  @inline def apply[T : Render[Any, ?]](t: T): Modifier = Render[Any, T].render(t)
+
+  @inline def apply(modifier: Modifier, modifier2: Modifier): Modifier =
+    RModifier(modifier, modifier2)
+
+  @inline def apply(modifier: Modifier, modifier2: Modifier, modifier3: Modifier): Modifier =
+    RModifier(modifier, modifier2, modifier3)
+
+  @inline def apply(modifier: Modifier, modifier2: Modifier, modifier3: Modifier, modifier4: Modifier): Modifier =
+    RModifier(modifier, modifier2, modifier3, modifier4)
+
+  @inline def apply(modifier: Modifier, modifier2: Modifier, modifier3: Modifier, modifier4: Modifier, modifier5: Modifier): Modifier =
+    RModifier(modifier, modifier2, modifier3, modifier4, modifier5)
+
+  @inline def apply(modifier: Modifier, modifier2: Modifier, modifier3: Modifier, modifier4: Modifier, modifier5: Modifier, modifier6: Modifier): Modifier =
+    RModifier(modifier, modifier2, modifier3, modifier4, modifier5, modifier6)
+
+  @inline def apply(modifier: Modifier, modifier2: Modifier, modifier3: Modifier, modifier4: Modifier, modifier5: Modifier, modifier6: Modifier, modifier7: Modifier, modifiers: Modifier*): Modifier =
+    RModifier(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, modifiers)
+
+  @inline def composite(modifiers: Iterable[Modifier]): Modifier = RModifier.composite(modifiers)
+
+  @inline def delay[T : Render[Any, ?]](modifier: => T): Modifier = RModifier.delay(modifier)
 }
 
 sealed trait DefaultModifier[-Env] extends RModifier[Env] {

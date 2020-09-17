@@ -24,7 +24,7 @@ package object z {
   }
 
   implicit def render[Env, T: Render[Any, ?]]: Render[ZModifierEnv with Env, RIO[Env, T]] = new Render[ZModifierEnv with Env, RIO[Env, T]] {
-    def render(effect: RIO[Env, T]) = Modifier.access[ZModifierEnv with Env] { env =>
+    def render(effect: RIO[Env, T]) = RModifier.access[ZModifierEnv with Env] { env =>
       implicit val runtime = Runtime(env, env.get[Platform])
       RModifier(effect)
     }
