@@ -172,10 +172,10 @@ object EmitterBuilder {
     @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = base.forwardTo(transformF(Observer.lift(sink)))
   }
 
-  @inline final class Transform[-Env, +I, +O, +R[-Env] <: RModifier.WithSelf[Env, R], Exec <: Execution](base: REmitterBuilderExecution[Env, I, R[Env], Exec], transformF: Observable[I] => Observable[O]) extends REmitterBuilderExecution[Env, O, R[Env], Exec] {
-    @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): REmitterBuilderExecution[Env, T, R[Env], Exec] = new Transform[Env, I, T, R, Exec](base, s => Observable.transformSink(transformF(s))(f))
-    @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): REmitterBuilderExecution[Env, T, R[Env], Exec] = new Transform[Env, I, T, R, Exec](base, s => f(transformF(s)))
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R[Env] = forwardToInTransform(base, transformF, sink)
+  @inline final class Transform[-Env, +I, +O, +R <: RModifier[Env], Exec <: Execution](base: REmitterBuilderExecution[Env, I, R, Exec], transformF: Observable[I] => Observable[O]) extends REmitterBuilderExecution[Env, O, R#Self[Env], Exec] {
+    @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): REmitterBuilderExecution[Env, T, R#Self[Env], Exec] = new Transform[Env, I, T, R, Exec](base, s => Observable.transformSink(transformF(s))(f))
+    @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): REmitterBuilderExecution[Env, T, R#Self[Env], Exec] = new Transform[Env, I, T, R#Self[Env], Exec](base, s => f(transformF(s)))
+    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R#Self[Env] = ??? //forwardToInTransform(base, transformF, sink)
   }
 
   @inline final class Access[-Env, +O, Exec <: Execution](base: Env => EmitterBuilderExecution[O, Modifier, Exec]) extends REmitterBuilderExecution[Env, O, RModifier[Env], Exec] {
@@ -298,8 +298,9 @@ object EmitterBuilder {
       }
     })
 
-  @noinline private def forwardToInTransform[Env, F[_] : Sink, I, O, R[-Env] <: RModifier.WithSelf[Env, R]](base: REmitterBuilder[Env, I, R[Env]], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): R[Env] = {
-    val connectable = Observer.redirect[F, Observable, O, I](sink)(transformF)
-    base.forwardTo(connectable.sink).append(managedFunction(() => connectable.connect()))
-  }
+
+  // @noinline private def forwardToInTransform[Env, F[_] : Sink, I, O](base: REmitterBuilder[Env, I, RModifier[Env]], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): RModifier[Env] = {
+  //   val connectable = Observer.redirect[F, Observable, O, I](sink)(transformF)
+  //   RModifier(base.forwardTo(connectable.sink), managedFunction(() => connectable.connect()))
+  // }
 }

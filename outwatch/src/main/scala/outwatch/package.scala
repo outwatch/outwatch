@@ -5,36 +5,36 @@ package object outwatch extends ManagedSubscriptions {
   type EmitterBuilderExecution[+O, +R <: Modifier, +Exec <: EmitterBuilder.Execution] = REmitterBuilderExecution[Any, O, R, Exec]
   type REmitterBuilder[-Env, +O, +R <: RModifier[Env]] = REmitterBuilderExecution[Env, O, R, EmitterBuilder.Execution]
   type EmitterBuilder[+O, +R <: Modifier] = REmitterBuilder[Any, O, R]
-  type REmitterBuilderModifier[-Env, +O] = REmitterBuilder[Env, O, RModifier[Env]]
-  type EmitterBuilderModifier[+O] = REmitterBuilderModifier[Any, O]
-  type REmitterBuilderNode[-Env, +O] = REmitterBuilder[Env, O, RVNode[Env]]
-  type EmitterBuilderNode[+O] = REmitterBuilderNode[Any, O]
+  // type REmitterBuilderModifier[-Env, +O] = REmitterBuilder[Env, O, RModifier[Env]]
+  // type EmitterBuilderModifier[+O] = REmitterBuilderModifier[Any, O]
+  // type REmitterBuilderNode[-Env, +O] = REmitterBuilder[Env, O, RVNode[Env]]
+  // type EmitterBuilderNode[+O] = REmitterBuilderNode[Any, O]
 
   type Modifier = RModifier[Any]
-  @inline def Modifier = RModifier
+  val Modifier = RModifier
   type VNode = RVNode[Any]
-  // @inline def VNode = RVNode
+  // val VNode = RVNode
   type BasicVNode = RBasicVNode[Any]
-  // @inline def BasicVNode = RBasicVNode
+  // val BasicVNode = RBasicVNode
   type ConditionalVNode = RConditionalVNode[Any]
-  @inline def ConditionalVNode = RConditionalVNode
+  val ConditionalVNode = RConditionalVNode
   type ThunkVNode = RThunkVNode[Any]
-  @inline def ThunkVNode = RThunkVNode
+  val ThunkVNode = RThunkVNode
   type HtmlVNode = RHtmlVNode[Any]
-  @inline def HtmlVNode = RHtmlVNode
+  val HtmlVNode = RHtmlVNode
   type SvgVNode = RSvgVNode[Any]
-  @inline def SvgVNode = RSvgVNode
+  val SvgVNode = RSvgVNode
   type CompositeModifier = RCompositeModifier[Any]
-  @inline def CompositeModifier = RCompositeModifier
+  val CompositeModifier = RCompositeModifier
   type StreamModifier = RStreamModifier[Any]
-  @inline def StreamModifier = RStreamModifier
+  val StreamModifier = RStreamModifier
   type SyncEffectModifier = RSyncEffectModifier[Any]
-  @inline def SyncEffectModifier = RSyncEffectModifier
+  val SyncEffectModifier = RSyncEffectModifier
 
   @deprecated("use Modifier instead", "1.0.0")
   type VDomModifier = Modifier
   @deprecated("use Modifier instead", "1.0.0")
-  @inline def VDomModifier = Modifier
+  val VDomModifier = Modifier
 
   //TODO: invent typeclass CanBuildStyle[F[_]]
   @inline implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.cssName)

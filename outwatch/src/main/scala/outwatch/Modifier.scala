@@ -21,8 +21,6 @@ sealed trait RModifier[-Env] {
 }
 
 object RModifier {
-  type WithSelf[-Env, +RO[-X] <: RModifier[X]] = RModifier[Env] { type Self[-X] <: RO[X] }
-
   @inline def empty: RModifier[Any] = EmptyModifier
 
   @inline def apply(): RModifier[Any] = empty
