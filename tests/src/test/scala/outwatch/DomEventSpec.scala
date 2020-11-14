@@ -3,7 +3,6 @@ package outwatch
 import cats.effect.IO
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.{html, _}
 import outwatch.dsl._
 import colibri.ext.monix._
@@ -121,7 +120,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "be able to set the value of a text field" in {
 
-    val values = PublishSubject[String]
+    val values = PublishSubject[String]()
 
     val vtree = input(idAttr := "input", attributes.value <-- values)
 
@@ -149,7 +148,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   }
 
   it should "preserve user input after setting defaultValue" in {
-    val defaultValues = PublishSubject[String]
+    val defaultValues = PublishSubject[String]()
 
     val vtree = input(idAttr := "input", attributes.defaultValue <-- defaultValues)
     OutWatch.renderInto[IO]("#app", vtree).map { _ =>
@@ -171,7 +170,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   }
 
   it should "set input value to the same value after user change" in {
-    val values = PublishSubject[String]
+    val values = PublishSubject[String]()
 
     val vtree = input(idAttr := "input", attributes.value <-- values)
     OutWatch.renderInto[IO]("#app", vtree).map { _ =>
@@ -193,7 +192,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "be bindable to a list of children" in {
 
-    val state = PublishSubject[Seq[VNode]]
+    val state = PublishSubject[Seq[VNode]]()
 
 
     val vtree = div(
@@ -360,7 +359,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     var triggeredFunction = 0
     var triggeredFunction2 = 0
 
-    val stream = PublishSubject[String]
+    val stream = PublishSubject[String]()
     val node = {
       div(
         button(idAttr := "button",
