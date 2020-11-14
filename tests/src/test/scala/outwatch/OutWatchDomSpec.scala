@@ -10,15 +10,11 @@ import monix.reactive.Observable
 import outwatch.helpers._
 import outwatch.dsl._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
-import org.scalajs.dom.window.localStorage
 import org.scalatest.Assertion
-import outwatch.dsl._
-import outwatch.helpers._
 import outwatch.interpreter._
 import colibri.ext.monix._
 import outwatch.reactive.handlers.monix._
 import outwatch.reactive.handler.{Handler => Internal}
-import colibri._
 import org.scalajs.dom.raw.EventInit
 
 import scala.collection.immutable.Seq
@@ -449,7 +445,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
 
-    val pageHandler = PublishSubject[Int]
+    val pageHandler = PublishSubject[Int]()
 
     val vtree = div(
       div(pageHandler.map(page))
@@ -486,7 +482,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
 
-    val pageHandler = PublishSubject[Int]
+    val pageHandler = PublishSubject[Int]()
 
     val vtree = div(
       div(pageHandler.map(page))
@@ -597,7 +593,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "change the value of a textfield" in {
 
-    val messages = PublishSubject[String]
+    val messages = PublishSubject[String]()
     val vtree = div(
       input(attributes.value <-- messages, idAttr := "input")
     )
@@ -632,8 +628,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "render child nodes in correct order" in {
 
-    val messagesA = PublishSubject[String]
-    val messagesB = PublishSubject[String]
+    val messagesA = PublishSubject[String]()
+    val messagesB = PublishSubject[String]()
 
     val vNode = div(
       span("A"),
@@ -663,8 +659,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "render child string-nodes in correct order" in {
 
-    val messagesA = PublishSubject[String]
-    val messagesB = PublishSubject[String]
+    val messagesA = PublishSubject[String]()
+    val messagesB = PublishSubject[String]()
     val vNode = div(
       "A",
       messagesA,
@@ -696,9 +692,9 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "render child string-nodes in correct order, mixed with children" in {
 
-    val messagesA = PublishSubject[String]
-    val messagesB = PublishSubject[String]
-    val messagesC = PublishSubject[Seq[VNode]]
+    val messagesA = PublishSubject[String]()
+    val messagesB = PublishSubject[String]()
+    val messagesC = PublishSubject[Seq[VNode]]()
 
     val vNode = div(
       "A",
@@ -735,8 +731,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update merged nodes children correctly" in {
 
-    val messages = PublishSubject[Seq[VNode]]
-    val otherMessages = PublishSubject[Seq[VNode]]
+    val messages = PublishSubject[Seq[VNode]]()
+    val otherMessages = PublishSubject[Seq[VNode]]()
     val vNode = div(messages)(otherMessages)
 
 
@@ -765,8 +761,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update merged nodes separate children correctly" in {
 
-    val messages = PublishSubject[String]
-    val otherMessages = PublishSubject[String]
+    val messages = PublishSubject[String]()
+    val otherMessages = PublishSubject[String]()
     val vNode = div(messages)(otherMessages)
 
     val node = IO {
@@ -796,9 +792,9 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "partially render component even if parts not present" in {
 
-    val messagesColor = PublishSubject[String]
-    val messagesBgColor = PublishSubject[String]
-    val childString = PublishSubject[String]
+    val messagesColor = PublishSubject[String]()
+    val messagesBgColor = PublishSubject[String]()
+    val childString = PublishSubject[String]()
 
     val vNode = div( idAttr := "inner",
       color <-- messagesColor,
@@ -844,8 +840,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "partially render component even if parts not present2" in {
 
-    val messagesColor = PublishSubject[String]
-    val childString = PublishSubject[String]
+    val messagesColor = PublishSubject[String]()
+    val childString = PublishSubject[String]()
 
     val vNode = div( idAttr := "inner",
       color <-- messagesColor,
@@ -881,7 +877,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update reused vnodes correctly" in {
 
-    val messages = PublishSubject[String]
+    val messages = PublishSubject[String]()
     val vNode = div(data.ralf := true, messages)
     val container = div(vNode, vNode)
 
@@ -909,8 +905,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update merged nodes correctly (render reuse)" in {
 
-    val messages = PublishSubject[String]
-    val otherMessages = PublishSubject[String]
+    val messages = PublishSubject[String]()
+    val otherMessages = PublishSubject[String]()
     val vNodeTemplate = div(messages)
     val vNode = vNodeTemplate(otherMessages)
 
@@ -949,8 +945,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update merged node attributes correctly" in {
 
-    val messages = PublishSubject[String]
-    val otherMessages = PublishSubject[String]
+    val messages = PublishSubject[String]()
+    val otherMessages = PublishSubject[String]()
     val vNode = div(data.noise <-- messages)(data.noise <-- otherMessages)
 
     val node = IO {
@@ -978,8 +974,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update merged node styles written with style() correctly" in {
 
-    val messages = PublishSubject[String]
-    val otherMessages = PublishSubject[String]
+    val messages = PublishSubject[String]()
+    val otherMessages = PublishSubject[String]()
     val vNode = div(style("color") <-- messages)(style("color") <-- otherMessages)
 
     val node = IO {
@@ -1007,8 +1003,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "update merged node styles correctly" in {
 
-    val messages = PublishSubject[String]
-    val otherMessages = PublishSubject[String]
+    val messages = PublishSubject[String]()
+    val otherMessages = PublishSubject[String]()
     val vNode = div(color <-- messages)(color <-- otherMessages)
 
     val node = IO {
@@ -1058,7 +1054,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "render nodes with only attribute receivers properly" in {
 
-    val classes = PublishSubject[String]
+    val classes = PublishSubject[String]()
     val vNode = button( className <-- classes, "Submit")
 
     val node = IO {
@@ -2461,8 +2457,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     var bCounter = 0
     var lastValue: String = null
 
-    val aEvent = PublishSubject[String]
-    val bEvent = PublishSubject[String]
+    val aEvent = PublishSubject[String]()
+    val bEvent = PublishSubject[String]()
     val innerNode =
       input(emitter(aEvent).map { x => aCounter += 1; x } .useLatestEmitter(emitter(bEvent).map { x => bCounter += 1; x }) foreach { str =>
         lastValue = str
@@ -3573,7 +3569,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).unsafeToFuture.flatMap { _ =>
+    OutWatch.renderInto[IO]("#app", node).unsafeToFuture().flatMap { _ =>
       val editButton = document.getElementById("edit-button")
 
       for {
@@ -3622,7 +3618,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).unsafeToFuture.flatMap { _ =>
+    OutWatch.renderInto[IO]("#app", node).unsafeToFuture().flatMap { _ =>
       val editButton = document.getElementById("edit-button")
 
       for {

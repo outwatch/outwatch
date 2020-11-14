@@ -242,8 +242,8 @@ object EmitterBuilder {
 
   @inline implicit class EventActions[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[O, R] = builder.filter(ev => ev.currentTarget == ev.target)
-    def preventDefault: EmitterBuilder.Sync[O, R] = builder.map { e => e.preventDefault; e }
-    def stopPropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopPropagation; e }
+    def preventDefault: EmitterBuilder.Sync[O, R] = builder.map { e => e.preventDefault(); e }
+    def stopPropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopPropagation(); e }
   }
 
   @inline implicit class TargetAsInput[O <: Event, R](builder: EmitterBuilder.Sync[O, R]) {
