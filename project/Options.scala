@@ -63,6 +63,7 @@ object Options {
   val options213 = options212.diff(Seq(
     "-Ypartial-unification",
     "-Yno-adapted-args",
+    "-Xlint:nullary-override",
     "-Ywarn-inaccessible",
     "-Ywarn-infer-any",
     "-Ywarn-nullary-override",
