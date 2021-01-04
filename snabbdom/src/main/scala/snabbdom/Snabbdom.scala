@@ -141,7 +141,6 @@ object thunk {
 object patch {
 
   private val p = Snabbdom.init(js.Array(
-    SnabbdomClass.default,
     SnabbdomEventListeners.default,
     SnabbdomAttributes.default,
     SnabbdomProps.default,
@@ -197,13 +196,6 @@ object VNodeProxy {
 object Snabbdom extends js.Object {
   @silent("never used|dead code")
   def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
-}
-
-@silent("never used|dead code")
-@js.native
-@JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
-object SnabbdomClass extends js.Object {
-  val default: js.Any = js.native
 }
 
 @silent("never used|dead code")
