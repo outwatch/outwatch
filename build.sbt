@@ -24,7 +24,7 @@ inThisBuild(Seq(
 val jsdomVersion = "13.2.0"
 
 lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.1" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
   addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full),
 
   useYarn := true,
