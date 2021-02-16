@@ -154,7 +154,7 @@ lazy val outwatch = project
     normalizedName := "outwatch",
 
     libraryDependencies ++= Seq(
-      "com.raquo"     %%% "domtypes" % "0.10.1",
+      "com.raquo"     %%% "domtypes" % "0.13.0",
     )
   )
 
