@@ -278,12 +278,23 @@ If you think there is something missing in Scala Dom Types, please open a PR or 
 Source Code: [DomTypes.scala](outwatch/src/main/scala/outwatch/definitions/DomTypes.scala)
 
 
-#### Data attributes
-Data attributes make use of [`scala.Dynamic`](https://www.scala-lang.org/api/current/scala/Dynamic.html), so you can write things like:
+#### Data and Aria attributes
+Data and aria attributes make use of [`scala.Dynamic`](https://www.scala-lang.org/api/current/scala/Dynamic.html), so you can write things like:
 
 ```scala
-div(data.payload := "17")
-// <div data-payload="17"></div>
+div(
+    data.payload := "17",
+    data.`consent-required` := "Are you sure?",
+    data.message.success := "Message sent!",
+    aria.hidden := "true",
+)
+// <div 
+//    data-payload="17"
+//    data-consent-required="Are you sure?"
+//    data-message-success="Message sent!"
+//    aria-hidden="true"
+//    >
+// </div>
 ```
 
 Source Code: [OutwatchAttributes.scala](outwatch/src/main/scala/outwatch/definitions/OutwatchAttributes.scala#L75), [Builder.scala](outwatch/src/main/scala/outwatch/helpers/Builder.scala#L35)
