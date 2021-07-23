@@ -209,7 +209,7 @@ object EmitterBuilder {
     def combine(x: EmitterBuilderExecution[T, R, Exec], y: EmitterBuilderExecution[T, R, Exec]): EmitterBuilderExecution[T, R, Exec] = EmitterBuilder.combine(x, y)
   }
 
-  implicit def functor[R]: Functor[EmitterBuilder[?, R]] = new Functor[EmitterBuilder[?, R]] {
+  implicit def functor[R]: Functor[EmitterBuilder[*, R]] = new Functor[EmitterBuilder[*, R]] {
     def map[A, B](fa: EmitterBuilder[A,R])(f: A => B): EmitterBuilder[B,R] = fa.map(f)
   }
 
