@@ -1,4 +1,7 @@
-# OutWatch - Functional and reactive Web-Frontend Library with Reactive Programming, VirtualDom and Scala [![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
+# OutWatch
+Functional and reactive Web-Frontend Library for ScalaJS
+
+[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
 
 Syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI can be made reactive and allows for easy integration of third-party FRP libraries (for example [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx) or [airstream](https://github.com/raquo/airstream)). We integrate tightly with [cats](https://github.com/typelevel/cats) and [cats-effect](https://github.com/typelevel/cats-effect) to build safe web applications. In OutWatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.
 
@@ -278,12 +281,23 @@ If you think there is something missing in Scala Dom Types, please open a PR or 
 Source Code: [DomTypes.scala](outwatch/src/main/scala/outwatch/definitions/DomTypes.scala)
 
 
-#### Data attributes
-Data attributes make use of [`scala.Dynamic`](https://www.scala-lang.org/api/current/scala/Dynamic.html), so you can write things like:
+#### Data and Aria attributes
+Data and aria attributes make use of [`scala.Dynamic`](https://www.scala-lang.org/api/current/scala/Dynamic.html), so you can write things like:
 
 ```scala
-div(data.payload := "17")
-// <div data-payload="17"></div>
+div(
+    data.payload := "17",
+    data.`consent-required` := "Are you sure?",
+    data.message.success := "Message sent!",
+    aria.hidden := "true",
+)
+// <div 
+//    data-payload="17"
+//    data-consent-required="Are you sure?"
+//    data-message-success="Message sent!"
+//    aria-hidden="true"
+//    >
+// </div>
 ```
 
 Source Code: [OutwatchAttributes.scala](outwatch/src/main/scala/outwatch/definitions/OutwatchAttributes.scala#L75), [Builder.scala](outwatch/src/main/scala/outwatch/helpers/Builder.scala#L35)
