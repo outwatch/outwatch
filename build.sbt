@@ -8,7 +8,7 @@ inThisBuild(Seq(
 
   scalaVersion := crossScalaVersions.value.last,
 
-  crossScalaVersions := Seq("2.12.14", "2.13.6"),
+  crossScalaVersions := Seq("2.12.13", "2.13.4"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
