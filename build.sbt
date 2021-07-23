@@ -8,7 +8,7 @@ inThisBuild(Seq(
 
   scalaVersion := crossScalaVersions.value.last,
 
-  crossScalaVersions := Seq("2.12.12", "2.13.3"),
+  crossScalaVersions := Seq("2.12.14", "2.13.6"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
@@ -25,7 +25,7 @@ val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.5"
 
 lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.1" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
   addCompilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
 
   useYarn := true,
