@@ -1,5 +1,9 @@
 .idea/
 target/
 project/project/
-index.html
-src/main/scala/browser
+
+metals.sbt
+/.metals
+.bloop/
+/.bsp
+/.envrc
