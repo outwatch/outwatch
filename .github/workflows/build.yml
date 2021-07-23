@@ -5,22 +5,20 @@ on:
       - main
   pull_request:
   workflow_dispatch:
-
 jobs:
   build:
+    strategy:
+      matrix:
+        scalaVersion: ["2.12.12", "2.13.5"]
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Setup Scala
-        uses: olafurpg/setup-scala@v10
-        with:
-          java-version: "adopt@1.8"
+      - uses: olafurpg/setup-scala@v12
 
       - name: Test
-        run: sbt test
+        run: sbt ++${{matrix.scalaVersion}} test
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
