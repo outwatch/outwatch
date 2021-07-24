@@ -25,13 +25,13 @@ val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.5"
 
 lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.12.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
   addCompilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
 
   useYarn := true,
 
   libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.2" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.9" % Test,
     "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full,
   ),
 
@@ -114,7 +114,7 @@ lazy val outwatchMonix = project
 
     libraryDependencies ++= Seq(
       "com.github.cornerman.colibri" %%% "colibri-monix" % "0b2299d",
-      "io.monix"      %%% "monix"       % "3.2.2",
+      "io.monix"      %%% "monix"       % "3.4.0",
     )
   )
 
