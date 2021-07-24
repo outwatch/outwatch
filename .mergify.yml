@@ -8,7 +8,7 @@ pull_request_rules:
   - name: merge scala-steward's PRs
     conditions:
       - author=scala-steward
-      - check-success=build (2.12.13)
+      - check-success=build (2.12.14)
       - check-success=build (2.13.6)
     actions:
       merge:
