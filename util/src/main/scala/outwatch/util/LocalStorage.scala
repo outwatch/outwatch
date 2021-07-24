@@ -32,7 +32,7 @@ class Storage(domStorage: dom.Storage) {
     }
   }
 
-  private def storageEventsForKey[F[_]: Sync](key: String): Observable[Option[String]] =
+  private def storageEventsForKey[F[_]](key: String): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
     events.window.onStorage.collect {
       case e: StorageEvent if e.storageArea == domStorage && e.key == key =>

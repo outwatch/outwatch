@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.{Applicative, Functor, Monoid}
+import cats.{Applicative, Monoid}
 import cats.implicits._
 import org.scalajs.dom
 import scala.scalajs.js
@@ -11,7 +11,7 @@ trait ManagedSubscriptions {
 
   @inline def managed[F[_] : RunSyncEffect, T : CanCancel](subscription: F[T]): VDomModifier = managedFunction(() => RunSyncEffect[F].unsafeRun(subscription))
 
-  def managed[F[_] : RunSyncEffect : Applicative : Functor, T : CanCancel : Monoid](sub1: F[T], sub2: F[T], subscriptions: F[T]*): VDomModifier = {
+  def managed[F[_] : RunSyncEffect : Applicative, T : CanCancel : Monoid](sub1: F[T], sub2: F[T], subscriptions: F[T]*): VDomModifier = {
     val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
     managed(composite)
   }
