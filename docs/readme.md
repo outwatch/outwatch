@@ -23,7 +23,7 @@ Changes to the code will trigger a recompile and automatically refresh the page 
 
 ### Create a project from scratch
 Install `java`, `sbt`, `nodejs` and `yarn`, if you haven't already.
-Create a new SBT project and add the `scalajs` and `scalajs-bundler` plugin to your `project/plugins.sbt`:
+Create a new SBT project and add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
 ```scala
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.6.0")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.20.0")
@@ -204,7 +204,7 @@ div(cursor.pointer, fontWeight.bold, display.flex)
 If you are missing more type safe values, please contribute to [Scala Dom Types](https://github.com/raquo/scala-dom-types). Example implementation: [fontWeight](https://github.com/raquo/scala-dom-types/blob/master/shared/src/main/scala/com/raquo/domtypes/generic/defs/styles/Styles.scala#L1711)
 
 
-### Reserved Scala keywords: class, for
+### Reserved Scala keywords: class, for, type
 There are some attributes and styles which are reserved scala keywords. You can use them with backticks:
 
 ```scala mdoc:js:compile-only

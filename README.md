@@ -1,18 +1,75 @@
-# OutWatch
+# Outwatch
 The Functional and Reactive Web-Frontend Library for ScalaJS
 
 [![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
 
-The syntax is almost exactly as in [ScalaTags](http://www.lihaoyi.com/scalatags/). The UI can be made reactive and allows for easy integration of third-party reactive-programming libraries (for example [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx) or [airstream](https://github.com/raquo/airstream)). We integrate tightly with [cats](https://github.com/typelevel/cats) and [cats-effect](https://github.com/typelevel/cats-effect) to build safe web applications. In OutWatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.
+
+```scala
+import outwatch._
+import outwatch.dsl._
+import colibri._
+import cats.effect.{IO, SyncIO}
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    
+    val myComponent = SyncIO {
+      val counter = Subject.behavior(0)
+      div(
+        button("+", onClick(counter.map(_ + 1)) --> counter),
+        counter,
+      )
+    }
+
+    OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
+  }
+}
+```
+In Outwatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.
+
+* Write UI-components using pure functions
+* Manage state in a referentially transparent way using [cats-effect](https://github.com/typelevel/cats-effect)
+* Built-in lightweight `Observable` and `Subject` types from [colibri](http://github.com/cornerman/colibri)
+* Seamlessly works with existing reactive programming libraries: [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx)
+* Low-boilerplate, many convenient helper functions
+* Built on top of [snabbdom](https://github.com/snabbdom/snabbdom), a virtual dom library
+
+
+You will find interactive examples and explanations in our [documentation](https://outwatch.github.io/docs/readme.html).
 
 ## [Documentation](https://outwatch.github.io/docs/readme.html)
+
+## Quickstart
+
+Add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
+```scala
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.x.x")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "x.x.x")
+```
+
+Add the outwatch dependencies to your `build.sbt`:
+```scala
+enablePlugins(ScalaJSPlugin)
+enablePlugins(ScalaJSBundlerPlugin)
+
+resolvers += "jitpack" at "https://jitpack.io"
+val outwatchVersion = "<latest git commit>"
+libraryDependencies ++= Seq(
+  "com.github.outwatch.outwatch" %%% "outwatch"      % outwatchVersion,
+  // optional dependencies:
+  "com.github.cornerman.colibri" %%% "colibri-monix" % outwatchVersion, // Monix
+  "com.github.cornerman.colibri" %%% "colibri-rx"    % outwatchVersion, // Scala.rx
+  "com.github.outwatch.outwatch" %%% "outwatch-util" % outwatchVersion, // Store, Websocket, Http
+)
+
+```
 
 ## Bugs and Feedback
 For bugs, questions and discussions please use [GitHub Issues](https://github.com/OutWatch/outwatch/issues).
 
 
 ## Community
-We adopted the [Scala Code of Conduct](https://www.scala-lang.org/conduct/). People are expected to follow it when discussing OutWatch on the Github page, Gitter channel, or other venues.
+We adopted the [Scala Code of Conduct](https://www.scala-lang.org/conduct/). People are expected to follow it when discussing Outwatch on the Github page, Gitter channel, or other venues.
 
 ## LICENSE
 
