@@ -22,11 +22,11 @@ Changes to the code will trigger a recompile and automatically refresh the page 
 
 
 ### Create a project from scratch
-Install `java`, `sbt`, `nodejs` and `yarn`, if you haven't already.
+Make sure that `java`, `sbt`, `nodejs` and `yarn` are installed.
 Create a new SBT project and add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
 ```scala
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.6.0")
-addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.20.0")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.x.x")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "x.x.x")
 ```
 
 Add the outwatch dependencies to your `build.sbt`:

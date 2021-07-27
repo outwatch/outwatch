@@ -1,7 +1,7 @@
 # Outwatch
 The Functional and Reactive Web-Frontend Library for ScalaJS
 
-[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Build Status](https://travis-ci.org/OutWatch/outwatch.svg?branch=master)](https://travis-ci.org/OutWatch/outwatch) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
+[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
 
 
 ```scala
@@ -40,6 +40,26 @@ You will find interactive examples and explanations in our [documentation](https
 ## [Documentation](https://outwatch.github.io/docs/readme.html)
 
 ## Quickstart
+
+### Template
+
+The quickest way to play with outwatch is to use our template.
+
+Make sure that `java`, `sbt`, `nodejs` and `yarn` are installed.
+
+```bash
+sbt new outwatch/seed.g8
+```
+
+In your newly created project directory, run:
+
+```bash
+sbt dev
+```
+
+and point your browser to http://localhost:8080.
+
+### Manual setup
 
 Add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
 ```scala
