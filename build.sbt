@@ -23,6 +23,7 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.5"
+val colibriVersion = "0b2299d"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
@@ -89,7 +90,7 @@ lazy val outwatchReactive = project
       Nil,
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri" % "0b2299d",
+      "com.github.cornerman.colibri" %%% "colibri" % colibriVersion,
     )
   )
 
@@ -113,7 +114,7 @@ lazy val outwatchMonix = project
     normalizedName := "outwatch-monix",
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri-monix" % "0b2299d",
+      "com.github.cornerman.colibri" %%% "colibri-monix" % colibriVersion,
       "io.monix"      %%% "monix"       % "3.4.0",
     )
   )
@@ -194,6 +195,34 @@ lazy val bench = project
     ),
   )
 
+lazy val jsdocs = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
+  .settings(
+    webpackBundlingMode := BundlingMode.LibraryOnly(),
+    scalaJSUseMainModuleInitializer := true,
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
+      "com.github.cornerman.colibri" %%% "colibri-monix" % colibriVersion,
+      "com.github.cornerman.colibri" %%% "colibri-rx" % colibriVersion,
+    )
+  )
+
+lazy val docs = project
+  .in(file("outwatch-docs")) // important: it must not be docs/
+  .enablePlugins(MdocPlugin, DocusaurusPlugin)
+  .settings(
+    moduleName := "outwatch-docs",
+    mdocJS := Some(jsdocs),
+    mdocJSLibraries := webpack.in(jsdocs, Compile, fullOptJS).value,
+    mdocVariables := Map(
+      /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
+      "VERSION" -> version.value,
+      "HEADCOMMIT" -> git.gitHeadCommit.value.get.take(8),
+      "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
+      "js-mount-node" -> "preview"
+    ),
+  )
 
 lazy val root = project
   .in(file("."))

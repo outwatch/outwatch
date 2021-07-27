@@ -1,0 +1,15 @@
+[data-mdoc-js] {
+  background-color: #ccffd7;
+  padding: 20px 24px 20px 24px;
+  margin-bottom: 32px;
+  border-radius: 3px;
+  position: relative;
+}
+
+[data-mdoc-js]::before {
+  content: "preview";
+  color: hsl(0deg 0% 0% / 33%);
+  right: 12px;
+  top: 10px;
+  position: absolute;
+}
