@@ -18,7 +18,7 @@ jobs:
       - uses: olafurpg/setup-scala@v12
 
       - name: Test
-        run: sbt ++${{matrix.scalaVersion}} test
+        run: sbt ++${{matrix.scalaVersion}} test docs/mdoc
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
