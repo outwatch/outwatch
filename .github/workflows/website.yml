@@ -16,7 +16,7 @@ jobs:
       - name: Deploy Website
         run: sbt docs/docusaurusPublishGhpages 
         env:
-          WEBSITE_GIT_DEPLOY_KEY: ${{ secrets.WEBSITE_GIT_DEPLOY_KEY }}
+          GIT_DEPLOY_KEY: ${{ secrets.WEBSITE_GIT_DEPLOY_KEY }}
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
