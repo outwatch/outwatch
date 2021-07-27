@@ -4,18 +4,17 @@ import com.raquo.domtypes.generic.defs.complex.canonical
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
 import com.raquo.domtypes.generic.{builders, codecs, keys}
 import com.raquo.domtypes.jsdom.defs.eventProps
-import com.raquo.domtypes.jsdom.defs.tags._
+import com.raquo.domtypes.jsdom.defs.tags
 import org.scalajs.dom
 import outwatch._
 import outwatch.helpers._
 import colibri.Observable
-import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _] = AttributeBuilder[T, Attr]
+  type ReflectedAttribute[T, _] = AttributeBuilder[T, Modifier]
   type Attribute[T] = BasicAttrBuilder[T]
-  type Property[T, _] = PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VDomModifier]
+  type Property[T, _] = AttributeBuilder[T, Modifier]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, Modifier]
   type HtmlTag[T] = HtmlVNode
   type SvgTag[T] = SvgVNode
 }
@@ -37,29 +36,29 @@ private[outwatch] object CodecBuilder {
 private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[BuilderTypes.HtmlTag, dom.html.Element] with builders.SvgTagBuilder[BuilderTypes.SvgTag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array())
-  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array())
+  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = VNode.html(tagName)
+  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = VNode.svg(tagName)
 }
 
 trait Tags
-  extends EmbedTags[BuilderTypes.HtmlTag]
-  with GroupingTags[BuilderTypes.HtmlTag]
-  with TextTags[BuilderTypes.HtmlTag]
-  with FormTags[BuilderTypes.HtmlTag]
-  with SectionTags[BuilderTypes.HtmlTag]
-  with TableTags[BuilderTypes.HtmlTag]
+  extends tags.EmbedTags[BuilderTypes.HtmlTag]
+  with tags.GroupingTags[BuilderTypes.HtmlTag]
+  with tags.TextTags[BuilderTypes.HtmlTag]
+  with tags.FormTags[BuilderTypes.HtmlTag]
+  with tags.SectionTags[BuilderTypes.HtmlTag]
+  with tags.TableTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with TagHelpers
   with EmbedTagDeprecations[BuilderTypes.HtmlTag]
 
 trait TagsExtra
-  extends DocumentTags[BuilderTypes.HtmlTag]
-  with MiscTags[BuilderTypes.HtmlTag]
+  extends tags.DocumentTags[BuilderTypes.HtmlTag]
+  with tags.MiscTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with DocumentTagDeprecations[BuilderTypes.HtmlTag]
 
-trait TagsSvg
-  extends SvgTags[BuilderTypes.SvgTag]
+trait SvgTags
+  extends tags.SvgTags[BuilderTypes.SvgTag]
   with TagBuilder
 
 // all Attributes

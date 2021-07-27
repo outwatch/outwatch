@@ -1,39 +1,70 @@
 package outwatch.helpers
 
+import colibri.{ObservableLike, Observable}
 import outwatch._
-import colibri.{Source, Observable}
+import cats.Monoid
 
 import scala.language.dynamics
 
-trait AttributeBuilder[-T, +A <: VDomModifier] extends Any {
+trait AttributeBuilder[-T, +A] extends Any {
   def assign(value: T): A
 
-  final def assignOption(value: Option[T]): Option[A] = value.map(assign)
-
-  final def toggle(value: T): AttributeBuilder[Boolean, VDomModifier] = AttributeBuilder.ofModifier { enabled =>
-    if (enabled) assign(value) else VDomModifier.empty
-  }
-
+  @inline final def :=(source: Option[T]): Option[A] = source.map(assign)
   @inline final def :=(value: T): A = assign(value)
 
-  @inline final def :=?(value: Option[T]): Option[A] = assignOption(value)
+  @inline final def <--[F[+_] : ObservableLike](source: F[Option[T]], @annotation.nowarn dummy: Unit = ()): Observable[Option[A]] = ObservableLike[F].toObservable(source).map(_.map(assign(_)))
+  @inline final def <--[F[_] : ObservableLike](source: F[_ <: T]): Observable[A] = ObservableLike[F].toObservable(source).map(assign(_))
 
-  final def <--[F[_] : Source](source: F[_ <: T]): Observable[A] = Observable.map(source)(assign)
+  @inline final def mapResult[RA](f: A => RA): AttributeBuilder[T, RA] = AttributeBuilder(t => f(assign(t)))
+  @inline final def contramap[S](f: S => T): AttributeBuilder[S, A] = AttributeBuilder(s => assign(f(s)))
 
-  final def <--?[F[_] : Source](source: F[_ <: Option[T]]): Observable[Option[A]] = Observable.map(source)(assignOption)
+  @inline final def use[R](value: R): AttributeBuilder[R => T, A] = AttributeBuilder(f => assign(f(value)))
+
+  @deprecated("Use builder := option instead", "1.0.0")
+  @inline final def assignOption(value: Option[T]): Option[A] = this := value
+  @deprecated("Use builder := option instead", "1.0.0")
+  @inline final def :=?(value: Option[T]): Option[A] = this := value
+  @deprecated("Use builder <-- source instead", "1.0.0")
+  @inline final def <--?[F[+_] : ObservableLike](source: F[Option[T]]): Observable[Option[A]] = this <-- source
 }
 
 object AttributeBuilder {
-  @inline implicit def toAttribute[A <: VDomModifier](builder: AttributeBuilder[Boolean, A]): A = builder := true
+  @inline def apply[T, A](create: T => A): AttributeBuilder[T, A] = new AttributeBuilderApply[T, A](create)
+  @inline private class AttributeBuilderApply[T, A](create: T => A) extends AttributeBuilder[T, A] {
+    @inline def assign(value: T): A = create(value)
+  }
 
-  @inline def ofModifier[T, A <: VDomModifier](create: T => A): AttributeBuilder[T, A] = new AttributeBuilder[T, A] {
-    def assign(value: T): A = create(value)
+  @inline def ofModifier[T](create: T => Modifier): AttributeBuilder[T, Modifier] = ofModifierM[Any, T](create)
+  @inline def ofVNode[T](create: T => VNode): AttributeBuilder[T, VNode] = ofVNodeM[Any, T](create)
+  @inline def ofModifierM[Env, T](create: T => ModifierM[Env]): AttributeBuilder[T, ModifierM[Env]] = apply(create)
+  @inline def ofVNodeM[Env, T](create: T => VNodeM[Env]): AttributeBuilder[T, VNodeM[Env]] = apply(create)
+
+  @inline def access[Env] = new PartiallyAppliedAccess[Env]
+  @inline class PartiallyAppliedAccess[Env] {
+    @inline def apply[T, A[-_]](builder: Env => AttributeBuilder[T, A[Any]])(implicit acc: AccessEnvironment[A]): AttributeBuilder[T, A[Env]] = AttributeBuilder[T, A[Env]](t => AccessEnvironment[A].access[Env](env => builder(env).assign(t)))
+  }
+  @inline def accessM[Env] = new PartiallyAppliedAccessM[Env]
+  @inline class PartiallyAppliedAccessM[Env] {
+    @inline def apply[R, T, A[-_]](builder: Env => AttributeBuilder[T, A[R]])(implicit acc: AccessEnvironment[A]): AttributeBuilder[T, A[Env with R]] = access(env => builder(env).provide(env))
+  }
+
+  @inline implicit class AccessEnvironmentOperations[Env, T, A[-_]](builder: AttributeBuilder[T, A[Env]])(implicit acc: AccessEnvironment[A]) {
+    @inline final def provide(env: Env): AttributeBuilder[T, A[Any]] = builder.mapResult(r => AccessEnvironment[A].provide(r)(env))
+    @inline final def provideSome[REnv](map: REnv => Env): AttributeBuilder[T, A[REnv]] = builder.mapResult(r => AccessEnvironment[A].provideSome(r)(map))
+
+    @inline final def useAccess[REnv]: AttributeBuilder[REnv => T, A[Env with REnv]] = AttributeBuilder.accessM[REnv](builder.use)
+  }
+
+  @inline implicit class MonoidOperations[T, A : Monoid](builder: AttributeBuilder[T, A]) {
+    @inline final def toggle(value: => T): AttributeBuilder[Boolean, A] = AttributeBuilder { enabled =>
+      if (enabled) builder.assign(value) else Monoid.empty
+    }
   }
 }
 
 // Attr
 
-@inline final class BasicAttrBuilder[T](val name: String, val encode: T => Attr.Value) extends AttributeBuilder[T, BasicAttr] {
+@inline final class BasicAttrBuilder[T](val name: String, encode: T => Attr.Value) extends AttributeBuilder[T, BasicAttr] {
   def assign(value: T) = BasicAttr(name, encode(value))
 
   @inline def accum(s: String): AccumAttrBuilder[T] = accum((v1, v2) => v1.toString + s + v2.toString)

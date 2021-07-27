@@ -14,6 +14,20 @@ private[outwatch] object SnabbdomOps {
   // sync/async batching like monix-scheduler makes sense for us.
   var asyncPatchEnabled = false
 
+  def toSnabbdom(node: VNode): VNodeProxy = node match {
+    case node: BasicVNode =>
+      toRawSnabbdomProxy(node)
+    case node: AccessEnvVNode =>
+      toSnabbdom(node.node(()))
+    case node: ThunkVNode =>
+      node.condition match {
+        case VNodeThunkCondition.Check(shouldRender) =>
+        thunk.conditional(getNamespace(node.baseNode.namespace), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), shouldRender)
+        case VNodeThunkCondition.Compare(arguments) =>
+        thunk(getNamespace(node.baseNode.namespace), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), arguments)
+      }
+  }
+
   @inline private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
     new DataObject {
       attrs = modifiers.attrs
@@ -52,19 +66,10 @@ private[outwatch] object SnabbdomOps {
     } else newProxy(modifiers.proxies, js.undefined)
   }
 
-   def getNamespace(node: BasicVNode): js.UndefOr[String] = node match {
-    case _: SvgVNode => "http://www.w3.org/2000/svg": js.UndefOr[String]
-    case _ => js.undefined
+  private def getNamespace(node: VNodeNamespace): js.UndefOr[String] = node match {
+    case VNodeNamespace.Html => js.undefined
+    case VNodeNamespace.Svg => "http://www.w3.org/2000/svg"
   }
-
-   def toSnabbdom(node: VNode): VNodeProxy = node match {
-     case node: BasicVNode =>
-       toRawSnabbdomProxy(node)
-     case node: ConditionalVNode =>
-       thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.shouldRender)
-     case node: ThunkVNode =>
-       thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.arguments)
-   }
 
    private val newNodeId: () => Int = {
      var vNodeIdCounter = 0
@@ -90,10 +95,12 @@ private[outwatch] object SnabbdomOps {
     // we mutate the initial proxy and thereby mutate the proxy the parent knows.
    private def toRawSnabbdomProxy(node: BasicVNode): VNodeProxy = {
 
-    val vNodeNS = getNamespace(node)
+    val vNodeNS = getNamespace(node.namespace)
     val vNodeId: Int = newNodeId()
 
-    val nativeModifiers = NativeModifiers.from(node.modifiers)
+    val observer = new StatefulObserver[Unit]
+
+    val nativeModifiers = NativeModifiers.from(node.modifiers, observer)
 
     if (nativeModifiers.subscribables.isEmpty) {
       // if no dynamic/subscribable content, then just create a simple proxy
@@ -104,8 +111,8 @@ private[outwatch] object SnabbdomOps {
       // based in dom events.
 
       var proxy: VNodeProxy = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
-      var _prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
+      var nextModifiers: js.UndefOr[js.Array[StaticModifier]] = js.undefined
+      var _prependModifiers: js.UndefOr[js.Array[StaticModifier]] = js.undefined
       var lastTimeout: js.UndefOr[Int] = js.undefined
       var isActive: Boolean = false
 
@@ -151,16 +158,9 @@ private[outwatch] object SnabbdomOps {
         }
       }
 
-      val patchSink = Observer.create[Unit](
-        _ => invokeDoPatch(async = asyncPatchEnabled),
-        OutwatchTracing.errorSubject.onNext
-      )
-
       def start(): Unit = {
         resetTimeout()
-        nativeModifiers.subscribables.foreach { subscribable =>
-          subscribable.subscribe(patchSink)
-        }
+        nativeModifiers.subscribables.foreach(_.subscribe())
       }
 
       def stop(): Unit = {
@@ -169,7 +169,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      _prependModifiers = js.Array[StaticVDomModifier](
+      _prependModifiers = js.Array[StaticModifier](
         InsertHook { p =>
           VNodeProxy.copyInto(p, proxy)
           isActive = true
@@ -193,30 +193,26 @@ private[outwatch] object SnabbdomOps {
         }
       )
 
-      // premature subcription: We will now subscribe, eventhough the node is not yet mounted
-      // but we try to get the initial values from the observables synchronously and that
-      // is only possible if we subscribe before rendering.  Succeeding supscriptions will then
-      // soley be handle by mount/unmount hooks.  And every node within this method is going to
-      // be mounted one way or another and this method is guarded by an effect in the public api.
-      start()
-
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
       val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers)
       nextModifiers = separatedModifiers.nextModifiers
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
+      // set the patch observer so on subscribable updates we get a patch call
+      observer.set(Observer.create[Unit](
+        _ => invokeDoPatch(async = asyncPatchEnabled),
+        OutwatchTracing.errorSubject.onNext
+      ))
+
       proxy
     } else {
       // simpler version with only subscriptions, no streams.
-      val sink = Observer.empty
-      var isActive = false
+      var isActive = true
 
       def start(): Unit = if (!isActive) {
         isActive = true
-        nativeModifiers.subscribables.foreach { subscribable =>
-          subscribable.subscribe(sink)
-        }
+        nativeModifiers.subscribables.foreach(_.subscribe())
       }
 
       def stop(): Unit = if (isActive) {
@@ -225,22 +221,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      val prependModifiers = js.Array[StaticVDomModifier](
-        InsertHook { _ =>
-          start()
-        },
-        PostPatchHook { (o, p) =>
-          if (!NativeModifiers.equalsVNodeIds(o._id, p._id)) {
-            start()
-          }
-        },
-        DomUnmountHook { _ =>
-          stop()
-        }
-      )
-
-      // premature subcription
-      start()
+      val prependModifiers = js.Array[StaticModifier](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
 
       // create the proxy from the modifiers
       val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)

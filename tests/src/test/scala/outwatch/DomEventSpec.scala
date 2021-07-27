@@ -27,7 +27,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       vtree <- vtree
-          _ <- OutWatch.renderInto[IO]("#app", vtree)
+          _ <- Outwatch.renderInto[IO]("#app", vtree)
        hasD <- IO(document.getElementById("btn").hasAttribute("disabled"))
           _ <- IO(hasD shouldBe false)
       event <- IO {
@@ -54,7 +54,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       vtree <- vtree
-      _ <- OutWatch.renderInto[IO]("#app", vtree)
+      _ <- Outwatch.renderInto[IO]("#app", vtree)
     } yield {
       document.getElementById("child").innerHTML shouldBe ""
 
@@ -86,7 +86,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
       for {
         vtree <- vtree
-        _ <- OutWatch.renderInto[IO]("#app", vtree)
+        _ <- Outwatch.renderInto[IO]("#app", vtree)
       } yield {
 
         document.getElementById("child").innerHTML shouldBe ""
@@ -124,7 +124,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val vtree = input(idAttr := "input", attributes.value <-- values)
 
-    OutWatch.renderInto[IO]("#app", vtree).map {_ =>
+    Outwatch.renderInto[IO]("#app", vtree).map {_ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
 
@@ -151,7 +151,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     val defaultValues = PublishSubject[String]()
 
     val vtree = input(idAttr := "input", attributes.defaultValue <-- defaultValues)
-    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
+    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
@@ -173,7 +173,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     val values = PublishSubject[String]()
 
     val vtree = input(idAttr := "input", attributes.value <-- values)
-    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
+    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
@@ -199,7 +199,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       ul(idAttr := "list", state)
     )
 
-    OutWatch.renderInto[IO]("#app", vtree).map { _ =>
+    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
 
       val list = document.getElementById("list")
 
@@ -252,7 +252,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
       val event = new Event("click", new EventInit {
         bubbles = true
@@ -280,7 +280,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
       val event = new Event("click", new EventInit {
@@ -312,7 +312,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
       val event = new Event("click", new EventInit {
@@ -339,7 +339,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputEvt = new Event("input", new EventInit {
@@ -372,7 +372,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       )
     }
 
-    OutWatch.renderInto[IO]("#app", node).map {_ =>
+    Outwatch.renderInto[IO]("#app", node).map {_ =>
 
       val inputEvt = new Event("click", new EventInit {
         bubbles = false
@@ -414,7 +414,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputElement = document.getElementById("input").asInstanceOf[html.Input]
@@ -456,7 +456,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
       val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
@@ -489,7 +489,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val node = div(button(idAttr := "input", tpe := "checkbox"))
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    Outwatch.renderInto[IO]("#app", node).map { _ =>
 
       val inputEvt = new Event("click", new EventInit {
         bubbles = true
@@ -541,7 +541,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     for {
       node <- node
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
     } yield {
       document.getElementById("input") should not be null
     }
@@ -550,7 +550,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "correctly be compiled with currentTarget" in {
 
     Handler.createF[IO, String].flatMap { stringHandler =>
-      def modifier: VDomModifier = onDrag.value --> stringHandler
+      def modifier: Modifier = onDrag.value --> stringHandler
 
       Handler.createF[IO, String].flatMap { _ =>
 
@@ -566,7 +566,7 @@ class DomEventSpec extends JSDomAsyncSpec {
             modifier
           ),
           ul(idAttr := "items"))
-        _ <- OutWatch.renderInto[IO]("#app", elem)
+        _ <- Outwatch.renderInto[IO]("#app", elem)
         } yield {
           document.getElementById("input") should not be null
         }
@@ -580,7 +580,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       myStrings
     )
 
-    OutWatch.renderInto[IO]("#app", node).map( _ =>
+    Outwatch.renderInto[IO]("#app", node).map( _ =>
       document.getElementById("strings").innerHTML shouldBe "ab"
     )
   }
@@ -660,7 +660,7 @@ class DomEventSpec extends JSDomAsyncSpec {
     )
 
     val test = for {
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- Outwatch.renderInto[IO]("#app", node)
       _ <- IO {
             val event = new Event("click", new EventInit {
               bubbles = true
@@ -688,7 +688,7 @@ class DomEventSpec extends JSDomAsyncSpec {
       )
     )
 
-    OutWatch.renderInto[IO]("#app", node).map { _ =>
+    Outwatch.renderInto[IO]("#app", node).map { _ =>
 
       val event = new Event("click", new EventInit {
         bubbles = true
