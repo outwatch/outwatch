@@ -144,14 +144,18 @@ def _beautifyHtml(js_source_text: String): String = scala.scalajs.js.native
 
 implicit class PreviewVNode(val vnode:VNode) {
   import org.scalajs.dom.document
+  import scala.scalajs.js
+
   def showHTML(previewNode: org.scalajs.dom.Element) = {
     val renderNode = document.createElement("div")
     OutWatch.renderInto[IO](renderNode, vnode).unsafeRunSync()
     val textNode = document.createTextNode(_beautifyHtml(renderNode.innerHTML))
     val codeNode = document.createElement("code")
     codeNode.appendChild(textNode)
+    codeNode.classList.add("hljs")
     codeNode.classList.add("language-html")
     val preNode = document.createElement("pre")
+    preNode.asInstanceOf[js.Dynamic].style.margin = "0" // overwrite website default style
     preNode.appendChild(codeNode)
     previewNode.appendChild(preNode)
   }
