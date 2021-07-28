@@ -197,7 +197,7 @@ div("How ", idAttr := "test", "are", title := "cool", " you?").showHTML(preview)
 All style properties have to be written in *camelCase*.
 
 ```scala mdoc:js
-div(color := "tomato", "Hello").showHTML(preview)
+div(backgroundColor := "tomato", "Hello").showHTML(preview)
 ```
 
 Multiple styles will me merged to one style attribute:
@@ -205,7 +205,8 @@ Multiple styles will me merged to one style attribute:
 ```scala mdoc:js
 div(
   backgroundColor := "powderblue",
-  border := "2px solid #222", "Hello"
+  border := "2px solid #222",
+  "Hello",
 ).showHTML(preview)
 ```
 

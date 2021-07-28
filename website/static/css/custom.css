@@ -7,9 +7,10 @@
 }
 
 [data-mdoc-js]::before {
-  content: "preview";
-  color: hsl(0deg 0% 0% / 33%);
-  right: 12px;
-  top: 10px;
+  content: "Preview";
+  color: hsl(0deg 0% 0%/33%);
+  right: 5px;
+  top: 2px;
   position: absolute;
+  font-size: 12px;
 }
