@@ -1,6 +1,6 @@
 
 Welcome to Outwatch!
-
+We hope you enjoy this documentation. If you find something that can be improved, please do! Every Pull Request with a big or small improvement is very much appreciated. See [Improving The Documentation](#improving-the-documentation).
 
 
 ## Getting started
@@ -136,69 +136,94 @@ import outwatch.dsl._
 import cats.effect.IO
 ```
 
+```scala mdoc:js:shared:invisible
+// no imports to not leak imports into other code
+@scala.scalajs.js.native
+@scala.scalajs.js.annotation.JSImport("js-beautify", "html")
+def _beautifyHtml(js_source_text: String): String = scala.scalajs.js.native
+
+implicit class PreviewVNode(val vnode:VNode) {
+  import org.scalajs.dom.document
+  import scala.scalajs.js
+
+  def showHTML(previewNode: org.scalajs.dom.Element) = {
+    val renderNode = document.createElement("div")
+    OutWatch.renderInto[IO](renderNode, vnode).unsafeRunSync()
+    val textNode = document.createTextNode(_beautifyHtml(renderNode.innerHTML))
+    val codeNode = document.createElement("code")
+    codeNode.appendChild(textNode)
+    codeNode.classList.add("hljs")
+    codeNode.classList.add("language-html")
+    val preNode = document.createElement("pre")
+    preNode.asInstanceOf[js.Dynamic].style.margin = "0" // overwrite website default style
+    preNode.appendChild(codeNode)
+    previewNode.appendChild(preNode)
+  }
+}
+```
+
 ### Concatenating Strings
-```scala mdoc:js:compile-only
-val component = div("Hello ", "World")
-// <div>Hello World</div>
+```scala mdoc:js
+div("Hello ", "World").showHTML(preview)
 ```
 
 
 ### Nesting
-```scala mdoc:js:compile-only
-div(span("Hey ", b("you"), "!"))
-// <div><span>Hey <b>you</b>!</span></div>
+```scala mdoc:js
+div(span("Hey ", b("you"), "!")).showHTML(preview)
 ```
 
 
 ### Primitives
-```scala mdoc:js:compile-only
-div(true, 0, 1000L, 3.0)
-// <div>true010003.0</div>
+```scala mdoc:js
+div(true, 0, 1000L, 3.0).showHTML(preview)
 ```
 
 
 ### Attributes
 
-```scala mdoc:js:compile-only
-div(idAttr := "test")
-// <div id="test"></div>
+```scala mdoc:js
+div(idAttr := "test").showHTML(preview)
 ```
 
 The order of content and attributes does not matter.
 
-```scala mdoc:js:compile-only
-div("How ", idAttr := "test", "are", title := "cool", " you?")
-// <div id="test" title="cool">How are you?</div>
+```scala mdoc:js
+div("How ", idAttr := "test", "are", title := "cool", " you?").showHTML(preview)
 ```
 
 
 ### Styles
 All style properties have to be written in *camelCase*.
 
-```scala mdoc:js:compile-only
-div(color := "tomato", "Hello")
-// <div style="color: tomato">Hello</div>
+```scala mdoc:js
+div(backgroundColor := "tomato", "Hello").showHTML(preview)
 ```
 
 Multiple styles will me merged to one style attribute:
 
-```scala mdoc:js:compile-only
-div(backgroundColor := "powderblue", border := "2px solid #222", "Hello")
-// <div style="background-color: powderblue; border: 2px solid #222">Hello</div>
+```scala mdoc:js
+div(
+  backgroundColor := "powderblue",
+  border := "2px solid #222",
+  "Hello",
+).showHTML(preview)
 ```
 
 Again, the order of styles, attributes and inner tags does not matter:
 
-```scala mdoc:js:compile-only
-div(h1("Welcome to my website"), backgroundColor := "powderblue", idAttr := "header")
-// <div style="background-color: powderblue" id="header">Welcome to my website</div>
+```scala mdoc:js
+div(
+  h1("Welcome to my website"),
+  backgroundColor := "powderblue",
+  idAttr := "header"
+).showHTML(preview)
 ```
 
 Some styles have type safe values:
 
-```scala mdoc:js:compile-only
-div(cursor.pointer, fontWeight.bold, display.flex)
-// <div style="cursor: pointer; font-weight: bold; display: flex;"></div>
+```scala mdoc:js
+div(cursor.pointer, fontWeight.bold, display.flex).showHTML(preview)
 ```
 
 If you are missing more type safe values, please contribute to [Scala Dom Types](https://github.com/raquo/scala-dom-types). Example implementation: [fontWeight](https://github.com/raquo/scala-dom-types/blob/master/shared/src/main/scala/com/raquo/domtypes/generic/defs/styles/Styles.scala#L1711)
@@ -207,60 +232,51 @@ If you are missing more type safe values, please contribute to [Scala Dom Types]
 ### Reserved Scala keywords: class, for, type
 There are some attributes and styles which are reserved scala keywords. You can use them with backticks:
 
-```scala mdoc:js:compile-only
-div(`class` := "item", "My Item")
-// <div class="item">My Item</div>
-
-label(`for` := "inputid")
-// <label for="inputid" />
-
-input(`type` := "text")
-// <input type="text" />
+```scala mdoc:js
+div(`class` := "item", "My Item").showHTML(preview)
+label(`for` := "inputid").showHTML(preview)
+input(`type` := "text").showHTML(preview)
 ```
 
 There are shortcuts for the class and type atrributes:
 
-```scala mdoc:js:compile-only
-div(cls := "myclass")
-// <div class="myclass"></div>
-
-input(tpe := "text")
-// <input type="text" />
+```scala mdoc:js
+div(cls := "myclass").showHTML(preview)
+input(tpe := "text").showHTML(preview)
 ```
 
 
 ### Overriding attributes
 Attributes and styles with the same name will be overwritten. Last wins.
 
-```scala mdoc:js:compile-only
-div(color := "blue", color := "green")
-// <div style="color: green"></div>
+```scala mdoc:js
+div(color := "blue", color := "green").showHTML(preview)
 ```
 
 ### CSS class accumulation
 Classes are not overwritten, they accumulate.
 
-```scala mdoc:js:compile-only
-div(cls := "tiny", cls := "button")
-// <div class="tiny button"></div>
+```scala mdoc:js
+div(cls := "tiny", cls := "button").showHTML(preview)
 ```
 
 ### Custom attributes, styles and tags
 All the tags, attributes and styles available in outwatch come from [Scala Dom Types](https://github.com/raquo/scala-dom-types).
 If you want to use something not available in Scala Dom Types, you can use custom builders:
 
-```scala mdoc:js:compile-only
-htmlTag("app")(style("user-select") := "none", attr("everything") := "possible")
-// <app style="user-select: none" everything="possible"></div>
+```scala mdoc:js
+htmlTag("app")(
+  style("user-select") := "none",
+  attr("everything") := "possible"
+).showHTML(preview)
 ```
 
 You can also define the accumulation behavior of custom attributes:
-```scala mdoc:js:compile-only
+```scala mdoc:js
 div(
   attr("everything").accum("-") := "is",
   attr("everything").accum("-") := "possible",
-)
-// <div everything="is-possible"></div>
+).showHTML(preview)
 ```
 
 If you think there is something missing in Scala Dom Types, please open a PR or Issue. Usually it's just a few lines of code.
@@ -271,27 +287,20 @@ Source Code: [DomTypes.scala](@REPOURL@/outwatch/src/main/scala/outwatch/definit
 ### Data and Aria attributes
 Data and aria attributes make use of [`scala.Dynamic`](https://www.scala-lang.org/api/current/scala/Dynamic.html), so you can write things like:
 
-```scala mdoc:js:compile-only
+```scala mdoc:js
 div(
   data.payload := "17",
   data.`consent-required` := "Are you sure?",
   data.message.success := "Message sent!",
   aria.hidden := "true",
-)
-// <div 
-//    data-payload="17"
-//    data-consent-required="Are you sure?"
-//    data-message-success="Message sent!"
-//    aria-hidden="true"
-//    >
-// </div>
+).showHTML(preview)
 ```
 
 Source Code: [OutwatchAttributes.scala](@REPOURL@/outwatch/src/main/scala/outwatch/definitions/OutwatchAttributes.scala#L75), [Builder.scala](@REPOURL@/outwatch/src/main/scala/outwatch/helpers/Builder.scala#L35)
 
 
 ### SVG
-SVG tags and attributes are available via an extra import. Namespacing is automatically handled for you.
+SVG tags and attributes are available through an extra import. Namespacing is automatically handled for you.
 
 ```scala mdoc:js
 val component = {
@@ -329,88 +338,77 @@ Every `VNode` contains a sequence of `VDomModifier`. And a `VNode` is a `VDomMod
 ### Grouping Modifiers
 To make a set of modifiers reusable you can group them to become one `VDomModifier`.
 
-```scala mdoc:js:shared
+```scala mdoc:js
 val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
-div("Argh!", bigFont)
-// <div style="font-size: 40px; font-weight: bold;">Argh!</div>
+div("Argh!", bigFont).showHTML(preview)
 ```
 
 If you want to reuse `bigFont`, but want to overwrite one of its properties, simply append the overwriting modifier. Here the latter `fontSize` will overwrite the one from `bigFont`:
-```scala mdoc:js:compile-only
+```scala mdoc:js
+val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
 val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
+div("Argh!", bigFont2).showHTML(preview)
 ```
 
-You can also use a `Seq[VDomModifier]` directly instead of using `apply` defined in the [VDomModifier](@REPOURL@/outwatch/src/main/scala/outwatch/package.scala) object.
+You can also use a `Seq[VDomModifier]` directly instead of using `VDomModifier.apply`.
 
 
 ### Components
 Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VDomModifier`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
 
-```scala mdoc:js:compile-only
+```scala mdoc:js
 def fancyHeadLine(content: String) = h1(borderBottom := "1px dashed tomato", content)
-fancyHeadLine("I like tomatoes.")
-// <h1 style="border-bottom: 1px dashed tomato;">I like tomatoes.</h1>
+fancyHeadLine("I like tomatoes.").showHTML(preview)
 ```
 
 
 ### Transforming Components
 Components are immutable, we can only modify them by creating a changed copy. Like you may know from Scalatags, you can call `.apply(...)` on any `VNode`, *append* more modifiers and get a new `VNode` with the applied changes back.
 
-```scala mdoc:js:compile-only
+```scala mdoc:js
 val x = div("dog")
-x(title := "the dog")
-// <div title="the dog">dog</div>
+x(title := "the dog").showHTML(preview)
 ```
 
 This can be useful for reusing html snippets.
 
-```scala mdoc:js:compile-only
+```scala mdoc:js
 val box = div(width := "100px", height := "100px")
 
 div(
   box(backgroundColor := "powderblue"),
   box(backgroundColor := "mediumseagreen"),
-)
-
-// <div>
-//  <div style="width: 100px; height: 100px; background-color: powderblue;"> </div>
-//  <div style="width: 100px; height: 100px; background-color: mediumseagreen;"></div>
-// </div>
+).showHTML(preview)
 ```
 
 Since modifiers are *appended*, they can overwrite existing ones. This is useful to adjust existing components to your needs.
 
-```scala js:mdoc:compile-only
+```scala mdoc:js
 val box = div(width := "100px", height := "100px")
-box(backgroundColor := "mediumseagreen", width := "200px")
-// <div style="width: 200px; height: 100px; background-color: mediumseagreen;"></div>
+box(backgroundColor := "mediumseagreen", width := "200px").showHTML(preview)
 ```
 
 You can also *prepend* modifiers. This can be useful to provide defaults retroactively.
 
-```scala js:mdoc:compile-only
+```scala mdoc:js
 def withBorderIfNotProvided(vnode: VNode) = vnode.prepend(border := "3px solid coral")
 div(
   withBorderIfNotProvided(div("hello", border := "7px solid moccasin")),
   withBorderIfNotProvided(div("hello")),
-)
-// <div>
-//   <div style="border: 7px solid moccasin;">hello</div>
-//   <div style="border: 3px solid coral;">hello</div>
-// </div>
+).showHTML(preview)
 ```
 
-Source Code: [VDomModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VDomModifier.scala#L92)
+Source Code: [VDomModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VDomModifier.scala#L110)
 
 
 ### Example: Flexbox
 When working with [Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/), you can set styles for the **container** and **children**. With `VNode.apply()` you can have all flexbox-related styles in one place. The child-components don't have to know anything about flexbox, even though they get specific styles assigned.
 
-```scala js:mdoc:compile-only
+```scala mdoc:js
 val itemA = div("A", backgroundColor := "mediumseagreen")
-val itemB = div("B", backgroundColor := "tomato")
+val itemB = div("B", backgroundColor := "cornflowerblue")
 
-div(
+val component = div(
   height := "100px",
   border := "1px solid black",
 
@@ -419,10 +417,8 @@ div(
   itemA(flexBasis := "50px"),
   itemB(alignSelf.center),
 )
-// <div style="height: 100px; border: 1px solid black; display: flex;">
-//   <div style="background-color: mediumseagreen; flex-basis: 50px;">A</div>
-//   <div style="background-color: tomato; align-self: center;">B</div>
-// </div>
+component.showHTML(preview)
+OutWatch.renderInto[IO](preview, component).unsafeRunSync()
 ```
 
 
@@ -430,24 +426,15 @@ div(
 
 Outwatch can render anything that implements the type class [`Render`](@REPOURL@/outwatch/src/main/scala/outwatch/Render.scala). Instances for types like `Option` and `Seq` are built-in and can be arbitrarily combined: 
 
-```scala mdoc:js:compile-only
+```scala mdoc:js
 div(
   Some("thing"),
   Some(color := "steelblue"),
   fontSize :=? Some("70px"),
   Seq("Hey", "How are you?"),
-  List("a", "b", "c").map(span(_)),
+  List("a", "b", "c").map(div(_)),
   Some(Seq("x")),
-)
-// <div style="color: steelblue; font-size: 70px;">
-//   thing
-//   Hey
-//   How are you?
-//   <span>a</span>
-//   <span>b</span>
-//   <span>c</span>
-//   x
-// </div>
+).showHTML(preview)
 ```
 
 Note, that outwatch does not accept `Set`, since the order is undefined.
@@ -457,24 +444,29 @@ Note, that outwatch does not accept `Set`, since the order is undefined.
 
 You can render any custom type by implementing the typeclass `Render`:
 
-```scala mdoc:js:compile-only
+```scala mdoc:js
 case class Person(name: String, age: Int)
 
 // Type class instance for `Render`:
 object Person {
   implicit object PersonRender extends Render[Person] {
     def render(person: Person): VDomModifier = div(
-        b(person.name), span(person.age, marginLeft := "5px")
+      border := "2px dotted coral",
+      padding := "10px",
+      marginBottom := "5px",
+      b(person.name), ": " , person.age
     )
   }
 }
-```
 
-Now you can just use instances of `Person` in your dom definitions:
-```scala js:mdoc:compile-only
-val person = Person("Hans", age = 48)
+// Now you can just use instances of `Person` in your dom definitions:
+val hans = Person("Hans", age = 16)
+val peter = Person("Peter", age = 22)
 
-div(person)
+val component = div(hans, peter)
+
+component.showHTML(preview)
+OutWatch.renderInto[IO](preview, component).unsafeRunSync()
 ```
 
 Source Code: [Render.scala](@REPOURL@/outwatch/src/main/scala/outwatch/Render.scala)
@@ -975,3 +967,24 @@ helpers.OutwatchTracing.error.foreach { case throwable =>
 }
 ```
 
+## Improving the Documentation
+
+This documentation is written using [mdoc](https://github.com/scalameta/mdoc). The markdown file is located in [docs/readme.md](https://github.com/outwatch/outwatch/blob/master/docs/readme.md).
+
+To get a live preview of the code examples in the browser:
+
+
+
+Clone the outwatch repo:
+```bash
+git clone git@github.com:outwatch/outwatch.git
+```
+Run mdoc:
+```
+sbt "docs/mdoc --watch"
+```
+Point your browser to: <http://localhost:4000/readme.md>
+
+And edit `docs/readme.md`.
+
+Thank you!

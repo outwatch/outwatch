@@ -26,7 +26,7 @@ val silencerVersion = "1.7.5"
 val colibriVersion = "0b2299d"
 
 lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.1" cross CrossVersion.full),
   addCompilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
 
   useYarn := true,
@@ -138,7 +138,7 @@ lazy val outwatchSnabbdom = project
     normalizedName := "outwatch-snabbdom",
 
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.1.0"
+      "org.scala-js" %%% "scalajs-dom" % "1.2.0"
     ),
 
     npmDependencies in Compile ++= Seq(
@@ -202,9 +202,12 @@ lazy val jsdocs = project
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
+      "org.scala-js" %%% "scalajs-dom" % "1.2.0",
       "com.github.cornerman.colibri" %%% "colibri-monix" % colibriVersion,
       "com.github.cornerman.colibri" %%% "colibri-rx" % colibriVersion,
+    ),
+    Compile / npmDependencies ++= Seq(
+      "js-beautify" -> "1.14.0"
     )
   )
 
