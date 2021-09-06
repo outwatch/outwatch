@@ -23,11 +23,11 @@ object jsdom extends js.Object {
   def jsdom(innerHTML: js.UndefOr[String]): js.Any = js.native
 }
 
-object ChildrenPerformance extends js.JSApp {
+object ChildrenPerformance {
 
   implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
-  def main(): Unit = {
+  def main(args: Array[String]): Unit = {
     import scala.concurrent.duration._
     setupJsDom()
 

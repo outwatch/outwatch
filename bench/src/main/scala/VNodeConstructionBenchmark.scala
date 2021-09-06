@@ -12,11 +12,11 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
 
-object VNodeConstructionBenchmark extends js.JSApp {
+object VNodeConstructionBenchmark {
 
   implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
-  def main(): Unit = {
+  def main(args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
     bench.util.runComparison(vnodes, List(1), 60.seconds)

@@ -178,6 +178,8 @@ lazy val bench = project
   .settings(
     skip in publish := true,
 
+    scalaJSUseMainModuleInitializer := true,
+
     resolvers ++=
       ("jitpack" at "https://jitpack.io") ::
       Nil,
