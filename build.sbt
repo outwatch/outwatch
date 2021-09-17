@@ -45,9 +45,11 @@ lazy val commonSettings = Seq(
 lazy val librarySettings = commonSettings ++ Seq(
 
   scalacOptions += {
-    val local = baseDirectory.value.toURI
-    val remote = s"https://raw.githubusercontent.com/OutWatch/outwatch/${git.gitHeadCommit.value.get}/"
-    s"-P:scalajs:mapSourceURI:$local->$remote"
+    val githubRepo    = "OutWatch/outwatch"
+    val local         = baseDirectory.value.toURI
+    val subProjectDir = baseDirectory.value.base
+    val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
+    s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}"
   },
 
   publishMavenStyle := true,
