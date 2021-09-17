@@ -47,7 +47,7 @@ lazy val librarySettings = commonSettings ++ Seq(
   scalacOptions += {
     val githubRepo    = "OutWatch/outwatch"
     val local         = baseDirectory.value.toURI
-    val subProjectDir = baseDirectory.value.base
+    val subProjectDir = baseDirectory.value.getName
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
     s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}"
   },
