@@ -5,7 +5,9 @@ package object outwatch extends definitions.ManagedHelpers {
   type EmitterBuilder[+O, +R] = EmitterBuilderExec[O, R, EmitterBuilderExec.Execution]
 
   type VModifier = VModifierM[Any]
+  val VModifier = VModifierM
   type VNode = VNodeM[Any]
+  val VNode = VNodeM
   type BasicNamespaceVNode[N <: VNodeNamespace] = BasicNamespaceVNodeM[N, Any]
   type BasicVNodeM[-Env] = BasicNamespaceVNodeM[_ <: VNodeNamespace, Env]
   type BasicVNode = BasicVNodeM[Any]

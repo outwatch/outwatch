@@ -21,7 +21,8 @@ sealed trait VModifierM[-Env] {
   def provideSome[R](map: R => Env): VModifierM[R]
 }
 
-sealed trait VModifierMOps {
+object VModifierM {
+
   @inline final def empty: VModifier = EmptyModifier
 
   @inline final def apply(): VModifier = empty
@@ -50,9 +51,6 @@ sealed trait VModifierMOps {
 
     @inline def asSvg[T : CanCancel](subscription: dom.svg.Element => T): VModifier = apply(elem => subscription(elem.asInstanceOf[dom.svg.Element]))
   }
-}
-
-object VModifierM extends VModifierMOps {
 
   @inline def apply[Env, T : Render[Env, *]](t: T): VModifierM[Env] = Render[Env, T].render(t)
 
@@ -106,32 +104,6 @@ object VModifierM extends VModifierMOps {
   }
 
   @inline implicit def renderToModifier[Env, T : Render[Env, *]](value: T): VModifierM[Env] = Render[Env, T].render(value)
-}
-
-object VModifier extends VModifierMOps {
-  @inline def apply[T : Render[Any, *]](t: T): VModifier = Render[Any, T].render(t)
-
-  @inline def apply(modifier: VModifier, modifier2: VModifier): VModifier =
-    VModifierM(modifier, modifier2)
-
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier): VModifier =
-    VModifierM(modifier, modifier2, modifier3)
-
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier): VModifier =
-    VModifierM(modifier, modifier2, modifier3, modifier4)
-
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier, modifier5: VModifier): VModifier =
-    VModifierM(modifier, modifier2, modifier3, modifier4, modifier5)
-
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier, modifier5: VModifier, modifier6: VModifier): VModifier =
-    VModifierM(modifier, modifier2, modifier3, modifier4, modifier5, modifier6)
-
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier, modifier5: VModifier, modifier6: VModifier, modifier7: VModifier, modifiers: VModifier*): VModifier =
-    VModifierM(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, modifiers: _*)
-
-  @inline def composite(modifiers: Iterable[VModifier]): VModifier = VModifierM.composite(modifiers)
-
-  @inline def delay(modifier: => VModifier): VModifier = VModifierM.delay(modifier)
 }
 
 sealed trait DefaultModifier[-Env] extends VModifierM[Env] {
@@ -202,11 +174,10 @@ sealed trait VNodeM[-Env] extends VModifierM[Env] {
   def provide(env: Env): VNodeM[Any]
   def provideSome[R](map: R => Env): VNodeM[R]
 }
-sealed trait VNodeMOps {
+object VNodeM {
   @inline final def html(name: String): HtmlVNode = BasicNamespaceVNodeM(name, js.Array[VModifier](), VNodeNamespace.Html)
   @inline final def svg(name: String): SvgVNode = BasicNamespaceVNodeM(name, js.Array[VModifier](), VNodeNamespace.Svg)
-}
-object VNodeM extends VNodeMOps {
+
   @inline def delay[Env](modifier: => VNodeM[Env]): VNodeM[Env] = accessM[Env](_ => modifier)
   @inline def access[Env](node: Env => VNode): VNodeM[Env] = new AccessEnvVNodeM[Env](node)
   @inline def accessM[Env] = new PartiallyAppliedAccessM[Env]
@@ -218,9 +189,6 @@ object VNodeM extends VNodeMOps {
   @inline class VNodeSubscriptionOwner[Env] extends SubscriptionOwner[VNodeM[Env]] {
     @inline def own(owner: VNodeM[Env])(subscription: () => Cancelable): VNodeM[Env] = owner.append(VModifier.managedFunction(subscription))
   }
-}
-object VNode extends VNodeMOps {
-  @inline def delay(node: => VNode): VNode = VNodeM.delay[Any](node)
 }
 
 @inline final case class AccessEnvVNodeM[-Env](node: Env => VNode) extends VNodeM[Env] {
@@ -245,13 +213,9 @@ object VNode extends VNodeMOps {
   def apply[R](args: VModifierM[R]*): BasicNamespaceVNodeM[N, Env with R] = copy(modifiers = appendSeq(modifiers, args))
   def append[R](args: VModifierM[R]*): BasicNamespaceVNodeM[N, Env with R] = copy(modifiers = appendSeq(modifiers, args))
   def prepend[R](args: VModifierM[R]*): BasicNamespaceVNodeM[N, Env with R] = copy(modifiers = prependSeq(modifiers, args))
-}
-object BasicNamespaceVNodeM {
-  @inline implicit class BasicVNodeMOps[Env](val self: BasicNamespaceVNodeM[VNodeNamespace, Env]) extends AnyVal {
-    @inline def thunk[R](key: Key.Value)(arguments: Any*)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = ThunkVNodeM[Env with R](self, key, VNodeThunkCondition.Compare(arguments.toJSArray), () => renderFn)
-    @inline def thunkConditional[R](key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = ThunkVNodeM[Env with R](self, key, VNodeThunkCondition.Check(shouldRender), () => renderFn)
-    @inline def thunkStatic[R](key: Key.Value)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = thunkConditional(key)(false)(renderFn)
-  }
+  def thunk[R](key: Key.Value)(arguments: Any*)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = ThunkVNodeM[Env with R](this, key, VNodeThunkCondition.Compare(arguments.toJSArray), () => renderFn)
+  def thunkConditional[R](key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = ThunkVNodeM[Env with R](this, key, VNodeThunkCondition.Check(shouldRender), () => renderFn)
+  @inline def thunkStatic[R](key: Key.Value)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = thunkConditional(key)(false)(renderFn)
 }
 
 sealed trait VNodeNamespace
