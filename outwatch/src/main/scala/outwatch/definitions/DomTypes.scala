@@ -137,8 +137,8 @@ abstract class DocumentEvents
   with eventProps.DocumentEventProps[Observable.Synchronous] {
 
   def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
-    outwatch.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
+    onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    onKeyUp.collect { case e if e.keyCode == keyCode => false }
   ).prepend(false)
 }
 
