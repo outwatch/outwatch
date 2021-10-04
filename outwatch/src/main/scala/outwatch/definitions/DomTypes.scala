@@ -21,7 +21,7 @@ private[outwatch] object BuilderTypes {
   type SvgTag[T] = SvgVNode
 }
 
-private[outwatch] object CodecBuilder {
+private object CodecBuilder {
   def encodeAttribute[V](codec: codecs.Codec[V, String]): V => Attr.Value = codec match {
     //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
     //encodes true as "" and false as null, whereas snabbdom needs true/false
@@ -132,14 +132,14 @@ trait Events
 
 // Window / Document events
 
-abstract class WindowEvents
+trait WindowEvents
   extends builders.EventPropBuilder[EventObservable, dom.Event]
   with eventProps.WindowEventProps[EventObservable] {
 
   override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.window, key)
 }
 
-abstract class DocumentEvents
+trait DocumentEvents
   extends builders.EventPropBuilder[EventObservable, dom.Event]
   with eventProps.DocumentEventProps[EventObservable] {
 
