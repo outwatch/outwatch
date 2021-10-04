@@ -19,7 +19,7 @@ private[outwatch] object BuilderTypes {
   type SvgTag[T] = SvgVNode
 }
 
-private[outwatch] object CodecBuilder {
+private object CodecBuilder {
   def encodeAttribute[V](codec: codecs.Codec[V, String]): V => Attr.Value = codec match {
     //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
     //encodes true as "" and false as null, whereas snabbdom needs true/false
@@ -123,18 +123,18 @@ trait Events
 
 // Window / Document events
 
-private[outwatch] abstract class SourceEventPropBuilder(target: dom.EventTarget)
-  extends builders.EventPropBuilder[Observable.Synchronous, dom.Event] {
-  override def eventProp[V <: dom.Event](key: String): Observable.Synchronous[V] = Observable.ofEvent[V](target, key)
+trait WindowEvents
+  extends builders.EventPropBuilder[Observable.Synchronous, dom.Event]
+  with eventProps.WindowEventProps[Observable.Synchronous] {
+
+  override def eventProp[V <: dom.Event](key: String): Observable.Synchronous[V] = Observable.ofEvent[V](dom.window, key)
 }
 
-abstract class WindowEvents
-  extends SourceEventPropBuilder(dom.window)
-  with eventProps.WindowEventProps[Observable.Synchronous]
-
-abstract class DocumentEvents
-  extends SourceEventPropBuilder(dom.document)
+trait DocumentEvents
+  extends builders.EventPropBuilder[Observable.Synchronous, dom.Event]
   with eventProps.DocumentEventProps[Observable.Synchronous] {
+
+  override def eventProp[V <: dom.Event](key: String): Observable.Synchronous[V] = Observable.ofEvent[V](dom.document, key)
 
   def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
     onKeyDown.collect { case e if e.keyCode == keyCode => true },
