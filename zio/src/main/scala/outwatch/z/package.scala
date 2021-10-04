@@ -6,18 +6,18 @@ import zio.interop.catz._
 
 package object z {
   type ZModifierEnv = Has[Platform]
-  type ZModifierM[-Env] = ModifierM[ZModifierEnv with Env]
+  type ZModifierM[-Env] = VModifierM[ZModifierEnv with Env]
   type ZModifier = ZModifierM[Any]
 
   implicit def renderWithError[Env, RE, RT, E: Render[RE, *], T: Render[RT, *]]: Render[ZModifierEnv with Env with RT with RE, ZIO[Env, E, T]] = new Render[ZModifierEnv with Env with RT with RE, ZIO[Env, E, T]] {
-    def render(effect: ZIO[Env, E, T]) = ModifierM.access[ZModifierEnv with Env with RT with RE] { env =>
+    def render(effect: ZIO[Env, E, T]) = VModifierM.access[ZModifierEnv with Env with RT with RE] { env =>
       implicit val runtime = Runtime(env, env.get[Platform])
-      Render.EffectRenderAs[RIO[Env, *], RE with RT, ModifierM[RE with RT]].render(effect.fold(ModifierM(_), ModifierM(_))).provide(env)
+      Render.EffectRenderAs[RIO[Env, *], RE with RT, VModifierM[RE with RT]].render(effect.fold(VModifierM(_), VModifierM(_))).provide(env)
     }
   }
 
   implicit def renderWithoutError[Env, R, T: Render[R, *]]: Render[ZModifierEnv with Env with R, RIO[Env, T]] = new Render[ZModifierEnv with Env with R, RIO[Env, T]] {
-    def render(effect: RIO[Env, T]) = ModifierM.access[ZModifierEnv with Env with R] { env =>
+    def render(effect: RIO[Env, T]) = VModifierM.access[ZModifierEnv with Env with R] { env =>
       implicit val runtime = Runtime(env, env.get[Platform])
       Render.EffectRenderAs[RIO[Env, *], R, T].render(effect).provide(env)
     }

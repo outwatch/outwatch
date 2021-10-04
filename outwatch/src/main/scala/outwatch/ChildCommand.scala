@@ -30,9 +30,9 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]]): Modifier = Modifier.delay {
+  def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]]): VModifier = VModifier.delay {
     val children = new js.Array[VNodeProxyNode]
-    val childrenModifier = Modifier.composite(children)
+    val childrenModifier = VModifier.composite(children)
 
     def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
 

@@ -421,7 +421,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
   // props
   "RepairDom: Props" should "removed prop" in {
     testCase(
-      vNode = div(Modifier.prop("href") := "/foo"),
+      vNode = div(VModifier.prop("href") := "/foo"),
       corruption = { elem =>
         elem.asInstanceOf[js.Dictionary[String]] -= "href"
       }
@@ -430,7 +430,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "removed prop innerHTML" in {
     testCase(
-      vNode = div(Modifier.prop("innerHTML") := "<b>bonjour</b>"),
+      vNode = div(VModifier.prop("innerHTML") := "<b>bonjour</b>"),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
       }
@@ -439,7 +439,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "removed prop nested innerHTML" in {
     testCase(
-      vNode = div(span(Modifier.prop("innerHTML") := "<b>bonjour</b>")),
+      vNode = div(span(VModifier.prop("innerHTML") := "<b>bonjour</b>")),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
       }
@@ -448,7 +448,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   it should "changed prop" in {
     testCase(
-      vNode = div(Modifier.prop("href") := "/foo"),
+      vNode = div(VModifier.prop("href") := "/foo"),
       corruption = { elem =>
         elem.asInstanceOf[js.Dictionary[String]]("href") = "bar"
       }

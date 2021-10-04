@@ -2,12 +2,12 @@ package outwatch.helpers
 
 import outwatch._
 
-@inline class ModifierBooleanOps(val condition: Boolean) extends AnyVal {
-  @inline def apply[T](m: => ModifierM[T]):ModifierM[T] = if(condition) m else ModifierM.empty
-  @inline def apply[T](m: => ModifierM[T], m2: => ModifierM[T]):ModifierM[T] = if(condition) ModifierM[T](m,m2) else ModifierM.empty
-  @inline def apply[T](m: => ModifierM[T], m2: => ModifierM[T], m3: => ModifierM[T]):ModifierM[T] = if(condition) ModifierM[T](m,m2,m3) else ModifierM.empty
-  @inline def apply[T](m: => ModifierM[T], m2: => ModifierM[T], m3: => ModifierM[T], m4: => ModifierM[T]):ModifierM[T] = if(condition) ModifierM[T](m,m2,m3,m4) else ModifierM.empty
-  @inline def apply[T](m: => ModifierM[T], m2: => ModifierM[T], m3: => ModifierM[T], m4: => ModifierM[T], m5: => ModifierM[T]):ModifierM[T] = if(condition) ModifierM[T](m,m2,m3,m4,m5) else ModifierM.empty
-  @inline def apply[T](m: => ModifierM[T], m2: => ModifierM[T], m3: => ModifierM[T], m4: => ModifierM[T], m5: => ModifierM[T], m6: => ModifierM[T]):ModifierM[T] = if(condition) ModifierM[T](m,m2,m3,m4,m5,m6) else ModifierM.empty
-  @inline def apply[T](m: => ModifierM[T], m2: => ModifierM[T], m3: => ModifierM[T], m4: => ModifierM[T], m5: => ModifierM[T], m6: => ModifierM[T], m7: => ModifierM[T]):ModifierM[T] = if(condition) ModifierM[T](m,m2,m3,m4,m5,m6,m7) else ModifierM.empty
+@inline class VModifierBooleanOps(val condition: Boolean) extends AnyVal {
+  @inline def apply[T](m: => VModifierM[T]):VModifierM[T] = if(condition) m else VModifierM.empty
+  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T]):VModifierM[T] = if(condition) VModifierM[T](m,m2) else VModifierM.empty
+  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T], m3: => VModifierM[T]):VModifierM[T] = if(condition) VModifierM[T](m,m2,m3) else VModifierM.empty
+  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T], m3: => VModifierM[T], m4: => VModifierM[T]):VModifierM[T] = if(condition) VModifierM[T](m,m2,m3,m4) else VModifierM.empty
+  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T], m3: => VModifierM[T], m4: => VModifierM[T], m5: => VModifierM[T]):VModifierM[T] = if(condition) VModifierM[T](m,m2,m3,m4,m5) else VModifierM.empty
+  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T], m3: => VModifierM[T], m4: => VModifierM[T], m5: => VModifierM[T], m6: => VModifierM[T]):VModifierM[T] = if(condition) VModifierM[T](m,m2,m3,m4,m5,m6) else VModifierM.empty
+  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T], m3: => VModifierM[T], m4: => VModifierM[T], m5: => VModifierM[T], m6: => VModifierM[T], m7: => VModifierM[T]):VModifierM[T] = if(condition) VModifierM[T](m,m2,m3,m4,m5,m6,m7) else VModifierM.empty
 }

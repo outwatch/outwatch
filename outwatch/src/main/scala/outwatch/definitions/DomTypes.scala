@@ -11,10 +11,10 @@ import outwatch.helpers._
 import colibri.Observable
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _] = AttributeBuilder[T, Modifier]
+  type ReflectedAttribute[T, _] = AttributeBuilder[T, VModifier]
   type Attribute[T] = BasicAttrBuilder[T]
-  type Property[T, _] = AttributeBuilder[T, Modifier]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, Modifier]
+  type Property[T, _] = AttributeBuilder[T, VModifier]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VModifier]
   type HtmlTag[T] = HtmlVNode
   type SvgTag[T] = SvgVNode
 }
