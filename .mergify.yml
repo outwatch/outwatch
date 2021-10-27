@@ -1,3 +1,10 @@
+queue_rules:
+  - name: default
+    conditions:
+      # Conditions to get out of the queue (= merged)
+      - check-success=ci-one
+      - check-success=ci-two
+
 pull_request_rules:
   - name: assign and label scala-steward's PRs
     conditions:
@@ -13,4 +20,4 @@ pull_request_rules:
     actions:
       merge:
         method: squash
-        strict: true
+        name: default
