@@ -8,7 +8,7 @@ inThisBuild(Seq(
 
   scalaVersion := crossScalaVersions.value.last,
 
-  crossScalaVersions := Seq("2.12.14", "2.13.6"),
+  crossScalaVersions := Seq("2.12.15", "2.13.6"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
@@ -45,9 +45,11 @@ lazy val commonSettings = Seq(
 lazy val librarySettings = commonSettings ++ Seq(
 
   scalacOptions += {
-    val local = baseDirectory.value.toURI
-    val remote = s"https://raw.githubusercontent.com/OutWatch/outwatch/${git.gitHeadCommit.value.get}/"
-    s"-P:scalajs:mapSourceURI:$local->$remote"
+    val githubRepo    = "OutWatch/outwatch"
+    val local         = baseDirectory.value.toURI
+    val subProjectDir = baseDirectory.value.getName
+    val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
+    s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
   },
 
   publishMavenStyle := true,
