@@ -743,7 +743,7 @@ val component = {
       input(
         tpe := "text",
         onInput.value --> text,
-        onInput.value(text).debounceMillis(500) --> debounced,
+        onInput.value.debounceMillis(500) --> debounced,
       ),
       div("text: ", text),
       div("debounced: ", debounced),
