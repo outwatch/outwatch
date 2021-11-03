@@ -323,38 +323,38 @@ val component = {
 OutWatch.renderInto[IO](preview, component).unsafeRunSync()
 ```
 
-### VNode and VDomModifier
-The important types we are using in the examples above are `VNode` and `VDomModifier`. `VNode` represents a node in the virtual dom, while and `VDomModifier` represents atrributes and styles and children of a node.
+### VNode and VModifier
+The important types we are using in the examples above are `VNode` and `VModifier`. `VNode` represents a node in the virtual dom, while and `VModifier` represents atrributes and styles and children of a node.
 
 ```scala mdoc:js:compile-only
 val vnode: VNode = div()
-val modifiers: List[VDomModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
+val modifiers: List[VModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
 ```
 
-Every `VNode` contains a sequence of `VDomModifier`. And a `VNode` is a `VDomModifier` itself.
+Every `VNode` contains a sequence of `VModifier`. And a `VNode` is a `VModifier` itself.
 
 
 
 ### Grouping Modifiers
-To make a set of modifiers reusable you can group them to become one `VDomModifier`.
+To make a set of modifiers reusable you can group them to become one `VModifier`.
 
 ```scala mdoc:js
-val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
+val bigFont = VModifier(fontSize := "40px", fontWeight.bold)
 div("Argh!", bigFont).showHTML(preview)
 ```
 
 If you want to reuse `bigFont`, but want to overwrite one of its properties, simply append the overwriting modifier. Here the latter `fontSize` will overwrite the one from `bigFont`:
 ```scala mdoc:js
-val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
-val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
+val bigFont = VModifier(fontSize := "40px", fontWeight.bold)
+val bigFont2 = VModifier(bigFont, fontSize := "99px")
 div("Argh!", bigFont2).showHTML(preview)
 ```
 
-You can also use a `Seq[VDomModifier]` directly instead of using `VDomModifier.apply`.
+You can also use a `Seq[VModifier]` directly instead of using `VModifier.apply`.
 
 
 ### Components
-Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VDomModifier`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
+Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VModifier`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
 
 ```scala mdoc:js
 def fancyHeadLine(content: String) = h1(borderBottom := "1px dashed tomato", content)
@@ -398,7 +398,7 @@ div(
 ).showHTML(preview)
 ```
 
-Source Code: [VDomModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VDomModifier.scala#L110)
+Source Code: [VModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VModifier.scala#L110)
 
 
 ### Example: Flexbox
@@ -449,8 +449,8 @@ case class Person(name: String, age: Int)
 
 // Type class instance for `Render`:
 object Person {
-  implicit object PersonRender extends Render[Person] {
-    def render(person: Person): VDomModifier = div(
+  implicit object PersonRender extends Render[Any, Person] {
+    def render(person: Person): VModifier = div(
       border := "2px dotted coral",
       padding := "10px",
       marginBottom := "5px",
@@ -528,7 +528,7 @@ OutWatch.renderInto[IO](preview, component).unsafeRunSync()
 ```
 
 ### Reactive Modifiers and VNodes
-You can stream any `VDomModifier` and therefore whole components, attributes, styles, sets of modifiers, and so on:
+You can stream any `VModifier` and therefore whole components, attributes, styles, sets of modifiers, and so on:
 
 ```scala mdoc:js
 import colibri.Observable
@@ -859,7 +859,7 @@ div(
 Alternatively you can do the following to achieve the same effect:
 ```scala mdoc:js:compile-only
 div(
-  VDomModifier.delay {
+  VModifier.delay {
     // doSomething
     "result"
   }
