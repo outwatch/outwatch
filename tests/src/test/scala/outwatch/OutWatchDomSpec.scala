@@ -15,7 +15,7 @@ import outwatch.interpreter._
 import colibri.ext.monix._
 import outwatch.reactive.handlers.monix._
 import outwatch.reactive.handler.{Handler => Internal}
-import org.scalajs.dom.raw.EventInit
+import org.scalajs.dom.EventInit
 
 import scala.collection.immutable.Seq
 import scala.collection.mutable
