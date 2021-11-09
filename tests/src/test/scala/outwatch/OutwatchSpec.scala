@@ -6,7 +6,7 @@ import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.schedulers.TrampolineScheduler
 import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
-import org.scalajs.dom.raw.EventInit
+import org.scalajs.dom.EventInit
 import org.scalajs.dom.{Event, document, window}
 import org.scalatest.{BeforeAndAfterEach, _}
 import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}

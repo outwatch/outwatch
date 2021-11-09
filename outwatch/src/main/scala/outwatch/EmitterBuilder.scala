@@ -112,10 +112,10 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
     transformWithExec[O](source => Observable.delayMillis(source)(millis))
 
   def concatMapFuture[T](f: O => Future[T])(implicit ec: ExecutionContext): EmitterBuilder[T, R] =
-    transformWithExec[T](source => Observable.concatMapFuture(source)(f))
+    transformWithExec[T](source => Observable.mapFuture(source)(f))
 
   def concatMapAsync[G[_]: Effect, T](f: O => G[T]): EmitterBuilder[T, R] =
-    transformWithExec[T](source => Observable.concatMapAsync(source)(f))
+    transformWithExec[T](source => Observable.mapAsync(source)(f))
 
   def mapSync[G[_]: RunSyncEffect, T](f: O => G[T]): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[T](source => Observable.mapSync(source)(f))

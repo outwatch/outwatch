@@ -23,7 +23,7 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.7"
-val colibriVersion = "0b2299d"
+val colibriVersion = "7e95f8a"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -140,7 +140,7 @@ lazy val outwatchSnabbdom = project
     normalizedName := "outwatch-snabbdom",
 
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.2.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.0.0"
     ),
 
     npmDependencies in Compile ++= Seq(
@@ -158,7 +158,7 @@ lazy val outwatch = project
     normalizedName := "outwatch",
 
     libraryDependencies ++= Seq(
-      "com.raquo"     %%% "domtypes" % "0.10.1",
+      "com.raquo"     %%% "domtypes" % "0.15.0",
     )
   )
 
@@ -204,7 +204,7 @@ lazy val jsdocs = project
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.2.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.0.0",
       "com.github.cornerman.colibri" %%% "colibri-monix" % colibriVersion,
       "com.github.cornerman.colibri" %%% "colibri-rx" % colibriVersion,
     ),

@@ -146,9 +146,9 @@ abstract class DocumentEvents
 // Styles
 
 private[outwatch] trait SimpleStyleBuilder extends builders.StyleBuilders[Style] {
-  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): Style = new BasicStyleBuilder[Double](style.cssName) := value
-  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): Style = new BasicStyleBuilder[Int](style.cssName) := value
-  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): Style = new BasicStyleBuilder[Any](style.cssName) := value
+  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): Style = new BasicStyleBuilder[Double](style.name) := value
+  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): Style = new BasicStyleBuilder[Int](style.name) := value
+  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): Style = new BasicStyleBuilder[Any](style.name) := value
 }
 
 trait Styles
