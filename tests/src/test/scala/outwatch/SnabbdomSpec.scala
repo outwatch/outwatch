@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import colibri.ext.monix._
-import org.scalajs.dom.raw.EventInit
+import org.scalajs.dom.EventInit
 import org.scalajs.dom.{Event, document, html}
 import outwatch.dsl._
 import outwatch.reactive.handlers.monix._
