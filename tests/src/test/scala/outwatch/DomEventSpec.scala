@@ -6,7 +6,7 @@ import monix.reactive.Observable
 import org.scalajs.dom.{html, _}
 import outwatch.dsl._
 import colibri.ext.monix._
-import org.scalajs.dom.raw.EventInit
+import org.scalajs.dom.EventInit
 import outwatch.reactive.handlers.monix._
 import outwatch.util.LocalStorage
 

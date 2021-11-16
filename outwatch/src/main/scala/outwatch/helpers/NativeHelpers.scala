@@ -2,7 +2,7 @@ package outwatch.helpers
 
 import com.github.ghik.silencer.silent
 import org.scalajs.dom.Element
-import org.scalajs.dom.raw.CSSStyleDeclaration
+import org.scalajs.dom.CSSStyleDeclaration
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSBracketAccess
