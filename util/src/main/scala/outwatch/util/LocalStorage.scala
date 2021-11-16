@@ -10,12 +10,11 @@ import outwatch.dsl.events
 import outwatch.reactive.handler._
 import colibri._
 
-class Storage(domStorage: dom.Storage) {
+class Storage(storage: dom.Storage) {
   private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Handler[Option[String]]] = {
-    val storage = new dom.ext.Storage(domStorage)
 
     for {
-      h <- Handler.createF[F](storage(key))
+      h <- Handler.createF[F](Option(storage.getItem(key)))
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
@@ -25,8 +24,8 @@ class Storage(domStorage: dom.Storage) {
         c.sink
       } { input =>
         input.doOnNext {
-          case Some(data) => storage.update(key, data)
-          case None => storage.remove(key)
+          case Some(data) => storage.setItem(key, data)
+          case None => storage.removeItem(key)
         }
       }
     }
@@ -35,11 +34,11 @@ class Storage(domStorage: dom.Storage) {
   private def storageEventsForKey[F[_]](key: String): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
     events.window.onStorage.collect {
-      case e: StorageEvent if e.storageArea == domStorage && e.key == key =>
+      case e: StorageEvent if e.storageArea == storage && e.key == key =>
         // newValue is either String or null if removed or cleared
         // Option() transformes this to Some(string) or None
         Option(e.newValue)
-      case e: StorageEvent if e.storageArea == domStorage && e.key == null =>
+      case e: StorageEvent if e.storageArea == storage && e.key == null =>
         // storage.clear() emits an event with key == null
         None
     }
