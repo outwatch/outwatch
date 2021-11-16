@@ -8,7 +8,7 @@ private[outwatch] class MutableNestedArray[T] {
 
   // not safe if T = MutableNestedArray.
   def foreach(f: T => Unit): Unit = array.foreach(a => (a: Any) match {
-    case nested: MutableNestedArray[T] => nested.foreach(f)
+    case nested: MutableNestedArray[T@unchecked] => nested.foreach(f)
     case t: T@unchecked => f(t)
   })
 
