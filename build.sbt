@@ -2,8 +2,6 @@ import Options._
 
 
 inThisBuild(Seq(
-  version := "0.11.1-SNAPSHOT",
-
   organization := "io.github.outwatch",
 
   scalaVersion := crossScalaVersions.value.last,
