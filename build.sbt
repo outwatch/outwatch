@@ -21,7 +21,7 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.7"
-val colibriVersion = "7e95f8a"
+val colibriVersion = "0.1.0"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -75,12 +75,8 @@ lazy val outwatchReactive = project
     name := "OutWatch-Reactive",
     normalizedName := "outwatch-reactive",
 
-    resolvers ++=
-      ("jitpack" at "https://jitpack.io") ::
-      Nil,
-
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri" % colibriVersion,
+      "com.github.cornerman" %%% "colibri" % colibriVersion,
     )
   )
 
@@ -104,7 +100,7 @@ lazy val outwatchMonix = project
     normalizedName := "outwatch-monix",
 
     libraryDependencies ++= Seq(
-      "com.github.cornerman.colibri" %%% "colibri-monix" % colibriVersion,
+      "com.github.cornerman" %%% "colibri-monix" % colibriVersion,
       "io.monix"      %%% "monix"       % "3.4.0",
     )
   )
@@ -193,8 +189,8 @@ lazy val jsdocs = project
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.0.0",
-      "com.github.cornerman.colibri" %%% "colibri-monix" % colibriVersion,
-      "com.github.cornerman.colibri" %%% "colibri-rx" % colibriVersion,
+      "com.github.cornerman" %%% "colibri-monix" % colibriVersion,
+      "com.github.cornerman" %%% "colibri-rx" % colibriVersion,
     ),
     Compile / npmDependencies ++= Seq(
       "js-beautify" -> "1.14.0"
