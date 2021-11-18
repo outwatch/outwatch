@@ -5,10 +5,10 @@ on:
     tags: [ v* ]
 jobs:
   publish:
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
     strategy:
       matrix:
-        os: [ubuntu-20.04] #why not ubuntu latest?
+        os: [ubuntu-20.04]
         scala: [2.12.15, 2.13.7]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
