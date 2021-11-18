@@ -1,8 +1,8 @@
 name: Test
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+    tags: [ v* ]
   pull_request:
   workflow_dispatch:
 jobs:
@@ -25,3 +25,28 @@ jobs:
       #   uses: mxschmitt/action-tmate@v3
       #   with:
       #     limit-access-to-actor: true
+
+  publish:
+    needs: [build]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        scala: [2.13.7]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: olafurpg/setup-scala@v12
+        with:
+          java-version: 8
+      - name: Cache SBT
+        uses: coursier/cache-action@v6
+      - uses: olafurpg/setup-gpg@v3
+      - name: Publish
+        run: sbt version "git status" ci-release "git status"
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
