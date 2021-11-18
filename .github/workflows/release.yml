@@ -1,11 +1,11 @@
 name: Release to maven central
 on:
   push:
-    branches: [master]
+    branches: [sonatype-release]
     tags: [ v* ]
 jobs:
   publish:
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/sonatype-release' || startsWith(github.ref, 'refs/tags/v'))
     strategy:
       matrix:
         os: [ubuntu-20.04]
