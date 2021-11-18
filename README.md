@@ -8,18 +8,16 @@ The Functional and Reactive Web-Frontend Library for ScalaJS
 import outwatch._
 import outwatch.dsl._
 import colibri._
-import cats.effect.{IO, SyncIO}
+import cats.effect.IO
 
 object Main {
   def main(args: Array[String]): Unit = {
     
-    val myComponent = SyncIO {
-      val counter = Subject.behavior(0)
-      div(
-        button("+", onClick(counter.map(_ + 1)) --> counter),
-        counter,
-      )
-    }
+    val counter = Subject.behavior(0)
+    val myComponent = div(
+      button("+", onClick(counter.map(_ + 1)) --> counter),
+      counter,
+    )
 
     OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
   }
