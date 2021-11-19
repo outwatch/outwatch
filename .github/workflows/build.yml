@@ -37,6 +37,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - uses: olafurpg/setup-scala@v12
         with:
           java-version: 8
