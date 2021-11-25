@@ -3,7 +3,7 @@ queue_rules:
     conditions:
       # Conditions to get out of the queue (= merged)
       - check-success=build (2.12.15)
-      - check-success=build (2.13.6)
+      - check-success=build (2.13.7)
 
 pull_request_rules:
   - name: assign and label scala-steward's PRs
@@ -17,7 +17,7 @@ pull_request_rules:
       - base=master
       - author=scala-steward
       - check-success=build (2.12.15)
-      - check-success=build (2.13.6)
+      - check-success=build (2.13.7)
     actions:
       queue:
         name: default
