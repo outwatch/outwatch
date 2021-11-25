@@ -43,7 +43,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # full history with tags
       - uses: olafurpg/setup-scala@v12
         with:
           java-version: 8
