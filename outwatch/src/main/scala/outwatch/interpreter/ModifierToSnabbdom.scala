@@ -238,6 +238,12 @@ private[outwatch] object NativeModifiers {
 
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVDomModifier], modifier: VDomModifier, inStream: Boolean): Unit = {
 
+      def errorModifier(error: Throwable): VDomModifier = {
+        import dsl._
+
+        div(backgroundColor := "red", s"ERROR: $error")
+      }
+
       @inline def appendStatic(mod: StaticVDomModifier): Unit = {
         modifiers.push(mod)
         ()
@@ -249,13 +255,25 @@ private[outwatch] object NativeModifiers {
         val streamedModifiers = new MutableNestedArray[StaticVDomModifier]()
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
+        def handleModifier(modifier: VDomModifier) = {
+          streamedSubscribables.foreach(_.unsubscribe())
+          streamedSubscribables.clear()
+          streamedModifiers.clear()
+          append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
+        }
+
         subscribables.push(new Subscribable(
-          sink => mod.subscription(Observer.contramap[Observer, Unit, VDomModifier](sink) { modifier =>
-            streamedSubscribables.foreach(_.unsubscribe())
-            streamedSubscribables.clear()
-            streamedModifiers.clear()
-            append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
-          })
+          sink => mod.subscription(Observer.create(
+            { modifier =>
+              handleModifier(modifier)
+              sink.onNext(())
+            },
+            { error =>
+              handleModifier(errorModifier(error))
+              sink.onNext(())
+              sink.onError(error)
+            }
+          ))
         ))
 
         modifiers.push(streamedModifiers)

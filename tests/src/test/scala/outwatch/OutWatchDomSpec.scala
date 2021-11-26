@@ -3705,4 +3705,37 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe "no"
     } yield succeed
   }
+
+  it should "report exception when rendering" in {
+
+    case class MyException(value: String) extends Throwable {
+      override def toString() = value
+    }
+
+    val ioException = MyException("io")
+    val observableException = MyException("observable")
+
+    val node = div(
+      idAttr := "strings",
+      "hallo: ",
+      IO.raiseError[String](ioException),
+      Observable.raiseError[String](observableException)
+    )
+
+    var errors = List.empty[Throwable]
+    val cancelable = OutwatchTracing.error.recover { case t => t }.foreach { throwable =>
+      errors = throwable :: errors
+    }
+
+    for {
+      _ <- OutWatch.renderInto[IO]("#app", node)
+      element = document.getElementById("strings")
+
+      _ = errors shouldBe List(ioException, observableException).reverse
+
+      _ = element.innerHTML shouldBe """hallo: <div style="background-color: red;">ERROR: io</div><div style="background-color: red;">ERROR: observable</div>"""
+
+      _ = cancelable.cancel()
+    } yield succeed
+  }
 }
