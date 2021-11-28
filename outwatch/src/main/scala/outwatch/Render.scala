@@ -144,8 +144,8 @@ object Render {
   @noinline private def asyncToModifierRender[F[_] : Effect, T: Render](effect: F[T]): VDomModifier = StreamModifier(Observable.fromAsync(effect).map(VDomModifier(_)).subscribe(_))
   @noinline private def sourceToModifier[F[_] : Source](source: F[VDomModifier]): VDomModifier = StreamModifier(Source[F].subscribe(source))
   @noinline private def sourceToModifierRender[F[_] : Source, T: Render](source: F[T]): VDomModifier = StreamModifier(sink => Source[F].subscribe(source)(Observer.contramap[Observer, VDomModifier, T](sink)(VDomModifier(_))))
-  @noinline private def childCommandSeqToModifier[F[_] : Source](source: F[Seq[ChildCommand]]): VDomModifier = ChildCommand.stream(source)
-  @noinline private def childCommandToModifier[F[_] : Source](source: F[ChildCommand]): VDomModifier = ChildCommand.stream(Observable.map(source)(Seq(_)))
+  @noinline private def childCommandSeqToModifier[F[_] : Source](source: F[Seq[ChildCommand]]): VDomModifier = ChildCommandsModifier(Observable.lift(source))
+  @noinline private def childCommandToModifier[F[_] : Source](source: F[ChildCommand]): VDomModifier = ChildCommandsModifier(Observable.map(source)(Seq(_)))
   @noinline private def futureToModifierRender[T: Render](future: Future[T])(implicit ec: ExecutionContext): VDomModifier = future.value match {
     case Some(Success(value)) => VDomModifier(value)
     case _ => StreamModifier(Observable.fromFuture(future).map(VDomModifier(_)).subscribe(_))

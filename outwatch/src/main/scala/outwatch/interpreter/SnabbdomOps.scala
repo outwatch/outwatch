@@ -57,13 +57,13 @@ private[outwatch] object SnabbdomOps {
     case _ => js.undefined
   }
 
-   def toSnabbdom(node: VNode): VNodeProxy = node match {
+   def toSnabbdom(node: VNode, config: RenderConfig): VNodeProxy = node match {
      case node: BasicVNode =>
-       toRawSnabbdomProxy(node)
+       toRawSnabbdomProxy(node, config)
      case node: ConditionalVNode =>
-       thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.shouldRender)
+       thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.shouldRender)
      case node: ThunkVNode =>
-       thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key))), node.arguments)
+       thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.arguments)
    }
 
    private val newNodeId: () => Int = {
@@ -88,12 +88,12 @@ private[outwatch] object SnabbdomOps {
     // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
     // renders its children again. But it would not have the correct state of this proxy. Therefore,
     // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-   private def toRawSnabbdomProxy(node: BasicVNode): VNodeProxy = {
+   private def toRawSnabbdomProxy(node: BasicVNode, config: RenderConfig): VNodeProxy = {
 
     val vNodeNS = getNamespace(node)
     val vNodeId: Int = newNodeId()
 
-    val nativeModifiers = NativeModifiers.from(node.modifiers)
+    val nativeModifiers = NativeModifiers.from(node.modifiers, config)
 
     if (nativeModifiers.subscribables.isEmpty) {
       // if no dynamic/subscribable content, then just create a simple proxy

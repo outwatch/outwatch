@@ -4,7 +4,7 @@ import cats.Monoid
 import org.scalajs.dom._
 import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
-import colibri.{Observer, Cancelable, SubscriptionOwner}
+import colibri.{Observable, Observer, Cancelable, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
 
 import scala.scalajs.js
@@ -103,6 +103,7 @@ final case class NextVDomModifier(modifier: StaticVDomModifier) extends StaticVD
 case object EmptyModifier extends VDomModifier
 final case class CompositeModifier(modifiers: Iterable[VDomModifier]) extends VDomModifier
 final case class StreamModifier(subscription: Observer[VDomModifier] => Cancelable) extends VDomModifier
+final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends VDomModifier
 final case class CancelableModifier(subscription: () => Cancelable) extends VDomModifier
 final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier

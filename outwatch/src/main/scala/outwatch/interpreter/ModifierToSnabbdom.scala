@@ -231,18 +231,12 @@ private[outwatch] class Subscribable(
 }
 
 private[outwatch] object NativeModifiers {
-  def from(appendModifiers: js.Array[_ <: VDomModifier]): NativeModifiers = {
+  def from(appendModifiers: js.Array[_ <: VDomModifier], config: RenderConfig): NativeModifiers = {
     val allModifiers = new MutableNestedArray[StaticVDomModifier]()
     val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream = false
 
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVDomModifier], modifier: VDomModifier, inStream: Boolean): Unit = {
-
-      def errorModifier(error: Throwable): VDomModifier = {
-        import dsl._
-
-        div(backgroundColor := "red", s"ERROR: $error")
-      }
 
       @inline def appendStatic(mod: StaticVDomModifier): Unit = {
         modifiers.push(mod)
@@ -269,7 +263,7 @@ private[outwatch] object NativeModifiers {
               sink.onNext(())
             },
             { error =>
-              handleModifier(errorModifier(error))
+              handleModifier(config.errorModifier(error))
               sink.onNext(())
               sink.onError(error)
             }
@@ -286,11 +280,12 @@ private[outwatch] object NativeModifiers {
         case c: CompositeModifier => c.modifiers.foreach(append(subscribables, modifiers, _, inStream))
         case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
         case mod: StaticVDomModifier => appendStatic(mod)
-        case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child)))
+        case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, config)))
         case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier => appendStream(m)
         case s: CancelableModifier => subscribables.push(new Subscribable(_ => s.subscription()))
         case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
+        case m: ChildCommandsModifier => append(subscribables, modifiers, ChildCommand.stream(m.commands, config), inStream)
       }
     }
 
