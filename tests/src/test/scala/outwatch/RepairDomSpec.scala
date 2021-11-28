@@ -40,7 +40,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
   }
 
   private def testCase(vNode: VNode, corruption: Element => Any) = {
-    val proxy = toSnabbdom(vNode)
+    val proxy = toSnabbdom(vNode, RenderConfig.ignoreError)
 
     val originalNode = document.createElement(proxy.sel.get)
     val fragileNode = document.createElement(proxy.sel.get)
@@ -505,7 +505,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       elem.asInstanceOf[js.Dynamic].ralf = "heinz"
     }
 
-    val proxy = toSnabbdom(vNode)
+    val proxy = toSnabbdom(vNode, RenderConfig.ignoreError)
 
     val originalNode = document.createElement(proxy.sel.get)
     val fragileNode = document.createElement(proxy.sel.get)

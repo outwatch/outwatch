@@ -94,7 +94,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
 
-    val streamable = NativeModifiers.from(modifiers)
+    val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
@@ -116,7 +116,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       StringVNode("text"),
       div()
     )
-    val streamable = NativeModifiers.from(modifiers)
+    val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
@@ -139,7 +139,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       StringVNode("text2")
     )
 
-    val streamable = NativeModifiers.from(modifiers)
+    val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
@@ -167,7 +167,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       StringVNode("text")
     )
 
-    val streamable = NativeModifiers.from(modifiers)
+    val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
@@ -257,14 +257,14 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       div(), div()
     )
 
-    val streamable = NativeModifiers.from(mods)
+    val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
     val seps =  SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
     proxies.get.length shouldBe 4
     streamable.subscribables.isEmpty shouldBe false
 
-    val proxy = SnabbdomOps.toSnabbdom(div(mods))
+    val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.isDefined shouldBe false
 
     val key1 = proxy.children.get(0).key
@@ -285,14 +285,14 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       div()(Key(5678))
     )
 
-    val streamable = NativeModifiers.from(mods)
+    val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
     val seps = SeparatedModifiers.from(streamable.modifiers)
     import seps._
 
     proxies.get.length shouldBe 1
     streamable.subscribables.isEmpty shouldBe false
 
-    val proxy = SnabbdomOps.toSnabbdom(div(mods))
+    val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.toOption  shouldBe Some(1234)
 
     proxy.children.get(0).key.toOption shouldBe Some(5678)
@@ -307,7 +307,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     val proxy = fixture.proxy
 
-    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree, RenderConfig.ignoreError)
     snabbdomNode._id = js.undefined
     snabbdomNode.children.get.head._id = js.undefined
     JSON.stringify(snabbdomNode) shouldBe JSON.stringify(proxy)
@@ -319,7 +319,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
 
-    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree, RenderConfig.ignoreError)
     snabbdomNode._id = js.undefined
     snabbdomNode.children.get.head._id = js.undefined
     JSON.stringify(snabbdomNode) shouldBe JSON.stringify(fixture.proxy)
@@ -518,7 +518,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   "The HTML DSL" should "construct VTrees properly" in {
     val vtree = div(cls := "red", idAttr := "msg", span("Hello"))
 
-    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree, RenderConfig.ignoreError)
     snabbdomNode._id = js.undefined
     snabbdomNode.children.get.head._id = js.undefined
     JSON.stringify(snabbdomNode) shouldBe JSON.stringify(fixture.proxy)
@@ -530,7 +530,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       Option.empty[VDomModifier]
     )
 
-    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree, RenderConfig.ignoreError)
     snabbdomNode._id = js.undefined
     snabbdomNode.children.get.head._id = js.undefined
     JSON.stringify(snabbdomNode) shouldBe JSON.stringify(fixture.proxy)
@@ -553,7 +553,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     val attributes = js.Dictionary[Attr.Value]("a" -> true, "b" -> true, "c" -> false, "d" -> "true", "e" -> "true", "f" -> "false")
     val expected = newProxy("div", new DataObject { attrs = attributes; hook = Hooks.empty })
 
-    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree)
+    val snabbdomNode = SnabbdomOps.toSnabbdom(vtree, RenderConfig.ignoreError)
     snabbdomNode._id = js.undefined
     JSON.stringify(snabbdomNode) shouldBe JSON.stringify(expected)
   }
@@ -3706,7 +3706,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
-  it should "report exception when rendering" in {
+  it should "report exception when rendering with RenderConfig.showError" in {
 
     case class MyException(value: String) extends Throwable {
       override def toString() = value
@@ -3728,12 +3728,45 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
 
     for {
-      _ <- OutWatch.renderInto[IO]("#app", node)
+      _ <- OutWatch.renderInto[IO]("#app", node, RenderConfig.showError)
       element = document.getElementById("strings")
 
       _ = errors shouldBe List(ioException, observableException).reverse
 
       _ = element.innerHTML shouldBe """hallo: <div style="background-color: red;">ERROR: io</div><div style="background-color: red;">ERROR: observable</div>"""
+
+      _ = cancelable.cancel()
+    } yield succeed
+  }
+
+  it should "not report exception when rendering with RenderConfig.ignoreError" in {
+
+    case class MyException(value: String) extends Throwable {
+      override def toString() = value
+    }
+
+    val ioException = MyException("io")
+    val observableException = MyException("observable")
+
+    val node = div(
+      idAttr := "strings",
+      "hallo: ",
+      IO.raiseError[String](ioException),
+      Observable.raiseError[String](observableException)
+    )
+
+    var errors = List.empty[Throwable]
+    val cancelable = OutwatchTracing.error.recover { case t => t }.foreach { throwable =>
+      errors = throwable :: errors
+    }
+
+    for {
+      _ <- OutWatch.renderInto[IO]("#app", node, RenderConfig.ignoreError)
+      element = document.getElementById("strings")
+
+      _ = errors shouldBe List(ioException, observableException).reverse
+
+      _ = element.innerHTML shouldBe """hallo: """
 
       _ = cancelable.cancel()
     } yield succeed
