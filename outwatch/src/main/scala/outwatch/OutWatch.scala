@@ -13,14 +13,16 @@ case class RenderConfig(
 object RenderConfig {
   import dsl._
 
-  // private val isLocalhost = dom.lc
+  private lazy val isLocalhost = dom.window.location.host.startsWith("localhost:") || dom.window.location.host == "localhost"
 
-  def default = RenderConfig(
-    _ => VDomModifier.empty
-  )
+  def default = if (isLocalhost) showError else ignoreError
 
   def showError = RenderConfig(
     error => div(backgroundColor := "red", s"ERROR: $error")
+  )
+
+  def ignoreError = RenderConfig(
+    _ => VDomModifier.empty
   )
 }
 
