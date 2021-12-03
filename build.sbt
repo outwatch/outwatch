@@ -209,7 +209,6 @@ lazy val docs = project
     mdocVariables := Map(
       /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
       "VERSION" -> version.value,
-      "HEADCOMMIT" -> git.gitHeadCommit.value.get.take(8),
       "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
       "js-mount-node" -> "preview"
     ),

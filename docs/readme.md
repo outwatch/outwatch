@@ -31,14 +31,13 @@ addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "x.x.x")
 
 Add the outwatch dependencies to your `build.sbt`:
 ```scala
-resolvers += "jitpack" at "https://jitpack.io"
-val outwatchVersion = "@HEADCOMMIT@"
 libraryDependencies ++= Seq(
-  "com.github.outwatch.outwatch" %%% "outwatch"      % outwatchVersion,
+  "io.github.outwatch" %%% "outwatch" % "@VERSION@",
   // optional dependencies:
-  "com.github.cornerman.colibri" %%% "colibri-monix" % outwatchVersion, // Monix
-  "com.github.cornerman.colibri" %%% "colibri-rx"    % outwatchVersion, // Scala.rx
-  "com.github.outwatch.outwatch" %%% "outwatch-util" % outwatchVersion, // Store, Websocket, Http
+  "io.github.outwatch" %%% "outwatch-util" % "@VERSION@", // Store, Websocket, Http
+  "com.github.cornerman" %%% "colibri-monix" % "0.1.2", // Monix
+  "com.github.cornerman" %%% "colibri-rx" % "0.1.2", // Scala.rx
+  "com.github.cornerman" %%% "colibri-router" % "0.1.2", // Url Router
 )
 
 ```
@@ -84,7 +83,7 @@ import cats.effect.IO
 
 object Main {
   def main(args: Array[String]): Unit = {
-    
+
     val myComponent = div("Hello World")
 
     OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
