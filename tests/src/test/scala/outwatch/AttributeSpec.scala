@@ -12,7 +12,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(div(
       className := "class1",
       cls := "class2"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList shouldBe List("class" -> "class1 class2")
   }
@@ -22,7 +22,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(input(
       attr("id").accum(",") := "foo1",
       attr("id").accum(",") := "foo2"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList shouldBe List("id" -> "foo1,foo2")
   }
@@ -32,7 +32,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(input(
       data.foo.accum(",") := "foo1",
       data.foo.accum(",") := "foo2"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList shouldBe List("data-foo" -> "foo1,foo2")
   }
@@ -41,7 +41,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(input(
       data.geul := "bar",
       data.geuli.gurk := "barz"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList should contain theSameElementsAs List(
       "data-geul" -> "bar",
@@ -53,7 +53,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(input(
       dataAttr("geul") := "bar",
       dataAttr("geuli-gurk") := "barz"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList should contain theSameElementsAs List(
       "data-geul" -> "bar",
@@ -81,7 +81,7 @@ class AttributeSpec extends JSDomSpec {
       contentEditable := false,
       unselectable := false,
       disabled := false
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList should contain theSameElementsAs List(
       "foo" -> "foo",
@@ -104,7 +104,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(input(
       data.foo :=? Option("bar"),
       data.bar :=? Option.empty[String]
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList should contain theSameElementsAs List(
       "data-foo" -> "bar"
@@ -118,7 +118,7 @@ class AttributeSpec extends JSDomSpec {
     )(
       data.a := "buh",
       data.a.tomate := "gisela"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList should contain theSameElementsAs List(
       "data-a" -> "buh",
@@ -134,7 +134,7 @@ class AttributeSpec extends JSDomSpec {
     )(
       style("color") := "blue",
       border := "1px solid black"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.style.get.toList should contain theSameElementsAs List(
       ("color", "blue"),
@@ -150,7 +150,7 @@ class AttributeSpec extends JSDomSpec {
     )(
       color.blue,
       border := "1px solid black"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.style.get.toList should contain theSameElementsAs List(
       ("color", "blue"),
@@ -161,18 +161,18 @@ class AttributeSpec extends JSDomSpec {
 
   it should "correctly merge keys" in {
 
-    val node = SnabbdomOps.toSnabbdom(input( attributes.key := "bumm")( attributes.key := "klapp"))
+    val node = SnabbdomOps.toSnabbdom(input( attributes.key := "bumm")( attributes.key := "klapp"), RenderConfig.ignoreError)
     node.data.get.key.toOption shouldBe Some("klapp")
 
-    val node2 = SnabbdomOps.toSnabbdom(input()( attributes.key := "klapp"))
+    val node2 = SnabbdomOps.toSnabbdom(input()( attributes.key := "klapp"), RenderConfig.ignoreError)
     node2.data.get.key.toOption shouldBe Some("klapp")
 
-    val node3 = SnabbdomOps.toSnabbdom(input( attributes.key := "bumm")())
+    val node3 = SnabbdomOps.toSnabbdom(input( attributes.key := "bumm")(), RenderConfig.ignoreError)
     node3.data.get.key.toOption shouldBe Some("bumm")
   }
 
   "style attribute" should "render correctly" in {
-    val node = SnabbdomOps.toSnabbdom(input(color.red))
+    val node = SnabbdomOps.toSnabbdom(input(color.red), RenderConfig.ignoreError)
 
     node.data.get.style.get.toList should contain theSameElementsAs List(
       "color" -> "red"
@@ -186,7 +186,7 @@ class AttributeSpec extends JSDomSpec {
       opacity.delayed := 1,
       opacity.remove := 0,
       opacity.destroy := 0
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.style.get("opacity") shouldBe "0"
     node.data.get.style.get("delayed").asInstanceOf[js.Dictionary[String]].toMap shouldBe Map("opacity" -> "1")
@@ -198,7 +198,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(div(
       transition := "transform .2s ease-in-out",
       transition.accum(",") := "opacity .2s ease-in-out"
-    ))
+    ), RenderConfig.ignoreError)
 
     node.data.get.style.get.toMap shouldBe Map("transition" -> "transform .2s ease-in-out,opacity .2s ease-in-out")
   }
@@ -207,7 +207,7 @@ class AttributeSpec extends JSDomSpec {
     import outwatch.dsl.svg._
     val node = SnabbdomOps.toSnabbdom(svg(
       path(fill := "red", d := "M 100 100 L 300 100 L 200 300 z")
-    ))
+    ), RenderConfig.ignoreError)
 
     node.children.get.head.data.get.attrs.get.toMap shouldBe Map("fill" -> "red", "d" -> "M 100 100 L 300 100 L 200 300 z")
   }
