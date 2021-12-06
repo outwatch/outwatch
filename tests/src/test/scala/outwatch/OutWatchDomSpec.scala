@@ -3733,7 +3733,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       _ = errors shouldBe List(ioException, observableException).reverse
 
-      _ = element.innerHTML shouldBe """hallo: <div style="background-color: red;">ERROR: io</div><div style="background-color: red;">ERROR: observable</div>"""
+      _ = element.innerHTML shouldBe """hallo: <div style="background-color: rgb(253, 242, 245); color: rgb(215, 0, 34); padding: 5px; display: inline-block;">ERROR: io</div><div style="background-color: rgb(253, 242, 245); color: rgb(215, 0, 34); padding: 5px; display: inline-block;">ERROR: observable</div>"""
 
       _ = cancelable.cancel()
     } yield succeed
