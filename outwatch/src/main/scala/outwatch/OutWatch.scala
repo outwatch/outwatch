@@ -18,7 +18,7 @@ object RenderConfig {
   def default = if (isLocalhost) showError else ignoreError
 
   def showError = RenderConfig(
-    error => div(backgroundColor := "red", s"ERROR: $error")
+    error => div(backgroundColor := "#FDF2F5", color := "#D70022", padding := "5px", display.inlineBlock, s"ERROR: $error")
   )
 
   def ignoreError = RenderConfig(
