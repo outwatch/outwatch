@@ -19,6 +19,19 @@ jobs:
       - uses: coursier/cache-action@v6
       - uses: olafurpg/setup-scala@v12
 
+      - uses: actions/cache@v2
+        name: Cache node_modules
+        with:
+          path: "**/main/node_modules"
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/main/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-yarn-
+
+      - uses: actions/cache@v2
+        name: Cache scala targets
+        with:
+          path: "**/target"
+          key: ${{ runner.os }}-scala-target-${{ github.sha }}
+
       - name: Test
         run: sbt ++${{matrix.scalaVersion}} test docs/mdoc
 
@@ -50,6 +63,20 @@ jobs:
           java-version: 8
       - name: Cache SBT
         uses: coursier/cache-action@v6
+
+      - uses: actions/cache@v2
+        name: Cache node_modules
+        with:
+          path: "**/main/node_modules"
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/main/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-yarn-
+
+      - uses: actions/cache@v2
+        name: Cache scala targets
+        with:
+          path: "**/target"
+          key: ${{ runner.os }}-scala-target-${{ github.sha }}
+
       - uses: olafurpg/setup-gpg@v3
       - name: Publish
         run: sbt version "git status" ci-release "git status"
