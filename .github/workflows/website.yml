@@ -1,9 +1,10 @@
 name: Website
 on:
   push:
-    branches: []
-    tags: [ v* ]
+    tags:
+      - 'v*'
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
