@@ -37,7 +37,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value).map(v =>
     allOptionsForVersion(s"${v._1}.${v._2}", true)
   ).getOrElse(Nil),
-  scalacOptions in (Compile, console) ~= (_.diff(badConsoleFlags))
+  Compile / console / scalacOptions ~= (_.diff(badConsoleFlags)),
 )
 
 lazy val librarySettings = commonSettings ++ Seq(
@@ -127,7 +127,7 @@ lazy val outwatchSnabbdom = project
       "org.scala-js" %%% "scalajs-dom" % "2.0.0"
     ),
 
-    npmDependencies in Compile ++= Seq(
+    Compile/npmDependencies ++= Seq(
       "snabbdom" -> "git://github.com/outwatch/snabbdom.git#semver:0.7.5"
     )
   )
@@ -151,17 +151,17 @@ lazy val tests = project
   .dependsOn(outwatchMonix, outwatchUtil, outwatchRepairDom)
   .settings(commonSettings)
   .settings(
-    skip in publish := true,
+    publish/skip := true,
 
-    requireJsDomEnv in Test := true,
-    version in installJsdom := jsdomVersion,
+    Test/requireJsDomEnv := true,
+    installJsdom/version := jsdomVersion,
   )
 
 lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatchMonix)
   .settings(
-    skip in publish := true,
+    publish/skip := true,
 
     resolvers ++=
       ("jitpack" at "https://jitpack.io") ::
@@ -171,12 +171,12 @@ lazy val bench = project
       "com.github.fdietze.bench" %%% "bench" % "5ffab44" ::
       Nil,
 
-    scalaJSStage in Compile := FullOptStage,
+    Compile/scalaJSStage := FullOptStage,
     scalacOptions ++= Seq ("-Xdisable-assertions"),
 
     useYarn := true,
 
-    npmDependencies in Compile ++= Seq(
+    Compile/npmDependencies ++= Seq(
       "jsdom" -> jsdomVersion
     ),
   )
@@ -201,11 +201,11 @@ lazy val docs = project
   .in(file("outwatch-docs")) // important: it must not be docs/
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(
-    skip in test := true,
-    skip in publish := true,
+    test/skip := true,
+    publish/skip := true,
     moduleName := "outwatch-docs",
     mdocJS := Some(jsdocs),
-    mdocJSLibraries := webpack.in(jsdocs, Compile, fullOptJS).value,
+    mdocJSLibraries := (jsdocs / Compile / fullOptJS / webpack).value,
     mdocVariables := Map(
       /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
       "VERSION" -> version.value,
@@ -218,6 +218,6 @@ lazy val root = project
   .in(file("."))
   .settings(
     name := "outwatch-root",
-    skip in publish := true,
+    publish/skip := true,
   )
   .aggregate(outwatch, outwatchMonix, outwatchSnabbdom, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
