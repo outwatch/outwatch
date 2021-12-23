@@ -959,11 +959,30 @@ helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
 
 ### Tracing exceptions in your components
 
-Dynamic components with `Observables` can have errors. This is if `onError` is called on the underlying `Observer`. You can trace them in OutWatch with:
+Dynamic components with `Observables` can have errors. This happens if `onError` is called on the underlying `Observer`. Same for `IO` when it fails. In these cases, OutWatch will always print an error message to the dom console.
+
+Furthermore, you can configure whether OutWatch should render errors to the dom by providing a `RenderConfig`. `RenderConfig.showError` always shows errors, `RenderConfig.ignoreError` never shows errors and `RenderConfig.default` only shows errors when running on `localhost`.
+
+```scala mdoc:js
+import cats.effect.IO
+
+val component = div("broken?", IO.raiseError[VDomModifier](new Exception("I am broken")))
+OutWatch.renderInto[IO](docPreview, component, config = RenderConfig.showError).unsafeRunSync()
+```
+
+```scala mdoc:js
+import cats.effect.IO
+
+val component = div("broken?", IO.raiseError[VDomModifier](new Exception("I am broken")))
+OutWatch.renderInto[IO](docPreview, component, config = RenderConfig.ignoreError).unsafeRunSync()
+```
+
+
+You can additionally trace and react to these errors in your own code:
 ```scala mdoc:js:compile-only
 import org.scalajs.dom.console
 
-helpers.OutwatchTracing.error.foreach { case throwable =>
+helpers.OutwatchTracing.error.foreach { throwable =>
   console.log(s"Exception while patching an Outwatch compontent: ${throwable.getMessage}")
 }
 ```
