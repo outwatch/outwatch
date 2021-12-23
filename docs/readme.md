@@ -118,7 +118,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 To understand how this example works in-depth, please read about [Dynamic Content](#dynamic-content) and [Handling Events](#handling-events).
@@ -127,6 +127,8 @@ To understand how this example works in-depth, please read about [Dynamic Conten
 
 ## Static Content
 First, we will focus on creating immutable/static content that will not change over time. The following examples illustrate to construct and transform HTML/SVG tags, attributes and inline stylesheets.
+
+**Note:** We created the helpers `showHTMLForDoc` and `docPreview` for showing results in this documentation. They are not part of outwatch.
 
 ### Imports
 ```scala mdoc:js:shared
@@ -145,7 +147,7 @@ implicit class PreviewVNode(val vnode:VNode) {
   import org.scalajs.dom.document
   import scala.scalajs.js
 
-  def showHTML(previewNode: org.scalajs.dom.Element) = {
+  def showHTMLForDoc(previewNode: org.scalajs.dom.Element) = {
     val renderNode = document.createElement("div")
     OutWatch.renderInto[IO](renderNode, vnode).unsafeRunSync()
     val textNode = document.createTextNode(_beautifyHtml(renderNode.innerHTML))
@@ -163,32 +165,32 @@ implicit class PreviewVNode(val vnode:VNode) {
 
 ### Concatenating Strings
 ```scala mdoc:js
-div("Hello ", "World").showHTML(preview)
+div("Hello ", "World").showHTMLForDoc(docPreview)
 ```
 
 
 ### Nesting
 ```scala mdoc:js
-div(span("Hey ", b("you"), "!")).showHTML(preview)
+div(span("Hey ", b("you"), "!")).showHTMLForDoc(docPreview)
 ```
 
 
 ### Primitives
 ```scala mdoc:js
-div(true, 0, 1000L, 3.0).showHTML(preview)
+div(true, 0, 1000L, 3.0).showHTMLForDoc(docPreview)
 ```
 
 
 ### Attributes
 
 ```scala mdoc:js
-div(idAttr := "test").showHTML(preview)
+div(idAttr := "test").showHTMLForDoc(docPreview)
 ```
 
 The order of content and attributes does not matter.
 
 ```scala mdoc:js
-div("How ", idAttr := "test", "are", title := "cool", " you?").showHTML(preview)
+div("How ", idAttr := "test", "are", title := "cool", " you?").showHTMLForDoc(docPreview)
 ```
 
 
@@ -196,7 +198,7 @@ div("How ", idAttr := "test", "are", title := "cool", " you?").showHTML(preview)
 All style properties have to be written in *camelCase*.
 
 ```scala mdoc:js
-div(backgroundColor := "tomato", "Hello").showHTML(preview)
+div(backgroundColor := "tomato", "Hello").showHTMLForDoc(docPreview)
 ```
 
 Multiple styles will me merged to one style attribute:
@@ -206,7 +208,7 @@ div(
   backgroundColor := "powderblue",
   border := "2px solid #222",
   "Hello",
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 Again, the order of styles, attributes and inner tags does not matter:
@@ -216,13 +218,13 @@ div(
   h1("Welcome to my website"),
   backgroundColor := "powderblue",
   idAttr := "header"
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 Some styles have type safe values:
 
 ```scala mdoc:js
-div(cursor.pointer, fontWeight.bold, display.flex).showHTML(preview)
+div(cursor.pointer, fontWeight.bold, display.flex).showHTMLForDoc(docPreview)
 ```
 
 If you are missing more type safe values, please contribute to [Scala Dom Types](https://github.com/raquo/scala-dom-types). Example implementation: [fontWeight](https://github.com/raquo/scala-dom-types/blob/master/shared/src/main/scala/com/raquo/domtypes/generic/defs/styles/Styles.scala#L1711)
@@ -232,16 +234,16 @@ If you are missing more type safe values, please contribute to [Scala Dom Types]
 There are some attributes and styles which are reserved scala keywords. You can use them with backticks:
 
 ```scala mdoc:js
-div(`class` := "item", "My Item").showHTML(preview)
-label(`for` := "inputid").showHTML(preview)
-input(`type` := "text").showHTML(preview)
+div(`class` := "item", "My Item").showHTMLForDoc(docPreview)
+label(`for` := "inputid").showHTMLForDoc(docPreview)
+input(`type` := "text").showHTMLForDoc(docPreview)
 ```
 
 There are shortcuts for the class and type atrributes:
 
 ```scala mdoc:js
-div(cls := "myclass").showHTML(preview)
-input(tpe := "text").showHTML(preview)
+div(cls := "myclass").showHTMLForDoc(docPreview)
+input(tpe := "text").showHTMLForDoc(docPreview)
 ```
 
 
@@ -249,14 +251,14 @@ input(tpe := "text").showHTML(preview)
 Attributes and styles with the same name will be overwritten. Last wins.
 
 ```scala mdoc:js
-div(color := "blue", color := "green").showHTML(preview)
+div(color := "blue", color := "green").showHTMLForDoc(docPreview)
 ```
 
 ### CSS class accumulation
 Classes are not overwritten, they accumulate.
 
 ```scala mdoc:js
-div(cls := "tiny", cls := "button").showHTML(preview)
+div(cls := "tiny", cls := "button").showHTMLForDoc(docPreview)
 ```
 
 ### Custom attributes, styles and tags
@@ -267,7 +269,7 @@ If you want to use something not available in Scala Dom Types, you can use custo
 htmlTag("app")(
   style("user-select") := "none",
   attr("everything") := "possible"
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 You can also define the accumulation behavior of custom attributes:
@@ -275,7 +277,7 @@ You can also define the accumulation behavior of custom attributes:
 div(
   attr("everything").accum("-") := "is",
   attr("everything").accum("-") := "possible",
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 If you think there is something missing in Scala Dom Types, please open a PR or Issue. Usually it's just a few lines of code.
@@ -292,7 +294,7 @@ div(
   data.`consent-required` := "Are you sure?",
   data.message.success := "Message sent!",
   aria.hidden := "true",
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 Source Code: [OutwatchAttributes.scala](@REPOURL@/outwatch/src/main/scala/outwatch/definitions/OutwatchAttributes.scala#L75), [Builder.scala](@REPOURL@/outwatch/src/main/scala/outwatch/helpers/Builder.scala#L35)
@@ -319,7 +321,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 ### VNode and VDomModifier
@@ -339,14 +341,14 @@ To make a set of modifiers reusable you can group them to become one `VDomModifi
 
 ```scala mdoc:js
 val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
-div("Argh!", bigFont).showHTML(preview)
+div("Argh!", bigFont).showHTMLForDoc(docPreview)
 ```
 
 If you want to reuse `bigFont`, but want to overwrite one of its properties, simply append the overwriting modifier. Here the latter `fontSize` will overwrite the one from `bigFont`:
 ```scala mdoc:js
 val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
 val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
-div("Argh!", bigFont2).showHTML(preview)
+div("Argh!", bigFont2).showHTMLForDoc(docPreview)
 ```
 
 You can also use a `Seq[VDomModifier]` directly instead of using `VDomModifier.apply`.
@@ -357,7 +359,7 @@ Outwatch does not have the concept of a component itself. You can just pass `VNo
 
 ```scala mdoc:js
 def fancyHeadLine(content: String) = h1(borderBottom := "1px dashed tomato", content)
-fancyHeadLine("I like tomatoes.").showHTML(preview)
+fancyHeadLine("I like tomatoes.").showHTMLForDoc(docPreview)
 ```
 
 
@@ -366,7 +368,7 @@ Components are immutable, we can only modify them by creating a changed copy. Li
 
 ```scala mdoc:js
 val x = div("dog")
-x(title := "the dog").showHTML(preview)
+x(title := "the dog").showHTMLForDoc(docPreview)
 ```
 
 This can be useful for reusing html snippets.
@@ -377,14 +379,14 @@ val box = div(width := "100px", height := "100px")
 div(
   box(backgroundColor := "powderblue"),
   box(backgroundColor := "mediumseagreen"),
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 Since modifiers are *appended*, they can overwrite existing ones. This is useful to adjust existing components to your needs.
 
 ```scala mdoc:js
 val box = div(width := "100px", height := "100px")
-box(backgroundColor := "mediumseagreen", width := "200px").showHTML(preview)
+box(backgroundColor := "mediumseagreen", width := "200px").showHTMLForDoc(docPreview)
 ```
 
 You can also *prepend* modifiers. This can be useful to provide defaults retroactively.
@@ -394,7 +396,7 @@ def withBorderIfNotProvided(vnode: VNode) = vnode.prepend(border := "3px solid c
 div(
   withBorderIfNotProvided(div("hello", border := "7px solid moccasin")),
   withBorderIfNotProvided(div("hello")),
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 Source Code: [VDomModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VDomModifier.scala#L110)
@@ -416,8 +418,8 @@ val component = div(
   itemA(flexBasis := "50px"),
   itemB(alignSelf.center),
 )
-component.showHTML(preview)
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+component.showHTMLForDoc(docPreview)
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -433,7 +435,7 @@ div(
   Seq("Hey", "How are you?"),
   List("a", "b", "c").map(div(_)),
   Some(Seq("x")),
-).showHTML(preview)
+).showHTMLForDoc(docPreview)
 ```
 
 Note, that outwatch does not accept `Set`, since the order is undefined.
@@ -464,8 +466,8 @@ val peter = Person("Peter", age = 22)
 
 val component = div(hans, peter)
 
-component.showHTML(preview)
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+component.showHTMLForDoc(docPreview)
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 Source Code: [Render.scala](@REPOURL@/outwatch/src/main/scala/outwatch/Render.scala)
@@ -501,7 +503,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 **Important:** In your application, `OutWatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Obvervable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
@@ -523,7 +525,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 ### Reactive Modifiers and VNodes
@@ -547,7 +549,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -561,7 +563,7 @@ val component = {
   div("Hello ", nodeStream)
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -579,7 +581,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 ### Higher Order Reactiveness
@@ -600,7 +602,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 ### Using other streaming libraries
@@ -651,7 +653,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 In the next example, we map the event `e` to extract `e.clientX` and write the result into the reactive variable (`BehaviorSubject`) called `x`:
@@ -671,7 +673,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 `EmitterBuilder` comes with many useful methods to make your life easier. Check the completions of your editor.
@@ -692,7 +694,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -726,7 +728,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 Another example with `debounce` functionality. The `debounced` reactive variable is filled once you stop typing for 500ms.
@@ -749,7 +751,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 ### Global events
@@ -769,7 +771,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -794,7 +796,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 As you can see, the state is shared between all usages of the component. Therefore, the component counter is not referentially transparent. We can change this, by wrapping the component in `IO` (or here: `SyncIO` for immediate rendering). With this change, the reactive variable `number` is instantiated separately for every usage at rendering time:
@@ -819,7 +821,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](preview, component).unsafeRunSync()
+OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
 ```
 
 Why should we care? Because referentially transparent components can easily be refactored without affecting the meaning of the program. Therefore it is easier to reason about them. Read more about the concept in Wikipedia: [Referential transparency](https://en.wikipedia.org/wiki/Referential_transparency)

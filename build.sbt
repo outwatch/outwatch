@@ -210,7 +210,7 @@ lazy val docs = project
       /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
       "VERSION" -> version.value,
       "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
-      "js-mount-node" -> "preview"
+      "js-mount-node" -> "docPreview"
     ),
   )
 
