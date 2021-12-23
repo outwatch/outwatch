@@ -3,7 +3,6 @@ package outwatch.repairdom
 import org.scalajs.dom._
 import scala.scalajs.js
 
-import outwatch.helpers.JSDefined
 import outwatch.helpers.NativeHelpers._
 import snabbdom.VNodeProxy
 
@@ -27,39 +26,41 @@ object RepairDom {
 
   def repairNode(proxy: VNodeProxy, level: Int = 0): Unit = {
     proxy.elm.foreach { elm =>
-      proxy.text match {
-        case JSDefined(text) =>
-          elm.textContent = text
-        case _               =>
+      proxy.text.fold{
           repairAttributes(proxy, elm)
           repairStyles(proxy, elm)
 
-          proxy.children match {
-            case JSDefined(childProxies) =>
+          proxy.children.fold {
+            removeAllDomChildren(elm)
+          }{
+            childProxies =>
               repairProxyNodes(childProxies, elm, level)
               removeAppendedNodes(childProxies, elm)
-            case _                       =>
-              removeAllDomChildren(elm)
           }
           repairProps(proxy, elm) // props could insert children with innerHTML
+      }{
+        text =>
+          elm.textContent = text
       }
     }
 
     def repairAttributes(proxy: VNodeProxy, elem: Element): Unit = {
-      proxy.data match {
-        case JSDefined(data) =>
-          data.attrs match {
-            case JSDefined(proxyAttributes) =>
+      proxy.data.fold {
+        removeAllAttributes(elem) }{
+        data =>
+          data.attrs.fold {
+           removeAllAttributes(elem) }{
+            proxyAttributes =>
               // fix or remove existing attributes
               var i = elem.attributes.length - 1
               while(i >= 0) {
                 val currentAttribute = elem.attributes(i)
                 val name = currentAttribute.name
-                proxyAttributes.raw(name) match {
-                  case JSDefined(value) =>
-                    elem.setAttribute(name, value.toString)
-                  case _                =>
+                proxyAttributes.raw(name).fold {
                     elem.removeAttribute(name)
+                }{
+                  value =>
+                    elem.setAttribute(name, value.toString)
                 }
                 i -= 1
               }
@@ -68,9 +69,7 @@ object RepairDom {
                 val value = proxyAttributes(name)
                 elem.setAttribute(name, value.toString)
               }
-            case _                          => removeAllAttributes(elem)
           }
-        case _               => removeAllAttributes(elem)
       }
     }
 
@@ -86,17 +85,19 @@ object RepairDom {
 
 
     def repairStyles(proxy: VNodeProxy, elem: Element): Unit = {
-      proxy.data match {
-        case JSDefined(data) =>
-          data.style match {
-            case JSDefined(proxyStyles) =>
+      proxy.data.fold{
+        removeAllStyles(elem) }{
+        data =>
+          data.style.fold{
+            removeAllStyles(elem) }{
+            proxyStyles =>
               // fix or remove existing styles
               var i = elem.style.length - 1
               while(i >= 0) {
                 val name = elem.style(i)
-                proxyStyles.raw(name) match {
-                  case JSDefined(value) => elem.style.setProperty(name, value.asInstanceOf[String])
-                  case _                => elem.style.removeProperty(name)
+                proxyStyles.raw(name).fold[Unit]{
+                  elem.style.removeProperty(name); () }{
+                  value => elem.style.setProperty(name, value.asInstanceOf[String])
                 }
                 i -= 1
               }
@@ -105,9 +106,7 @@ object RepairDom {
                 val value = proxyStyles(name)
                 elem.style.setProperty(name, value.asInstanceOf[String])
               }
-            case _                      => removeAllStyles(elem)
           }
-        case _               => removeAllStyles(elem)
       }
     }
 
@@ -116,16 +115,18 @@ object RepairDom {
     }
 
     def repairProps(proxy: VNodeProxy, elem: Element): Unit = {
-      proxy.data match {
-        case JSDefined(data) =>
-          data.props match {
-            case JSDefined(proxyProps) =>
+      proxy.data.fold {
+        removeAllProps(elem) }{
+        data =>
+          data.props.fold {
+            removeAllProps(elem) }{
+            proxyProps =>
               val domProps = elem.asInstanceOf[js.Dictionary[js.Any]]
               // fix or remove existing props
               domProps.keys.foreach { key =>
-                proxyProps.raw(key) match {
-                  case JSDefined(value) => domProps(key) = value.asInstanceOf[js.Any]
-                  case _                => domProps -= key
+                proxyProps.raw(key).fold[Unit] {
+                  domProps -= key; () }{
+                  value => domProps(key) = value.asInstanceOf[js.Any]
                 }
               }
 
@@ -134,9 +135,7 @@ object RepairDom {
                 val value = proxyProps(key)
                 domProps(key) = value.asInstanceOf[js.Any]
               }
-            case _                     => removeAllProps(elem)
           }
-        case _               => removeAllProps(elem)
       }
     }
 
