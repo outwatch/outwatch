@@ -38,6 +38,7 @@ lazy val commonSettings = Seq(
     allOptionsForVersion(s"${v._1}.${v._2}", true)
   ).getOrElse(Nil),
   Compile / console / scalacOptions ~= (_.diff(badConsoleFlags)),
+  Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 )
 
 lazy val librarySettings = commonSettings ++ Seq(

@@ -11,6 +11,7 @@ import outwatch.reactive.handler._
 import colibri._
 
 class Storage(storage: dom.Storage) {
+  @deprecated
   private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Handler[Option[String]]] = {
 
     for {
@@ -43,15 +44,18 @@ class Storage(storage: dom.Storage) {
         None
     }
 
+  @deprecated
   def handlerWithoutEvents[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
     handlerWithTransform(key, identity)
   }
 
+  @deprecated
   def handlerWithEventsOnly[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, _ => storageEvents)
   }
 
+  @deprecated
   def handler[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))

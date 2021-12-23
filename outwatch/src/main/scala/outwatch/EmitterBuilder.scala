@@ -218,16 +218,20 @@ object EmitterBuilder {
   }
 
   @inline implicit class HandlerIntegrationMonoid[O, R : Monoid, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
+    @deprecated
     @inline def handled(f: Observable[O] => R): SyncIO[R] = handledF[SyncIO](f)
 
+    @deprecated
     @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
       Monoid[R].combine(builder.forwardTo(handler), f(handler))
     }
   }
 
   @inline implicit class HandlerIntegration[O, R, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
+    @deprecated
     @inline def handledWith(f: (R, Observable[O]) => R): SyncIO[R] = handledWithF[SyncIO](f)
 
+    @deprecated
     @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
       f(builder.forwardTo(handler), handler)
     }
