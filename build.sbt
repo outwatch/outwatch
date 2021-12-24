@@ -60,23 +60,10 @@ lazy val commonSettings = Seq(
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 )
 
-lazy val librarySettings = commonSettings ++ Seq(
-
-  scalacOptions += {
-    val githubRepo    = "OutWatch/outwatch"
-    val local         = baseDirectory.value.toURI
-    val subProjectDir = baseDirectory.value.getName
-    val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
-    s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
-  },
-
-  pomIncludeRepository := { _ => false }
-)
-
 lazy val outwatchReactive = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .in(file("reactive"))
-  .settings(librarySettings)
+  .settings(commonSettings)
   .settings(
     name := "OutWatch-Reactive",
     normalizedName := "outwatch-reactive",
@@ -90,7 +77,7 @@ lazy val outwatchUtil = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .in(file("util"))
-  .settings(librarySettings)
+  .settings(commonSettings)
   .settings(
     name := "OutWatch-Util",
     normalizedName := "outwatch-util",
@@ -100,7 +87,7 @@ lazy val outwatchMonix = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .in(file("monix"))
-  .settings(librarySettings)
+  .settings(commonSettings)
   .settings(
     name := "OutWatch-Monix",
     normalizedName := "outwatch-monix",
@@ -115,7 +102,7 @@ lazy val outwatchRepairDom = project
   .in(file("repairdom"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
-  .settings(librarySettings)
+  .settings(commonSettings)
   .settings(
     name := "OutWatch-RepairDom",
     normalizedName := "outwatch-repairdom",
@@ -124,7 +111,7 @@ lazy val outwatchRepairDom = project
 lazy val outwatchSnabbdom = project
   .in(file("snabbdom"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .settings(librarySettings)
+  .settings(commonSettings)
   .settings(
     name := "OutWatch-Snabbdom",
     normalizedName := "outwatch-snabbdom",
@@ -142,7 +129,7 @@ lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatchSnabbdom, outwatchReactive)
-  .settings(librarySettings)
+  .settings(commonSettings)
   .settings(
     name := "OutWatch",
     normalizedName := "outwatch",
