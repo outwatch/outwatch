@@ -77,16 +77,13 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       case (state, Minus) => state.copy(state.count - 1, state.iterations + 1)
     }
 
-    // val other = colibri.Subject.publish[Plus.type]
-    val other = colibri.Subject.publish[CounterAction].transformSubjectSource(_.map(_.toString))
-  
     val node: IO[VNode] = for {
       store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce)
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
-        button(idAttr := "plus", "+", onClick.use(Plus) --> other),
-        // button(idAttr := "minus", "-", onClick.use(Minus) --> store),
+        button(idAttr := "plus", "+", onClick.use(Plus) --> store),
+        button(idAttr := "minus", "-", onClick.use(Minus) --> store),
         span(idAttr :="counter")(
           state.map(_.count)
         ),
