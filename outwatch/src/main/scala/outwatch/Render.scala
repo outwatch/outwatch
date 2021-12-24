@@ -52,16 +52,18 @@ object Render {
     @inline def render(value: Option[T]): VDomModifier = optionToModifierRender(value)
   }
 
-  // implicit object UndefinedModifier extends Render[js.UndefOr[VDomModifier]] {
-  //   @inline def render(value: js.UndefOr[VDomModifier]): VDomModifier = value.getOrElse(VDomModifier.empty)
-  // }
+  // Workaround for https://github.com/lampepfl/dotty/issues/14169
+  implicit val UndefinedModifier:Render[js.UndefOr[VDomModifier]] = new Render[js.UndefOr[VDomModifier]] {
+    @inline def render(value: js.UndefOr[VDomModifier]): VDomModifier = value.getOrElse(VDomModifier.empty)
+  }
 
   // @inline implicit def UndefinedModifierAs[T : Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
   // @inline private class UndefinedRenderAsClass[T : Render] extends Render[js.UndefOr[T]] {
   //   @inline def render(value: js.UndefOr[T]): VDomModifier = undefinedToModifierRender(value)
   // }
 
-  implicit object VDomModifierRender extends Render[VDomModifier] {
+  // Workaround for https://github.com/lampepfl/dotty/issues/14169
+  implicit val VDomModifierRender:Render[VDomModifier] = new Render[VDomModifier] {
     @inline def render(value: VDomModifier): VDomModifier = value
   }
 
