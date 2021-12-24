@@ -19,10 +19,10 @@ trait ManagedSubscriptions {
   @inline def managedFunction[T : CanCancel](subscription: () => T): VDomModifier = CancelableModifier(() => Cancelable.lift(subscription()))
 
   object managedElement {
-    def apply[T : CanCancel](subscription: dom.Element => T): VDomModifier = VDomModifier.delay {
-      var lastSub: js.UndefOr[T] = js.undefined
+    def apply[T : CanCancel](subscription: dom.Element => T): VDomModifier = VDomModifier.delay[VDomModifier] {
+      var lastSub: Option[T] = None
       VDomModifier(
-        dsl.onDomMount foreach { elem => lastSub = subscription(elem) },
+        dsl.onDomMount foreach { elem => lastSub = Some(subscription(elem)) },
         dsl.onDomUnmount foreach { lastSub.foreach(CanCancel[T].cancel) }
       )
     }

@@ -68,12 +68,12 @@ trait OutwatchAttributes {
   @inline def key = KeyBuilder
 }
 
-trait DocumentTagDeprecations[T[_ <: dom.html.Element]] { self: DocumentTags[T] =>
+trait DocumentTagDeprecations[T[_]] { self: DocumentTags[T] with com.raquo.domtypes.generic.builders.HtmlTagBuilder[T, org.scalajs.dom.html.Element] => //Workaround for https://github.com/lampepfl/dotty/issues/14095
   @deprecated("removed to free up name for use in local variables, use linkTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def link = linkTag
 }
 
-trait EmbedTagDeprecations[T[_ <: dom.html.Element]] { self: EmbedTags[T] =>
+trait EmbedTagDeprecations[T[_]] { self: EmbedTags[T] with com.raquo.domtypes.generic.builders.HtmlTagBuilder[T, org.scalajs.dom.html.Element] => //Workaround for https://github.com/lampepfl/dotty/issues/14095
   @deprecated("removed to free up name for use in local variables, use objectTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline def `object` = objectTag
 

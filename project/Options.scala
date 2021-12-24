@@ -15,7 +15,7 @@ object Options {
     "-Ypartial-unification",             // Enable partial unification in type constructor inference
   )
 
-  val badConsoleFlags = Seq("-P:silencer:checkUnused", "-Ywarn-unused:imports", "-Xfatal-warnings")
+  val badConsoleFlags = Seq("-Ywarn-unused:imports")
 
   val options211 = baseOptions ++ Seq(
       "-Ywarn-unused",
@@ -23,7 +23,6 @@ object Options {
   )
 
   val options212 = baseOptions ++ Seq(
-      "-Xfatal-warnings",                  // Fail the compilation if there are any warnings.
       "-Xfuture",                          // Turn on future language features.
       "-Xlint:adapted-args",               // Warn if an argument list is modified to match the receiver.
       "-Xlint:by-name-right-associative",  // By-name parameter of right associative operator.
@@ -57,7 +56,6 @@ object Options {
       "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
       "-Ywarn-unused:privates",            // Warn if a private member is unused.
       "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
-      "-P:silencer:checkUnused",           // Warn if silencer is used when no warning is suppressed
   )
 
   val options213 = options212.diff(Seq(

@@ -41,16 +41,16 @@ private[outwatch] object SeparatedModifiers {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
 
-    @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
-    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVDomModifier])(nextModifiers = _)
-    @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
-    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
-    @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
-    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[DataObject.StyleValue]())(styles = _)
+    @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])( x => proxies = x)
+    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVDomModifier])( x => nextModifiers = x)
+    @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())( x => emitters = x)
+    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(x => attrs = x)
+    @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(x => props = x)
+    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[DataObject.StyleValue]())(x => styles = x)
     @inline def setSpecialStyle(styleName: String)(title: String, value: String): Unit = {
       val styles = assureStyles()
       styles.raw(styleName).fold {
-        styles(styleName) = js.Dictionary[String](title -> value): DataObject.StyleValue
+        styles(styleName) = js.Dictionary[String](title -> value)
       } { style =>
         style.asInstanceOf[js.Dictionary[String]](title) = value
       }
@@ -82,10 +82,10 @@ private[outwatch] object SeparatedModifiers {
         ()
       case a : AccumAttr =>
         val attrs = assureAttrs()
-        val attr = attrs.raw(a.title)
+        val attr: js.UndefOr[Attr.Value] = attrs.raw(a.title)
         attr.fold {
           attrs(a.title) = a.value
-        } { attr =>
+        } { (attr: Attr.Value) =>
           attrs(a.title) = a.accum(attr, a.value)
         }
         ()

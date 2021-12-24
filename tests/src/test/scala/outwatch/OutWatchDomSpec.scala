@@ -86,7 +86,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         Seq[VDomModifier](
           div(),
           attributes.`class` := "blue",
-          attributes.onClick.use(1) foreach {},
+          attributes.onClick.use(1) foreach (()),
           attributes.hidden <-- Observable(false)
         )
       ),
@@ -237,7 +237,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       }
 
       _ <- IO(list.isEmpty shouldBe true)
-      _ <- OutWatch.renderInto[IO](node, vtree)
+      _ <- OutWatch.renderInto[IO](node, vtree) //, RenderConfig.default)
     } yield {
 
       list should contain theSameElementsAs List(
@@ -2403,7 +2403,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     var incCounter =  0
     var mapCounter = 0
-    val innerMod  = onClick.transformLift(_ => clicks.map { c => mapCounter += 1; c }) foreach { incCounter += 1 }
+    val innerMod  = onClick.transform(_ => colibri.Observable.lift(clicks).map { c => mapCounter += 1; c }) foreach { incCounter += 1 }
     val modHandler = Handler.unsafe[VDomModifier](innerMod)
 
     val innerNode = div(modHandler)

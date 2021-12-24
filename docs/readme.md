@@ -614,8 +614,8 @@ For using outwatch with monix:
 import colibri.ext.monix._
 ```
 
-For using outwatch with scala.rx:
-```scala mdoc:js:compile-only
+For using outwatch with scala.rx (Only Scala 2.x):
+```scala
 import colibri.ext.rx._
 ```
 

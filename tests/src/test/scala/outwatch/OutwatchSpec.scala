@@ -88,10 +88,10 @@ trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe w
 }
 
 abstract class JSDomSpec extends AnyFlatSpec with OutwatchSpec {
-  implicit def executionContext = scheduler
+  implicit def executionContext: Scheduler = scheduler
 }
 abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
-  override def executionContext = scheduler
+  override def executionContext: Scheduler = scheduler
 
   implicit def ioAssertionToFutureAssertion(io: IO[Assertion]): Future[Assertion] = io.unsafeToFuture()
 }

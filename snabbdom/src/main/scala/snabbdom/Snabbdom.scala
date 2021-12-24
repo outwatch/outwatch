@@ -1,6 +1,5 @@
 package snabbdom
 
-import com.github.ghik.silencer.silent
 import org.scalajs.dom._
 
 import scala.scalajs.js
@@ -79,7 +78,7 @@ object thunk {
         (oldArgs.length != newArgs.length) || existsIndexWhere(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
 
-      prepatch(fn, isDifferent, oldProxy, thunk)
+      thunkPrepatch(fn, isDifferent, oldProxy, thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
@@ -89,13 +88,13 @@ object thunk {
     for {
       shouldRender <- thunk._args.asInstanceOf[js.UndefOr[Boolean]]
     } {
-      prepatch(fn, shouldRender, oldProxy, thunk)
+      thunkPrepatch(fn, shouldRender, oldProxy, thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
   }
 
-  @inline private def prepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
+  @inline private def thunkPrepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     if(shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
     else VNodeProxy.updateInto(source = oldProxy, target = thunk)
   }
@@ -195,39 +194,33 @@ object VNodeProxy {
 @js.native
 @JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
 object Snabbdom extends js.Object {
-  @silent("never used|dead code")
   def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
 }
 
-@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
 object SnabbdomClass extends js.Object {
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
 object SnabbdomEventListeners extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
 object SnabbdomAttributes extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
 object SnabbdomProps extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
 @js.native
 @JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
 object SnabbdomStyle extends js.Object {
