@@ -16,7 +16,26 @@ inThisBuild(Seq(
     url("https://github.com/OutWatch/outwatch"),
     "scm:git:git@github.com:OutWatch/outwatch.git",
     Some("scm:git:git@github.com:OutWatch/outwatch.git"))
-  )
+  ),
+
+  pomExtra :=
+    <developers>
+        <developer>
+        <id>jk</id>
+        <name>Johannes Karoff</name>
+        <url>https://github.com/cornerman</url>
+        </developer>
+        <developer>
+        <id>fx</id>
+        <name>Felix Dietze</name>
+        <url>https://github.com/fdietze</url>
+        </developer>
+        <developer>
+        <id>ltj</id>
+        <name>Luka Jacobowitz</name>
+        <url>https://github.com/LukaJCB</url>
+        </developer>
+    </developers>,
 ))
 
 val jsdomVersion = "13.2.0"
@@ -50,20 +69,6 @@ lazy val librarySettings = commonSettings ++ Seq(
     val remote        = s"https://raw.githubusercontent.com/${githubRepo}/${git.gitHeadCommit.value.get}"
     s"-P:scalajs:mapSourceURI:$local->$remote/${subProjectDir}/"
   },
-
-  pomExtra :=
-    <developers>
-        <developer>
-        <id>jk</id>
-        <name>Johannes Karoff</name>
-        <url>https://github.com/cornerman</url>
-        </developer>
-        <developer>
-        <id>ltj</id>
-        <name>Luka Jacobowitz</name>
-        <url>https://github.com/LukaJCB</url>
-        </developer>
-    </developers>,
 
   pomIncludeRepository := { _ => false }
 )
