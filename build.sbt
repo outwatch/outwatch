@@ -37,8 +37,10 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val colibriVersion = "0.1.2+9-e8601a4b-SNAPSHOT"
-resolvers +=
-  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+ThisBuild / resolvers ++= Seq(
+  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+  "Sonatype OSS Snapshots S01" at "https://s01.oss.sonatype.org/content/repositories/snapshots", // https://central.sonatype.org/news/20210223_new-users-on-s01/
+)
 
 
 val isDotty = Def.setting(
