@@ -12,7 +12,6 @@ import outwatch.util._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
 
-
   def getMinus: Element   = document.getElementById("minus")
   def getPlus: Element    = document.getElementById("plus")
   def getCounter: Element = document.getElementById("counter")
