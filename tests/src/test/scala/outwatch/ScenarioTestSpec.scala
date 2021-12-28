@@ -237,22 +237,25 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       clickStream <- Handler.createF[IO, MouseEvent]
       keyStream <- Handler.createF[IO, KeyboardEvent]
 
-      buttonDisabled = textFieldStream
+
+    } yield {
+      val buttonDisabled = textFieldStream
         .map(_.length < 2)
         .startWith(Seq(true))
 
-      enterPressed = keyStream
+      val enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = Observable(enterPressed, clickStream).merge
+      val confirm = Observable(enterPressed, clickStream).merge
         .withLatestFrom(textFieldStream)((_, input) => input)
 
-    } yield div(
+      div(
         emitter(confirm) --> outputStream,
         label(labelText),
         input(idAttr := "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
         button(idAttr := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
+    }
 
 
 
