@@ -33,7 +33,7 @@ jobs:
           key: ${{ runner.os }}-scala-target-${{ github.sha }}
 
       - name: Test
-        run: sbt ++${{matrix.scalaVersion}} test docs/mdoc bench/compile
+        run: sbt ++${{matrix.scalaVersion}} test docs/mdoc
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
