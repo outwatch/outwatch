@@ -1,6 +1,5 @@
 import Options._
 
-
 inThisBuild(Seq(
   organization := "io.github.outwatch",
 
@@ -165,24 +164,28 @@ lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatchMonix)
   .settings(
+    /* scalaJSUseMainModuleInitializer := true, */
     publish/skip := true,
 
     resolvers += "jitpack" at "https://jitpack.io",
     libraryDependencies ++= Seq(
       "com.github.fdietze.bench" %%% "bench" % "d411db1",
+      "org.scalatest" %%% "scalatest" % "3.2.10" % Test,
     ),
 
-    libraryDependencies ++=
-      "com.github.fdietze.bench" %%% "bench" % "d411db1" ::
-      Nil,
+    /* jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(), */
+    /* Test/requireJsDomEnv := true, */
 
-    Compile/scalaJSStage := FullOptStage,
+    /* scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)), */
+
+
+    /* Compile/scalaJSStage := FullOptStage, */
 
     useYarn := true,
 
-    Compile/npmDependencies ++= Seq(
-      "jsdom" -> jsdomVersion
-    ),
+    /* Compile/npmDependencies ++= Seq( */
+    /*   "jsdom" -> jsdomVersion */
+    /* ), */
   )
 
 lazy val jsdocs = project
