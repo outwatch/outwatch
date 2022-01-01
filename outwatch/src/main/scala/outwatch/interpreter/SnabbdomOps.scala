@@ -57,7 +57,7 @@ private[outwatch] object SnabbdomOps {
     case _ => js.undefined
   }
 
-   def toSnabbdom(node: VNode, config: RenderConfig): VNodeProxy = node match {
+   def toSnabbdom(node: VNode, config: RenderConfig = RenderConfig.default): VNodeProxy = node match {
      case node: BasicVNode =>
        toRawSnabbdomProxy(node, config)
      case node: ConditionalVNode =>

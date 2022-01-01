@@ -11,7 +11,7 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
 
-object DomLiteralBenchmark extends js.JSApp {
+object DomLiteralBenchmark {
   def main(): Unit = {
     import scala.concurrent.duration._
 

@@ -167,16 +167,16 @@ lazy val bench = project
   .settings(
     publish/skip := true,
 
-    resolvers ++=
-      ("jitpack" at "https://jitpack.io") ::
-      Nil,
+    resolvers += "jitpack" at "https://jitpack.io",
+    libraryDependencies ++= Seq(
+      "com.github.fdietze.bench" %%% "bench" % "d411db1",
+    ),
 
     libraryDependencies ++=
       "com.github.fdietze.bench" %%% "bench" % "d411db1" ::
       Nil,
 
     Compile/scalaJSStage := FullOptStage,
-    scalacOptions ++= Seq ("-Xdisable-assertions"),
 
     useYarn := true,
 

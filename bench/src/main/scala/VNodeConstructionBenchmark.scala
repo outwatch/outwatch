@@ -12,7 +12,7 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
 
-object VNodeConstructionBenchmark extends js.JSApp {
+object VNodeConstructionBenchmark {
 
   implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
 
