@@ -125,10 +125,12 @@ lazy val outwatchSnabbdom = project
     )
   )
 
+lazy val hummingbird = ProjectRef(file("../hummingbird"), "core")
+
 lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchSnabbdom, outwatchReactive)
+  .dependsOn(outwatchSnabbdom, outwatchReactive, hummingbird)
   .settings(commonSettings)
   .settings(
     name := "OutWatch",
