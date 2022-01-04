@@ -34,8 +34,7 @@ import scala.concurrent.duration.FiniteDuration
 // from the emitterbuilder.
 //
 
-
-class EmitterBuilderLib(implicit cereal: Cereal) { lib =>
+class CEmitterBuilder(implicit cereal: Cereal) { lib =>
   import cereal._
 
   sealed trait Execution
@@ -154,7 +153,7 @@ class EmitterBuilderLib(implicit cereal: Cereal) { lib =>
     @inline def forwardTo(sink: Rx[_ >: Nothing]): R = empty
   }
 
-  @inline final class Stream[+O, +R: SubscriptionOwner : CanCancel](source: Tx[O], result: R) extends EmitterBuilderExecution[O, R, Execution] {
+  @inline final class Stream[+O, +R: SubscriptionOwner](source: Tx[O], result: R) extends EmitterBuilderExecution[O, R, Execution] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Rx[T] => Rx[O]): EmitterBuilderExecution[T, R, Execution] = new Stream(source.redirect(f), result)
     @inline private[outwatch] def transformWithExec[T](f: Tx[O] => Tx[T]): EmitterBuilderExecution[T, R, Execution] = new Stream(f(source), result)
     @inline def forwardTo(sink: Rx[_ >: O]): R = SubscriptionOwner[R].own(result)(() => source.subscribe(sink))
@@ -289,8 +288,8 @@ class EmitterBuilderLib(implicit cereal: Cereal) { lib =>
       SyncIO {
         var lastValue: js.UndefOr[T] = js.undefined
         Monoid[R].combine(
-          latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.onError)),
-          sourceEmitter.forwardTo(Observer.create[O](
+          latestEmitter.forwardTo(Rx.foreach[T](lastValue = _, sink.onError)),
+          sourceEmitter.forwardTo(Rx.foreach[O](
             { o =>
               lastValue.foreach { t =>
                 sink.onNext((o, t))
