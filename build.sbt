@@ -213,7 +213,7 @@ lazy val docs = project
       "js-mount-node" -> "preview"
     ),
     libraryDependencies ++= Seq(
-      "org.scala-js" %% "scalajs-compiler" % scalaJSVersion,
+      "org.scala-js" %% "scalajs-compiler" % scalaJSVersion cross CrossVersion.full,
       "org.scala-js" %% "scalajs-linker" % scalaJSVersion
     )
   )
