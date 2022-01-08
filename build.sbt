@@ -205,6 +205,10 @@ lazy val docs = project
       "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
       "js-mount-node" -> "docPreview"
     ),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %% "scalajs-compiler" % scalaJSVersion cross CrossVersion.full,
+      "org.scala-js" %% "scalajs-linker" % scalaJSVersion
+    )
   )
 
 lazy val root = project
