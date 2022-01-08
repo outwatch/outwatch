@@ -2,7 +2,8 @@ package outwatch.definitions
 
 import com.raquo.domtypes.generic.defs.complex.canonical
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
-import com.raquo.domtypes.generic.{builders, codecs, keys}
+import com.raquo.domtypes.generic.{builders, codecs}
+import com.raquo.domtypes.generic.defs.styles.units.{LengthUnits, UrlUnits}
 import com.raquo.domtypes.jsdom.defs.eventProps
 import com.raquo.domtypes.jsdom.defs.tags._
 import org.scalajs.dom
