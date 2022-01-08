@@ -205,10 +205,16 @@ lazy val docs = project
       "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
       "js-mount-node" -> "docPreview"
     ),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %% "scalajs-compiler" % scalaJSVersion cross CrossVersion.full,
-      "org.scala-js" %% "scalajs-linker" % scalaJSVersion
-    )
+    libraryDependencies += "org.scala-js" %% "scalajs-linker" % scalaJSVersion,
+    libraryDependencies += {
+      scalaBinaryVersion.value match {
+        // keep these pinned to mdoc.js Scala versions
+        // scala-steward:off
+        case "2.12" => "org.scala-js" %% "scalajs-compiler" % scalaJSVersion cross CrossVersion.constant("2.12.15")
+        case "2.13" => "org.scala-js" %% "scalajs-compiler" % scalaJSVersion cross CrossVersion.constant("2.13.6")
+        // scala-steward:on
+      }
+    }
   )
 
 lazy val root = project
