@@ -40,7 +40,7 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.7"
-val colibriVersion = "0.1.2"
+val colibriVersion = "0.2.0"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
