@@ -2,7 +2,7 @@ package outwatch
 
 import org.scalajs.dom.Element
 import outwatch.interpreter.SnabbdomOps
-import colibri.{Source, Observable}
+import colibri.Observable
 
 import scala.scalajs.js
 
@@ -30,11 +30,11 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream[F[_] : Source](valueStream: F[Seq[ChildCommand]], config: RenderConfig): VDomModifier = VDomModifier.delay {
+  def stream(valueStream: Observable[Seq[ChildCommand]], config: RenderConfig): VDomModifier = VDomModifier.delay {
 
     val children = new js.Array[VNodeProxyNode]
 
-    Observable.map(valueStream) { cmds =>
+    valueStream.map { cmds =>
       val idToIndex: ChildId => Int = {
         case ChildId.Key(key) => children.indexWhere { tree =>
           tree.proxy.key.fold(false)((k: Key.Value) => k == key)

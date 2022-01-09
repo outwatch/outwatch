@@ -9,6 +9,7 @@ import org.scalajs.dom
 import outwatch._
 import outwatch.helpers._
 import colibri.Observable
+import colibri.jsdom.EventObservable
 import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
@@ -124,18 +125,18 @@ trait Events
 
 // Window / Document events
 
-private[outwatch] abstract class SourceEventPropBuilder(target: dom.EventTarget)
-  extends builders.EventPropBuilder[Observable.Synchronous, dom.Event] {
-  override def eventProp[V <: dom.Event](key: String): Observable.Synchronous[V] = Observable.ofEvent[V](target, key)
+abstract class WindowEvents
+  extends builders.EventPropBuilder[EventObservable, dom.Event]
+  with eventProps.WindowEventProps[EventObservable] {
+
+  override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.window, key)
 }
 
-abstract class WindowEvents
-  extends SourceEventPropBuilder(dom.window)
-  with eventProps.WindowEventProps[Observable.Synchronous]
-
 abstract class DocumentEvents
-  extends SourceEventPropBuilder(dom.document)
-  with eventProps.DocumentEventProps[Observable.Synchronous] {
+  extends builders.EventPropBuilder[EventObservable, dom.Event]
+  with eventProps.DocumentEventProps[EventObservable] {
+
+  override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.document, key)
 
   def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
     outwatch.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },

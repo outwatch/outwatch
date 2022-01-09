@@ -39,7 +39,7 @@ object Store {
       source
         .scan[(A, M)](initialAction -> initialState)(fold)
         .behavior(initialAction -> initialState).refCount
-        .withDefaultSubscription[Observer](Observer.empty)
+        .withDefaultSubscription(Observer.empty)
     )
   }
 }
