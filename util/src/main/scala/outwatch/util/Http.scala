@@ -81,7 +81,7 @@ object Http {
             case AjaxException(req) => toResponse(req)
           }
       )
-    }.publish
+    }.publish.refCount
 
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType)(implicit ec: ExecutionContext) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)

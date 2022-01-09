@@ -22,7 +22,7 @@ class Storage(storage: dom.Storage) {
       h.transformSubject[Option[String]] { o =>
         val c = o.redirect((o: Observable[Option[String]]) => transform(o).distinct)
         c.connect()
-        c.sink
+        c.value
       } { input =>
         input.doOnNext {
           case Some(data) => storage.setItem(key, data)
