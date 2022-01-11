@@ -121,7 +121,7 @@ lazy val outwatchSnabbdom = project
     ),
 
     Compile/npmDependencies ++= Seq(
-      "snabbdom" -> "git://github.com/outwatch/snabbdom.git#semver:0.7.5"
+      "snabbdom" -> "github:outwatch/snabbdom.git#semver:0.7.5"
     )
   )
 
