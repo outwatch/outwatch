@@ -39,7 +39,7 @@ inThisBuild(Seq(
 ))
 
 val jsdomVersion = "13.2.0"
-val silencerVersion = "1.7.7"
+val silencerVersion = "1.7.8"
 val colibriVersion = "0.2.2"
 
 lazy val commonSettings = Seq(
