@@ -34,8 +34,8 @@ import scala.concurrent.duration.FiniteDuration
 // from the emitterbuilder.
 //
 
-class CEmitterBuilder(implicit cereal: Cereal) { lib =>
-  import cereal._
+class CEmitterBuilder(implicit env: Env) { lib =>
+  import env._
 
   sealed trait Execution
   sealed trait SyncExecution extends Execution
@@ -137,7 +137,6 @@ class CEmitterBuilder(implicit cereal: Cereal) { lib =>
 
     // @inline def mapResult[S](f: R => S): EmitterBuilderExecution[O, S, Exec] = new EmitterBuilder.MapResult[O, R, S, Exec](this, f)
   }
-
 
   type Sync[+O, +R] = EmitterBuilderExecution[O, R, SyncExecution]
 

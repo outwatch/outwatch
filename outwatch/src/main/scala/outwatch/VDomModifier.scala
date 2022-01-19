@@ -10,8 +10,8 @@ import snabbdom.{DataObject, VNodeProxy}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-class CVDomModifier(implicit cereal: Cereal) {
-  import cereal._
+class CVDomModifier(implicit env: Env) {
+  import env._
 
   sealed trait VDomModifier
 
