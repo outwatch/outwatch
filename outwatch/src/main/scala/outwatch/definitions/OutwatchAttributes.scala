@@ -116,6 +116,8 @@ trait SvgAttributeDeprecations { self: SvgAttrs =>
 }
 
 trait AttributeHelpers { self: Attributes =>
+  val innerHTML: PropBuilder[UnsafeHTML] = prop[UnsafeHTML]("innerHTML", _.html)
+
   @inline def `class` = className
 
   @inline def `for` = forId
