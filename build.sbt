@@ -49,7 +49,7 @@ lazy val commonSettings = Seq(
   useYarn := true,
 
   libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.10" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.11" % Test,
     "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full,
   ),
 
