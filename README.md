@@ -55,7 +55,7 @@ In your newly created project directory, run:
 sbt dev
 ```
 
-and point your browser to http://localhost:8080.
+and point your browser to http://localhost:12345.
 
 ### Manual setup
 
