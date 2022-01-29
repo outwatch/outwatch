@@ -3176,9 +3176,9 @@ signal-exit@^3.0.0:
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.3.tgz#a1410c2edd8f077b08b4e253c8eacfcaf057461c"
   integrity sha512-VUJ49FC8U1OxwZLxIbTTrDvLnf/6TDgxZcK8wxR8zs13xpx7xbG60ndBlhNrFi2EMuFRoeDoJO7wthSLq42EjA==
 
-"snabbdom@git://github.com/outwatch/snabbdom.git#semver:0.7.5":
+"snabbdom@github:outwatch/snabbdom.git#semver:0.7.5":
   version "0.7.5"
-  resolved "git://github.com/outwatch/snabbdom.git#f92761a40914825d7b8f702f607f9d929f95033f"
+  resolved "https://codeload.github.com/outwatch/snabbdom/tar.gz/f92761a40914825d7b8f702f607f9d929f95033f"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"
