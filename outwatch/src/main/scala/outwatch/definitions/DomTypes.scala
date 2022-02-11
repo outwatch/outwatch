@@ -14,7 +14,7 @@ import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
   type ReflectedAttribute[T, _] = AttributeBuilder[T, Attr]
-  type Attribute[T] = BasicAttrBuilder[T]
+  type Attribute[T] = AttributeBuilder[T, Attr]
   type Property[T, _] = PropBuilder[T]
   type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VDomModifier]
   type HtmlTag[T] = HtmlVNode
@@ -100,6 +100,13 @@ trait HtmlAttrs
     "class",
     identity,
     (v1, v2) => s"$v1 $v2"
+  )
+
+  // super.styleAttr.accum(";") would have been nicer, but we can't do super.styleAttr on a lazy val
+  override lazy val styleAttr: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
+    "style",
+    identity,
+    (v1, v2) => s"$v1;$v2"
   )
 }
 
