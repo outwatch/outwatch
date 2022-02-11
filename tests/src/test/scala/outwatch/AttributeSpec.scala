@@ -17,6 +17,16 @@ class AttributeSpec extends JSDomSpec {
     node.data.get.attrs.get.toList shouldBe List("class" -> "class1 class2")
   }
 
+  "style attributes" should "be accumulated" in {
+
+    val node = SnabbdomOps.toSnabbdom(input(
+      styleAttr := "height: 100px",
+      styleAttr := "width: 200px"
+    ), RenderConfig.ignoreError)
+
+    node.data.get.attrs.get.toList shouldBe List("style" -> "height: 100px;width: 200px")
+  }
+
   "custom attributes" should "be able to be accumulated" in {
 
     val node = SnabbdomOps.toSnabbdom(input(
