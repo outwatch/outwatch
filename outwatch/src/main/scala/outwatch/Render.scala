@@ -8,6 +8,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
 
 import cats.effect.Effect
+import cats.data.{NonEmptyList, NonEmptySeq, NonEmptyVector, NonEmptyChain}
 
 trait Render[-T] {
   def render(value: T): VDomModifier
@@ -41,6 +42,42 @@ object Render {
   @inline implicit def SeqModifierAs[T : Render]: Render[Seq[T]] = new SeqRenderAsClass[T]
   @inline private class SeqRenderAsClass[T : Render] extends Render[Seq[T]] {
     @inline def render(value: Seq[T]) = iterableToModifierRender(value)
+  }
+
+  implicit object NonEmptyListModifier extends Render[NonEmptyList[VDomModifier]] {
+    @inline def render(value: NonEmptyList[VDomModifier]): VDomModifier = CompositeModifier(value.toList)
+  }
+
+  @inline implicit def NonEmptyListModifierAs[T : Render]: Render[NonEmptyList[T]] = new NonEmptyListRenderAsClass[T]
+  @inline private class NonEmptyListRenderAsClass[T : Render] extends Render[NonEmptyList[T]] {
+    @inline def render(value: NonEmptyList[T]) = iterableToModifierRender(value.toList)
+  }
+
+  implicit object NonEmptyVectorModifier extends Render[NonEmptyVector[VDomModifier]] {
+    @inline def render(value: NonEmptyVector[VDomModifier]): VDomModifier = CompositeModifier(value.toVector)
+  }
+
+  @inline implicit def NonEmptyVectorModifierAs[T : Render]: Render[NonEmptyVector[T]] = new NonEmptyVectorRenderAsClass[T]
+  @inline private class NonEmptyVectorRenderAsClass[T : Render] extends Render[NonEmptyVector[T]] {
+    @inline def render(value: NonEmptyVector[T]) = iterableToModifierRender(value.toVector)
+  }
+
+  implicit object NonEmptySeqModifier extends Render[NonEmptySeq[VDomModifier]] {
+    @inline def render(value: NonEmptySeq[VDomModifier]): VDomModifier = CompositeModifier(value.toSeq)
+  }
+
+  @inline implicit def NonEmptySeqModifierAs[T : Render]: Render[NonEmptySeq[T]] = new NonEmptySeqRenderAsClass[T]
+  @inline private class NonEmptySeqRenderAsClass[T : Render] extends Render[NonEmptySeq[T]] {
+    @inline def render(value: NonEmptySeq[T]) = iterableToModifierRender(value.toSeq)
+  }
+
+  implicit object NonEmptyChainModifier extends Render[NonEmptyChain[VDomModifier]] {
+    @inline def render(value: NonEmptyChain[VDomModifier]): VDomModifier = CompositeModifier(value.toChain.toList)
+  }
+
+  @inline implicit def NonEmptyChainModifierAs[T : Render]: Render[NonEmptyChain[T]] = new NonEmptyChainRenderAsClass[T]
+  @inline private class NonEmptyChainRenderAsClass[T : Render] extends Render[NonEmptyChain[T]] {
+    @inline def render(value: NonEmptyChain[T]) = iterableToModifierRender(value.toChain.toList)
   }
 
   implicit object OptionModifier extends Render[Option[VDomModifier]] {
