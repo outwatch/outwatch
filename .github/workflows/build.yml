@@ -20,14 +20,14 @@ jobs:
       - uses: olafurpg/setup-scala@v12
 
       - uses: actions/cache@v2
-        name: Cache node_modules
+        name: Cache scalajs-bundler node_modules
         with:
-          path: "**/main/node_modules"
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/main/yarn.lock') }}
-          restore-keys: ${{ runner.os }}-yarn-
+          path: "*/target/**/main/node_modules"
+          key: ${{ runner.os }}-yarn-scalajs-bundler-${{ hashFiles('*/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-yarn-scalajs-bundler
 
       - uses: actions/cache@v2
-        name: Cache scala targets
+        name: Cache scala targets (only for same commit)
         with:
           path: "**/target"
           key: ${{ runner.os }}-scala-target-${{ github.sha }}
