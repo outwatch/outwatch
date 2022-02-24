@@ -16,7 +16,7 @@ In your newly created project folder, run:
 sbt dev
 ```
 
-Now point your browser to http://localhost:8080.
+Now point your browser to http://localhost:12345.
 
 Changes to the code will trigger a recompile and automatically refresh the page in the browser.
 
