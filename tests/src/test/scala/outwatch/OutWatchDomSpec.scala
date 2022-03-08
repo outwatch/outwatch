@@ -3723,7 +3723,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
     var errors = List.empty[Throwable]
-    val cancelable = OutwatchTracing.error.recover { case t => t }.foreach { throwable =>
+    val cancelable = OutwatchTracing.error.foreach { throwable =>
       errors = throwable :: errors
     }
 
@@ -3756,7 +3756,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     )
 
     var errors = List.empty[Throwable]
-    val cancelable = OutwatchTracing.error.recover { case t => t }.foreach { throwable =>
+    val cancelable = OutwatchTracing.error.foreach { throwable =>
       errors = throwable :: errors
     }
 
