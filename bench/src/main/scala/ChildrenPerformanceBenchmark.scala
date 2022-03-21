@@ -85,9 +85,9 @@ object ChildrenPerformance extends js.JSApp {
     val vtree = div(
       idAttr := elemId,
       span(idAttr := "pete", "Go!"),
-      onClick foreach {},
-      onDomMount foreach {},
-      onDomUnmount foreach {},
+      onClick doAction {},
+      onDomMount doAction {},
+      onDomUnmount doAction {},
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
@@ -99,7 +99,7 @@ object ChildrenPerformance extends js.JSApp {
       handler2.map { i =>
         (0 to i).map { j =>
           div(
-            div("hans", cls := j.toString, onClick foreach {}, handler3),
+            div("hans", cls := j.toString, onClick doAction {}, handler3),
             p(p),
             handler3
           )
@@ -113,8 +113,8 @@ object ChildrenPerformance extends js.JSApp {
     OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
-      handler.onNext(i)
-      handler2.onNext(i)
+      handler.unsafeOnNext(i)
+      handler2.unsafeOnNext(i)
     }
 
     // println(node.innerHTML)
@@ -131,9 +131,9 @@ object ChildrenPerformance extends js.JSApp {
     val vtree = div(
       idAttr := elemId,
       span(idAttr := "pete", "Go!"),
-      onClick foreach {},
-      onDomMount foreach {},
-      onDomUnmount foreach {},
+      onClick doAction {},
+      onDomMount doAction {},
+      onDomUnmount doAction {},
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
@@ -145,7 +145,7 @@ object ChildrenPerformance extends js.JSApp {
       handler2.map { i =>
         (0 to i).map { j =>
           div.thunk("handler2")(j)(VDomModifier(
-            div("hans", cls := j.toString, onClick foreach {}, handler3),
+            div("hans", cls := j.toString, onClick doAction {}, handler3),
             p(p),
             handler3
           ))
@@ -159,8 +159,8 @@ object ChildrenPerformance extends js.JSApp {
     OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
-      handler.onNext(i)
-      handler2.onNext(i)
+      handler.unsafeOnNext(i)
+      handler2.unsafeOnNext(i)
     }
 
     // println(node.innerHTML)
@@ -174,7 +174,7 @@ object ChildrenPerformance extends js.JSApp {
 
     def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3)
     def node2(j: Int) = div(
-      div("hans", cls := j.toString, onClick foreach {}, handler3),
+      div("hans", cls := j.toString, onClick doAction {}, handler3),
       p(p),
       handler3
     )
@@ -185,9 +185,9 @@ object ChildrenPerformance extends js.JSApp {
     val vtree = div(
       idAttr := elemId,
       span(idAttr := "pete", "Go!"),
-      onClick foreach {},
-      onDomMount foreach {},
-      onDomUnmount foreach {},
+      onClick doAction {},
+      onDomMount doAction {},
+      onDomUnmount doAction {},
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler,
@@ -202,8 +202,8 @@ object ChildrenPerformance extends js.JSApp {
     var node1Counter = 0
     var node2Counter = 0
     (0 to size).foreach { i =>
-      handler.onNext(ChildCommand.Append(node1(node1Counter)))
-      handler2.onNext(ChildCommand.Append(node2(node2Counter)))
+      handler.unsafeOnNext(ChildCommand.Append(node1(node1Counter)))
+      handler2.unsafeOnNext(ChildCommand.Append(node2(node2Counter)))
 
       node1Counter += 1
       node2Counter += 1

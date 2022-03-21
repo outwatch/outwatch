@@ -1,6 +1,6 @@
 package outwatch
 
-import cats.effect.IO
+import cats.effect.SyncIO
 import outwatch.util._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -23,16 +23,16 @@ class StoreSpec extends AnyFlatSpec with Matchers {
   }
 
   "A Store" should "emit its initial state to multiple subscribers" in {
-    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
+    val store = Store.create[SyncIO](Initial, 0, reduce).unsafeRunSync()
 
     var a: Option[Model] = None
     var b: Option[Model] = None
 
-    store.foreach { case (action@_, state) =>
+    store.unsafeForeach { case (action@_, state) =>
       a = Some(state)
     }
 
-    store.foreach { case (action@_, state) =>
+    store.unsafeForeach { case (action@_, state) =>
       b = Some(state)
     }
 
@@ -42,26 +42,26 @@ class StoreSpec extends AnyFlatSpec with Matchers {
   }
 
   "A Store" should "emit consecutive states to multiple subscribers" in {
-    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
+    val store = Store.create[SyncIO](Initial, 0, reduce).unsafeRunSync()
 
     var a: Option[Model] = None
     var b: Option[Model] = None
 
-    store.foreach { case (action@_, state) =>
+    store.unsafeForeach { case (action@_, state) =>
       a = Some(state)
     }
 
-    store.foreach { case (action@_, state) =>
+    store.unsafeForeach { case (action@_, state) =>
       b = Some(state)
     }
 
-    store.onNext(Plus)
+    store.unsafeOnNext(Plus)
 
     a shouldBe Some(1)
     b shouldBe Some(1)
 
     for (i <- 2 to 10) {
-      store.onNext(Plus)
+      store.unsafeOnNext(Plus)
 
       a shouldBe Some(i)
       b shouldBe Some(i)
@@ -69,18 +69,18 @@ class StoreSpec extends AnyFlatSpec with Matchers {
   }
 
   "A Store" should "emit its current state to new subscribers" in {
-    val store = Store.create[IO](Initial, 0, reduce).unsafeRunSync()
+    val store = Store.create[SyncIO](Initial, 0, reduce).unsafeRunSync()
 
-    (1 to 10).foreach(_ => store.onNext(Plus))
+    (1 to 10).foreach(_ => store.unsafeOnNext(Plus))
 
     var a: Option[Model] = None
     var b: Option[Model] = None
 
-    store.foreach { case (action@_, state) =>
+    store.unsafeForeach { case (action@_, state) =>
       a = Some(state)
     }
 
-    store.foreach { case (action@_, state) =>
+    store.unsafeForeach { case (action@_, state) =>
       b = Some(state)
     }
 

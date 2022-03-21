@@ -40,7 +40,7 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.8"
-val colibriVersion = "0.2.6"
+val colibriVersion = "0.3.2"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -60,19 +60,6 @@ lazy val commonSettings = Seq(
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 )
 
-lazy val outwatchReactive = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .in(file("reactive"))
-  .settings(commonSettings)
-  .settings(
-    name := "OutWatch-Reactive",
-    normalizedName := "outwatch-reactive",
-
-    libraryDependencies ++= Seq(
-      "com.github.cornerman" %%% "colibri" % colibriVersion,
-    )
-  )
-
 lazy val outwatchUtil = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
@@ -81,21 +68,6 @@ lazy val outwatchUtil = project
   .settings(
     name := "OutWatch-Util",
     normalizedName := "outwatch-util",
-  )
-
-lazy val outwatchMonix = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatch)
-  .in(file("monix"))
-  .settings(commonSettings)
-  .settings(
-    name := "OutWatch-Monix",
-    normalizedName := "outwatch-monix",
-
-    libraryDependencies ++= Seq(
-      "com.github.cornerman" %%% "colibri-monix" % colibriVersion,
-      "io.monix"      %%% "monix"       % "3.4.0",
-    )
   )
 
 lazy val outwatchRepairDom = project
@@ -128,7 +100,7 @@ lazy val outwatchSnabbdom = project
 lazy val outwatch = project
   .in(file("outwatch"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchSnabbdom, outwatchReactive)
+  .dependsOn(outwatchSnabbdom)
   .settings(commonSettings)
   .settings(
     name := "OutWatch",
@@ -142,7 +114,7 @@ lazy val outwatch = project
 
 lazy val tests = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchMonix, outwatchUtil, outwatchRepairDom)
+  .dependsOn(outwatchUtil, outwatchRepairDom)
   .settings(commonSettings)
   .settings(
     publish/skip := true,
@@ -153,7 +125,6 @@ lazy val tests = project
 
 lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchMonix)
   .settings(
     publish/skip := true,
 
@@ -183,8 +154,9 @@ lazy val jsdocs = project
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.1.0",
-      "com.github.cornerman" %%% "colibri-monix" % colibriVersion,
       "com.github.cornerman" %%% "colibri-rx" % colibriVersion,
+      "com.github.cornerman" %%% "colibri-airstream" % colibriVersion,
+      "com.github.cornerman" %%% "colibri-zio" % colibriVersion,
     ),
     Compile / npmDependencies ++= Seq(
       "js-beautify" -> "1.14.0"
@@ -214,4 +186,4 @@ lazy val root = project
     name := "outwatch-root",
     publish/skip := true,
   )
-  .aggregate(outwatch, outwatchMonix, outwatchSnabbdom, outwatchReactive, outwatchUtil, outwatchRepairDom, tests)
+  .aggregate(outwatch, outwatchSnabbdom, outwatchUtil, outwatchRepairDom, tests)

@@ -6,6 +6,7 @@ import outwatch.helpers.ModifierBooleanOps
 import outwatch.helpers.NativeHelpers._
 import colibri.{Observable, Observer, Cancelable, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
+import cats.syntax.either._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -37,7 +38,10 @@ object VDomModifier {
   @inline def apply(modifier: VDomModifier, modifier2: VDomModifier, modifier3: VDomModifier, modifier4: VDomModifier, modifier5: VDomModifier, modifier6: VDomModifier, modifier7: VDomModifier, modifiers: VDomModifier*): VDomModifier =
     CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, CompositeModifier(modifiers)))
 
-  @inline def delay[T : Render](modifier: => T): VDomModifier = SyncEffectModifier(() => VDomModifier(modifier))
+  @inline def fromEither[T : Render](modifier: Either[Throwable, T]): VDomModifier = modifier.fold(raiseError(_), apply(_))
+  @inline def delayEither[T : Render](modifier: => Either[Throwable, T]): VDomModifier = SyncEffectModifier(() => fromEither(modifier))
+  @inline def delay[T : Render](modifier: => T): VDomModifier = delayEither(Either.catchNonFatal(modifier))
+  @inline def raiseError[T](error: Throwable): VDomModifier = ErrorModifier(error)
 
   @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
   @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
@@ -48,7 +52,7 @@ object VDomModifier {
   }
 
   implicit object subscriptionOwner extends SubscriptionOwner[VDomModifier] {
-    @inline def own(owner: VDomModifier)(subscription: () => Cancelable): VDomModifier = VDomModifier(managedFunction(subscription), owner)
+    @inline def own(owner: VDomModifier)(subscription: () => Cancelable): VDomModifier = VDomModifier(managedDelay(subscription()), owner)
   }
 
   @inline implicit def renderToVDomModifier[T : Render](value: T): VDomModifier = Render[T].render(value)
@@ -106,6 +110,7 @@ final case class StreamModifier(subscription: Observer[VDomModifier] => Cancelab
 final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends VDomModifier
 final case class CancelableModifier(subscription: () => Cancelable) extends VDomModifier
 final case class SyncEffectModifier(unsafeRun: () => VDomModifier) extends VDomModifier
+final case class ErrorModifier(error: Throwable) extends VDomModifier
 final case class StringVNode(text: String) extends VDomModifier
 
 sealed trait VNode extends VDomModifier {
@@ -115,7 +120,7 @@ sealed trait VNode extends VDomModifier {
 }
 object VNode {
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
-    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(managedFunction(subscription))
+    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(managedDelay(subscription()))
   }
 }
 sealed trait BasicVNode extends VNode {

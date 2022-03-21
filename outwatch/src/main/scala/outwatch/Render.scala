@@ -1,14 +1,14 @@
 package outwatch
 
 import colibri._
-import colibri.effect.RunSyncEffect
+import colibri.effect._
+
+import cats.data.{NonEmptyList, NonEmptySeq, NonEmptyVector, NonEmptyChain}
+import cats.effect.{SyncIO, IO}
 
 import scala.scalajs.js
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.util.Success
-
-import cats.effect.Effect
-import cats.data.{NonEmptyList, NonEmptySeq, NonEmptyVector, NonEmptyChain}
 
 trait Render[-T] {
   def render(value: T): VDomModifier
@@ -122,6 +122,10 @@ object Render {
     @inline def render(value: Boolean): VDomModifier = StringVNode(value.toString)
   }
 
+  implicit object SyncIORender extends Render[SyncIO[VDomModifier]] {
+    @inline def render(future: SyncIO[VDomModifier]) = syncToModifier(future)
+  }
+
   @inline implicit def SyncEffectRender[F[_] : RunSyncEffect]: Render[F[VDomModifier]] = new SyncEffectRenderClass[F]
   @inline private class SyncEffectRenderClass[F[_] : RunSyncEffect] extends Render[F[VDomModifier]] {
     @inline def render(effect: F[VDomModifier]) = syncToModifier(effect)
@@ -132,24 +136,31 @@ object Render {
     @inline def render(effect: F[T]) = syncToModifierRender(effect)
   }
 
-  implicit def EffectRender[F[_] : Effect]: Render[F[VDomModifier]] = new EffectRenderClass[F]
-  @inline private class EffectRenderClass[F[_] : Effect] extends Render[F[VDomModifier]] {
-    def render(effect: F[VDomModifier]) = asyncToModifier(effect)
+  implicit object IORender extends Render[IO[VDomModifier]] {
+    @inline def render(future: IO[VDomModifier]) = effectToModifier(future)
   }
 
-  @inline implicit def EffectRenderAs[F[_] : Effect, T : Render]: Render[F[T]] = new EffectRenderAsClass[F, T]
-  @inline private class EffectRenderAsClass[F[_] : Effect, T : Render] extends Render[F[T]] {
-    @inline def render(effect: F[T]) = asyncToModifierRender(effect)
+  @inline implicit def EffectRender[F[_] : RunEffect]: Render[F[VDomModifier]] = new EffectRenderClass[F]
+  @inline private class EffectRenderClass[F[_] : RunEffect] extends Render[F[VDomModifier]] {
+    @inline def render(effect: F[VDomModifier]) = effectToModifier(effect)
   }
 
-  implicit def FutureRender(implicit ec: ExecutionContext): Render[Future[VDomModifier]] = new FutureRenderClass
-  @inline private class FutureRenderClass(implicit ec: ExecutionContext) extends Render[Future[VDomModifier]] {
+  @inline implicit def EffectRenderAs[F[_] : RunEffect, T : Render]: Render[F[T]] = new EffectRenderAsClass[F, T]
+  @inline private class EffectRenderAsClass[F[_] : RunEffect, T : Render] extends Render[F[T]] {
+    @inline def render(effect: F[T]) = effectToModifierRender(effect)
+  }
+
+  implicit object FutureRender extends Render[Future[VDomModifier]] {
     @inline def render(future: Future[VDomModifier]) = futureToModifier(future)
   }
 
-  @inline implicit def FutureRenderAs[T : Render](implicit ec: ExecutionContext): Render[Future[T]] = new FutureRenderAsClass[T]
-  @inline private class FutureRenderAsClass[T: Render](implicit ec: ExecutionContext) extends Render[Future[T]] {
+  @inline implicit def FutureRenderAs[T : Render]: Render[Future[T]] = new FutureRenderAsClass[T]
+  @inline private class FutureRenderAsClass[T: Render] extends Render[Future[T]] {
     @inline def render(future: Future[T]) = futureToModifierRender(future)
+  }
+
+  implicit object ObservableRender extends Render[Observable[VDomModifier]] {
+    @inline def render(source: Observable[VDomModifier]) = sourceToModifier(source)
   }
 
   @inline implicit def SourceRender[F[_] : Source]: Render[F[VDomModifier]] = new SourceRenderClass[F]
@@ -175,20 +186,20 @@ object Render {
   @noinline private def iterableToModifierRender[T: Render](value: Iterable[T]): VDomModifier = CompositeModifier(value.map(VDomModifier(_)))
   @noinline private def optionToModifierRender[T: Render](value: Option[T]): VDomModifier = value.fold(VDomModifier.empty)(VDomModifier(_))
   @noinline private def undefinedToModifierRender[T: Render](value: js.UndefOr[T]): VDomModifier = value.fold(VDomModifier.empty)(VDomModifier(_))
-  @noinline private def syncToModifierRender[F[_] : RunSyncEffect, T: Render](effect: F[T]): VDomModifier = SyncEffectModifier(() => VDomModifier(RunSyncEffect[F].unsafeRun(effect)))
-  @noinline private def syncToModifier[F[_] : RunSyncEffect](effect: F[VDomModifier]): VDomModifier = SyncEffectModifier(() => RunSyncEffect[F].unsafeRun(effect))
-  @noinline private def asyncToModifier[F[_] : Effect](effect: F[VDomModifier]): VDomModifier = StreamModifier(Observable.fromAsync(effect).subscribe(_))
-  @noinline private def asyncToModifierRender[F[_] : Effect, T: Render](effect: F[T]): VDomModifier = StreamModifier(Observable.fromAsync(effect).map(VDomModifier(_)).subscribe(_))
-  @noinline private def sourceToModifier[F[_] : Source](source: F[VDomModifier]): VDomModifier = StreamModifier(Source[F].subscribe(source))
-  @noinline private def sourceToModifierRender[F[_] : Source, T: Render](source: F[T]): VDomModifier = StreamModifier(sink => Source[F].subscribe(source)(sink.contramap(VDomModifier(_))))
+  @noinline private def syncToModifierRender[F[_] : RunSyncEffect, T: Render](effect: F[T]): VDomModifier = VDomModifier.delayEither(RunSyncEffect[F].unsafeRun(effect))
+  @noinline private def syncToModifier[F[_] : RunSyncEffect](effect: F[VDomModifier]): VDomModifier = VDomModifier.delayEither(RunSyncEffect[F].unsafeRun(effect))
+  @noinline private def effectToModifier[F[_]: RunEffect](effect: F[VDomModifier]): VDomModifier = StreamModifier(Observable.fromEffect(effect).unsafeSubscribe(_))
+  @noinline private def effectToModifierRender[F[_]: RunEffect, T: Render](effect: F[T]): VDomModifier = StreamModifier(obs => Observable.fromEffect(effect).unsafeSubscribe(obs.contramap(VDomModifier(_))))
+  @noinline private def sourceToModifier[F[_] : Source](source: F[VDomModifier]): VDomModifier = StreamModifier(Source[F].unsafeSubscribe(source))
+  @noinline private def sourceToModifierRender[F[_] : Source, T: Render](source: F[T]): VDomModifier = StreamModifier(sink => Source[F].unsafeSubscribe(source)(sink.contramap(VDomModifier(_))))
   @noinline private def childCommandSeqToModifier[F[_] : Source](source: F[Seq[ChildCommand]]): VDomModifier = ChildCommandsModifier(Observable.lift(source))
   @noinline private def childCommandToModifier[F[_] : Source](source: F[ChildCommand]): VDomModifier = ChildCommandsModifier(Observable.lift(source).map(Seq(_)))
-  @noinline private def futureToModifierRender[T: Render](future: Future[T])(implicit ec: ExecutionContext): VDomModifier = future.value match {
+  @noinline private def futureToModifierRender[T: Render](future: Future[T]): VDomModifier = future.value match {
     case Some(Success(value)) => VDomModifier(value)
-    case _ => StreamModifier(Observable.fromFuture(future).map(VDomModifier(_)).subscribe(_))
+    case _ => StreamModifier(Observable.fromFuture(future).map(VDomModifier(_)).unsafeSubscribe(_))
   }
-  @noinline private def futureToModifier(future: Future[VDomModifier])(implicit ec: ExecutionContext): VDomModifier = future.value match {
+  @noinline private def futureToModifier(future: Future[VDomModifier]): VDomModifier = future.value match {
     case Some(Success(value)) => value
-    case _ => StreamModifier(Observable.fromFuture(future).subscribe(_))
+    case _ => StreamModifier(Observable.fromFuture(future).unsafeSubscribe(_))
   }
 }

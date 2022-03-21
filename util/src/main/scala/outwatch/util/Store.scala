@@ -23,13 +23,13 @@ object Store {
     initialState: M,
     reducer: Reducer[A, M]
   )(implicit F: Sync[F]): F[ProSubject[A, (A, M)]] = F.delay {
-    val subject = Subject.publish[A]
+    val subject = Subject.publish[A]()
 
     val fold: ((A, M), A) => (A, M) = {
       case ((_, state), action) => {
         val (newState, effects) = reducer(state, action)
 
-        effects.subscribe(Observer.create(subject.onNext))
+        effects.unsafeSubscribe(Observer.create(subject.unsafeOnNext))
 
         action -> newState
       }

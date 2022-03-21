@@ -12,7 +12,6 @@ import cats.effect.IO
 
 object Main {
   def main(args: Array[String]): Unit = {
-    
     val counter = Subject.behavior(0)
     val myComponent = div(
       button("+", onClick(counter.map(_ + 1)) --> counter),
@@ -28,10 +27,9 @@ In Outwatch, you can describe your whole web application without doing any side 
 * Write UI-components using pure functions
 * Manage state in a referentially transparent way using [cats-effect](https://github.com/typelevel/cats-effect)
 * Built-in lightweight `Observable` and `Subject` types from [colibri](http://github.com/cornerman/colibri)
-* Seamlessly works with existing reactive programming libraries: [Monix](https://monix.io/), [scala.rx](https://github.com/lihaoyi/scala.rx)
+* Seamlessly works with existing reactive programming libraries: [ZIO](https://github.com/zio/zio), [Airstream](https://github.com/raquo/airstream), [scala.rx](https://github.com/lihaoyi/scala.rx)
 * Low-boilerplate, many convenient helper functions
 * Built on top of [snabbdom](https://github.com/snabbdom/snabbdom), a virtual dom library
-
 
 You will find interactive examples and explanations in our [documentation](https://outwatch.github.io/docs/readme.html).
 
@@ -73,12 +71,13 @@ enablePlugins(ScalaJSBundlerPlugin)
 resolvers += "jitpack" at "https://jitpack.io"
 val outwatchVersion = "<latest outwatch version>"
 libraryDependencies ++= Seq(
-  "io.github.outwatch"           %%% "outwatch"       % outwatchVersion,
+  "io.github.outwatch"   %%% "outwatch"          % outwatchVersion,
   // optional dependencies:
-  "io.github.outwatch"           %%% "outwatch-util"  % outwatchVersion, // Store, Websocket, Http
-  "com.github.cornerman"         %%% "colibri-monix"  % "0.1.2", // Monix
-  "com.github.cornerman"         %%% "colibri-rx"     % "0.1.2", // Scala.rx
-  "com.github.cornerman"         %%% "colibri-router" % "0.1.2", // Url Router
+  "io.github.outwatch"   %%% "outwatch-util"     % outwatchVersion, // Store, Websocket, Http
+  "com.github.cornerman" %%% "colibri-zio"       % "0.3.2", // ZIO
+  "com.github.cornerman" %%% "colibri-airstream" % "0.3.2", // Airstream
+  "com.github.cornerman" %%% "colibri-rx"        % "0.3.2", // Scala.rx
+  "com.github.cornerman" %%% "colibri-router"    % "0.3.2", // Url Router
 )
 
 ```

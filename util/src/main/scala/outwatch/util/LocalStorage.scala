@@ -7,15 +7,14 @@ import org.scalajs.dom.StorageEvent
 import org.scalajs.dom.window.{localStorage, sessionStorage}
 
 import outwatch.dsl.events
-import outwatch.reactive.handler._
 import colibri._
 
 class Storage(storage: dom.Storage) {
   @deprecated
-  private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Handler[Option[String]]] = {
+  private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Subject[Option[String]]] = {
 
     for {
-      h <- Handler.createF[F](Option(storage.getItem(key)))
+      h <- Sync[F].delay(Subject.behavior(Option(storage.getItem(key))))
     } yield {
       // We execute the write-action to the storage
       // and pass the written value through to the underlying subject h
@@ -45,18 +44,18 @@ class Storage(storage: dom.Storage) {
     }
 
   @deprecated
-  def handlerWithoutEvents[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
+  def handlerWithoutEvents[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
     handlerWithTransform(key, identity)
   }
 
   @deprecated
-  def handlerWithEventsOnly[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
+  def handlerWithEventsOnly[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, _ => storageEvents)
   }
 
   @deprecated
-  def handler[F[_]: Sync](key: String): F[Handler[Option[String]]] = {
+  def handler[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))
   }

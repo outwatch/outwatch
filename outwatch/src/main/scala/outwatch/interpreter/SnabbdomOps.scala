@@ -100,7 +100,7 @@ private[outwatch] object SnabbdomOps {
       createProxy(SeparatedModifiers.from(nativeModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
     } else if (nativeModifiers.hasStream) {
       // if there is streamable content, we update the initial proxy with
-      // in subscribe and unsubscribe callbacks. We subscribe and unsubscribe
+      // in unsafeSubscribe and ununsafeSubscribe callbacks. We unsafeSubscribe and ununsafeSubscribe
       // based in dom events.
 
       var proxy: VNodeProxy = null
@@ -125,7 +125,7 @@ private[outwatch] object SnabbdomOps {
         newProxy._args = proxy._args
 
         // call the snabbdom patch method to update the dom
-        OutwatchTracing.patchSubject.onNext(newProxy)
+        OutwatchTracing.patchSubject.unsafeOnNext(newProxy)
         patch(proxy, newProxy)
 
         patchIsRunning = false
@@ -153,19 +153,19 @@ private[outwatch] object SnabbdomOps {
 
       val patchSink = Observer.create[Unit](
         _ => invokeDoPatch(async = asyncPatchEnabled),
-        OutwatchTracing.errorSubject.onNext
+        OutwatchTracing.errorSubject.unsafeOnNext
       )
 
       def start(): Unit = {
         resetTimeout()
         nativeModifiers.subscribables.foreach { subscribable =>
-          subscribable.subscribe(patchSink)
+          subscribable.unsafeSubscribe(patchSink)
         }
       }
 
       def stop(): Unit = {
         resetTimeout()
-        nativeModifiers.subscribables.foreach(_.unsubscribe())
+        nativeModifiers.subscribables.foreach(_.ununsafeSubscribe())
       }
 
       // hooks for subscribing and unsubscribing the streamable content
@@ -193,9 +193,9 @@ private[outwatch] object SnabbdomOps {
         }
       )
 
-      // premature subcription: We will now subscribe, eventhough the node is not yet mounted
+      // premature subcription: We will now unsafeSubscribe, eventhough the node is not yet mounted
       // but we try to get the initial values from the observables synchronously and that
-      // is only possible if we subscribe before rendering.  Succeeding supscriptions will then
+      // is only possible if we unsafeSubscribe before rendering.  Succeeding supscriptions will then
       // soley be handle by mount/unmount hooks.  And every node within this method is going to
       // be mounted one way or another and this method is guarded by an effect in the public api.
       start()
@@ -215,13 +215,13 @@ private[outwatch] object SnabbdomOps {
       def start(): Unit = if (!isActive) {
         isActive = true
         nativeModifiers.subscribables.foreach { subscribable =>
-          subscribable.subscribe(sink)
+          subscribable.unsafeSubscribe(sink)
         }
       }
 
       def stop(): Unit = if (isActive) {
         isActive = false
-        nativeModifiers.subscribables.foreach(_.unsubscribe())
+        nativeModifiers.subscribables.foreach(_.ununsafeSubscribe())
       }
 
       // hooks for subscribing and unsubscribing the streamable content

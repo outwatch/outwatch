@@ -5,7 +5,7 @@ import org.scalajs.dom._
 
 import outwatch.dsl._
 
-import outwatch.reactive.handler._
+import colibri._
 
 import scala.collection.mutable
 
@@ -14,7 +14,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Insertion hooks" should "be called correctly" in {
 
     var switch = false
-    val observer = HandlerSink.create{(_: Element) =>
+    val observer = Observer.create{(_: Element) =>
       switch = true
     }
 
@@ -29,11 +29,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch = false
-    val observer = HandlerSink.create{(_: Element) =>
+    val observer = Observer.create{(_: Element) =>
       switch = true
     }
     var switch2 = false
-    val observer2 = HandlerSink.create{(_: Element) =>
+    val observer2 = Observer.create{(_: Element) =>
       switch2 = true
     }
 
@@ -52,11 +52,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Destruction hooks"  should "be called correctly" in {
 
     var switch = false
-    val observer = HandlerSink.create{(_: Element) =>
+    val observer = Observer.create{(_: Element) =>
       switch = true
     }
 
-    val innerHandler = Handler.publish.unsafe[VDomModifier]
+    val innerHandler = Subject.publish[VDomModifier]()
     val node = div(innerHandler.prepend(span(onSnabbdomDestroy --> observer)))
 
     switch shouldBe false
@@ -64,7 +64,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe false
 
-      innerHandler.onNext(div("Hasdasd"))
+      innerHandler.unsafeOnNext(div("Hasdasd"))
 
       switch shouldBe true
     }
@@ -73,15 +73,15 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   it should "be called correctly on merged nodes" in {
 
     var switch = false
-    val observer = HandlerSink.create{(_: Element) =>
+    val observer = Observer.create{(_: Element) =>
       switch = true
     }
     var switch2 = false
-    val observer2 = HandlerSink.create{(_: Element) =>
+    val observer2 = Observer.create{(_: Element) =>
       switch2 = true
     }
 
-    val innerHandler = Handler.publish.unsafe[VDomModifier]
+    val innerHandler = Subject.publish[VDomModifier]()
     val node = div(innerHandler.prepend(span(onSnabbdomDestroy --> observer)(onSnabbdomDestroy --> observer2)))
 
     switch shouldBe false
@@ -91,7 +91,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       switch shouldBe false
       switch2 shouldBe false
 
-      innerHandler.onNext(div("Hasdasd"))
+      innerHandler.unsafeOnNext(div("Hasdasd"))
 
       switch shouldBe true
       switch2 shouldBe true
@@ -100,15 +100,15 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Update hooks" should "be called correctly on merged nodes" in {
     var switch1 = false
-    val observer1 = HandlerSink.create{(_: (Element, Element)) =>
+    val observer1 = Observer.create{(_: (Element, Element)) =>
       switch1 = true
     }
     var switch2 = false
-    val observer2 = HandlerSink.create{(_: (Element, Element)) =>
+    val observer2 = Observer.create{(_: (Element, Element)) =>
       switch2 = true
     }
 
-    val message = Handler.publish.unsafe[String]
+    val message = Subject.publish[String]()
     val node = div(message, dsl.key := "unique", onSnabbdomUpdate --> observer1)(onSnabbdomUpdate --> observer2)
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
@@ -116,7 +116,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       switch1 shouldBe false
       switch2 shouldBe false
 
-      message.onNext("wursi")
+      message.unsafeOnNext("wursi")
       switch1 shouldBe true
       switch2 shouldBe true
     }
@@ -126,11 +126,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   it should "be called correctly" in {
 
     var switch = false
-    val observer = HandlerSink.create{(_: (Element, Element)) =>
+    val observer = Observer.create{(_: (Element, Element)) =>
       switch = true
     }
 
-    val innerHandler = Handler.publish.unsafe[VDomModifier]
+    val innerHandler = Subject.publish[VDomModifier]()
     val node = div(innerHandler.prepend(span(onSnabbdomUpdate --> observer, "Hello")))
 
     switch shouldBe false
@@ -138,7 +138,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe false
 
-      innerHandler.onNext(span(onSnabbdomUpdate --> observer, "Hey"))
+      innerHandler.unsafeOnNext(span(onSnabbdomUpdate --> observer, "Hey"))
 
       switch shouldBe true
     }
@@ -147,20 +147,20 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Prepatch hooks" should "be called" in {
 
     var switch = false
-    val observer = HandlerSink.create{(_: (Option[Element], Option[Element])) =>
+    val observer = Observer.create{(_: (Option[Element], Option[Element])) =>
       switch = true
     }
 
-    val prepatchNode = span(attributes.key := "1", onSnabbdomPrePatch --> observer, "Hey", HandlerSource("distract-sync"))
-    val handler = Handler.unsafe[VDomModifier](prepatchNode)
-    val node = div(HandlerSource(span("Hello")), handler)
+    val prepatchNode = span(attributes.key := "1", onSnabbdomPrePatch --> observer, "Hey", Observable("distract-sync"))
+    val handler = Subject.behavior[VDomModifier](prepatchNode)
+    val node = div(Observable(span("Hello")), handler)
 
     switch shouldBe false
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe false
 
-      handler.onNext(prepatchNode)
+      handler.unsafeOnNext(prepatchNode)
 
       switch shouldBe true
     }
@@ -168,22 +168,22 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val observer1 = HandlerSink.create{(_: (Option[Element], Option[Element])) =>
+    val observer1 = Observer.create{(_: (Option[Element], Option[Element])) =>
       switch1 = true
     }
     var switch2 = false
-    val observer2 = HandlerSink.create{(_: (Option[Element], Option[Element])) =>
+    val observer2 = Observer.create{(_: (Option[Element], Option[Element])) =>
       switch2 = true
     }
 
-    val message = Handler.publish.unsafe[String]
+    val message = Subject.publish[String]()
     val node = div(message, dsl.key := "unique", onSnabbdomPrePatch --> observer1)(onSnabbdomPrePatch --> observer2)
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch1 shouldBe false
       switch2 shouldBe false
 
-      message.onNext("wursi")
+      message.unsafeOnNext("wursi")
 
       switch1 shouldBe true
       switch2 shouldBe true
@@ -193,11 +193,11 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
   "Postpatch hooks" should "be called" in {
 
     var switch = false
-    val observer = HandlerSink.create{(_: (Element, Element)) =>
+    val observer = Observer.create{(_: (Element, Element)) =>
       switch = true
     }
 
-    val message = Handler.publish.unsafe[String]
+    val message = Subject.publish[String]()
     val node = div(message, dsl.key := "unique", onSnabbdomPostPatch --> observer, "Hey")
 
     switch shouldBe false
@@ -205,7 +205,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch shouldBe false
 
-      message.onNext("hallo")
+      message.unsafeOnNext("hallo")
 
       switch shouldBe true
     }
@@ -214,21 +214,21 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be called correctly on merged nodes" in {
     var switch1 = false
-    val observer1 = HandlerSink.create{(_: (Element, Element)) =>
+    val observer1 = Observer.create{(_: (Element, Element)) =>
       switch1 = true
     }
     var switch2 = false
-    val observer2 = HandlerSink.create{(_: (Element, Element)) =>
+    val observer2 = Observer.create{(_: (Element, Element)) =>
       switch2 = true
     }
-    val message = Handler.publish.unsafe[String]
+    val message = Subject.publish[String]()
     val node = div(message, dsl.key := "unique", onSnabbdomPostPatch --> observer1)(onSnabbdomPostPatch --> observer2)
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       switch1 shouldBe false
       switch2 shouldBe false
 
-      message.onNext("wursi")
+      message.unsafeOnNext("wursi")
 
       switch1 shouldBe true
       switch2 shouldBe true
@@ -238,24 +238,24 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Hooks" should "be called in the correct order for modified node" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertObs = HandlerSink.create { (_: Element) =>
+    val insertObs = Observer.create { (_: Element) =>
       hooks += "insert"
     }
-    val prepatchObs = HandlerSink.create { (_: (Option[Element], Option[Element])) =>
+    val prepatchObs = Observer.create { (_: (Option[Element], Option[Element])) =>
       hooks += "prepatch"
     }
-    val updateObs = HandlerSink.create { (_: (Element, Element)) =>
+    val updateObs = Observer.create { (_: (Element, Element)) =>
       hooks += "update"
     }
-    val postpatchObs = HandlerSink.create { (_: (Element, Element)) =>
+    val postpatchObs = Observer.create { (_: (Element, Element)) =>
       hooks += "postpatch"
 
     }
-    val destroyObs = HandlerSink.create { (_: Element) =>
+    val destroyObs = Observer.create { (_: Element) =>
       hooks += "destroy"
     }
 
-    val message = Handler.publish.unsafe[String]
+    val message = Subject.publish[String]()
     val node = div(
       dsl.key := "unique",
       message,
@@ -271,7 +271,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       hooks.toList shouldBe List("insert")
 
-      message.onNext("next")
+      message.unsafeOnNext("next")
 
       hooks.toList shouldBe List("insert", "prepatch", "update", "postpatch")
     }
@@ -279,14 +279,14 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Empty single children receiver" should "not trigger node update on render" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertObs = HandlerSink.create { (_: Element) =>
+    val insertObs = Observer.create { (_: Element) =>
       hooks += "insert"
     }
-    val updateObs = HandlerSink.create { (_: (Element, Element)) =>
+    val updateObs = Observer.create { (_: (Element, Element)) =>
       hooks += "update"
     }
 
-    val messageList = Handler.publish.unsafe[Seq[String]]
+    val messageList = Subject.publish[Seq[String]]()
     val node = div(dsl.key := "unique", "Hello", messageList.map(_.map(span(_))),
       onSnabbdomInsert --> insertObs,
       onSnabbdomUpdate --> updateObs
@@ -301,17 +301,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Static child nodes" should "not be destroyed and inserted when child stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertObs = HandlerSink.create { (_: Element) =>
+    val insertObs = Observer.create { (_: Element) =>
       hooks += "insert"
     }
-    val updateObs = HandlerSink.create { (_: (Element, Element)) =>
+    val updateObs = Observer.create { (_: (Element, Element)) =>
       hooks += "update"
     }
-    val destroyObs = HandlerSink.create { (_: Element) =>
+    val destroyObs = Observer.create { (_: Element) =>
       hooks += "destroy"
     }
 
-    val message = Handler.publish.unsafe[String]
+    val message = Subject.publish[String]()
     val node = div(span("Hello", onSnabbdomInsert --> insertObs, onSnabbdomUpdate --> updateObs, onSnabbdomDestroy --> destroyObs),
       message.map(span(_))
     )
@@ -319,7 +319,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     hooks shouldBe empty
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
-      message.onNext("next")
+      message.unsafeOnNext("next")
 
       hooks.contains("destroy") shouldBe false
     }
@@ -327,17 +327,17 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   it should "be only inserted once when children stream emits" in {
     val hooks = mutable.ArrayBuffer.empty[String]
-    val insertObs = HandlerSink.create { (_: Element) =>
+    val insertObs = Observer.create { (_: Element) =>
       hooks += "insert"
     }
-    val updateObs = HandlerSink.create { (_: (Element, Element)) =>
+    val updateObs = Observer.create { (_: (Element, Element)) =>
       hooks += "update"
     }
-    val destroyObs = HandlerSink.create { (_: Element) =>
+    val destroyObs = Observer.create { (_: Element) =>
       hooks += "destroy"
     }
 
-    val messageList = Handler.publish.unsafe[Seq[String]]
+    val messageList = Subject.publish[Seq[String]]()
     val node = div(messageList.map(_.map(span(_))),
       span("Hello", onSnabbdomInsert --> insertObs, onSnabbdomUpdate --> updateObs, onSnabbdomDestroy --> destroyObs)
     )
@@ -345,9 +345,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     hooks shouldBe empty
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
-      messageList.onNext(Seq("one"))
+      messageList.unsafeOnNext(Seq("one"))
 
-      messageList.onNext(Seq("one", "two"))
+      messageList.unsafeOnNext(Seq("one", "two"))
 
       hooks.count(_ == "insert") shouldBe 1
     }
@@ -356,159 +356,159 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
   "Managed subscriptions" should "subscribe on insert and unsubscribe on destroy" in {
 
-    val nodes = Handler.publish.unsafe[VNode]
+    val nodes = Subject.publish[VNode]()
 
     var latest = ""
-    val observer = HandlerSink.create { (elem: String) =>
+    val observer = Observer.create { (elem: String) =>
       latest = elem
     }
 
-    val sub = Handler.publish.unsafe[String]
+    val sub = Subject.publish[String]()
 
     val node = div(nodes.startWith(Seq(
-      span(managedFunction { () => sub subscribe observer })
+      span(managedFunction { () => sub.unsafeSubscribe(observer) })
     )))
 
-    sub.onNext("pre")
+    sub.unsafeOnNext("pre")
     latest shouldBe ""
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
-      sub.onNext("first")
+      sub.unsafeOnNext("first")
       latest shouldBe "first"
 
-      nodes.onNext(div()) // this triggers child destroy and subscription cancelation
+      nodes.unsafeOnNext(div()) // this triggers child destroy and subscription cancelation
 
-      sub.onNext("second")
+      sub.unsafeOnNext("second")
       latest shouldBe "first"
     }
   }
 
   it should "work with emitter(observable)" in {
 
-    val nodes = Handler.publish.unsafe[VNode]
+    val nodes = Subject.publish[VNode]()
 
     var latest = ""
-    val observer = HandlerSink.create { (elem: String) =>
+    val observer = Observer.create { (elem: String) =>
       latest = elem
     }
 
-    val sub = Handler.publish.unsafe[String]
+    val sub = Subject.publish[String]()
 
     val node = div(nodes.startWith(Seq(
       span(emitter(sub) --> observer)
     )))
 
-    sub.onNext("pre")
+    sub.unsafeOnNext("pre")
     latest shouldBe ""
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
-      sub.onNext("first")
+      sub.unsafeOnNext("first")
       latest shouldBe "first"
 
-      nodes.onNext(div()) // this triggers child destroy and subscription cancelation
+      nodes.unsafeOnNext(div()) // this triggers child destroy and subscription cancelation
 
-      sub.onNext("second")
+      sub.unsafeOnNext("second")
       latest shouldBe "first"
     }
   }
 
   "DomHook" should "be called on static nodes" in {
 
-    val modHandler = Handler.publish.unsafe[VDomModifier]
+    val modHandler = Subject.publish[VDomModifier]()
 
     val node = div(modHandler)
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       var domHooks = List.empty[String]
 
-      modHandler.onNext(div(onDomMount foreach { domHooks :+= "mount" }, p(onDomUnmount foreach { domHooks :+= "unmount" })))
+      modHandler.unsafeOnNext(div(onDomMount doAction { domHooks :+= "mount" }, p(onDomUnmount doAction { domHooks :+= "unmount" })))
       domHooks shouldBe List("mount")
 
-      val innerHandler = Handler.publish.unsafe[String]
-      modHandler.onNext(div("meh", p(onDomMount foreach { domHooks :+= "mount2" }), onDomPreUpdate foreach { domHooks :+= "preupdate2" }, onDomUpdate foreach { domHooks :+= "update2" }, onDomUnmount foreach { domHooks :+= "unmount2" }, innerHandler, HandlerSource("distract-sync")))
+      val innerHandler = Subject.publish[String]()
+      modHandler.unsafeOnNext(div("meh", p(onDomMount doAction { domHooks :+= "mount2" }), onDomPreUpdate doAction { domHooks :+= "preupdate2" }, onDomUpdate doAction { domHooks :+= "update2" }, onDomUnmount doAction { domHooks :+= "unmount2" }, innerHandler, Observable("distract-sync")))
       domHooks shouldBe List("mount", "unmount", "mount2")
 
-      innerHandler.onNext("distract")
+      innerHandler.unsafeOnNext("distract")
       domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2")
 
-      modHandler.onNext(span("muh", onDomMount foreach { domHooks :+= "mount3" }, onDomPreUpdate foreach { domHooks :+= "preupdate3" }, onDomUpdate foreach { domHooks :+= "update3" }, onDomUnmount foreach { domHooks :+= "unmount3" }))
+      modHandler.unsafeOnNext(span("muh", onDomMount doAction { domHooks :+= "mount3" }, onDomPreUpdate doAction { domHooks :+= "preupdate3" }, onDomUpdate doAction { domHooks :+= "update3" }, onDomUnmount doAction { domHooks :+= "unmount3" }))
       domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3")
 
-      modHandler.onNext(VDomModifier.empty)
+      modHandler.unsafeOnNext(VDomModifier.empty)
       domHooks shouldBe List("mount", "unmount", "mount2", "preupdate2", "update2", "unmount2", "mount3", "unmount3")
     }
   }
 
   it should "be called on nested streaming" in {
 
-    val modHandler = Handler.publish.unsafe[VDomModifier]
-    val innerHandler = Handler.publish.unsafe[VDomModifier]
+    val modHandler = Subject.publish[VDomModifier]()
+    val innerHandler = Subject.publish[VDomModifier]()
     val node = div(modHandler)
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       var domHooks = List.empty[String]
 
-      modHandler.onNext(VDomModifier(innerHandler))
+      modHandler.unsafeOnNext(VDomModifier(innerHandler))
       domHooks shouldBe List()
 
-      innerHandler.onNext("inner")
+      innerHandler.unsafeOnNext("inner")
       domHooks shouldBe List()
 
-      innerHandler.onNext(onDomMount foreach { domHooks :+= "inner-mount" })
+      innerHandler.unsafeOnNext(onDomMount doAction { domHooks :+= "inner-mount" })
       domHooks shouldBe List("inner-mount")
 
-      innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount" })
+      innerHandler.unsafeOnNext(onDomUnmount doAction { domHooks :+= "inner-unmount" })
       domHooks shouldBe List("inner-mount")
 
-      innerHandler.onNext(onDomUnmount foreach { domHooks :+= "inner-unmount2" })
+      innerHandler.unsafeOnNext(onDomUnmount doAction { domHooks :+= "inner-unmount2" })
       domHooks shouldBe List("inner-mount", "inner-unmount")
 
-      modHandler.onNext(VDomModifier.empty)
+      modHandler.unsafeOnNext(VDomModifier.empty)
       domHooks shouldBe List("inner-mount", "inner-unmount", "inner-unmount2")
     }
   }
 
   it should "be called on streaming in and streaming out" in {
 
-    val modHandler = Handler.publish.unsafe[VDomModifier]
-    val otherHandler = Handler.publish.unsafe[VDomModifier]
-    val innerHandler = Handler.publish.unsafe[VDomModifier]
+    val modHandler = Subject.publish[VDomModifier]()
+    val otherHandler = Subject.publish[VDomModifier]()
+    val innerHandler = Subject.publish[VDomModifier]()
     val node = div(modHandler, otherHandler)
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       var domHooks = List.empty[String]
 
-      modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomPreUpdate foreach { domHooks :+= "preupdate" }, onDomUpdate foreach { domHooks :+= "update" }, onDomUnmount foreach { domHooks :+= "unmount" }, innerHandler))
+      modHandler.unsafeOnNext(VDomModifier(onDomMount doAction { domHooks :+= "mount" }, onDomPreUpdate doAction { domHooks :+= "preupdate" }, onDomUpdate doAction { domHooks :+= "update" }, onDomUnmount doAction { domHooks :+= "unmount" }, innerHandler))
       domHooks shouldBe List("mount")
 
-      otherHandler.onNext("other")
+      otherHandler.unsafeOnNext("other")
       domHooks shouldBe List("mount", "preupdate", "update")
 
-      innerHandler.onNext("inner")
+      innerHandler.unsafeOnNext("inner")
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update")
 
-      innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }, HandlerSource("distract")))
+      innerHandler.unsafeOnNext(VDomModifier(onDomMount doAction { domHooks :+= "inner-mount" }, onDomPreUpdate doAction { domHooks :+= "inner-preupdate" }, onDomUpdate doAction { domHooks :+= "inner-update" }, onDomUnmount doAction { domHooks :+= "inner-unmount" }, Observable("distract")))
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update")
 
-      otherHandler.onNext(span("hi!"))
+      otherHandler.unsafeOnNext(span("hi!"))
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update")
 
-      innerHandler.onNext(VDomModifier(onDomPreUpdate foreach { domHooks :+= "inner-preupdate2" }, onDomUpdate foreach { domHooks :+= "inner-update2" }))
+      innerHandler.unsafeOnNext(VDomModifier(onDomPreUpdate doAction { domHooks :+= "inner-preupdate2" }, onDomUpdate doAction { domHooks :+= "inner-update2" }))
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-unmount", "update")
 
-      innerHandler.onNext(VDomModifier(HandlerSource("inner")))
+      innerHandler.unsafeOnNext(VDomModifier(Observable("inner")))
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-unmount", "update", "preupdate", "update", "preupdate", "update")
 
-      innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount2" }, onDomUnmount foreach { domHooks :+= "inner-unmount2" }, "something-else"))
+      innerHandler.unsafeOnNext(VDomModifier(onDomMount doAction { domHooks :+= "inner-mount2" }, onDomUnmount doAction { domHooks :+= "inner-unmount2" }, "something-else"))
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-unmount", "update", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2")
 
-      modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
+      modHandler.unsafeOnNext(onDomMount doAction { domHooks :+= "mount2" })
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-unmount", "update", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "unmount", "inner-unmount2", "mount2")
 
-      modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
+      modHandler.unsafeOnNext(onDomUnmount doAction { domHooks :+= "unmount2" })
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-unmount", "update", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "unmount", "inner-unmount2", "mount2")
 
-      modHandler.onNext(VDomModifier.empty)
+      modHandler.unsafeOnNext(VDomModifier.empty)
       domHooks shouldBe List("mount", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-preupdate", "update", "inner-update", "preupdate", "inner-unmount", "update", "preupdate", "update", "preupdate", "update", "preupdate", "update", "inner-mount2", "unmount", "inner-unmount2", "mount2", "unmount2")
     }
   }
@@ -517,30 +517,30 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     var domHooks = List.empty[String]
 
-    val modHandler = Handler.publish.unsafe[VDomModifier]
-    val innerHandler = Handler.publish.unsafe[VDomModifier]
-    val otherHandler = Handler.publish.unsafe[VDomModifier]
-    val node = div(otherHandler, modHandler.prepend(VDomModifier(onDomMount foreach { domHooks :+= "default-mount" }, onDomPreUpdate foreach { domHooks :+= "default-preupdate" }, onDomUpdate foreach { domHooks :+= "default-update" }, onDomUnmount foreach { domHooks :+= "default-unmount" }, innerHandler)))
+    val modHandler = Subject.publish[VDomModifier]()
+    val innerHandler = Subject.publish[VDomModifier]()
+    val otherHandler = Subject.publish[VDomModifier]()
+    val node = div(otherHandler, modHandler.prepend(VDomModifier(onDomMount doAction { domHooks :+= "default-mount" }, onDomPreUpdate doAction { domHooks :+= "default-preupdate" }, onDomUpdate doAction { domHooks :+= "default-update" }, onDomUnmount doAction { domHooks :+= "default-unmount" }, innerHandler)))
 
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       domHooks shouldBe List("default-mount")
 
-      innerHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "inner-mount" }, onDomPreUpdate foreach { domHooks :+= "inner-preupdate" }, onDomUpdate foreach { domHooks :+= "inner-update" }, onDomUnmount foreach { domHooks :+= "inner-unmount" }))
+      innerHandler.unsafeOnNext(VDomModifier(onDomMount doAction { domHooks :+= "inner-mount" }, onDomPreUpdate doAction { domHooks :+= "inner-preupdate" }, onDomUpdate doAction { domHooks :+= "inner-update" }, onDomUnmount doAction { domHooks :+= "inner-unmount" }))
       domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount")
 
-      otherHandler.onNext(span("hi!"))
+      otherHandler.unsafeOnNext(span("hi!"))
       domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update")
 
-      modHandler.onNext(VDomModifier(onDomMount foreach { domHooks :+= "mount" }, onDomUnmount foreach { domHooks :+= "unmount" }))
+      modHandler.unsafeOnNext(VDomModifier(onDomMount doAction { domHooks :+= "mount" }, onDomUnmount doAction { domHooks :+= "unmount" }))
       domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "default-unmount", "inner-unmount", "mount")
 
-      modHandler.onNext(onDomMount foreach { domHooks :+= "mount2" })
+      modHandler.unsafeOnNext(onDomMount doAction { domHooks :+= "mount2" })
       domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "default-unmount", "inner-unmount", "mount", "unmount", "mount2")
 
-      modHandler.onNext(onDomUnmount foreach { domHooks :+= "unmount2" })
+      modHandler.unsafeOnNext(onDomUnmount doAction { domHooks :+= "unmount2" })
       domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "default-unmount", "inner-unmount", "mount", "unmount", "mount2")
 
-      modHandler.onNext(VDomModifier.empty)
+      modHandler.unsafeOnNext(VDomModifier.empty)
       domHooks shouldBe List("default-mount", "default-preupdate", "default-update", "inner-mount", "default-preupdate", "inner-preupdate", "default-update", "inner-update", "default-unmount", "inner-unmount", "mount", "unmount", "mount2", "unmount2")
     }
   }
@@ -549,15 +549,15 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     var domHooks = List.empty[String]
 
-    val countHandler = Handler.publish.unsafe[Int]
+    val countHandler = Subject.publish[Int]()
     val node = div(
       countHandler.map { count =>
         VDomModifier(
-          onDomMount.foreach { domHooks :+= "mount" + count },
-          onDomUnmount.foreach { domHooks :+= "unmount" + count },
+          onDomMount.doAction { domHooks :+= "mount" + count },
+          onDomUnmount.doAction { domHooks :+= "unmount" + count },
           div(
-            onDomMount.foreach { domHooks :+= "child-mount" + count },
-            onDomUnmount.foreach { domHooks :+= "child-unmount" + count }
+            onDomMount.doAction { domHooks :+= "child-mount" + count },
+            onDomUnmount.doAction { domHooks :+= "child-unmount" + count }
           )
         )
       }
@@ -566,10 +566,10 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     OutWatch.renderInto[IO]("#app", node).map { _ =>
       domHooks shouldBe List.empty
 
-      countHandler.onNext(1)
+      countHandler.unsafeOnNext(1)
       domHooks shouldBe List("mount1", "child-mount1")
 
-      countHandler.onNext(2)
+      countHandler.unsafeOnNext(2)
       domHooks shouldBe List("mount1", "child-mount1", "unmount1", "child-unmount1", "child-mount2", "mount2")
     }
   }
@@ -578,7 +578,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     val operations = mutable.ArrayBuffer.empty[String]
 
-    val observer = HandlerSink.create { (op: String) =>
+    val observer = Observer.create { (op: String) =>
       operations += op
     }
 
@@ -586,7 +586,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
     val node = div(
       dsl.key := "unique",
-      onSnabbdomInsert.use("insert") --> observer,
+      onSnabbdomInsert.as("insert") --> observer,
       div(divTagName --> observer),
       span(divTagName --> observer)
     )
@@ -607,9 +607,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Handler.unsafe[Int]
-    val handler = Handler.unsafe[(String, String)]
-    val otherHandler = Handler.unsafe[String]
+    val innerHandler = Subject.replay[Int]()
+    val handler = Subject.replay[(String, String)]()
+    val otherHandler = Subject.replay[String]()
 
     var counter = 0
     val node = div(
@@ -622,14 +622,14 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
           dsl.key := keyText,
           text,
           innerHandler.map { i => innerHandlerCount += 1; i },
-          onSnabbdomInsert foreach { onSnabbdomInsertCount += 1 },
-          onSnabbdomPrePatch foreach { onSnabbdomPrePatchCount += 1 },
-          onSnabbdomPostPatch foreach { onSnabbdomPostPatchCount += 1 },
-          onSnabbdomUpdate foreach { onSnabbdomUpdateCount += 1 },
-          onSnabbdomDestroy foreach { onSnabbdomDestroyCount += 1 },
-          onDomMount foreach { onDomMountList :+= c },
-          onDomUnmount foreach { onDomUnmountList :+= c },
-          onDomUpdate foreach { onDomUpdateList :+= c }
+          onSnabbdomInsert doAction { onSnabbdomInsertCount += 1 },
+          onSnabbdomPrePatch doAction { onSnabbdomPrePatchCount += 1 },
+          onSnabbdomPostPatch doAction { onSnabbdomPostPatchCount += 1 },
+          onSnabbdomUpdate doAction { onSnabbdomUpdateCount += 1 },
+          onSnabbdomDestroy doAction { onSnabbdomDestroyCount += 1 },
+          onDomMount doAction { onDomMountList :+= c },
+          onDomUnmount doAction { onDomUnmountList :+= c },
+          onDomUpdate doAction { onDomUpdateList :+= c }
         )
       }
     )
@@ -647,7 +647,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe Nil
       onDomUpdateList shouldBe Nil
 
-      handler.onNext(("key", "heinz"))
+      handler.unsafeOnNext(("key", "heinz"))
       element.innerHTML shouldBe "<div>heinz</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 0
@@ -658,7 +658,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe Nil
       onDomUpdateList shouldBe Nil
 
-      handler.onNext(("key", "golum"))
+      handler.unsafeOnNext(("key", "golum"))
       element.innerHTML shouldBe "<div>golum</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 1
@@ -669,7 +669,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1)
       onDomUpdateList shouldBe Nil
 
-      handler.onNext(("key", "dieter"))
+      handler.unsafeOnNext(("key", "dieter"))
       element.innerHTML shouldBe "<div>dieter</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 2
@@ -680,7 +680,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1,2)
       onDomUpdateList shouldBe Nil
 
-      handler.onNext(("nope", "dieter"))
+      handler.unsafeOnNext(("nope", "dieter"))
       element.innerHTML shouldBe "<div>dieter</div>"
       onSnabbdomInsertCount shouldBe 2
       onSnabbdomPrePatchCount shouldBe 2
@@ -691,7 +691,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1,2,3)
       onDomUpdateList shouldBe Nil
 
-      handler.onNext(("yes", "peter"))
+      handler.unsafeOnNext(("yes", "peter"))
       element.innerHTML shouldBe "<div>peter</div>"
       onSnabbdomInsertCount shouldBe 3
       onSnabbdomPrePatchCount shouldBe 2
@@ -702,7 +702,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1, 2, 3, 4)
       onDomUpdateList shouldBe Nil
 
-      otherHandler.onNext("hi")
+      otherHandler.unsafeOnNext("hi")
       element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
       onSnabbdomInsertCount shouldBe 3
       onSnabbdomPrePatchCount shouldBe 2
@@ -715,7 +715,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
       innerHandlerCount shouldBe 0
 
-      innerHandler.onNext(0)
+      innerHandler.unsafeOnNext(0)
       element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
       onSnabbdomInsertCount shouldBe 3
       onSnabbdomPrePatchCount shouldBe 3
@@ -741,9 +741,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Handler.unsafe[Int]
-    val handler = Handler.unsafe[String]
-    val otherHandler = Handler.unsafe[String]
+    val innerHandler = Subject.replay[Int]()
+    val handler = Subject.replay[String]()
+    val otherHandler = Subject.replay[String]()
 
     var counter = 0
     val node = div(
@@ -755,14 +755,14 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
         div(
           text,
           innerHandler.map { i => innerHandlerCount += 1; i },
-          onSnabbdomInsert foreach { onSnabbdomInsertCount += 1 },
-          onSnabbdomPrePatch foreach { onSnabbdomPrePatchCount += 1 },
-          onSnabbdomPostPatch foreach { onSnabbdomPostPatchCount += 1 },
-          onSnabbdomUpdate foreach { onSnabbdomUpdateCount += 1 },
-          onSnabbdomDestroy foreach { onSnabbdomDestroyCount += 1 },
-          onDomMount foreach { onDomMountList :+= c },
-          onDomUnmount foreach { onDomUnmountList :+= c },
-          onDomUpdate foreach { onDomUpdateList :+= c }
+          onSnabbdomInsert doAction { onSnabbdomInsertCount += 1 },
+          onSnabbdomPrePatch doAction { onSnabbdomPrePatchCount += 1 },
+          onSnabbdomPostPatch doAction { onSnabbdomPostPatchCount += 1 },
+          onSnabbdomUpdate doAction { onSnabbdomUpdateCount += 1 },
+          onSnabbdomDestroy doAction { onSnabbdomDestroyCount += 1 },
+          onDomMount doAction { onDomMountList :+= c },
+          onDomUnmount doAction { onDomUnmountList :+= c },
+          onDomUpdate doAction { onDomUpdateList :+= c }
         )
       }
     )
@@ -780,7 +780,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe Nil
       onDomUpdateList shouldBe Nil
 
-      handler.onNext("heinz")
+      handler.unsafeOnNext("heinz")
       element.innerHTML shouldBe "<div>heinz</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 0
@@ -791,7 +791,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe Nil
       onDomUpdateList shouldBe Nil
 
-      handler.onNext("golum")
+      handler.unsafeOnNext("golum")
       element.innerHTML shouldBe "<div>golum</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 1
@@ -802,7 +802,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1)
       onDomUpdateList shouldBe Nil
 
-      handler.onNext("dieter")
+      handler.unsafeOnNext("dieter")
       element.innerHTML shouldBe "<div>dieter</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 2
@@ -813,7 +813,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1,2)
       onDomUpdateList shouldBe Nil
 
-      handler.onNext("dieter")
+      handler.unsafeOnNext("dieter")
       element.innerHTML shouldBe "<div>dieter</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 3
@@ -824,7 +824,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1,2,3)
       onDomUpdateList shouldBe Nil
 
-      handler.onNext("peter")
+      handler.unsafeOnNext("peter")
       element.innerHTML shouldBe "<div>peter</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 4
@@ -835,7 +835,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       onDomUnmountList shouldBe List(1, 2, 3, 4)
       onDomUpdateList shouldBe Nil
 
-      otherHandler.onNext("hi")
+      otherHandler.unsafeOnNext("hi")
       element.innerHTML shouldBe "<div>hi</div><div>peter</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 4
@@ -848,7 +848,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
 
       innerHandlerCount shouldBe 0
 
-      innerHandler.onNext(0)
+      innerHandler.unsafeOnNext(0)
       element.innerHTML shouldBe "<div>hi</div><div>peter0</div>"
       onSnabbdomInsertCount shouldBe 1
       onSnabbdomPrePatchCount shouldBe 5

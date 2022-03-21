@@ -215,17 +215,17 @@ private[outwatch] class Subscribable(
 ) {
   var subscription: Cancelable = null
 
-  def subscribe(sink: Observer[Unit]): Unit = if (subscription == null) {
+  def unsafeSubscribe(sink: Observer[Unit]): Unit = if (subscription == null) {
     // this is a weird function, it ignores a subsription, eventhough it does not know
-    // wether this specific observer is already subscribed. In this case it is okay,
+    // wether this specific observer is already unsafeSubscribed. In this case it is okay,
     // because this is an internal class that only ever is called with the same observer
     val variable = Cancelable.variable()
     subscription = variable
-    variable() = newCancelable(sink)
+    variable() = (() => newCancelable(sink))
   }
 
-  def unsubscribe(): Unit = if (subscription != null) {
-    subscription.cancel()
+  def ununsafeSubscribe(): Unit = if (subscription != null) {
+    subscription.unsafeCancel()
     subscription = null
   }
 }
@@ -250,7 +250,7 @@ private[outwatch] object NativeModifiers {
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
         def handleModifier(modifier: VDomModifier) = {
-          streamedSubscribables.foreach(_.unsubscribe())
+          streamedSubscribables.foreach(_.ununsafeSubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
           append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
@@ -260,12 +260,12 @@ private[outwatch] object NativeModifiers {
           sink => mod.subscription(Observer.create(
             { modifier =>
               handleModifier(modifier)
-              sink.onNext(())
+              sink.unsafeOnNext(())
             },
             { error =>
               handleModifier(config.errorModifier(error))
-              sink.onNext(())
-              sink.onError(error)
+              sink.unsafeOnNext(())
+              sink.unsafeOnError(error)
             }
           ))
         ))
@@ -286,6 +286,7 @@ private[outwatch] object NativeModifiers {
         case s: CancelableModifier => subscribables.push(new Subscribable(_ => s.subscription()))
         case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
         case m: ChildCommandsModifier => append(subscribables, modifiers, ChildCommand.stream(m.commands, config), inStream)
+        case m: ErrorModifier => append(subscribables, modifiers, config.errorModifier(m.error), inStream)
       }
     }
 

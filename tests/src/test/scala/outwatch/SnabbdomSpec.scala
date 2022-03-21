@@ -1,11 +1,10 @@
 package outwatch
 
 import cats.effect.IO
-import colibri.ext.monix._
 import org.scalajs.dom.EventInit
 import org.scalajs.dom.{Event, document, html}
 import outwatch.dsl._
-import outwatch.reactive.handlers.monix._
+import colibri._
 import snabbdom._
 
 import scala.scalajs.js
@@ -49,12 +48,12 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
 
-    Handler.createF[IO](1).flatMap { clicks =>
+    IO(Subject.behavior(1)).flatMap { clicks =>
 
       val nodes = clicks.map { i =>
         div(
           attributes.key := s"key-$i",
-          span(onClick.use(if (i == 1) 2 else 1) --> clicks, s"This is number $i", idAttr := "btn"),
+          span(onClick.as(if (i == 1) 2 else 1) --> clicks, s"This is number $i", idAttr := "btn"),
           input(idAttr := "input")
         )
       }
@@ -104,8 +103,8 @@ class SnabbdomSpec extends JSDomAsyncSpec {
       IO(document.getElementById("content").innerHTML)
 
     for {
-      a <- Handler.createF[IO](0)
-      b <- Handler.createF[IO](100)
+      a <-IO(Subject.behavior(0))
+      b <-IO(Subject.behavior(100))
       vtree = div(
               a.map { a =>
                 div(
@@ -118,9 +117,9 @@ class SnabbdomSpec extends JSDomAsyncSpec {
             )
           _ <- OutWatch.renderInto[IO]("#app", vtree)
           c1 <- getContent
-           _ <- IO.fromFuture(IO(a.onNext(1)))
+           _ <- a.onNextIO(1)
           c2 <- getContent
-           _ <- IO.fromFuture(IO(b.onNext(200)))
+           _ <- b.onNextIO(200)
           c3 <- getContent
     } yield {
       c1 shouldBe """0<div id="meh">100</div>"""
