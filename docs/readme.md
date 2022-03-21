@@ -32,12 +32,13 @@ addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "x.x.x")
 Add the outwatch dependencies to your `build.sbt`:
 ```scala
 libraryDependencies ++= Seq(
-  "io.github.outwatch"   %%% "outwatch"       % "@VERSION@",
+  "io.github.outwatch"   %%% "outwatch"          % "@VERSION@",
   // optional dependencies:
-  "io.github.outwatch"   %%% "outwatch-util"  % "@VERSION@", // Store, Websocket, Http
-  "com.github.cornerman" %%% "colibri-monix"  % "0.1.2", // Monix
-  "com.github.cornerman" %%% "colibri-rx"     % "0.1.2", // Scala.rx
-  "com.github.cornerman" %%% "colibri-router" % "0.1.2", // Url Router
+  "io.github.outwatch"   %%% "outwatch-util"     % "@VERSION@", // Store, Websocket, Http
+  "com.github.cornerman" %%% "colibri-zio"       % "0.3.2", // ZIO
+  "com.github.cornerman" %%% "colibri-airstream" % "0.3.2", // Airstream
+  "com.github.cornerman" %%% "colibri-rx"        % "0.3.2", // Scala.rx
+  "com.github.cornerman" %%% "colibri-router"    % "0.3.2", // Url Router
 )
 
 ```
@@ -78,7 +79,7 @@ To render html content with outwatch, create a component and render it into the 
 ```scala mdoc:js:compile-only
 import outwatch._
 import outwatch.dsl._
-import cats.effect.IO
+import cats.effect.SyncIO
 
 
 object Main {
@@ -86,7 +87,7 @@ object Main {
 
     val myComponent = div("Hello World")
 
-    OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
+    OutWatch.renderReplace[SyncIO]("#app", myComponent).unsafeRunSync()
   }
 }
 ```
@@ -108,7 +109,7 @@ Running `Main` will replace `<div id="app"></div>` with `myComponent`:
 import outwatch._
 import outwatch.dsl._
 import colibri._
-import cats.effect.IO
+import cats.effect.SyncIO
 
 val component = {
   val counter = Subject.behavior(0)
@@ -118,7 +119,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 To understand how this example works in-depth, please read about [Dynamic Content](#dynamic-content) and [Handling Events](#handling-events).
@@ -134,7 +135,7 @@ First, we will focus on creating immutable/static content that will not change o
 ```scala mdoc:js:shared
 import outwatch._
 import outwatch.dsl._
-import cats.effect.IO
+import cats.effect.SyncIO
 ```
 
 ```scala mdoc:js:shared:invisible
@@ -149,7 +150,7 @@ implicit class PreviewVNode(val vnode:VNode) {
 
   def showHTMLForDoc(previewNode: org.scalajs.dom.Element) = {
     val renderNode = document.createElement("div")
-    OutWatch.renderInto[IO](renderNode, vnode).unsafeRunSync()
+    OutWatch.renderInto[SyncIO](renderNode, vnode).unsafeRunSync()
     val textNode = document.createTextNode(_beautifyHtml(renderNode.innerHTML))
     val codeNode = document.createElement("code")
     codeNode.appendChild(textNode)
@@ -321,7 +322,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### VNode and VDomModifier
@@ -419,7 +420,7 @@ val component = div(
   itemB(alignSelf.center),
 )
 component.showHTMLForDoc(docPreview)
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -467,7 +468,7 @@ val peter = Person("Peter", age = 22)
 val component = div(hans, peter)
 
 component.showHTMLForDoc(docPreview)
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Source Code: [Render.scala](@REPOURL@/outwatch/src/main/scala/outwatch/Render.scala)
@@ -481,14 +482,16 @@ Outwatch natively renders reactive data types, like `Observable` or `Rx` (Scala.
 ```scala mdoc:js:shared
 import outwatch._
 import outwatch.dsl._
-import cats.effect.IO
+import cats.effect.SyncIO
 ```
 
 ```scala mdoc:js
-import concurrent.duration._
+import scala.concurrent.duration._
 
-import monix.execution.Scheduler.Implicits.global
-import colibri.ext.monix._
+import zio.Runtime.default
+import colibri.ext.zio._
+
+import colibri.ext.airstream._
 
 val component = {
   div(
@@ -497,16 +500,20 @@ val component = {
       colibri.Observable.interval(1.second),
     ),
     div(
-      "Observable (monix): ",
-      monix.reactive.Observable.interval(1.second),
+      "Stream (zio): ",
+      zio.stream.Stream.tick(zio.duration.Duration.fromScala(1.second)).as(1).scan[Int](0)(_ + _),
     ),
+    div(
+      "EventStream (airstream): ",
+      com.raquo.airstream.core.EventStream.periodic(intervalMs = 1000)
+    )
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
-**Important:** In your application, `OutWatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Obvervable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
+**Important:** In your application, `OutWatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Observable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
 
 ### Reactive attributes
 Attributes can also take dynamic values.
@@ -525,7 +532,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Reactive Modifiers and VNodes
@@ -549,7 +556,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -563,7 +570,7 @@ val component = {
   div("Hello ", nodeStream)
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -581,7 +588,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Higher Order Reactiveness
@@ -590,9 +597,10 @@ Don't fear to nest different reactive constructs. Outwatch will handle everythin
 
 ```scala mdoc:js
 import scala.concurrent.Future
-implicit val ec = scala.concurrent.ExecutionContext.global
+import scala.concurrent.ExecutionContext.Implicits.global
 import concurrent.duration._
 import colibri.Observable
+import cats.effect.{SyncIO, IO}
 
 val component = {
   div(
@@ -602,16 +610,21 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Using other streaming libraries
 
 We use the library [`colibri`](https://github.com/cornerman/colibri) for a minimal reactive library and for typeclasses around streaming. These typeclasses like `Source` and `Sink` allow to integrate third-party libraries for streaming easily.
 
-For using outwatch with monix:
+For using outwatch with zio:
 ```scala mdoc:js:compile-only
-import colibri.ext.monix._
+import colibri.ext.zio._
+```
+
+For using outwatch with airstream:
+```scala mdoc:js:compile-only
+import colibri.ext.airstream._
 ```
 
 For using outwatch with scala.rx:
@@ -653,7 +666,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 In the next example, we map the event `e` to extract `e.clientX` and write the result into the reactive variable (`BehaviorSubject`) called `x`:
@@ -673,7 +686,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 `EmitterBuilder` comes with many useful methods to make your life easier. Check the completions of your editor.
@@ -689,12 +702,12 @@ val component = {
   div(
       button("increase", onClick(counter.map(_ + 1)) --> counter),
       button("decrease", onClick(counter.map(_ - 1)) --> counter),
-      button("reset", onClick.use(0) --> counter),
+      button("reset", onClick.as(0) --> counter),
       div("counter: ", counter )
    )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -721,14 +734,14 @@ val component = {
         onInput.value --> text,
         onEnter(text) --> submitted,
       ),
-      button("clear", onClick.use("") --> text),
+      button("clear", onClick.as("") --> text),
       div("text: ", text),
       div("length: ", text.map(_.length)),
       div("submitted: ", submitted),
    )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Another example with `debounce` functionality. The `debounced` reactive variable is filled once you stop typing for 500ms.
@@ -751,7 +764,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Global events
@@ -771,7 +784,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -796,7 +809,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 As you can see, the state is shared between all usages of the component. Therefore, the component counter is not referentially transparent. We can change this, by wrapping the component in `IO` (or here: `SyncIO` for immediate rendering). With this change, the reactive variable `number` is instantiated separately for every usage at rendering time:
@@ -821,7 +834,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[IO](docPreview, component).unsafeRunSync()
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Why should we care? Because referentially transparent components can easily be refactored without affecting the meaning of the program. Therefore it is easier to reason about them. Read more about the concept in Wikipedia: [Referential transparency](https://en.wikipedia.org/wiki/Referential_transparency)
@@ -829,7 +842,7 @@ Why should we care? Because referentially transparent components can easily be r
 
 ### Rendering Async Effects
 
-You can render any `cats.effect.Effect` type like `cats.effect.IO` or `monix.eval.Task`. The effect will be run async whenever an element is rendered with this modifier. So you can do:
+You can render any `cats.effect.Effect` type like `cats.effect.SyncIO` or `zio.Task` (using the typeclass `colibri.effect.RunEffect`). The effect will be run async whenever an element is rendered with this modifier. So you can do:
 ```scala mdoc:js:compile-only
 import cats.effect.IO
 
@@ -841,11 +854,9 @@ div(
 )
 ```
 
-If you have an effect that is synchronous in nature, you should consider using a sync effect type instead for performance reasons. A sync effect can be rendered in one go, whereas an async effect might need to patch the dom after it is finished.
-
 ### Rendering Sync Effects
 
-You can render synchronous effects like `cats.effect.SyncIO` or `monix.eval.Coeval` as well (we currently use our own typeclass `colibri.effect.RunSyncEffect` and will port to `cats.effect.SyncEffect` as soon as it is available). The effect will be run sync whenever an element is rendered with this modifier. Example:
+You can render synchronous effects like `cats.effect.SyncIO` as well (using the typeclass `colibri.effect.RunSyncEffect`). The effect will be run sync whenever an element is rendered with this modifier. Example:
 ```scala mdoc:js:compile-only
 import cats.effect.SyncIO
 
@@ -910,7 +921,7 @@ import colibri.Observable
 
 val someObservable:Observable[Int] = ???
 div(
-  emitter(someObservable).useLatestEmitter(onDomMount).foreach { element =>
+  emitter(someObservable).asLatestEmitter(onDomMount).foreach { element =>
     ???
     ()
   }
@@ -934,7 +945,7 @@ managedElement.asSvg { (elem: svg.Element) => ???; cancelable(() => ???) }
 You can `combine`, `map`, `collect`, `filter` and `transform` `EmitterBuilder`:
 
 ```scala mdoc:js:compile-only
-button(EmitterBuilder.combine(onMouseUp.use(false), onMouseDown.use(true)).foreach { isDown => println("Button is down? " + isDown) })
+button(EmitterBuilder.combine(onMouseUp.as(false), onMouseDown.as(true)).foreach { isDown => println("Button is down? " + isDown) })
 // this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
 ```
 
@@ -952,7 +963,7 @@ Show which patches snabbdom emits:
 import scala.scalajs.js.JSON
 import org.scalajs.dom.console
 
-helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
+helpers.OutwatchTracing.patch.zipWithIndex.unsafeForeach { case (proxy, index) =>
   console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
 }
 ```
@@ -964,17 +975,17 @@ Dynamic components with `Observables` can have errors. This happens if `onError`
 Furthermore, you can configure whether OutWatch should render errors to the dom by providing a `RenderConfig`. `RenderConfig.showError` always shows errors, `RenderConfig.ignoreError` never shows errors and `RenderConfig.default` only shows errors when running on `localhost`.
 
 ```scala mdoc:js
-import cats.effect.IO
+import cats.effect.SyncIO
 
-val component = div("broken?", IO.raiseError[VDomModifier](new Exception("I am broken")))
-OutWatch.renderInto[IO](docPreview, component, config = RenderConfig.showError).unsafeRunSync()
+val component = div("broken?", SyncIO.raiseError[VDomModifier](new Exception("I am broken")))
+OutWatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.showError).unsafeRunSync()
 ```
 
 ```scala mdoc:js
-import cats.effect.IO
+import cats.effect.SyncIO
 
-val component = div("broken?", IO.raiseError[VDomModifier](new Exception("I am broken")))
-OutWatch.renderInto[IO](docPreview, component, config = RenderConfig.ignoreError).unsafeRunSync()
+val component = div("broken?", SyncIO.raiseError[VDomModifier](new Exception("I am broken")))
+OutWatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.ignoreError).unsafeRunSync()
 ```
 
 
@@ -982,7 +993,7 @@ You can additionally trace and react to these errors in your own code:
 ```scala mdoc:js:compile-only
 import org.scalajs.dom.console
 
-helpers.OutwatchTracing.error.foreach { throwable =>
+helpers.OutwatchTracing.error.unsafeForeach { throwable =>
   console.log(s"Exception while patching an Outwatch compontent: ${throwable.getMessage}")
 }
 ```

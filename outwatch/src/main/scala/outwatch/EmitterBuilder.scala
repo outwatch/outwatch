@@ -1,13 +1,12 @@
 package outwatch
 
 import cats.{Monoid, Functor, Bifunctor}
-import cats.effect.{Effect, Sync => SyncCats, SyncIO}
+import cats.effect.{Sync => SyncCats, SyncIO}
 import org.scalajs.dom.{Element, Event, html, svg}
-import outwatch.reactive.handler
 import colibri._
 import colibri.effect._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 // The EmitterBuilder[O, R] allows you to build an R that produces values of type O.
@@ -29,7 +28,7 @@ import scala.concurrent.duration.FiniteDuration
 // will later be rendered instead of only the emitter. Then you can describe the action
 // that should be done when an event triggers:
 //
-// onClick.map(_ => 1).foreach(doSomething(_)): VDomModifier
+// onClick.map(_ => 1).doAction(doSomething(_)): VDomModifier
 //
 // The EmitterBuilder result must be a SubscriptionOwner to handle the subscription
 // from the emitterbuilder.
@@ -45,43 +44,79 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec]
   @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec]
 
-  @inline def -->[F[_] : Sink](sink: F[_ >: O]): R = forwardTo(sink)
+  @inline final def -->[F[_] : Sink](sink: F[_ >: O]): R = forwardTo(sink)
 
-  @inline def discard: R = forwardTo(Observer.empty)
+  @inline final def discard: R = forwardTo(Observer.empty)
 
-  @inline def foreach(action: O => Unit): R = forwardTo(Observer.create(action))
-  @inline def foreach(action: => Unit): R = foreach(_ => action)
+  @inline final def foreach(action: O => Unit): R = forwardTo(Observer.create(action))
+  @deprecated("Use .doAction(action) instead", "")
+  @inline final def foreach(action: => Unit): R = doAction(action)
+  @inline final def doAction(action: => Unit): R = foreach(_ => action)
 
-  @inline def foreachSync[G[_] : RunSyncEffect](action: O => G[Unit]): R = mapSync(action).discard
-  @inline def doSync[G[_] : RunSyncEffect](action: G[Unit]): R = foreachSync(_ => action)
+  @deprecated("Use .foreachEffect(action) instead", "")
+  @inline final def foreachSync[G[_] : RunSyncEffect](action: O => G[Unit]): R = mapSync(action).discard
+  @deprecated("Use .doEffect(action) instead", "")
+  @inline final def doSync[G[_] : RunSyncEffect](action: G[Unit]): R = foreachSync(_ => action)
 
-  @inline def foreachAsync[G[_] : Effect](action: O => G[Unit]): R = concatMapAsync(action).discard
-  @inline def doAsync[G[_] : Effect](action: G[Unit]): R = foreachAsync(_ => action)
+  @deprecated("Use .foreachEffect(action) instead", "")
+  @inline def foreachAsync[G[_] : RunEffect](action: O => G[Unit]): R = foreachEffect(action)
+  @deprecated("Use .doEffect(action) instead", "")
+  @inline def doAsync[G[_] : RunEffect](action: G[Unit]): R = doEffect(action)
 
-  def map[T](f: O => T): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramap(f))
+  @inline def foreachEffect[G[_] : RunEffect](action: O => G[Unit]): R = mapEffect(action).discard
+  @inline def doEffect[G[_] : RunEffect](action: G[Unit]): R = foreachEffect(_ => action)
 
-  def collect[T](f: PartialFunction[O, T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contracollect(f))
+  @inline final def map[T](f: O => T): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramap(f))
 
-  def filter(predicate: O => Boolean): EmitterBuilderExecution[O, R, Exec] = transformSinkWithExec(_.contrafilter(predicate))
+  @inline final def collect[T](f: PartialFunction[O, T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contracollect(f))
 
-  def mapFilter[T](f: O => Option[T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramapFilter(f))
+  @inline final def filter(predicate: O => Boolean): EmitterBuilderExecution[O, R, Exec] = transformSinkWithExec(_.contrafilter(predicate))
 
-  @inline def use[T](value: T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
-  @inline def useLazy[T](value: => T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
+  @inline final def mapFilter[T](f: O => Option[T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramapFilter(f))
 
-  @deprecated("Use .useLazy(value) instead", "")
-  @inline def mapTo[T](value: => T): EmitterBuilderExecution[T, R, Exec] = useLazy(value)
-  @deprecated("Use .use(value) instead", "")
-  @inline def apply[T](value: T): EmitterBuilderExecution[T, R, Exec] = use(value)
+  @inline final def mapIterable[T](f: O => Iterable[T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramapIterable(f))
 
-  @inline def useSync[G[_]: RunSyncEffect, T](value: G[T]): EmitterBuilderExecution[T, R, Exec] = mapSync(_ => value)
+  @inline final def as[T](value: => T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
+  @inline final def asDelay[T](value: T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
 
-  @inline def useAsync[G[_]: Effect, T](value: G[T]): EmitterBuilder[T, R] = concatMapAsync(_ => value)
+  @deprecated("Use .as(value) instead", "")
+  @inline final def use[T](value: T): EmitterBuilderExecution[T, R, Exec] = asDelay(value)
+  @deprecated("Use .asDelay(value) instead", "")
+  @inline final def useLazy[T](value: => T): EmitterBuilderExecution[T, R, Exec] = as(value)
 
-  @inline def apply[G[_] : Source, T](source: G[T]): EmitterBuilderExecution[T, R, Exec] = useLatest(source)
+  @deprecated("Use .asDelay(value) instead", "")
+  @inline final def mapTo[T](value: => T): EmitterBuilderExecution[T, R, Exec] = asDelay(value)
+  @deprecated("Use .as(value) instead", "")
+  @inline final def apply[T](value: T): EmitterBuilderExecution[T, R, Exec] = use(value)
+  @deprecated("Use .mapFuture(f) instead", "")
+  @inline final def concatMapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] = mapFuture(f)
+  @deprecated("Use .mapEffect(f) instead", "")
+  @inline final def concatMapAsync[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = mapEffect(f)
 
-  def useLatest[F[_] : Source, T](latest: F[T]): EmitterBuilderExecution[T, R, Exec] =
-    transformWithExec[T](source => source.withLatestMap(Observable.lift(latest))((_, u) => u))
+  @deprecated("Use .asEffect(value) instead", "")
+  @inline final def useSync[G[_]: RunSyncEffect, T](value: G[T]): EmitterBuilderExecution[T, R, Exec] = transformWithExec(_.mapEffect(_ => value))
+
+  @deprecated("Use .asEffect(value) instead", "")
+  @inline final def useAsync[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asEffect(value)
+  @inline final def asEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = mapEffect(_ => value)
+
+  @deprecated("Use .asFuture(value) instead", "")
+  @inline final def useFuture[T](value: => Future[T]): EmitterBuilder[T, R] = asFuture(value)
+  @inline final def asFuture[T](value: => Future[T]): EmitterBuilder[T, R] = mapFuture(_ => value)
+
+  @deprecated("Use .asEffectSingleOrDrop(value) instead", "")
+  @inline final def useAsyncSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asEffectSingleOrDrop(value)
+  @inline final def asEffectSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = mapEffectSingleOrDrop(_ => value)
+
+  @deprecated("Use .asFutureSingleOrDrop(value) instead", "")
+  @inline final def useFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] = asFutureSingleOrDrop(value)
+  @inline final def asFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] = mapFutureSingleOrDrop(_ => value)
+
+  @inline final def apply[G[_] : Source, T](source: G[T]): EmitterBuilderExecution[T, R, Exec] = asLatest(source)
+
+  @deprecated("Use .asLatest(value) instead", "")
+  @inline final def useLatest[F[_] : Source, T](latest: F[T]): EmitterBuilderExecution[T, R, Exec] = asLatest(latest)
+  @inline final def asLatest[F[_] : Source, T](latest: F[T]): EmitterBuilderExecution[T, R, Exec] = transformWithExec[T](source => source.withLatestMap(Observable.lift(latest))((_, u) => u))
 
   def withLatest[F[_] : Source, T](latest: F[T]): EmitterBuilderExecution[(O, T), R, Exec] =
     transformWithExec[(O, T)](source => source.withLatest(Observable.lift(latest)))
@@ -89,12 +124,16 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   def scan[T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[T](source => source.scan(seed)(f))
 
-  def useScan[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan(seed)((t,_) => f(t))
+  @deprecated("Use .asScan(seed)(f) instead", "")
+  @inline final def useScan[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = asScan(seed)(f)
+  @inline final def asScan[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan(seed)((t,_) => f(t))
 
   def scan0[T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[T](source => source.scan0(seed)(f))
 
-  def useScan0[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan0(seed)((t,_) => f(t))
+  @deprecated("Use .asScan0(seed)(f) instead", "")
+  @inline final def useScan0[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = asScan0(seed)(f)
+  @inline final def asScan0[T](seed: T)(f: T => T): EmitterBuilderExecution[T, R, Exec] = scan0(seed)((t,_) => f(t))
 
   def debounce(duration: FiniteDuration): EmitterBuilder[O, R] =
     transformWithExec[O](source => source.debounce(duration))
@@ -111,14 +150,22 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   def delayMillis(millis: Int): EmitterBuilder[O, R] =
     transformWithExec[O](source => source.delayMillis(millis))
 
-  def concatMapFuture[T](f: O => Future[T])(implicit ec: ExecutionContext): EmitterBuilder[T, R] =
+  def mapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] =
     transformWithExec[T](source => source.mapFuture(f))
 
-  def concatMapAsync[G[_]: Effect, T](f: O => G[T]): EmitterBuilder[T, R] =
-    transformWithExec[T](source => source.mapAsync(f))
+  @deprecated("Use .mapEffect(f) instead", "")
+  def mapAsync[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = mapEffect(f)
+  def mapEffect[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = transformWithExec[T](source => source.mapEffect(f))
 
-  def mapSync[G[_]: RunSyncEffect, T](f: O => G[T]): EmitterBuilderExecution[T, R, Exec] =
-    transformWithExec[T](source => source.mapSync(f))
+  def mapFutureSingleOrDrop[T](f: O => Future[T]): EmitterBuilder[T, R] =
+    transformWithExec[T](source => source.mapFutureSingleOrDrop(f))
+
+  @deprecated("Use .mapEffectSingleOrDrop(f) instead", "")
+  def mapAsyncSingleOrDrop[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = mapEffectSingleOrDrop(f)
+  def mapEffectSingleOrDrop[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = transformWithExec[T](source => source.mapEffectSingleOrDrop(f))
+
+  @deprecated("Use .mapEffect(f) instead", "")
+  def mapSync[G[_]: RunSyncEffect, T](f: O => G[T]): EmitterBuilderExecution[T, R, Exec] = transformWithExec[T](source => source.mapEffect(f))
 
   def transformLifted[F[_] : Source : LiftSource, OO >: O, T](f: F[OO] => F[T]): EmitterBuilder[T, R] =
     transformWithExec[T]((s: Observable[OO]) => Observable.lift(f(LiftSource[F].lift(s))))
@@ -155,7 +202,7 @@ object EmitterBuilder {
   @inline final class Stream[+O, +R: SubscriptionOwner](source: Observable[O], result: R) extends EmitterBuilderExecution[O, R, Execution] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Execution] = new Stream(source.transformSink(f), result)
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Execution] = new Stream(f(source), result)
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = SubscriptionOwner[R].own(result)(() => source.subscribe(Observer.lift(sink)))
+    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = SubscriptionOwner[R].own(result)(() => source.unsafeSubscribe(Observer.lift(sink)))
   }
 
   @inline final class Custom[+O, +R: SubscriptionOwner, + Exec <: Execution](create: Observer[O] => R) extends EmitterBuilderExecution[O, R, Exec] {
@@ -190,7 +237,7 @@ object EmitterBuilder {
   @inline def fromSource[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VDomModifier] = fromSourceOf[F, E, VDomModifier](source)
 
   def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, VDomModifier] = apply[E, VDomModifier] { sink =>
-    Emitter(eventType, e => sink.onNext(e.asInstanceOf[E]))
+    Emitter(eventType, e => sink.unsafeOnNext(e.asInstanceOf[E]))
   }
 
   @inline def combine[T, R : SubscriptionOwner : Monoid, Exec <: Execution](builders: EmitterBuilderExecution[T, R, Exec]*): EmitterBuilderExecution[T, R, Exec] = combineSeq(builders)
@@ -222,7 +269,7 @@ object EmitterBuilder {
     @inline def handled(f: Observable[O] => R): SyncIO[R] = handledF[SyncIO](f)
 
     @deprecated
-    @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
+    @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replay[O]())) { handler =>
       Monoid[R].combine(builder.forwardTo(handler), f(handler))
     }
   }
@@ -232,7 +279,7 @@ object EmitterBuilder {
     @inline def handledWith(f: (R, Observable[O]) => R): SyncIO[R] = handledWithF[SyncIO](f)
 
     @deprecated
-    @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(handler.Handler.createF[F, O]) { handler =>
+    @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replay[O]())) { handler =>
       f(builder.forwardTo(handler), handler)
     }
   }
@@ -240,8 +287,10 @@ object EmitterBuilder {
   @inline implicit class EmitterOperations[O, R : Monoid : SubscriptionOwner, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
 
     @inline def withLatestEmitter[T](emitter: EmitterBuilder[T, R]): EmitterBuilderExecution[(O,T), SyncIO[R], Exec] = combineWithLatestEmitter(builder, emitter)
+    @inline def asLatestEmitter[T](emitter: EmitterBuilder[T, R]): EmitterBuilderExecution[T, SyncIO[R], Exec] = withLatestEmitter(emitter).map(_._2)
 
-    @inline def useLatestEmitter[T](emitter: EmitterBuilder[T, R]): EmitterBuilderExecution[T, SyncIO[R], Exec] = combineWithLatestEmitter(builder, emitter).map(_._2)
+    @deprecated("Use asLatestEmitter(emitter) instead", "")
+    @inline def useLatestEmitter[T](emitter: EmitterBuilder[T, R]): EmitterBuilderExecution[T, SyncIO[R], Exec] = asLatestEmitter(emitter)
   }
 
   @inline implicit class EventActions[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
@@ -287,14 +336,14 @@ object EmitterBuilder {
       SyncIO {
         var lastValue: js.UndefOr[T] = js.undefined
         Monoid[R].combine(
-          latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.onError)),
+          latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.unsafeOnError)),
           sourceEmitter.forwardTo(Observer.create[O](
             { o =>
               lastValue.foreach { t =>
-                sink.onNext((o, t))
+                sink.unsafeOnNext((o, t))
               }
             },
-            sink.onError
+            sink.unsafeOnError
           ))
         )
       }

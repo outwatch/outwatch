@@ -17,14 +17,14 @@ import scala.scalajs.js
 trait OutwatchAttributes {
 
   private def proxyElementEmitter(f: js.Function1[VNodeProxy, Unit] => VDomModifier): Observer[dom.Element] => VDomModifier =
-    obs => f(p => p.elm.foreach(obs.onNext(_)))
+    obs => f(p => p.elm.foreach(obs.unsafeOnNext(_)))
   private def proxyElementFirstEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[dom.Element] => VDomModifier =
-    obs => f((o,_) => o.elm.foreach(obs.onNext(_)))
+    obs => f((o,_) => o.elm.foreach(obs.unsafeOnNext(_)))
   private def proxyElementPairEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(dom.Element, dom.Element)] => VDomModifier =
-    obs => f((o,p) => o.elm.foreach(oe => p.elm.foreach(pe => obs.onNext((oe,pe)))))
+    obs => f((o,p) => o.elm.foreach(oe => p.elm.foreach(pe => obs.unsafeOnNext((oe,pe)))))
   private def proxyElementPairOptionEmitter(f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VDomModifier): Observer[(Option[dom.Element], Option[dom.Element])] => VDomModifier =
     obs => f((o,p) => {
-      obs.onNext((o.elm.toOption, p.elm.toOption))
+      obs.unsafeOnNext((o.elm.toOption, p.elm.toOption))
       ()
     })
 

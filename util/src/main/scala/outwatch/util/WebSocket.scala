@@ -14,16 +14,16 @@ final case class WebSocket private(url: String) {
   val ws = new org.scalajs.dom.WebSocket(url)
 
   lazy val observable:Observable[MessageEvent] = Observable.create[MessageEvent](observer => {
-    ws.onmessage = (e: MessageEvent) => observer.onNext(e)
-    ws.onerror = (e: Event) => observer.onError(new Exception(s"Error in WebSocket: $e"))
+    ws.onmessage = (e: MessageEvent) => observer.unsafeOnNext(e)
+    ws.onerror = (e: Event) => observer.unsafeOnError(new Exception(s"Error in WebSocket: $e"))
     Cancelable(() => ws.close())
   })
 
   lazy val observer:IO[Observer[String]] = {
     IO {
       new Observer[String] {
-        override def onNext(elem: String): Unit = ws.send(elem)
-        override def onError(ex: Throwable): Unit = OutwatchTracing.errorSubject.onNext(ex)
+        override def unsafeOnNext(elem: String): Unit = ws.send(elem)
+        override def unsafeOnError(ex: Throwable): Unit = OutwatchTracing.errorSubject.unsafeOnNext(ex)
       }
     }
   }

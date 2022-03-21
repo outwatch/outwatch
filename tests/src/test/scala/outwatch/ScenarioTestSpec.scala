@@ -2,12 +2,10 @@ package outwatch
 
 import cats.effect.IO
 import org.scalajs.dom.{html, _}
-import monix.reactive.{Observable, Observer}
 import org.scalatest.Assertion
 import outwatch.dsl._
-import colibri.ext.monix._
 import org.scalajs.dom.EventInit
-import outwatch.reactive.handlers.monix._
+import colibri._
 import outwatch.util._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
@@ -19,11 +17,11 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
   "A simple counter application" should "work as intended" in {
 
     val test: IO[Assertion] = for {
-       handlePlus <- Handler.createF[IO, MouseEvent]
-      handleMinus <- Handler.createF[IO, MouseEvent]
+       handlePlus <- IO(Subject.replay[MouseEvent]())
+      handleMinus <- IO(Subject.replay[MouseEvent]())
           plusOne = handlePlus.map(_ => 1)
          minusOne = handleMinus.map(_ => -1)
-            count = Observable(plusOne, minusOne).merge.scan(0)(_ + _).startWith(Seq(0))
+            count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
 
              node = div(div(
                         button(idAttr := "plus", "+", onClick --> handlePlus),
@@ -81,8 +79,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
-        button(idAttr := "plus", "+", onClick.use(Plus) -->[colibri.Observer] store),
-        button(idAttr := "minus", "-", onClick.use(Minus) -->[colibri.Observer] store),
+        button(idAttr := "plus", "+", onClick.as(Plus) -->[colibri.Observer] store),
+        button(idAttr := "minus", "-", onClick.as(Minus) -->[colibri.Observer] store),
         span(idAttr :="counter")(
           state.map(_.count)
         ),
@@ -147,7 +145,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     def assertGreeting(greeting: String, name: String): Assertion =
       assert(greeting == greetStart + name)
 
-    val node = Handler.createF[IO, String].map { nameHandler =>
+    val node = IO(Subject.replay[String]()).map { nameHandler =>
       div(
         label("Name:"),
         input(idAttr := "input", tpe := "text", onInput.value --> nameHandler),
@@ -187,9 +185,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       element.getElementsByTagName("button").item(0)
 
     def component(): IO[VNode] = {
-      Handler.createF[IO, String].map { handler =>
+      IO(Subject.replay[String]()).map { handler =>
         div(
-          button(onClick.use("clicked") --> handler),
+          button(onClick.as("clicked") --> handler),
           div(cls := "label", handler)
         )
       }
@@ -226,14 +224,14 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     def TodoComponent(title: String, deleteStream: Observer[String]) =
       li(
         span(title),
-        button(idAttr := title, onClick.use(title) --> deleteStream, "Delete")
+        button(idAttr := title, onClick.as(title) --> deleteStream, "Delete")
       )
 
     def TextFieldComponent(labelText: String, outputStream: Observer[String]) = for {
 
-      textFieldStream <- Handler.createF[IO, String]
-      clickStream <- Handler.createF[IO, MouseEvent]
-      keyStream <- Handler.createF[IO, KeyboardEvent]
+      textFieldStream <- IO(Subject.replay[String]())
+      clickStream <- IO(Subject.replay[MouseEvent]())
+      keyStream <- IO(Subject.replay[KeyboardEvent]())
 
       buttonDisabled = textFieldStream
         .map(_.length < 2)
@@ -242,8 +240,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = Observable(enterPressed, clickStream).merge
-        .withLatestFrom(textFieldStream)((_, input) => input)
+      confirm = Observable.merge(enterPressed, clickStream)
+        .withLatestMap(textFieldStream)((_, input) => input)
 
     } yield div(
         emitter(confirm) --> outputStream,
@@ -263,8 +261,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val vtree = for {
-      inputHandler <- Handler.createF[IO, String]
-      deleteHandler <- Handler.createF[IO, String]
+      inputHandler <- IO(Subject.replay[String]())
+      deleteHandler <- IO(Subject.replay[String]())
 
       adds = inputHandler
         .map(addToList)
@@ -272,7 +270,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       deletes = deleteHandler
         .map(removeFromList)
 
-      state = Observable(adds, deletes).merge
+      state = Observable.merge(adds, deletes)
         .scan(Vector[String]())((state, modify) => modify(state))
         .map(_.map(n => TodoComponent(n, deleteHandler)))
       textFieldComponent = TextFieldComponent("Todo: ", inputHandler)

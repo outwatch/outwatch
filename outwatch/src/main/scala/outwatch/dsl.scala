@@ -1,4 +1,4 @@
-  package outwatch
+package outwatch
 
 import outwatch.definitions._
 

@@ -10,16 +10,14 @@ import org.scalajs.dom.{Blob, XMLHttpRequest}
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.ArrayBuffer
 import scala.scalajs.js.|
-import cats.effect.ContextShift
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 object Http {
   final case class Request(url: String,
     data: InputData = "",
     timeout: Int = 0,
     headers: Map[String, String] = Map.empty,
-    crossDomain: Boolean = false,
     responseType: String = "",
     method: String = Get.toString,
     withCredentials: Boolean = false
@@ -72,35 +70,33 @@ object Http {
     responseType = request.responseType
   ): @scala.annotation.nowarn("cat=deprecation") // TODO
 
-  private def request(observable: Observable[Request], requestType: HttpRequestType)(implicit ec: ExecutionContext): Observable[Response] =
+  private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] =
     observable.switchMap { request =>
-      Observable.fromFuture(
-        ajax(request.copy(method = requestType.toString))
+      Observable.fromFuture(ajax(request.copy(method = requestType.toString)))
           .map(toResponse)
           .recover {
             case AjaxException(req) => toResponse(req)
           }
-      )
     }.publish.refCount
 
-  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType)(implicit ec: ExecutionContext) =
+  private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) =
     request(urls.map(url => Request(url)), requestType: HttpRequestType)
 
-  def single(request: Request, method: HttpRequestType)(implicit cs: ContextShift[IO]): IO[Response] =
+  def single(request: Request, method: HttpRequestType): IO[Response] =
     IO.fromFuture(IO(ajax(request.copy(method = method.toString)))).map(toResponse _)
 
-  def getWithUrl(urls: Observable[String])(implicit ec: ExecutionContext) = requestWithUrl(urls, Get)
+  def getWithUrl(urls: Observable[String]) = requestWithUrl(urls, Get)
 
-  def get(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Get)
+  def get(requests: Observable[Request]) = request(requests, Get)
 
-  def post(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Post)
+  def post(requests: Observable[Request]) = request(requests, Post)
 
-  def delete(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Delete)
+  def delete(requests: Observable[Request]) = request(requests, Delete)
 
-  def put(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Put)
+  def put(requests: Observable[Request]) = request(requests, Put)
 
-  def options(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Options)
+  def options(requests: Observable[Request]) = request(requests, Options)
 
-  def head(requests: Observable[Request])(implicit ec: ExecutionContext) = request(requests, Head)
+  def head(requests: Observable[Request]) = request(requests, Head)
 
 }
