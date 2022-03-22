@@ -22,6 +22,7 @@ import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.JSON
+import colibri.Subject
 
 final case class Fixture(proxy: VNodeProxy)
 class OutWatchDomSpec extends JSDomAsyncSpec {
@@ -3770,5 +3771,92 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       _ = cancelable.cancel()
     } yield succeed
+  }
+
+  "Events while patching" should "fire for the correct dom node" in {
+
+    val otherDiv = Subject.replay[VNode]
+    var insertedFirst = 0
+    var insertedSecond = 0
+    var mountedFirst = 0
+    var mountedSecond = 0
+
+    val node = div(
+      otherDiv.map(_(
+        onSnabbdomInsert foreach {insertedFirst += 1},
+        onDomMount foreach {mountedFirst += 1}
+      )),
+      div(
+        onSnabbdomInsert foreach {insertedSecond += 1},
+        onDomMount foreach {mountedSecond += 1}
+      )
+    )
+
+    OutWatch.renderInto[SyncIO]("#app", node).unsafeRunSync()
+
+    insertedFirst shouldBe 0
+    mountedFirst shouldBe 0
+    insertedSecond shouldBe 1
+    mountedSecond shouldBe 1
+
+    otherDiv.onNext(div())
+
+    insertedFirst shouldBe 1
+    mountedFirst shouldBe 1
+    insertedSecond shouldBe 1
+    mountedSecond shouldBe 1
+
+    otherDiv.onNext(div("hallo"))
+
+    insertedFirst shouldBe 1
+    mountedFirst shouldBe 2
+    insertedSecond shouldBe 1
+    mountedSecond shouldBe 1
+  }
+
+
+  it should "fire for the correct dom node 2" in {
+    // in this case, without keys, snabbdom patches the second node
+
+    val otherDiv = Subject.behavior[Option[VNode]](None)
+    var insertedFirst = 0
+    var insertedSecond = 0
+    var mountedFirst = 0
+    var mountedSecond = 0
+
+    val node = div(
+      idAttr := "Foo",
+      otherDiv.map(otherDiv => div(
+        otherDiv.map(_(
+          onSnabbdomInsert foreach {insertedFirst += 1},
+          onDomMount foreach {mountedFirst += 1}
+        )),
+        div(
+          onSnabbdomInsert foreach {insertedSecond += 1},
+          onDomMount foreach {mountedSecond += 1}
+        )
+      ))
+    )
+
+    OutWatch.renderInto[SyncIO]("#app", node).unsafeRunSync()
+
+    insertedFirst shouldBe 0
+    mountedFirst shouldBe 0
+    insertedSecond shouldBe 1
+    mountedSecond shouldBe 1
+
+    otherDiv.onNext(Some(div()))
+
+    insertedFirst shouldBe 0
+    mountedFirst shouldBe 1
+    insertedSecond shouldBe 2
+    mountedSecond shouldBe 2
+
+    otherDiv.onNext(Some(div("hallo")))
+
+    insertedFirst shouldBe 0
+    mountedFirst shouldBe 2
+    insertedSecond shouldBe 2
+    mountedSecond shouldBe 3
   }
 }
