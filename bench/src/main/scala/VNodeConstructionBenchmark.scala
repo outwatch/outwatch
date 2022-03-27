@@ -2,9 +2,6 @@ package outwatch
 
 import outwatch._
 import outwatch.dsl._
-import monix.execution.ExecutionModel.SynchronousExecution
-import monix.execution.schedulers.TrampolineScheduler
-import monix.execution.Scheduler
 import outwatch.interpreter.SnabbdomOps
 
 import org.scalajs.dom.{ document, window }
@@ -12,11 +9,9 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
 
-object VNodeConstructionBenchmark extends js.JSApp {
+object VNodeConstructionBenchmark {
 
-  implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
-
-  def main(): Unit = {
+  def main(args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
     bench.util.runComparison(vnodes, List(1), 60.seconds)
@@ -26,7 +21,7 @@ object VNodeConstructionBenchmark extends js.JSApp {
     BenchmarkWithoutInit(
       "10 literal tags",
       { _ =>
-        SnabbdomOps.toSnabbdom(div(span(), a(), img(), hr(), button(), input(), form(), label(), b(), i()))
+        SnabbdomOps.toSnabbdom(div(span(), a(), img(), hr(), button(), input(), form(), label(), b(), i()), RenderConfig.default)
       }
     ),
     BenchmarkWithoutInit(
@@ -43,7 +38,7 @@ object VNodeConstructionBenchmark extends js.JSApp {
           contentEditable := true,
           name := "hui",
           autoComplete := "true"
-        ))
+        ), RenderConfig.default)
       }
     )
   ))

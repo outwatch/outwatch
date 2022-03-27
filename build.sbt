@@ -125,8 +125,11 @@ lazy val tests = project
 
 lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(outwatch)
   .settings(
     publish/skip := true,
+
+    scalaJSUseMainModuleInitializer := true,
 
     resolvers ++=
       ("jitpack" at "https://jitpack.io") ::
@@ -186,4 +189,4 @@ lazy val root = project
     name := "outwatch-root",
     publish/skip := true,
   )
-  .aggregate(outwatch, outwatchSnabbdom, outwatchUtil, outwatchRepairDom, tests)
+  .aggregate(outwatch, outwatchSnabbdom, outwatchUtil, outwatchRepairDom, tests, bench)
