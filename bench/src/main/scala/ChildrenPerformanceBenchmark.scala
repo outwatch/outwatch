@@ -4,13 +4,7 @@ import cats.effect.SyncIO
 
 import outwatch._
 import outwatch.dsl._
-// import outwatch.reactive.handler._
-import colibri.ext.monix._
-import outwatch.reactive.handlers.monix._
-
-import monix.execution.ExecutionModel.SynchronousExecution
-import monix.execution.schedulers.TrampolineScheduler
-import monix.execution.Scheduler
+import colibri._
 
 import org.scalajs.dom.{ document, window }
 import scala.scalajs.js
@@ -23,11 +17,9 @@ object jsdom extends js.Object {
   def jsdom(innerHTML: js.UndefOr[String]): js.Any = js.native
 }
 
-object ChildrenPerformance extends js.JSApp {
+object ChildrenPerformance {
 
-  implicit val scheduler: Scheduler = TrampolineScheduler(Scheduler.global, SynchronousExecution)
-
-  def main(): Unit = {
+  def main(args: Array[String]): Unit = {
     import scala.concurrent.duration._
     setupJsDom()
 
@@ -78,9 +70,9 @@ object ChildrenPerformance extends js.JSApp {
   def runChildren(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler = Handler.unsafe[Int](0)
-    val handler2 = Handler.unsafe[Int](0)
-    val handler3 = Handler.unsafe[Int]
+    val handler = Subject.behavior[Int](0)
+    val handler2 = Subject.behavior[Int](0)
+    val handler3 = Subject.replay[Int]
 
     val vtree = div(
       idAttr := elemId,
@@ -124,9 +116,9 @@ object ChildrenPerformance extends js.JSApp {
   def runThunks(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler = Handler.unsafe[Int](0)
-    val handler2 = Handler.unsafe[Int](0)
-    val handler3 = Handler.unsafe[Int]
+    val handler = Subject.behavior[Int](0)
+    val handler2 = Subject.behavior[Int](0)
+    val handler3 = Subject.replay[Int]
 
     val vtree = div(
       idAttr := elemId,
@@ -170,7 +162,7 @@ object ChildrenPerformance extends js.JSApp {
   def runCommands(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler3 = Handler.unsafe[Int]
+    val handler3 = Subject.replay[Int]
 
     def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3)
     def node2(j: Int) = div(
@@ -179,8 +171,8 @@ object ChildrenPerformance extends js.JSApp {
       handler3
     )
 
-    val handler = Handler.unsafe[ChildCommand](ChildCommand.ReplaceAll(js.Array(node1(0))))
-    val handler2 = Handler.unsafe[ChildCommand](ChildCommand.ReplaceAll(js.Array(node2(0))))
+    val handler = Subject.behavior[ChildCommand](ChildCommand.ReplaceAll(js.Array(node1(0))))
+    val handler2 = Subject.behavior[ChildCommand](ChildCommand.ReplaceAll(js.Array(node2(0))))
 
     val vtree = div(
       idAttr := elemId,
