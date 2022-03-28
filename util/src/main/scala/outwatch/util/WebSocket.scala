@@ -5,6 +5,7 @@ import outwatch.helpers._
 import colibri._
 import org.scalajs.dom.{Event, MessageEvent}
 
+@deprecated("Use org.scalajs.dom.WebSocket directly instead", "")
 object WebSocket {
   implicit def toObserver(socket: WebSocket): IO[Observer[String]] = socket.observer
   implicit def toObservable(socket: WebSocket): Observable[MessageEvent] = socket.observable
