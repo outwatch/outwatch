@@ -126,8 +126,10 @@ trait AttributeHelpers { self: Attributes =>
   @inline def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   @inline def style[T](key: String, @annotation.nowarn dummy: Unit = ()) = new BasicStyleBuilder[T](key)
 
+  @deprecated("use EmitterBuilder.fromSource instead", "0.11.0")
   @inline def emitter[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VModifier] = EmitterBuilder.fromSource(source)
 
+  @deprecated("use colibri.Cancelable instead", "0.11.0")
   @inline def cancelable(cancel: () => Unit): Cancelable = Cancelable(cancel)
 }
 
