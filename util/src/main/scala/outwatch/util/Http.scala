@@ -13,6 +13,7 @@ import scala.scalajs.js.|
 
 import scala.concurrent.Future
 
+@deprecated("Use org.scalajs.dom.fetch instead, you can render future or js.Promise responses in the dom as usual", "")
 object Http {
   final case class Request(url: String,
     data: InputData = "",
