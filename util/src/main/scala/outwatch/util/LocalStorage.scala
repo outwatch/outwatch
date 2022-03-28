@@ -1,7 +1,5 @@
 package outwatch.util
 
-import cats.effect.Sync
-import cats.implicits._
 import org.scalajs.dom
 import org.scalajs.dom.StorageEvent
 import org.scalajs.dom.window.{localStorage, sessionStorage}
@@ -10,28 +8,7 @@ import outwatch.dsl.events
 import colibri._
 
 class Storage(storage: dom.Storage) {
-  @deprecated
-  private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Subject[Option[String]]] = {
-
-    for {
-      h <- Sync[F].delay(Subject.behavior(Option(storage.getItem(key))))
-    } yield {
-      // We execute the write-action to the storage
-      // and pass the written value through to the underlying subject h
-      h.transformSubject[Option[String]] { o =>
-        val c = o.redirect((o: Observable[Option[String]]) => transform(o).distinct)
-        c.connect()
-        c.value
-      } { input =>
-        input.doOnNext {
-          case Some(data) => storage.setItem(key, data)
-          case None => storage.removeItem(key)
-        }
-      }
-    }
-  }
-
-  private def storageEventsForKey[F[_]](key: String): Observable[Option[String]] =
+  private def storageEventsForKey(key: String): Observable[Option[String]] =
     // StorageEvents are only fired if the localStorage was changed in another window
     events.window.onStorage.collect {
       case e: StorageEvent if e.storageArea == storage && e.key == key =>
@@ -43,22 +20,24 @@ class Storage(storage: dom.Storage) {
         None
     }
 
-  @deprecated
-  def handlerWithoutEvents[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
-    handlerWithTransform(key, identity)
+  private def storageSubject(key: String, withEvents: Boolean): Subject[Option[String]] = {
+
+    val storageWriter: Option[String] => Unit = {
+      case Some(data) => storage.setItem(key, data)
+      case None => storage.removeItem(key)
+    }
+
+    val eventListener =
+      if (withEvents) storageEventsForKey(key)
+      else Observable.empty
+
+   Subject.publish[Option[String]]()
+     .transformSubject(_.tap(storageWriter))(_.merge(eventListener).prependDelay(Option(storage.getItem(key))).distinctOnEquals)
   }
 
-  @deprecated
-  def handlerWithEventsOnly[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
-    val storageEvents = storageEventsForKey(key)
-    handlerWithTransform(key, _ => storageEvents)
-  }
+  def subject(key: String): Subject[Option[String]] = storageSubject(key, withEvents = false)
 
-  @deprecated
-  def handler[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
-    val storageEvents = storageEventsForKey(key)
-    handlerWithTransform(key, Observable.merge(_, storageEvents))
-  }
+  def subjectWithEvents(key: String): Subject[Option[String]] = storageSubject(key, withEvents = true)
 }
 
 object LocalStorage extends Storage(localStorage)

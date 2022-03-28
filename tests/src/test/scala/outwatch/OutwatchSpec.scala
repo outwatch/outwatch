@@ -45,7 +45,10 @@ trait LocalStorageMock {
 
   def dispatchStorageEvent(key: String, newValue: String, oldValue: String): Unit = {
     if (key == null) window.localStorage.clear()
-    else window.localStorage.setItem(key, newValue)
+    else {
+      if (newValue == null) window.localStorage.removeItem(key)
+      else window.localStorage.setItem(key, newValue)
+    }
 
     val event = new Event("storage", new EventInit {
       bubbles = true

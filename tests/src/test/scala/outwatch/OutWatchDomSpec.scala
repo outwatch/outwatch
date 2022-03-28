@@ -2028,7 +2028,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     assert(localStorage.getItem(key) == null)
 
-    util.LocalStorage.handler[IO](key).flatMap { storageHandler =>
+    IO(util.LocalStorage.subjectWithEvents(key)).flatMap { storageHandler =>
 
       storageHandler.unsafeForeach{e => triggeredHandlerEvents += e}
       assert(localStorage.getItem(key) == null)
@@ -2040,10 +2040,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
       var initialValue:Option[String] = null
 
-      util.LocalStorage.handler[IO](key).map { sh =>
+      IO(util.LocalStorage.subjectWithEvents(key)).map { sh =>
 
-        sh.unsafeForeach {initialValue = _}
+        val cancel = sh.unsafeForeach {initialValue = _}
         assert(initialValue == Some("joe"))
+        cancel.unsafeCancel()
 
         storageHandler.unsafeOnNext(None)
         assert(localStorage.getItem(key) == null)
