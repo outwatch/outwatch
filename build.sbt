@@ -40,7 +40,7 @@ inThisBuild(Seq(
 
 val jsdomVersion = "13.2.0"
 val silencerVersion = "1.7.8"
-val colibriVersion = "0.3.2"
+val colibriVersion = "0.4.0"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -160,6 +160,7 @@ lazy val jsdocs = project
       "com.github.cornerman" %%% "colibri-rx" % colibriVersion,
       "com.github.cornerman" %%% "colibri-airstream" % colibriVersion,
       "com.github.cornerman" %%% "colibri-zio" % colibriVersion,
+      "com.github.cornerman" %%% "colibri-fs2" % colibriVersion,
     ),
     Compile / npmDependencies ++= Seq(
       "js-beautify" -> "1.14.0"

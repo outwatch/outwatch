@@ -366,7 +366,36 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val sub = Subject.publish[String]()
 
     val node = div(nodes.startWith(Seq(
-      span(managedFunction { () => sub.unsafeSubscribe(observer) })
+      span(managedDelay(sub.unsafeSubscribe(observer)))
+    )))
+
+    sub.unsafeOnNext("pre")
+    latest shouldBe ""
+
+    OutWatch.renderInto[IO]("#app", node).map { _ =>
+      sub.unsafeOnNext("first")
+      latest shouldBe "first"
+
+      nodes.unsafeOnNext(div()) // this triggers child destroy and subscription cancelation
+
+      sub.unsafeOnNext("second")
+      latest shouldBe "first"
+    }
+  }
+
+  it should "subscribe on insert and unsubscribe on destroy 2" in {
+
+    val nodes = Subject.publish[VNode]()
+
+    var latest = ""
+    val observer = Observer.create { (elem: String) =>
+      latest = elem
+    }
+
+    val sub = Subject.publish[String]()
+
+    val node = div(nodes.startWith(Seq(
+      span(managedSubscribe(sub.to(observer)))
     )))
 
     sub.unsafeOnNext("pre")
@@ -607,9 +636,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Subject.replay[Int]()
-    val handler = Subject.replay[(String, String)]()
-    val otherHandler = Subject.replay[String]()
+    val innerHandler = Subject.replayLast[Int]()
+    val handler = Subject.replayLast[(String, String)]()
+    val otherHandler = Subject.replayLast[String]()
 
     var counter = 0
     val node = div(
@@ -741,9 +770,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Subject.replay[Int]()
-    val handler = Subject.replay[String]()
-    val otherHandler = Subject.replay[String]()
+    val innerHandler = Subject.replayLast[Int]()
+    val handler = Subject.replayLast[String]()
+    val otherHandler = Subject.replayLast[String]()
 
     var counter = 0
     val node = div(

@@ -35,10 +35,11 @@ libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % "@VERSION@",
   // optional dependencies:
   "io.github.outwatch"   %%% "outwatch-util"     % "@VERSION@", // Store, Websocket, Http
-  "com.github.cornerman" %%% "colibri-zio"       % "0.3.2", // ZIO
-  "com.github.cornerman" %%% "colibri-airstream" % "0.3.2", // Airstream
-  "com.github.cornerman" %%% "colibri-rx"        % "0.3.2", // Scala.rx
-  "com.github.cornerman" %%% "colibri-router"    % "0.3.2", // Url Router
+  "com.github.cornerman" %%% "colibri-zio"       % "0.4.0", // zio support
+  "com.github.cornerman" %%% "colibri-fs2"       % "0.4.0", // fs2 support
+  "com.github.cornerman" %%% "colibri-airstream" % "0.4.0", // sirstream support
+  "com.github.cornerman" %%% "colibri-rx"        % "0.4.0", // scala.rx support
+  "com.github.cornerman" %%% "colibri-router"    % "0.4.0", // Url Router support
 )
 
 ```
@@ -482,30 +483,44 @@ Outwatch natively renders reactive data types, like `Observable` or `Rx` (Scala.
 ```scala mdoc:js:shared
 import outwatch._
 import outwatch.dsl._
-import cats.effect.SyncIO
+import cats.effect.{IO, SyncIO}
 ```
 
 ```scala mdoc:js
-import scala.concurrent.duration._
-
+// zio
 import zio.Runtime.default
 import colibri.ext.zio._
 
+// fs2
+import cats.effect.unsafe.IORuntime.global
+import colibri.ext.fs2._
+
+// airstream
 import colibri.ext.airstream._
+
+import scala.concurrent.duration._
+
+val duration = 1.second
+val durationMillis = duration.toMillis.toInt
+val zioDuration = zio.duration.Duration.fromScala(1.second)
 
 val component = {
   div(
     div(
       "Observable (colibri): ",
-      colibri.Observable.interval(1.second),
-    ),
-    div(
-      "Stream (zio): ",
-      zio.stream.Stream.tick(zio.duration.Duration.fromScala(1.second)).as(1).scan[Int](0)(_ + _),
+      colibri.Observable.interval(duration),
     ),
     div(
       "EventStream (airstream): ",
-      com.raquo.airstream.core.EventStream.periodic(intervalMs = 1000)
+      com.raquo.airstream.core.EventStream.periodic(intervalMs = durationMillis)
+    ),
+    div(
+      "Stream (fs2): ",
+      fs2.Stream.awakeDelay[IO](duration).as(1).scan[Int](0)(_ + _),
+    ),
+    div(
+      "Stream (zio): ",
+      zio.stream.Stream.tick(zioDuration).as(1).scan[Int](0)(_ + _),
     )
   )
 }
@@ -613,6 +628,25 @@ val component = {
 OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
+This is effectively the same as:
+```scala mdoc:js
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import concurrent.duration._
+import colibri.Observable
+import cats.effect.{SyncIO, IO}
+
+val component = {
+  div(
+    div(Observable.interval(1.seconds).mapFuture(i => Future { i*i })),
+    div(Observable.interval(1.seconds).mapEffect(i => IO { i*2 })),
+    div(Observable.interval(1.seconds)),
+  )
+}
+
+OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+```
+
 ### Using other streaming libraries
 
 We use the library [`colibri`](https://github.com/cornerman/colibri) for a minimal reactive library and for typeclasses around streaming. These typeclasses like `Source` and `Sink` allow to integrate third-party libraries for streaming easily.
@@ -620,6 +654,11 @@ We use the library [`colibri`](https://github.com/cornerman/colibri) for a minim
 For using outwatch with zio:
 ```scala mdoc:js:compile-only
 import colibri.ext.zio._
+```
+
+For using outwatch with fs2:
+```scala mdoc:js:compile-only
+import colibri.ext.fs2._
 ```
 
 For using outwatch with airstream:
@@ -643,7 +682,8 @@ If you ever need to manually subscribe to a stream, you can let OutWatch manage 
 import cats.effect.SyncIO
 
 div(
-  managed(SyncIO { myObservable.subscribe(???) }) // this subscription is now bound to the lifetime of the outer div element
+  managed(myObservable.subscribeF[SyncIOIO](???)), // this subscription is now bound to the lifetime of the outer div element
+  managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
 )
 ```
 
@@ -842,14 +882,23 @@ Why should we care? Because referentially transparent components can easily be r
 
 ### Rendering Async Effects
 
-You can render any `cats.effect.Effect` type like `cats.effect.SyncIO` or `zio.Task` (using the typeclass `colibri.effect.RunEffect`). The effect will be run async whenever an element is rendered with this modifier. So you can do:
+You can render any type like `cats.effect.IO` or `zio.Task` (using the typeclass `colibri.effect.RunEffect`). The effect will be run whenever an element is rendered with this modifier. The implementation normally tries to run the effect sync and switches if there is an async boundary (e.g. `IO#syncStep`). So you can do:
 ```scala mdoc:js:compile-only
 import cats.effect.IO
+// import cats.effect.unsafe.Runtime.default
+
+import colibri.ext.zio._
+import zio.Task
+// import zio.Runtime.default
 
 div(
   IO {
     // doSomething
-    "result"
+    "result from IO"
+  },
+  Task {
+    // doSomething
+    "result from ZIO"
   }
 )
 ```

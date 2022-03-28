@@ -14,7 +14,7 @@ object OutwatchTracing {
 
   // a stream about unhandled errors in the reactive part of outwatch, with a
   // default subscription that will print the error to notify the user.
-  val error: Observable[Throwable] = Observable.merge(errorSubject, UnhandledErrorReporter.error).recover { case t => t }.doOnNext(reportError).publish.hot
+  val error: Observable[Throwable] = Observable.merge(errorSubject, UnhandledErrorReporter.error).recover { case t => t }.tap(reportError).publish.hot
 
   private def reportError(error: Throwable): Unit =
     dom.console.error(error.toString, error.getMessage, error.getStackTrace.mkString("\n"))

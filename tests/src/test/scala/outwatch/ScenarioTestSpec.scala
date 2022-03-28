@@ -17,8 +17,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
   "A simple counter application" should "work as intended" in {
 
     val test: IO[Assertion] = for {
-       handlePlus <- IO(Subject.replay[MouseEvent]())
-      handleMinus <- IO(Subject.replay[MouseEvent]())
+       handlePlus <- IO(Subject.replayLast[MouseEvent]())
+      handleMinus <- IO(Subject.replayLast[MouseEvent]())
           plusOne = handlePlus.map(_ => 1)
          minusOne = handleMinus.map(_ => -1)
             count = Observable.merge(plusOne, minusOne).scan(0)(_ + _).startWith(Seq(0))
@@ -145,7 +145,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     def assertGreeting(greeting: String, name: String): Assertion =
       assert(greeting == greetStart + name)
 
-    val node = IO(Subject.replay[String]()).map { nameHandler =>
+    val node = IO(Subject.replayLast[String]()).map { nameHandler =>
       div(
         label("Name:"),
         input(idAttr := "input", tpe := "text", onInput.value --> nameHandler),
@@ -185,7 +185,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       element.getElementsByTagName("button").item(0)
 
     def component(): IO[VNode] = {
-      IO(Subject.replay[String]()).map { handler =>
+      IO(Subject.replayLast[String]()).map { handler =>
         div(
           button(onClick.as("clicked") --> handler),
           div(cls := "label", handler)
@@ -229,9 +229,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
     def TextFieldComponent(labelText: String, outputStream: Observer[String]) = for {
 
-      textFieldStream <- IO(Subject.replay[String]())
-      clickStream <- IO(Subject.replay[MouseEvent]())
-      keyStream <- IO(Subject.replay[KeyboardEvent]())
+      textFieldStream <- IO(Subject.replayLast[String]())
+      clickStream <- IO(Subject.replayLast[MouseEvent]())
+      keyStream <- IO(Subject.replayLast[KeyboardEvent]())
 
       buttonDisabled = textFieldStream
         .map(_.length < 2)
@@ -261,8 +261,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     }
 
     val vtree = for {
-      inputHandler <- IO(Subject.replay[String]())
-      deleteHandler <- IO(Subject.replay[String]())
+      inputHandler <- IO(Subject.replayLast[String]())
+      deleteHandler <- IO(Subject.replayLast[String]())
 
       adds = inputHandler
         .map(addToList)

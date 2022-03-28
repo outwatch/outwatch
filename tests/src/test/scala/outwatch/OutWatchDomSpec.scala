@@ -324,7 +324,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
 
   it should "run its effect modifiers once!" in {
-    IO(Subject.replay[String]()).flatMap { stringHandler =>
+    IO(Subject.replayLast[String]()).flatMap { stringHandler =>
 
       var ioCounter = 0
       var handlerCounter = 0
@@ -362,7 +362,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "run its effect modifiers once in CompositeModifier!" in {
-    IO(Subject.replay[String]()).flatMap { stringHandler =>
+    IO(Subject.replayLast[String]()).flatMap { stringHandler =>
 
       var ioCounter = 0
       var handlerCounter = 0
@@ -1233,7 +1233,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for multiple mods" in {
 
-    val test: IO[Assertion] = IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    val test: IO[Assertion] = IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(myHandler, "bla")
@@ -1247,7 +1247,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         myHandler.unsafeOnNext(cls := "hans")
         element.innerHTML shouldBe """<div class="hans">bla</div>"""
 
-        IO(Subject.replay[VDomModifier]()).map { innerHandler =>
+        IO(Subject.replayLast[VDomModifier]()).map { innerHandler =>
 
           myHandler.unsafeOnNext(div(
             innerHandler,
@@ -1287,7 +1287,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested stream modifier" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(myHandler)
@@ -1298,7 +1298,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
 
-        IO(Subject.replay[VDomModifier]()).flatMap { innerHandler =>
+        IO(Subject.replayLast[VDomModifier]()).flatMap { innerHandler =>
 
           myHandler.unsafeOnNext(innerHandler)
           element.innerHTML shouldBe """<div></div>"""
@@ -1306,7 +1306,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
           innerHandler.unsafeOnNext(VDomModifier(cls := "hans", "1"))
           element.innerHTML shouldBe """<div class="hans">1</div>"""
 
-          IO(Subject.replay[VDomModifier]()).map { innerHandler2 =>
+          IO(Subject.replayLast[VDomModifier]()).map { innerHandler2 =>
 
           myHandler.unsafeOnNext(innerHandler2)
           element.innerHTML shouldBe """<div></div>"""
@@ -1339,7 +1339,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
     var numPatches = 0
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node: VNode = div(idAttr := "strings",
         div(
@@ -1354,7 +1354,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         element.innerHTML shouldBe "<div>initial</div>"
         numPatches shouldBe 0
 
-      IO(Subject.replay[VDomModifier]()).flatMap { innerHandler =>
+      IO(Subject.replayLast[VDomModifier]()).flatMap { innerHandler =>
 
         numPatches shouldBe 0
 
@@ -1366,7 +1366,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         element.innerHTML shouldBe """<div attr="3"></div>"""
         numPatches shouldBe 3
 
-        IO(Subject.replay[VDomModifier]()).map {innerHandler2 =>
+        IO(Subject.replayLast[VDomModifier]()).map {innerHandler2 =>
           myHandler.unsafeOnNext(innerHandler2.prepend(VDomModifier("initial3")))
           element.innerHTML shouldBe """<div>initial3</div>"""
           numPatches shouldBe 5
@@ -1442,7 +1442,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       element.innerHTML shouldBe "<div>initial</div>"
       numPatches shouldBe 0
 
-      IO(Subject.replay[VDomModifier]()).flatMap { innerHandler =>
+      IO(Subject.replayLast[VDomModifier]()).flatMap { innerHandler =>
       myHandler.unsafeOnNext(innerHandler.startWith(BasicAttr("initial", "2") :: Nil))
       element.innerHTML shouldBe """<div initial="2"></div>"""
       numPatches shouldBe 2
@@ -1451,7 +1451,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
       element.innerHTML shouldBe """<div attr="3"></div>"""
       numPatches shouldBe 3
 
-        IO(Subject.replay[VDomModifier]()).map { innerHandler2 =>
+        IO(Subject.replayLast[VDomModifier]()).map { innerHandler2 =>
         myHandler.unsafeOnNext(innerHandler2.startWith(VDomModifier("initial3") :: Nil))
         element.innerHTML shouldBe """<div>initial3</div>"""
         numPatches shouldBe 5
@@ -1481,8 +1481,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for stream modifier and streaming default value (subscriptions are canceled properly)" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
-    IO(Subject.replay[VDomModifier]()).flatMap { innerHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { innerHandler =>
 
       val outerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
       val innerTriggers = new scala.collection.mutable.ArrayBuffer[VDomModifier]
@@ -1533,8 +1533,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
         val innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
         val innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VDomModifier]
 
-        IO(Subject.replay[VDomModifier]()).flatMap { innerHandler2 =>
-        IO(Subject.replay[VDomModifier]()).map { innerHandler3 =>
+        IO(Subject.replayLast[VDomModifier]()).flatMap { innerHandler2 =>
+        IO(Subject.replayLast[VDomModifier]()).map { innerHandler3 =>
 
             innerHandler.unsafeOnNext(innerHandler2.map { x => innerTriggers2 += x; x }.prepend(VDomModifier(innerHandler3.map { x => innerTriggers3 += x; x })))
             element.innerHTML shouldBe """<div></div>"""
@@ -1614,7 +1614,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   it should "be able to render basic handler with scan" in {
     val counter: VDomModifier = button(
       idAttr := "click",
-      IO(Subject.replay[Int]()).map { handler =>
+      IO(Subject.replayLast[Int]()).map { handler =>
         VDomModifier(onClick.asScan0(0)(_ + 1) --> handler, handler)
       }
     )
@@ -1656,8 +1656,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work for not overpatching keep proxy from previous patch" in {
-    val handler = Subject.replay[Int]()
-    val handler2 = Subject.replay[Int]()
+    val handler = Subject.replayLast[Int]()
+    val handler2 = Subject.replayLast[Int]()
 
     var inserted = 0
     var destroyed = 0
@@ -1847,7 +1847,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested observables with seq modifiers and attribute stream" in {
 
-    IO(Subject.replay[String]()).flatMap { innerHandler =>
+    IO(Subject.replayLast[String]()).flatMap { innerHandler =>
     IO(Subject.behavior(Seq[VDomModifier]("a", data.test := "v", href <-- innerHandler))).flatMap { outerHandler =>
 
       val node = div(
@@ -1875,7 +1875,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for double nested stream modifier" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(myHandler)
@@ -1895,7 +1895,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for triple nested stream modifier" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(myHandler)
@@ -1915,7 +1915,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for multiple nested stream modifier" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(myHandler)
@@ -1935,7 +1935,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested attribute stream receiver" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(myHandler)
@@ -1955,7 +1955,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested emitter" in {
 
-    IO(Subject.replay[VDomModifier]()).flatMap { myHandler =>
+    IO(Subject.replayLast[VDomModifier]()).flatMap { myHandler =>
 
       val node = div(idAttr := "strings",
         div(idAttr := "click", myHandler)
@@ -1990,7 +1990,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   it should "work for streaming accum attributes" in {
 
     IO(Subject.behavior("second")).flatMap { myClasses =>
-    IO(Subject.replay[String]()).flatMap { myClasses2 =>
+    IO(Subject.replayLast[String]()).flatMap { myClasses2 =>
 
       val node = div(
         idAttr := "strings",
@@ -2089,7 +2089,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
                       idAttr := "strings",
                       myHandler,
                       cls <-- clsHandler,
-                      onClick.asStrict(0) --> myHandler,
+                      onClick.asDelay(0) --> myHandler,
                       onDomMount doAction  { mounts += 1 },
                       onDomUnmount doAction  { unmounts += 1 },
                       onDomUpdate doAction  { updates += 1 }
@@ -2185,7 +2185,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   "ChildCommand" should "work in handler" in {
-    val cmds = Subject.replay[ChildCommand]()
+    val cmds = Subject.replayLast[ChildCommand]()
 
     val node = div(
       idAttr := "strings",
@@ -2259,7 +2259,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work in value observable" in {
-    val cmds = Subject.replay[ChildCommand]()
+    val cmds = Subject.replayLast[ChildCommand]()
 
     val node = div(
       idAttr := "strings",
@@ -2406,7 +2406,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   "Thunk" should "work" in {
-    val myString: Subject[String] = Subject.replay[String]()
+    val myString: Subject[String] = Subject.replayLast[String]()
 
     var mountCount = 0
     var preupdateCount = 0
@@ -2469,7 +2469,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with equals" in {
-    val myString: Subject[String] = Subject.replay[String]()
+    val myString: Subject[String] = Subject.replayLast[String]()
 
     var equalsCounter = 0
     class Wrap(val s: String) {
@@ -2519,8 +2519,8 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with inner stream" in {
-    val myString: Subject[String] = Subject.replay[String]()
-    val myThunk: Subject[Unit] = Subject.replay[Unit]()
+    val myString: Subject[String] = Subject.replayLast[String]()
+    val myThunk: Subject[Unit] = Subject.replayLast[Unit]()
     
 
     var renderFnCounter = 0
@@ -2569,9 +2569,9 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with inner and adjacent stream" in {
-    val myString: Subject[String] = Subject.replay[String]()
-    val myOther: Subject[String] = Subject.replay[String]()
-    val myThunk: Subject[Int] = Subject.replay[Int]()
+    val myString: Subject[String] = Subject.replayLast[String]()
+    val myOther: Subject[String] = Subject.replayLast[String]()
+    val myThunk: Subject[Int] = Subject.replayLast[Int]()
 
     var renderFnCounter = 0
     val node = div(
@@ -2684,11 +2684,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with nested inner stream" in {
-    val myString: Subject[String] = Subject.replay[String]()
-    val myInner: Subject[String] = Subject.replay[String]()
-    val myInnerOther: Subject[String] = Subject.replay[String]()
-    val myOther: Subject[String] = Subject.replay[String]()
-    val myThunk: Subject[Unit] = Subject.replay[Unit]()
+    val myString: Subject[String] = Subject.replayLast[String]()
+    val myInner: Subject[String] = Subject.replayLast[String]()
+    val myInnerOther: Subject[String] = Subject.replayLast[String]()
+    val myOther: Subject[String] = Subject.replayLast[String]()
+    val myThunk: Subject[Unit] = Subject.replayLast[Unit]()
     
 
     var renderFnCounter = 0
@@ -2915,11 +2915,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams (switchMap)" in {
-    val myString: Subject[String] = Subject.replay[String]()
-    val myId: Subject[String] = Subject.replay[String]()
-    val myInner: Subject[String] = Subject.replay[String]()
-    val myOther: Subject[VDomModifier] = Subject.replay[VDomModifier]()
-    val thunkContent: Subject[VDomModifier] = Subject.replay[VDomModifier]()
+    val myString: Subject[String] = Subject.replayLast[String]()
+    val myId: Subject[String] = Subject.replayLast[String]()
+    val myInner: Subject[String] = Subject.replayLast[String]()
+    val myOther: Subject[VDomModifier] = Subject.replayLast[VDomModifier]()
+    val thunkContent: Subject[VDomModifier] = Subject.replayLast[VDomModifier]()
 
     var renderFnCounter = 0
     var mounts = List.empty[Int]
@@ -3078,11 +3078,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams (flatMap)" in {
-    val myString: Subject[String] = Subject.replay[String]()
-    val myId: Subject[String] = Subject.replay[String]()
-    val myInner: Subject[String] = Subject.replay[String]()
-    val myOther: Subject[VDomModifier] = Subject.replay[VDomModifier]()
-    val thunkContent: Subject[VDomModifier] = Subject.replay[VDomModifier]()
+    val myString: Subject[String] = Subject.replayLast[String]()
+    val myId: Subject[String] = Subject.replayLast[String]()
+    val myInner: Subject[String] = Subject.replayLast[String]()
+    val myOther: Subject[VDomModifier] = Subject.replayLast[VDomModifier]()
+    val thunkContent: Subject[VDomModifier] = Subject.replayLast[VDomModifier]()
 
     var renderFnCounter = 0
     var mounts = List.empty[Int]
@@ -3241,11 +3241,11 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams" in {
-    val myString: Subject[String] = Subject.replay[String]()
-    val myId: Subject[String] = Subject.replay[String]()
-    val myInner: Subject[String] = Subject.replay[String]()
-    val myOther: Subject[VDomModifier] = Subject.replay[VDomModifier]()
-    val thunkContent: Subject[VDomModifier] = Subject.replay[VDomModifier]()
+    val myString: Subject[String] = Subject.replayLast[String]()
+    val myId: Subject[String] = Subject.replayLast[String]()
+    val myInner: Subject[String] = Subject.replayLast[String]()
+    val myOther: Subject[VDomModifier] = Subject.replayLast[VDomModifier]()
+    val thunkContent: Subject[VDomModifier] = Subject.replayLast[VDomModifier]()
 
     var renderFnCounter = 0
     var mounts = List.empty[Int]
@@ -3531,7 +3531,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
 
     for {
-      handler <- IO(Subject.replay[String]())
+      handler <- IO(Subject.replayLast[String]())
       node = div(
         idAttr := "strings",
         clickableView.map {
@@ -3568,7 +3568,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
     }
 
     for {
-      handler <- IO(Subject.replay[String]())
+      handler <- IO(Subject.replayLast[String]())
       node = div(
         idAttr := "strings",
         clickableView.map {
@@ -3660,7 +3660,7 @@ class OutWatchDomSpec extends JSDomAsyncSpec {
 
   "Events while patching" should "fire for the correct dom node" in {
 
-    val otherDiv = Subject.replay[VNode]()
+    val otherDiv = Subject.replayLast[VNode]()
     var insertedFirst = 0
     var insertedSecond = 0
     var mountedFirst = 0
