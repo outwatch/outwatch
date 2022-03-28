@@ -4,12 +4,13 @@ import com.raquo.domtypes.generic.defs.complex.canonical
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
 import com.raquo.domtypes.generic.{builders, codecs, keys}
 import com.raquo.domtypes.jsdom.defs.eventProps
-import com.raquo.domtypes.jsdom.defs.tags._
+import com.raquo.domtypes.jsdom.defs.tags
 import org.scalajs.dom
 import outwatch._
 import outwatch.helpers._
 import colibri.Observable
 import colibri.jsdom.EventObservable
+
 import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
@@ -43,24 +44,24 @@ private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[BuilderTypes.
 }
 
 trait Tags
-  extends EmbedTags[BuilderTypes.HtmlTag]
-  with GroupingTags[BuilderTypes.HtmlTag]
-  with TextTags[BuilderTypes.HtmlTag]
-  with FormTags[BuilderTypes.HtmlTag]
-  with SectionTags[BuilderTypes.HtmlTag]
-  with TableTags[BuilderTypes.HtmlTag]
+  extends tags.EmbedTags[BuilderTypes.HtmlTag]
+  with tags.GroupingTags[BuilderTypes.HtmlTag]
+  with tags.TextTags[BuilderTypes.HtmlTag]
+  with tags.FormTags[BuilderTypes.HtmlTag]
+  with tags.SectionTags[BuilderTypes.HtmlTag]
+  with tags.TableTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with TagHelpers
   with EmbedTagDeprecations[BuilderTypes.HtmlTag]
 
 trait TagsExtra
-  extends DocumentTags[BuilderTypes.HtmlTag]
-  with MiscTags[BuilderTypes.HtmlTag]
+  extends tags.DocumentTags[BuilderTypes.HtmlTag]
+  with tags.MiscTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with DocumentTagDeprecations[BuilderTypes.HtmlTag]
 
-trait TagsSvg
-  extends SvgTags[BuilderTypes.SvgTag]
+trait SvgTags
+  extends tags.SvgTags[BuilderTypes.SvgTag]
   with TagBuilder
 
 // all Attributes
