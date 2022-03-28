@@ -4,6 +4,7 @@ import cats.effect.Sync
 
 import colibri._
 
+@deprecated("Use colibri.Subject and pattern matching to build your own Store", "")
 object Store {
 
   /* Partial application trick, "kinda-curried type parameters"

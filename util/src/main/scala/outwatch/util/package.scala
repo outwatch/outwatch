@@ -9,5 +9,6 @@ package object util {
    * @tparam A The Action Type
    * @tparam M The Model Type
    */
+  @deprecated("Use colibri.Subject and pattern matching to build your own Store", "")
   type Reducer[A, M] = (M, A) => (M, Observable[A])
 }

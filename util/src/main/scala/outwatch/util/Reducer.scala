@@ -3,6 +3,7 @@ package outwatch.util
 import cats.implicits._
 import colibri._
 
+@deprecated("Use colibri.Subject and pattern matching to build your own Store", "")
 object Reducer {
   /**
    * Creates a Reducer which yields a new State, as-well as an Observable of Effects

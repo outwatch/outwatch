@@ -34,7 +34,6 @@ Add the outwatch dependencies to your `build.sbt`:
 libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % "@VERSION@",
   // optional dependencies:
-  "io.github.outwatch"   %%% "outwatch-util"     % "@VERSION@", // Store, Websocket, Http
   "com.github.cornerman" %%% "colibri-zio"       % "0.4.0", // zio support
   "com.github.cornerman" %%% "colibri-fs2"       % "0.4.0", // fs2 support
   "com.github.cornerman" %%% "colibri-airstream" % "0.4.0", // sirstream support

@@ -9,8 +9,8 @@ import org.scalajs.dom.window.{localStorage, sessionStorage}
 import outwatch.dsl.events
 import colibri._
 
+@deprecated("Use colibri.jsdom.Storage instead", "")
 class Storage(storage: dom.Storage) {
-  @deprecated
   private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Subject[Option[String]]] = {
 
     for {
@@ -43,23 +43,22 @@ class Storage(storage: dom.Storage) {
         None
     }
 
-  @deprecated
   def handlerWithoutEvents[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
     handlerWithTransform(key, identity)
   }
 
-  @deprecated
   def handlerWithEventsOnly[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, _ => storageEvents)
   }
 
-  @deprecated
   def handler[F[_]: Sync](key: String): F[Subject[Option[String]]] = {
     val storageEvents = storageEventsForKey(key)
     handlerWithTransform(key, Observable.merge(_, storageEvents))
   }
 }
 
+@deprecated("Use colibri.jsdom.Storage.Local instead", "")
 object LocalStorage extends Storage(localStorage)
+@deprecated("Use colibri.jsdom.Storage.Session instead", "")
 object SessionStorage extends Storage(sessionStorage)
