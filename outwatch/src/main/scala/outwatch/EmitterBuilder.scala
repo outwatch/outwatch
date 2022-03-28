@@ -22,13 +22,13 @@ import scala.concurrent.duration.FiniteDuration
 
 // We keep the same result, the registration for the click event, but map the emitted
 // click events to integers. You can also map the result type:
-// onClick.mapResult(emitter => VDomModifier(emitter, ???)): EmitterBuilder[Int, VDomModifier]
+// onClick.mapResult(emitter => VModifier(emitter, ???)): EmitterBuilder[Int, VModifier]
 //
-// Now you have conbined the emitter with another VDomModifier, so the combined modifier
+// Now you have conbined the emitter with another VModifier, so the combined modifier
 // will later be rendered instead of only the emitter. Then you can describe the action
 // that should be done when an event triggers:
 //
-// onClick.map(_ => 1).doAction(doSomething(_)): VDomModifier
+// onClick.map(_ => 1).doAction(doSomething(_)): VModifier
 //
 // The EmitterBuilder result must be a SubscriptionOwner to handle the subscription
 // from the emitterbuilder.
@@ -231,12 +231,12 @@ object EmitterBuilder {
   @inline def fromSourceOf[F[_] : Source, E, R : SubscriptionOwner : Monoid](source: F[E]): EmitterBuilder[E, R] = new Stream[E, R](Observable.lift(source), Monoid[R].empty)
 
   // shortcuts for modifiers with less type ascriptions
-  @inline def empty: EmitterBuilderExecution[Nothing, VDomModifier, Nothing] = emptyOf[VDomModifier]
-  @inline def ofModifier[E](create: Observer[E] => VDomModifier): EmitterBuilder.Sync[E, VDomModifier] = apply[E, VDomModifier](create)
+  @inline def empty: EmitterBuilderExecution[Nothing, VModifier, Nothing] = emptyOf[VModifier]
+  @inline def ofModifier[E](create: Observer[E] => VModifier): EmitterBuilder.Sync[E, VModifier] = apply[E, VModifier](create)
   @inline def ofNode[E](create: Observer[E] => VNode): EmitterBuilder.Sync[E, VNode] = apply[E, VNode](create)
-  @inline def fromSource[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VDomModifier] = fromSourceOf[F, E, VDomModifier](source)
+  @inline def fromSource[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VModifier] = fromSourceOf[F, E, VModifier](source)
 
-  def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, VDomModifier] = apply[E, VDomModifier] { sink =>
+  def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = apply[E, VModifier] { sink =>
     Emitter(eventType, e => sink.unsafeOnNext(e.asInstanceOf[E]))
   }
 
@@ -247,7 +247,7 @@ object EmitterBuilder {
   )
 
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")
-  @inline def apply[E <: Event](eventType: String): EmitterBuilder.Sync[E, VDomModifier] = fromEvent[E](eventType)
+  @inline def apply[E <: Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = fromEvent[E](eventType)
   @deprecated("Use EmitterBuilder[E, O] instead", "0.11.0")
   @inline def custom[E, R : SubscriptionOwner](create: Observer[E] => R): EmitterBuilder.Sync[E, R] = apply[E, R](create)
 

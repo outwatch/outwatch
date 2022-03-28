@@ -14,7 +14,7 @@ object Main {
     // for snabbdom, jsBeautify don't get removed by dead code elimination.
     // It is never executed.
     JSBeautify
-    val app = OutWatch.renderInto[IO]("#app", div())
+    val app = Outwatch.renderInto[IO]("#app", div())
   }
 }
 

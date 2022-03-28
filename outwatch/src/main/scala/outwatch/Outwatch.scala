@@ -8,7 +8,7 @@ import outwatch.interpreter.SnabbdomOps
 import snabbdom.{VNodeProxy, patch}
 
 case class RenderConfig(
-  errorModifier: Throwable => VDomModifier
+  errorModifier: Throwable => VModifier
 )
 object RenderConfig {
   import dsl._
@@ -22,11 +22,11 @@ object RenderConfig {
   )
 
   def ignoreError = RenderConfig(
-    _ => VDomModifier.empty
+    _ => VModifier.empty
   )
 }
 
-object OutWatch {
+object Outwatch {
 
   def toSnabbdom[F[_]](vNode: VNode, config: RenderConfig = RenderConfig.default)(implicit F: Sync[F]): F[VNodeProxy] = F.delay {
     SnabbdomOps.toSnabbdom(vNode, config)

@@ -33,7 +33,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                       document.body.appendChild(root)
                       root
                     }
-                _ <- OutWatch.renderInto[IO](r, node)
+                _ <- Outwatch.renderInto[IO](r, node)
             event <- IO {
                       new Event("click", new EventInit {
                         bubbles = true
@@ -99,7 +99,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
             root
           }
       node <- node
-      _ <- OutWatch.renderInto[IO](r, node)
+      _ <- Outwatch.renderInto[IO](r, node)
       e <- IO {
             new Event("click", new EventInit {
               bubbles = true
@@ -161,7 +161,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                 root
               }
       node  <- node
-          _ <- OutWatch.renderInto[IO](r, node)
+          _ <- Outwatch.renderInto[IO](r, node)
       event <- IO {
                 new Event("input", new EventInit {
                   bubbles = false
@@ -205,9 +205,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         })
       }
       e1 <- createDiv
-       _ <- OutWatch.renderInto[IO](e1, component1)
+       _ <- Outwatch.renderInto[IO](e1, component1)
       e2 <- createDiv
-       _ <- OutWatch.renderInto[IO](e2, component2)
+       _ <- Outwatch.renderInto[IO](e2, component2)
        _ <- IO {
              getButton(e1).dispatchEvent(evt)
              getButton(e2).dispatchEvent(evt)
@@ -289,7 +289,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       }
 
       vtree <- vtree
-      _ <- OutWatch.renderInto[IO](root, vtree)
+      _ <- Outwatch.renderInto[IO](root, vtree)
 
       inputEvt <- IO {
         new Event("input", new EventInit {
