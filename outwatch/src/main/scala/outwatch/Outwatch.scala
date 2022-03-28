@@ -5,7 +5,6 @@ import cats.implicits._
 import org.scalajs.dom
 import org.scalajs.dom._
 import outwatch.interpreter.SnabbdomOps
-import snabbdom.{VNodeProxy, patch}
 
 case class RenderConfig(
   errorModifier: Throwable => VModifier
@@ -28,32 +27,36 @@ object RenderConfig {
 
 object Outwatch {
 
-  def toSnabbdom[F[_]](vNode: VNode, config: RenderConfig = RenderConfig.default)(implicit F: Sync[F]): F[VNodeProxy] = F.delay {
+  def toSnabbdom[F[_]: Sync](vNode: VNode, config: RenderConfig = RenderConfig.default): F[snabbdom.VNodeProxy] = Sync[F].delay {
     SnabbdomOps.toSnabbdom(vNode, config)
   }
 
-  def renderInto[F[_]: Sync](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default): F[Unit] =
-    toSnabbdom(vNode, config).map { node =>
-      val elem = dom.document.createElement("div")
-      element.appendChild(elem)
-      patch(elem, node)
-    }.void
+  def renderInto[F[_]: Sync](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default): F[Unit] = for {
+    node <- toSnabbdom(vNode, config)
+    elem <- Sync[F].delay(dom.document.createElement("div"))
+    _ <- Sync[F].delay(element.appendChild(elem))
+    _ <- Sync[F].delay(snabbdom.patch(elem, node))
+  } yield ()
 
-  def renderReplace[F[_]: Sync](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default): F[Unit] =
-    toSnabbdom(vNode, config).map { node =>
-      val elementNode = snabbdom.tovnode(element)
-      patch(elementNode, node)
-    }.void
+  def renderReplace[F[_]: Sync](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default): F[Unit] = for {
+    node <- toSnabbdom(vNode, config)
+    elementNode <- Sync[F].delay(snabbdom.tovnode(element))
+    _ <- Sync[F].delay(snabbdom.patch(elementNode, node))
+  } yield ()
+
+  def renderInto[F[_]: Sync](querySelector: String, vNode: VNode, config: RenderConfig): F[Unit] = for {
+    elem <- Sync[F].delay(document.querySelector(querySelector))
+    _ <- renderInto(elem, vNode, config)
+  } yield ()
+
+  def renderReplace[F[_]: Sync](querySelector: String, vNode: VNode, config: RenderConfig): F[Unit] = for {
+    elem <- Sync[F].delay(document.querySelector(querySelector))
+    _ <- renderReplace(elem, vNode, config)
+  } yield ()
 
   def renderInto[F[_]: Sync](querySelector: String, vNode: VNode): F[Unit] =
     renderInto(querySelector, vNode, RenderConfig.default)
 
   def renderReplace[F[_]: Sync](querySelector: String, vNode: VNode): F[Unit] =
     renderReplace(querySelector, vNode, RenderConfig.default)
-
-  def renderInto[F[_]: Sync](querySelector: String, vNode: VNode, config: RenderConfig): F[Unit] =
-    renderInto(document.querySelector(querySelector), vNode, config)
-
-  def renderReplace[F[_]: Sync](querySelector: String, vNode: VNode, config: RenderConfig): F[Unit] =
-    renderReplace(document.querySelector(querySelector), vNode, config)
 }
