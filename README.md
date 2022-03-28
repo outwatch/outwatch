@@ -27,7 +27,7 @@ In Outwatch, you can describe your whole web application without doing any side 
 * Write UI-components using pure functions
 * Manage state in a referentially transparent way using [cats-effect](https://github.com/typelevel/cats-effect)
 * Built-in lightweight `Observable` and `Subject` types from [colibri](http://github.com/cornerman/colibri)
-* Seamlessly works with existing reactive programming libraries: [ZIO](https://github.com/zio/zio), [Airstream](https://github.com/raquo/airstream), [scala.rx](https://github.com/lihaoyi/scala.rx)
+* Seamlessly works with existing reactive programming libraries: [ZIO](https://github.com/zio/zio), [fs2](https://github.com/typelevel/fs2), [Airstream](https://github.com/raquo/airstream), [scala.rx](https://github.com/lihaoyi/scala.rx)
 * Low-boilerplate, many convenient helper functions
 * Built on top of [snabbdom](https://github.com/snabbdom/snabbdom), a virtual dom library
 

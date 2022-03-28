@@ -32,7 +32,7 @@ object OutWatch {
     SnabbdomOps.toSnabbdom(vNode, config)
   }
 
-  def renderInto[F[_]](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default)(implicit F: Sync[F]): F[Unit] =
+  def renderInto[F[_]: Sync](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default): F[Unit] =
     toSnabbdom(vNode, config).map { node =>
       val elem = dom.document.createElement("div")
       element.appendChild(elem)

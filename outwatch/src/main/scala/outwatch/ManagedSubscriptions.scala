@@ -10,7 +10,7 @@ import colibri.effect.RunEffect
 
 trait ManagedSubscriptions {
 
-  @inline def managedSubscribe[F[_] : Source](source: F[Unit]): VDomModifier = managedDelay(Source[F].unsafeSubscribe(source)(Observer.empty))
+  @inline def managedSubscribe[F[_] : Source, T](source: F[T]): VDomModifier = managedDelay(Source[F].unsafeSubscribe(source)(Observer.empty))
 
   @inline def managed[F[_] : Sync : RunEffect, T : CanCancel](subscription: F[T]): VDomModifier = VDomModifier(
     subscription.map[VDomModifier](cancelable => CancelableModifier(() => Cancelable.lift(cancelable)))

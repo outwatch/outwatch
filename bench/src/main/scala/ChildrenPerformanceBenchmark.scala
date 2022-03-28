@@ -72,7 +72,7 @@ object ChildrenPerformance {
 
     val handler = Subject.behavior[Int](0)
     val handler2 = Subject.behavior[Int](0)
-    val handler3 = Subject.replay[Int]
+    val handler3 = Subject.replayLast[Int]()
 
     val vtree = div(
       idAttr := elemId,
@@ -118,7 +118,7 @@ object ChildrenPerformance {
 
     val handler = Subject.behavior[Int](0)
     val handler2 = Subject.behavior[Int](0)
-    val handler3 = Subject.replay[Int]
+    val handler3 = Subject.replayLast[Int]()
 
     val vtree = div(
       idAttr := elemId,
@@ -162,7 +162,7 @@ object ChildrenPerformance {
   def runCommands(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler3 = Subject.replay[Int]
+    val handler3 = Subject.replayLast[Int]()
 
     def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3)
     def node2(j: Int) = div(
