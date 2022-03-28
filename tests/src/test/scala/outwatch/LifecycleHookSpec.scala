@@ -412,7 +412,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     }
   }
 
-  it should "work with emitter(observable)" in {
+  it should "work with EmitterBuilder.fromSource(observable)" in {
 
     val nodes = Subject.publish[VNode]()
 
@@ -424,7 +424,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val sub = Subject.publish[String]()
 
     val node = div(nodes.startWith(Seq(
-      span(emitter(sub) --> observer)
+      span(EmitterBuilder.fromSource(sub) --> observer)
     )))
 
     sub.unsafeOnNext("pre")
