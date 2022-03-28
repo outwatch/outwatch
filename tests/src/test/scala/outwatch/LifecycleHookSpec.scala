@@ -636,9 +636,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Subject.replayLast[Int]()
-    val handler = Subject.replayLast[(String, String)]()
-    val otherHandler = Subject.replayLast[String]()
+    val innerHandler = Subject.replayLatest[Int]()
+    val handler = Subject.replayLatest[(String, String)]()
+    val otherHandler = Subject.replayLatest[String]()
 
     var counter = 0
     val node = div(
@@ -770,9 +770,9 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     var onDomUnmountList = List.empty[Int]
     var onDomUpdateList = List.empty[Int]
 
-    val innerHandler = Subject.replayLast[Int]()
-    val handler = Subject.replayLast[String]()
-    val otherHandler = Subject.replayLast[String]()
+    val innerHandler = Subject.replayLatest[Int]()
+    val handler = Subject.replayLatest[String]()
+    val otherHandler = Subject.replayLatest[String]()
 
     var counter = 0
     val node = div(

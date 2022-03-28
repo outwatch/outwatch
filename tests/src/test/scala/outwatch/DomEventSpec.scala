@@ -13,7 +13,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   "EventStreams" should "emit and receive events correctly" in {
 
-    val vtree = IO(Subject.replayLast[MouseEvent]()).map { handler =>
+    val vtree = IO(Subject.replayLatest[MouseEvent]()).map { handler =>
 
       val buttonDisabled = handler.map(_ => true).startWith(Seq(false))
 
@@ -43,7 +43,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val message = "ad"
 
-    val vtree = IO(Subject.replayLast[String]()).map { handler =>
+    val vtree = IO(Subject.replayLatest[String]()).map { handler =>
       div(idAttr := "click", onClick.as(message) --> handler,
         span(idAttr := "child", handler)
       )
@@ -73,9 +73,9 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "be converted to a generic stream emitter correctly" in {
 
-    IO(Subject.replayLast[String]()).flatMap { messages =>
+    IO(Subject.replayLatest[String]()).flatMap { messages =>
 
-      val vtree = IO(Subject.replayLast[String]()).map { stream =>
+      val vtree = IO(Subject.replayLatest[String]()).map { stream =>
         div(idAttr := "click", onClick.asLatest(messages) --> stream,
           span(idAttr := "child", stream)
         )
@@ -237,8 +237,8 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val messages = ("Hello", "World")
 
-    val node = IO(Subject.replayLast[String]()).flatMap { first =>
-      IO(Subject.replayLast[String]()).map { second =>
+    val node = IO(Subject.replayLatest[String]()).flatMap { first =>
+      IO(Subject.replayLatest[String]()).map { second =>
         div(
           button(idAttr := "click", onClick.as(messages._1) --> first, onClick.as(messages._2) --> second),
           span(idAttr := "first", first),
@@ -268,7 +268,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val toTuple = (e: MouseEvent) => (e, number)
 
-    val node = IO(Subject.replayLast[(MouseEvent, Int)]()).map { stream =>
+    val node = IO(Subject.replayLatest[(MouseEvent, Int)]()).map { stream =>
       div(
         button(idAttr := "click", onClick.map(toTuple) --> stream),
         span(idAttr := "num", stream.map(_._2))
@@ -297,7 +297,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val transformer = (e: Observable[MouseEvent]) => e.mergeMap(_ => numbers)
 
-    val node = IO(Subject.replayLast[Int]()).map { stream =>
+    val node = IO(Subject.replayLatest[Int]()).map { stream =>
 
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
@@ -327,7 +327,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val number = 42
     val onInputValue = onInput.value
-    val node = IO(Subject.replayLast[Int]()).map { stream =>
+    val node = IO(Subject.replayLatest[Int]()).map { stream =>
       div(
         input(idAttr := "input", onInputValue.as(number) --> stream),
         span(idAttr := "num", stream)
@@ -394,11 +394,11 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "correctly be transformed from latest in observable" in {
 
-    val node = IO(Subject.replayLast[String]()).flatMap { submit =>
+    val node = IO(Subject.replayLatest[String]()).flatMap { submit =>
 
       val state = submit.scan(List.empty[String])((l, s) => l :+ s)
 
-      IO(Subject.replayLast[String]()).map { stream =>
+      IO(Subject.replayLatest[String]()).map { stream =>
         div(
           input(idAttr := "input", tpe := "text", onInput.value --> stream),
           button(idAttr := "submit", onClick.asLatest(stream) --> submit),
@@ -443,7 +443,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   "Boolean Props" should "be handled corectly" in {
 
-    val node = IO(Subject.replayLast[Boolean]()).map { checkValue =>
+    val node = IO(Subject.replayLatest[Boolean]()).map { checkValue =>
       div(
         input(idAttr := "checkbox", `type` := "Checkbox", checked <-- checkValue),
         button(idAttr := "on_button", onClick.as(true) --> checkValue, "On"),
@@ -503,14 +503,14 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   "EmitterOps" should "correctly work on events" in {
 
-    val node = IO(Subject.replayLast[String]()).flatMap { _ =>
+    val node = IO(Subject.replayLatest[String]()).flatMap { _ =>
 
       for {
-        stringStream <- IO(Subject.replayLast[String]())
-        doubleStream <- IO(Subject.replayLast[Double]())
-        boolStream <- IO(Subject.replayLast[Boolean]())
-        htmlElementStream <- IO(Subject.replayLast[html.Element]())
-        svgElementTupleStream <- IO(Subject.replayLast[(org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]())
+        stringStream <- IO(Subject.replayLatest[String]())
+        doubleStream <- IO(Subject.replayLatest[Double]())
+        boolStream <- IO(Subject.replayLatest[Boolean]())
+        htmlElementStream <- IO(Subject.replayLatest[html.Element]())
+        svgElementTupleStream <- IO(Subject.replayLatest[(org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]())
         elem = div(
           input(
             idAttr := "input", tpe := "text",
@@ -546,14 +546,14 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "correctly be compiled with currentTarget" in {
 
-    IO(Subject.replayLast[String]()).flatMap { stringHandler =>
+    IO(Subject.replayLatest[String]()).flatMap { stringHandler =>
       def modifier: VDomModifier = onDrag.value --> stringHandler
 
-      IO(Subject.replayLast[String]()).flatMap { _ =>
+      IO(Subject.replayLatest[String]()).flatMap { _ =>
 
       for {
-        stream <- IO(Subject.replayLast[String]())
-        eventStream <- IO(Subject.replayLast[MouseEvent]())
+        stream <- IO(Subject.replayLatest[String]())
+        eventStream <- IO(Subject.replayLatest[MouseEvent]())
         elem = div(
           input(
             idAttr := "input", tpe := "text",

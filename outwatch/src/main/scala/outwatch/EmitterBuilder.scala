@@ -269,7 +269,7 @@ object EmitterBuilder {
     @inline def handled(f: Observable[O] => R): SyncIO[R] = handledF[SyncIO](f)
 
     @deprecated
-    @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replayLast[O]())) { handler =>
+    @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replayLatest[O]())) { handler =>
       Monoid[R].combine(builder.forwardTo(handler), f(handler))
     }
   }
@@ -279,7 +279,7 @@ object EmitterBuilder {
     @inline def handledWith(f: (R, Observable[O]) => R): SyncIO[R] = handledWithF[SyncIO](f)
 
     @deprecated
-    @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replayLast[O]())) { handler =>
+    @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replayLatest[O]())) { handler =>
       f(builder.forwardTo(handler), handler)
     }
   }
