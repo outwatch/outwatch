@@ -41,6 +41,7 @@ object VModifier {
   @inline def fromEither[T : Render](modifier: Either[Throwable, T]): VModifier = modifier.fold(raiseError(_), apply(_))
   @inline def delayEither[T : Render](modifier: => Either[Throwable, T]): VModifier = SyncEffectModifier(() => fromEither(modifier))
   @inline def delay[T : Render](modifier: => T): VModifier = delayEither(Either.catchNonFatal(modifier))
+  @inline def composite(modifiers: Iterable[VModifier]): VModifier = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError[T](error: Throwable): VModifier = ErrorModifier(error)
 
   @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
@@ -153,3 +154,4 @@ sealed trait BasicVNode extends VNode {
   def append(args: VModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
   def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
 }
+
