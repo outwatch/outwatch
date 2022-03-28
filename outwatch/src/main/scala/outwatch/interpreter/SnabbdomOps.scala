@@ -104,8 +104,8 @@ private[outwatch] object SnabbdomOps {
       // based in dom events.
 
       var proxy: VNodeProxy = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
-      var _prependModifiers: js.UndefOr[js.Array[StaticVDomModifier]] = js.undefined
+      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
+      var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
       var lastTimeout: js.UndefOr[Int] = js.undefined
       var isActive: Boolean = false
 
@@ -169,7 +169,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      _prependModifiers = js.Array[StaticVDomModifier](
+      _prependModifiers = js.Array[StaticVModifier](
         InsertHook { p =>
           VNodeProxy.copyInto(p, proxy)
           isActive = true
@@ -225,7 +225,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      val prependModifiers = js.Array[StaticVDomModifier](
+      val prependModifiers = js.Array[StaticVModifier](
         InsertHook { _ =>
           start()
         },

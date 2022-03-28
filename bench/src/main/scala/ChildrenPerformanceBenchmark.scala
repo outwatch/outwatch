@@ -102,7 +102,7 @@ object ChildrenPerformance {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
       handler.unsafeOnNext(i)
@@ -130,13 +130,13 @@ object ChildrenPerformance {
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
         (0 to i).map { j =>
-          input.thunk("handler")(j)(VDomModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
+          input.thunk("handler")(j)(VModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
         }
         //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
         (0 to i).map { j =>
-          div.thunk("handler2")(j)(VDomModifier(
+          div.thunk("handler2")(j)(VModifier(
             div("hans", cls := j.toString, onClick doAction {}, handler3),
             p(p),
             handler3
@@ -148,7 +148,7 @@ object ChildrenPerformance {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
       handler.unsafeOnNext(i)
@@ -189,7 +189,7 @@ object ChildrenPerformance {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     var node1Counter = 0
     var node2Counter = 0
