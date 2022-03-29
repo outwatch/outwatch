@@ -1,7 +1,7 @@
 import com.raquo.domtypes.generic.keys
 import outwatch.helpers.BasicStyleBuilder
 
-package object outwatch extends ManagedSubscriptions {
+package object outwatch extends definitions.ManagedHelpers {
   type EmitterBuilder[+O, +R] = EmitterBuilderExecution[O, R, EmitterBuilder.Execution]
 
   @deprecated("Use VModifier instead", "")
