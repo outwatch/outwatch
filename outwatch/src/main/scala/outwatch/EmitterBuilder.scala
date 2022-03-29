@@ -2,9 +2,10 @@ package outwatch
 
 import cats.{Monoid, Functor, Bifunctor}
 import cats.effect.{Sync => SyncCats, SyncIO}
-import org.scalajs.dom.{Element, Event, html, svg}
 import colibri._
 import colibri.effect._
+
+import org.scalajs.dom
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -66,6 +67,12 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline def foreachEffect[G[_] : RunEffect](action: O => G[Unit]): R = mapEffect(action).discard
   @inline def doEffect[G[_] : RunEffect](action: G[Unit]): R = foreachEffect(_ => action)
 
+  @inline def foreachAsyncSingleOrDrop[G[_] : RunEffect](action: O => G[Unit]): R = mapEffectSingleOrDrop(action).discard
+  @inline def doAsyncSingleOrDrop[G[_] : RunEffect](action: G[Unit]): R = foreachAsyncSingleOrDrop(_ => action)
+
+  @inline def via[F[_] : Sink](sink: F[_ >: O]): EmitterBuilderExecution[O, R, Exec] = transformSinkWithExec[O](Observer.combine(_, Observer.lift(sink)))
+  @inline def dispatchWith(dispatcher: EventDispatcher[O]): R = transform(dispatcher.dispatch).discard
+
   @inline final def map[T](f: O => T): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramap(f))
 
   @inline final def collect[T](f: PartialFunction[O, T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contracollect(f))
@@ -80,9 +87,9 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline final def asDelay[T](value: T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
 
   @deprecated("Use .as(value) instead", "")
-  @inline final def use[T](value: T): EmitterBuilderExecution[T, R, Exec] = asDelay(value)
+  @inline final def use[T](value: T): EmitterBuilderExecution[T, R, Exec] = as(value)
   @deprecated("Use .asDelay(value) instead", "")
-  @inline final def useLazy[T](value: => T): EmitterBuilderExecution[T, R, Exec] = as(value)
+  @inline final def useLazy[T](value: => T): EmitterBuilderExecution[T, R, Exec] = asDelay(value)
 
   @deprecated("Use .asDelay(value) instead", "")
   @inline final def mapTo[T](value: => T): EmitterBuilderExecution[T, R, Exec] = asDelay(value)
@@ -150,12 +157,11 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   def delayMillis(millis: Int): EmitterBuilder[O, R] =
     transformWithExec[O](source => source.delayMillis(millis))
 
-  def mapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] =
-    transformWithExec[T](source => source.mapFuture(f))
-
   @deprecated("Use .mapEffect(f) instead", "")
   def mapAsync[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = mapEffect(f)
   def mapEffect[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = transformWithExec[T](source => source.mapEffect(f))
+
+  def mapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] = transformWithExec[T](source => source.mapFuture(f))
 
   def mapFutureSingleOrDrop[T](f: O => Future[T]): EmitterBuilder[T, R] =
     transformWithExec[T](source => source.mapFutureSingleOrDrop(f))
@@ -167,9 +173,11 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @deprecated("Use .mapEffect(f) instead", "")
   def mapSync[G[_]: RunSyncEffect, T](f: O => G[T]): EmitterBuilderExecution[T, R, Exec] = transformWithExec[T](source => source.mapEffect(f))
 
+  @deprecated("Use transform instead", "1.0.0")
   def transformLifted[F[_] : Source : LiftSource, OO >: O, T](f: F[OO] => F[T]): EmitterBuilder[T, R] =
     transformWithExec[T]((s: Observable[OO]) => Observable.lift(f(LiftSource[F].lift(s))))
 
+  @deprecated("Use transform instead", "1.0.0")
   def transformLift[F[_] : Source, T](f: Observable[O] => F[T]): EmitterBuilder[T, R] =
     transformWithExec[T]((s: Observable[O]) => Observable.lift(f(s)))
 
@@ -205,7 +213,7 @@ object EmitterBuilder {
     @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = SubscriptionOwner[R].own(result)(() => source.unsafeSubscribe(Observer.lift(sink)))
   }
 
-  @inline final class Custom[+O, +R: SubscriptionOwner, + Exec <: Execution](create: Observer[O] => R) extends EmitterBuilderExecution[O, R, Exec] {
+  @inline final class Custom[+O, +R : SubscriptionOwner, +Exec <: Execution](create: Observer[O] => R) extends EmitterBuilderExecution[O, R, Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec] = new TransformSink(this, f)
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec] = new Transform(this, f)
     @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = create(Observer.lift(sink))
@@ -236,7 +244,7 @@ object EmitterBuilder {
   @inline def ofNode[E](create: Observer[E] => VNode): EmitterBuilder.Sync[E, VNode] = apply[E, VNode](create)
   @inline def fromSource[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VModifier] = fromSourceOf[F, E, VModifier](source)
 
-  def fromEvent[E <: Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = apply[E, VModifier] { sink =>
+  def fromEvent[E <: dom.Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = apply[E, VModifier] { sink =>
     Emitter(eventType, e => sink.unsafeOnNext(e.asInstanceOf[E]))
   }
 
@@ -247,7 +255,7 @@ object EmitterBuilder {
   )
 
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")
-  @inline def apply[E <: Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = fromEvent[E](eventType)
+  @inline def apply[E <: dom.Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = fromEvent[E](eventType)
   @deprecated("Use EmitterBuilder[E, O] instead", "0.11.0")
   @inline def custom[E, R : SubscriptionOwner](create: Observer[E] => R): EmitterBuilder.Sync[E, R] = apply[E, R](create)
 
@@ -262,26 +270,26 @@ object EmitterBuilder {
 
   implicit object bifunctor extends Bifunctor[EmitterBuilder] {
     def bimap[A, B, C, D](fab: EmitterBuilder[A,B])(f: A => C, g: B => D): EmitterBuilder[C,D] = fab.map(f).mapResult(g)
-  }
+    }
 
   @inline implicit class HandlerIntegrationMonoid[O, R : Monoid, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
-    @deprecated
     @inline def handled(f: Observable[O] => R): SyncIO[R] = handledF[SyncIO](f)
 
-    @deprecated
     @inline def handledF[F[_] : SyncCats](f: Observable[O] => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replayLatest[O]())) { handler =>
       Monoid[R].combine(builder.forwardTo(handler), f(handler))
     }
   }
 
   @inline implicit class HandlerIntegration[O, R, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
-    @deprecated
     @inline def handledWith(f: (R, Observable[O]) => R): SyncIO[R] = handledWithF[SyncIO](f)
 
-    @deprecated
     @inline def handledWithF[F[_] : SyncCats](f: (R, Observable[O]) => R): F[R] = Functor[F].map(SyncCats[F].delay(Subject.replayLatest[O]())) { handler =>
       f(builder.forwardTo(handler), handler)
     }
+  }
+
+  @inline implicit final class VModifierEventOperations[Exec <: Execution](val builder: EmitterBuilderExecution[VModifier, VModifier, Exec]) extends AnyVal {
+    @inline def render: VModifier = builder.handled(VModifier(_))
   }
 
   @inline implicit class EmitterOperations[O, R : Monoid : SubscriptionOwner, Exec <: Execution](builder: EmitterBuilderExecution[O, R, Exec]) {
@@ -293,40 +301,40 @@ object EmitterBuilder {
     @inline def useLatestEmitter[T](emitter: EmitterBuilder[T, R]): EmitterBuilderExecution[T, SyncIO[R], Exec] = asLatestEmitter(emitter)
   }
 
-  @inline implicit class EventActions[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
+  @inline implicit class EventActions[O <: dom.Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[O, R] = builder.filter(ev => ev.currentTarget == ev.target)
     def preventDefault: EmitterBuilder.Sync[O, R] = builder.map { e => e.preventDefault(); e }
     def stopPropagation: EmitterBuilder.Sync[O, R] = builder.map { e => e.stopPropagation(); e }
   }
 
-  @inline implicit class TargetAsInput[O <: Event, R](builder: EmitterBuilder.Sync[O, R]) {
+  @inline implicit class TargetAsInput[O <: dom.Event, R](builder: EmitterBuilder.Sync[O, R]) {
     object target {
-      @inline def value: EmitterBuilder.Sync[String, R] = builder.map(_.target.asInstanceOf[html.Input].value)
-      @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(_.target.asInstanceOf[html.Input].valueAsNumber)
-      @inline def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(_.target.asInstanceOf[html.Input].checked)
+      @inline def value: EmitterBuilder.Sync[String, R] = builder.map(_.target.asInstanceOf[dom.html.Input].value)
+      @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
+      @inline def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(_.target.asInstanceOf[dom.html.Input].checked)
     }
   }
 
-  @inline implicit class CurrentTargetAsInput[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-    def value: EmitterBuilder.Sync[String, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].value)
-    def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].valueAsNumber)
-    def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(e => e.currentTarget.asInstanceOf[html.Input].checked)
+  @inline implicit class CurrentTargetAsInput[O <: dom.Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
+    def value: EmitterBuilder.Sync[String, R] = builder.map(e => e.currentTarget.asInstanceOf[dom.html.Input].value)
+    def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(e => e.currentTarget.asInstanceOf[dom.html.Input].valueAsNumber)
+    def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(e => e.currentTarget.asInstanceOf[dom.html.Input].checked)
   }
 
-  @inline implicit class CurrentTargetAsElement[O <: Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-    def asHtml: EmitterBuilder.Sync[html.Element, R] = builder.map(_.currentTarget.asInstanceOf[html.Element])
-    def asSvg: EmitterBuilder.Sync[svg.Element, R] = builder.map(_.currentTarget.asInstanceOf[svg.Element])
-    def asElement: EmitterBuilder.Sync[Element, R] = builder.map(_.currentTarget.asInstanceOf[Element])
+  @inline implicit class CurrentTargetAsElement[O <: dom.Event, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
+    def asHtml: EmitterBuilder.Sync[dom.html.Element, R] = builder.map(_.currentTarget.asInstanceOf[dom.html.Element])
+    def asSvg: EmitterBuilder.Sync[dom.svg.Element, R] = builder.map(_.currentTarget.asInstanceOf[dom.svg.Element])
+    def asElement: EmitterBuilder.Sync[dom.Element, R] = builder.map(_.currentTarget.asInstanceOf[dom.Element])
   }
 
-  @inline implicit class TypedElements[O <: Element, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
-    @inline def asHtml: EmitterBuilder.Sync[html.Element, R] = builder.asInstanceOf[EmitterBuilder.Sync[html.Element, R]]
-    @inline def asSvg: EmitterBuilder.Sync[svg.Element, R] = builder.asInstanceOf[EmitterBuilder.Sync[svg.Element, R]]
+  @inline implicit class TypedElements[O <: dom.Element, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
+    @inline def asHtml: EmitterBuilder.Sync[dom.html.Element, R] = builder.asInstanceOf[EmitterBuilder.Sync[dom.html.Element, R]]
+    @inline def asSvg: EmitterBuilder.Sync[dom.svg.Element, R] = builder.asInstanceOf[EmitterBuilder.Sync[dom.svg.Element, R]]
   }
 
-  @inline implicit class TypedElementTuples[E <: Element, R](val builder: EmitterBuilder.Sync[(E,E), R]) extends AnyVal {
-    @inline def asHtml: EmitterBuilder.Sync[(html.Element, html.Element), R] = builder.asInstanceOf[EmitterBuilder.Sync[(html.Element, html.Element), R]]
-    @inline def asSvg: EmitterBuilder.Sync[(svg.Element, svg.Element), R] = builder.asInstanceOf[EmitterBuilder.Sync[(svg.Element, svg.Element), R]]
+  @inline implicit class TypedElementTuples[E <: dom.Element, R](val builder: EmitterBuilder.Sync[(E,E), R]) extends AnyVal {
+    @inline def asHtml: EmitterBuilder.Sync[(dom.html.Element, dom.html.Element), R] = builder.asInstanceOf[EmitterBuilder.Sync[(dom.html.Element, dom.html.Element), R]]
+    @inline def asSvg: EmitterBuilder.Sync[(dom.svg.Element, dom.svg.Element), R] = builder.asInstanceOf[EmitterBuilder.Sync[(dom.svg.Element, dom.svg.Element), R]]
   }
 
   @noinline private def combineWithLatestEmitter[O, T, R : Monoid : SubscriptionOwner, Exec <: Execution](sourceEmitter: EmitterBuilderExecution[O, R, Exec], latestEmitter: EmitterBuilder[T, R]): EmitterBuilderExecution[(O, T), SyncIO[R], Exec] =
@@ -349,8 +357,17 @@ object EmitterBuilder {
       }
     })
 
-  @noinline private def forwardToInTransform[F[_] : Sink, I, O, R: SubscriptionOwner](base: EmitterBuilder[I, R], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): R = {
+  @noinline private def forwardToInTransform[F[_] : Sink, I, O, R : SubscriptionOwner](base: EmitterBuilder[I, R], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): R = {
     val connectable = Observer.lift(sink).redirect(transformF)
     SubscriptionOwner[R].own(base.forwardTo(connectable.value))(connectable.connect)
+  }
+}
+
+trait EventDispatcher[-T] {
+  def dispatch(source: Observable[T]): Observable[Any]
+}
+object EventDispatcher {
+  def ofModelUpdate[M, T](subject: Subject[M], update: (T, M) => M) = new EventDispatcher[T] {
+    def dispatch(source: Observable[T]) = source.withLatestMap(subject)(update).via(subject)
   }
 }
