@@ -1,8 +1,9 @@
 package outwatch
 
+import outwatch.helpers.AttributeBuilder
+
 import colibri._
 import colibri.effect._
-
 import cats.data.{NonEmptyList, NonEmptySeq, NonEmptyVector, NonEmptyChain}
 import cats.effect.{SyncIO, IO}
 
@@ -181,6 +182,16 @@ object Render extends RenderLowPrio {
   @inline implicit def SourceRender[F[_] : Source]: Render[F[VModifier]] = new SourceRenderClass[F]
   @inline private class SourceRenderClass[F[_] : Source] extends Render[F[VModifier]] {
     @inline def render(source: F[VModifier]) = sourceToModifier(source)
+  }
+
+  @inline implicit def AttributeBuilderRender: Render[AttributeBuilder[Boolean, VModifier]] = new AttributeBuilderRender
+  @inline private final class AttributeBuilderRender extends Render[AttributeBuilder[Boolean, VModifier]] {
+    @inline def render(builder: AttributeBuilder[Boolean, VModifier]) = builder := true
+  }
+
+  @inline implicit def EmitterBuilderRender: Render[EmitterBuilder[VModifier, VModifier]] = new EmitterBuilderRender
+  @inline private final class EmitterBuilderRender extends Render[EmitterBuilder[VModifier, VModifier]] {
+    @inline def render(builder: EmitterBuilder[VModifier, VModifier]) = builder.render
   }
 
   @inline implicit def ChildCommandSourceRender[F[_] : Source]: Render[F[ChildCommand]] = new ChildCommandRenderClass[F]
