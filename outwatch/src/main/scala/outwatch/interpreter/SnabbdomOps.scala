@@ -52,26 +52,31 @@ private[outwatch] object SnabbdomOps {
     } else newProxy(modifiers.proxies, js.undefined)
   }
 
-   def getNamespace(node: BasicVNode): js.UndefOr[String] = node match {
-    case _: SvgVNode => "http://www.w3.org/2000/svg": js.UndefOr[String]
-    case _ => js.undefined
+  private def getNamespace(node: VNodeNamespace): js.UndefOr[String] = node match {
+    case VNodeNamespace.Html => js.undefined
+    case VNodeNamespace.Svg => "http://www.w3.org/2000/svg"
   }
 
-   def toSnabbdom(node: VNode, config: RenderConfig): VNodeProxy = node match {
-     case node: BasicVNode =>
-       toRawSnabbdomProxy(node, config)
-     case node: ConditionalVNode =>
-       thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.shouldRender)
-     case node: ThunkVNode =>
-       thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.arguments)
-   }
+  def toSnabbdom(node: VNode, config: RenderConfig): VNodeProxy = node match {
+    case node: BasicVNode =>
+      toRawSnabbdomProxy(node, config)
+    case node: AccessEnvVNode =>
+      toSnabbdom(node.node(()), config)
+    case node: ThunkVNode =>
+      node.condition match {
+        case VNodeThunkCondition.Check(shouldRender) =>
+          thunk.conditional(getNamespace(node.baseNode.namespace), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), shouldRender)
+        case VNodeThunkCondition.Compare(arguments) =>
+          thunk(getNamespace(node.baseNode.namespace), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), arguments)
+      }
+  }
 
-   private val newNodeId: () => Int = {
-     var vNodeIdCounter = 0
-     () => {
-      vNodeIdCounter += 1
-      vNodeIdCounter
-     }
+  private val newNodeId: () => Int = {
+    var vNodeIdCounter = 0
+    () => {
+    vNodeIdCounter += 1
+    vNodeIdCounter
+    }
    }
 
    type SetImmediate = js.Function1[js.Function0[Unit], Int]
@@ -90,7 +95,7 @@ private[outwatch] object SnabbdomOps {
     // we mutate the initial proxy and thereby mutate the proxy the parent knows.
    private def toRawSnabbdomProxy(node: BasicVNode, config: RenderConfig): VNodeProxy = {
 
-    val vNodeNS = getNamespace(node)
+    val vNodeNS = getNamespace(node.namespace)
     val vNodeId: Int = newNodeId()
 
     val observer = new StatefulObserver[Unit]

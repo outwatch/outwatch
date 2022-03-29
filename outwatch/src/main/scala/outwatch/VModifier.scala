@@ -1,13 +1,12 @@
 package outwatch
 
-import outwatch.helpers.{BasicAttrBuilder, PropBuilder, BasicStyleBuilder, ModifierBooleanOps}
+import outwatch.helpers.{VModifierBooleanOps, BasicAttrBuilder, PropBuilder, BasicStyleBuilder}
 import outwatch.helpers.NativeHelpers._
 import snabbdom.{DataObject, VNodeProxy}
 
 import colibri._
 import colibri.effect._
-import cats.Monoid
-import cats.syntax.either._
+import cats.{Monoid, MonoidK, Contravariant}
 import cats.syntax.functor._
 import cats.effect.Sync
 
@@ -15,20 +14,22 @@ import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-sealed trait VModifier
+sealed trait VModifierM[-Env] {
+  def append[R](args: VModifierM[R]*): VModifierM[Env with R]
+  def prepend[R](args: VModifierM[R]*): VModifierM[Env with R]
+  def provide(env: Env): VModifierM[Any]
+  def provideSome[R](map: R => Env): VModifierM[R]
+}
 
-object VModifier {
-  @inline def empty: VModifier = EmptyModifier
+object VModifierM {
 
-  @inline def apply(): VModifier = empty
+  @inline final def empty: VModifier = EmptyModifier
 
-  @inline def apply[T : Render](t: T): VModifier = Render[T].render(t)
+  @inline final def apply(): VModifier = empty
 
-  @inline def apply(modifier: VModifier, modifier2: VModifier): VModifier =
-    CompositeModifier(js.Array(modifier, modifier2))
+  @inline final def ifTrue(condition: Boolean): VModifierBooleanOps = new VModifierBooleanOps(condition)
+  @inline final def ifNot(condition: Boolean): VModifierBooleanOps = new VModifierBooleanOps(!condition)
 
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier): VModifier =
-    CompositeModifier(js.Array(modifier, modifier2, modifier3))
   @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
   @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   @inline final def style[T](key: String) = new BasicStyleBuilder[T](key)
@@ -57,40 +58,71 @@ object VModifier {
     @inline def asSvg[T : CanCancel](subscription: dom.svg.Element => T): VModifier = apply(elem => subscription(elem.asInstanceOf[dom.svg.Element]))
   }
 
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier): VModifier =
-    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4))
+  @inline def apply[Env](t: VModifierM[Env]): VModifierM[Env] = t
 
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier, modifier5: VModifier): VModifier =
-    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5))
+  @inline def apply[Env](modifier: VModifierM[Env], modifier2: VModifierM[Env]): VModifierM[Env] =
+    CompositeModifier[Env](js.Array(modifier, modifier2))
 
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier, modifier5: VModifier, modifier6: VModifier): VModifier =
-    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6))
+  @inline def apply[Env](modifier: VModifierM[Env], modifier2: VModifierM[Env], modifier3: VModifierM[Env]): VModifierM[Env] =
+    CompositeModifier[Env](js.Array(modifier, modifier2, modifier3))
 
-  @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier, modifier5: VModifier, modifier6: VModifier, modifier7: VModifier, modifiers: VModifier*): VModifier =
-    CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, CompositeModifier(modifiers)))
+  @inline def apply[Env](modifier: VModifierM[Env], modifier2: VModifierM[Env], modifier3: VModifierM[Env], modifier4: VModifierM[Env]): VModifierM[Env] =
+    CompositeModifier[Env](js.Array(modifier, modifier2, modifier3, modifier4))
 
-  @inline def fromEither[T : Render](modifier: Either[Throwable, T]): VModifier = modifier.fold(raiseError(_), apply(_))
-  @inline def delayEither[T : Render](modifier: => Either[Throwable, T]): VModifier = SyncEffectModifier(() => fromEither(modifier))
-  @inline def delay[T : Render](modifier: => T): VModifier = delayEither(Either.catchNonFatal(modifier))
-  @inline def composite(modifiers: Iterable[VModifier]): VModifier = CompositeModifier(modifiers.toJSArray)
+  @inline def apply[Env](modifier: VModifierM[Env], modifier2: VModifierM[Env], modifier3: VModifierM[Env], modifier4: VModifierM[Env], modifier5: VModifierM[Env]): VModifierM[Env] =
+    CompositeModifier[Env](js.Array(modifier, modifier2, modifier3, modifier4, modifier5))
+
+  @inline def apply[Env](modifier: VModifierM[Env], modifier2: VModifierM[Env], modifier3: VModifierM[Env], modifier4: VModifierM[Env], modifier5: VModifierM[Env], modifier6: VModifierM[Env]): VModifierM[Env] =
+    CompositeModifier[Env](js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6))
+
+  @inline def apply[Env](modifier: VModifierM[Env], modifier2: VModifierM[Env], modifier3: VModifierM[Env], modifier4: VModifierM[Env], modifier5: VModifierM[Env], modifier6: VModifierM[Env], modifier7: VModifierM[Env], modifiers: VModifierM[Env]*): VModifierM[Env] =
+    CompositeModifier[Env](js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, CompositeModifier(modifiers)))
+
+  @inline def composite[Env](modifiers: Iterable[VModifierM[Env]]): VModifierM[Env] = CompositeModifier[Env](modifiers.toJSArray)
+
+  @inline def fromEither[Env, T: Render[Env, *]](modifier: Either[Throwable, T]): VModifierM[Env] = modifier.fold(raiseError(_), apply(_))
+  @inline def delayEither[Env, T: Render[Env, *]](modifier: => Either[Throwable, T]): VModifierM[Env] = SyncEffectModifier(() => fromEither(modifier))
+  @inline def delay[Env](modifier: => VModifierM[Env]): VModifierM[Env] = accessM[Env](_ => modifier)
   @inline def raiseError[T](error: Throwable): VModifier = ErrorModifier(error)
 
-  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
-  @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
-
-  implicit object monoid extends Monoid[VModifier] {
-    @inline def empty: VModifier = VModifier.empty
-    @inline def combine(x: VModifier, y: VModifier): VModifier = VModifier(x, y)
+  @inline def access[Env](modifier: Env => VModifier): VModifierM[Env] = AccessEnvModifier[Env](modifier)
+  @inline def accessM[Env] = new PartiallyAppliedAccessM[Env]
+  @inline class PartiallyAppliedAccessM[Env] {
+    @inline def apply[R](modifier: Env => VModifierM[R]): VModifierM[Env with R] = access(env => modifier(env).provide(env))
   }
 
-  implicit object subscriptionOwner extends SubscriptionOwner[VModifier] {
-    @inline def own(owner: VModifier)(subscription: () => Cancelable): VModifier = VModifier(managedDelay(subscription()), owner)
+  implicit object monoidk extends MonoidK[VModifierM] {
+    @inline def empty[Env]: VModifierM[Env] = VModifierM.empty
+    @inline def combineK[Env](x: VModifierM[Env], y: VModifierM[Env]): VModifierM[Env] = VModifierM[Env](x, y)
   }
 
-  @inline implicit def renderToVModifier[T : Render](value: T): VModifier = Render[T].render(value)
+  @inline implicit def monoid[Env]: Monoid[VModifierM[Env]] = new VModifierMonoid[Env]
+  @inline class VModifierMonoid[Env] extends Monoid[VModifierM[Env]] {
+    @inline def empty: VModifierM[Env] = VModifierM.empty
+    @inline def combine(x: VModifierM[Env], y: VModifierM[Env]): VModifierM[Env] = VModifierM[Env](x, y)
+    // @inline override def combineAll(x: Iterable[VModifierM[Env]]): VModifierM[Env] = VModifierM.composite[Env](x)
   }
 
-sealed trait StaticVModifier extends VModifier
+  implicit object contravariant extends Contravariant[VModifierM] {
+    def contramap[A, B](fa: VModifierM[A])(f: B => A): VModifierM[B] = fa.provideSome(f)
+  }
+
+  @inline implicit def subscriptionOwner[Env]: SubscriptionOwner[VModifierM[Env]] = new VModifierSubscriptionOwner[Env]
+  @inline class VModifierSubscriptionOwner[Env] extends SubscriptionOwner[VModifierM[Env]] {
+    @inline def own(owner: VModifierM[Env])(subscription: () => Cancelable): VModifierM[Env] = VModifierM(owner, VModifier.managedDelay(subscription()))
+  }
+
+  @inline implicit def renderToModifier[Env, T : Render[Env, *]](value: T): VModifierM[Env] = Render[Env, T].render(value)
+}
+
+sealed trait DefaultModifier[-Env] extends VModifierM[Env] {
+  final def append[R](args: VModifierM[R]*): VModifierM[Env with R] = VModifierM(this, VModifierM.composite(args))
+  final def prepend[R](args: VModifierM[R]*): VModifierM[Env with R] = VModifierM(VModifierM.composite(args), this)
+  final def provide(env: Env): VModifier = ProvidedEnvModifier(this, env)
+  final def provideSome[R](map: R => Env): VModifierM[R] = AccessEnvModifier[R](env => provide(map(env)))
+}
+
+sealed trait StaticVModifier extends DefaultModifier[Any]
 
 final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVModifier
 
@@ -136,56 +168,75 @@ final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, 
 
 final case class NextVModifier(modifier: StaticVModifier) extends StaticVModifier
 
-case object EmptyModifier extends VModifier
-final case class CompositeModifier(modifiers: Iterable[VModifier]) extends VModifier
-final case class StreamModifier(subscription: Observer[VModifier] => Cancelable) extends VModifier
-final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends VModifier
-final case class CancelableModifier(subscription: () => Cancelable) extends VModifier
-final case class SyncEffectModifier(unsafeRun: () => VModifier) extends VModifier
-final case class ErrorModifier(error: Throwable) extends VModifier
-final case class StringVNode(text: String) extends VModifier
+case object EmptyModifier extends DefaultModifier[Any]
+final case class ErrorModifier(error: Throwable) extends DefaultModifier[Any]
+final case class CancelableModifier(subscription: () => Cancelable) extends DefaultModifier[Any]
+final case class StringVNode(text: String) extends DefaultModifier[Any]
+final case class ProvidedEnvModifier[Env](modifier: VModifierM[Env], env: Env) extends DefaultModifier[Any]
+final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends DefaultModifier[Any]
+final case class AccessEnvModifier[-Env](modifier: Env => VModifier) extends DefaultModifier[Env]
+final case class CompositeModifier[-Env](modifiers: Iterable[VModifierM[Env]]) extends DefaultModifier[Env]
+final case class SyncEffectModifier[-Env](unsafeRun: () => VModifierM[Env]) extends DefaultModifier[Env]
+final case class StreamModifier[-Env](subscription: Observer[VModifierM[Env]] => Cancelable) extends DefaultModifier[Env]
 
-sealed trait VNode extends VModifier {
-  def apply(args: VModifier*): VNode
-  def append(args: VModifier*): VNode
-  def prepend(args: VModifier*): VNode
+sealed trait VNodeM[-Env] extends VModifierM[Env] {
+  def apply[R](args: VModifierM[R]*): VNodeM[Env with R]
+  def append[R](args: VModifierM[R]*): VNodeM[Env with R]
+  def prepend[R](args: VModifierM[R]*): VNodeM[Env with R]
+  def provide(env: Env): VNodeM[Any]
+  def provideSome[R](map: R => Env): VNodeM[R]
 }
-object VNode {
-  @inline final def html(name: String): HtmlVNode = HtmlVNode(name, js.Array[VModifier]())
-  @inline final def svg(name: String): SvgVNode = SvgVNode(name, js.Array[VModifier]())
+object VNodeM {
+  @inline final def html(name: String): HtmlVNode = BasicNamespaceVNodeM(name, js.Array[VModifier](), VNodeNamespace.Html)
+  @inline final def svg(name: String): SvgVNode = BasicNamespaceVNodeM(name, js.Array[VModifier](), VNodeNamespace.Svg)
 
-  implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
-    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(VModifier.managedDelay(subscription()))
+  @inline def delay[Env](modifier: => VNodeM[Env]): VNodeM[Env] = accessM[Env](_ => modifier)
+  @inline def access[Env](node: Env => VNode): VNodeM[Env] = new AccessEnvVNodeM[Env](node)
+  @inline def accessM[Env] = new PartiallyAppliedAccessM[Env]
+  @inline class PartiallyAppliedAccessM[Env] {
+    @inline def apply[R](node: Env => VNodeM[R]): VNodeM[Env with R] = access(env => node(env).provide(env))
+  }
+
+  @inline implicit def subscriptionOwner[Env]: SubscriptionOwner[VNodeM[Env]] = new VNodeSubscriptionOwner[Env]
+  @inline class VNodeSubscriptionOwner[Env] extends SubscriptionOwner[VNodeM[Env]] {
+    @inline def own(owner: VNodeM[Env])(subscription: () => Cancelable): VNodeM[Env] = owner.append(VModifier.managedDelay(subscription()))
   }
 }
-sealed trait BasicVNode extends VNode {
-  def nodeType: String
-  def modifiers: js.Array[VModifier]
-  def apply(args: VModifier*): BasicVNode
-  def append(args: VModifier*): BasicVNode
-  def prepend(args: VModifier*): BasicVNode
-  def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode = ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
-  def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
-  @inline def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode = thunkConditional(key)(false)(renderFn)
-}
-@inline final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VModifier) extends VNode {
-  @inline def apply(args: VModifier*): ThunkVNode = append(args: _*)
-  def append(args: VModifier*): ThunkVNode = copy(baseNode = baseNode(args: _*))
-  def prepend(args: VModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args :_*))
-}
-@inline final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRender: Boolean, renderFn: () => VModifier) extends VNode {
-  @inline def apply(args: VModifier*): ConditionalVNode = append(args: _*)
-  def append(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode(args: _*))
-  def prepend(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
-}
-@inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
-  @inline def apply(args: VModifier*): HtmlVNode = append(args: _*)
-  def append(args: VModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
-  def prepend(args: VModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
-}
-@inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
-  @inline def apply(args: VModifier*): SvgVNode = append(args: _*)
-  def append(args: VModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
-  def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
+
+@inline final case class AccessEnvVNodeM[-Env](node: Env => VNode) extends VNodeM[Env] {
+  def provide(env: Env): AccessEnvVNodeM[Any] = copy(node = _ => node(env))
+  def provideSome[R](map: R => Env): AccessEnvVNodeM[R] = copy(node = r => node(map(r)))
+  def apply[R](args: VModifierM[R]*): AccessEnvVNodeM[Env with R] = copy(node = env => node(env).apply(VModifierM.composite(args).provide(env)))
+  def append[R](args: VModifierM[R]*): AccessEnvVNodeM[Env with R] = copy(node = env => node(env).append(VModifierM.composite(args).provide(env)))
+  def prepend[R](args: VModifierM[R]*): AccessEnvVNodeM[Env with R] = copy(node = env => node(env).prepend(VModifierM.composite(args).provide(env)))
 }
 
+@inline final case class ThunkVNodeM[-Env](baseNode: BasicVNodeM[Env], key: Key.Value, condition: VNodeThunkCondition, renderFn: () => VModifierM[Env]) extends VNodeM[Env] {
+  def provide(env: Env): ThunkVNodeM[Any] = copy(baseNode = baseNode.provide(env), renderFn = () => renderFn().provide(env))
+  def provideSome[R](map: R => Env): ThunkVNodeM[R] = copy(baseNode = baseNode.provideSome(map), renderFn = () => renderFn().provideSome(map))
+  def apply[R](args: VModifierM[R]*): VNodeM[Env with R] = copy(baseNode = baseNode.apply(args: _*))
+  def append[R](args: VModifierM[R]*): ThunkVNodeM[Env with R] = copy(baseNode = baseNode.append(args: _*))
+  def prepend[R](args: VModifierM[R]*): ThunkVNodeM[Env with R] = copy(baseNode = baseNode.prepend(args: _*))
+}
+
+@inline final case class BasicNamespaceVNodeM[+N <: VNodeNamespace, -Env](nodeType: String, modifiers: js.Array[_ <: VModifierM[Env]], namespace: N) extends VNodeM[Env] {
+  def provide(env: Env): BasicNamespaceVNodeM[N, Any] = copy(modifiers = js.Array(CompositeModifier(modifiers).provide(env)))
+  def provideSome[R](map: R => Env): BasicNamespaceVNodeM[N, R] = copy(modifiers = js.Array(CompositeModifier(modifiers).provideSome(map)))
+  def apply[R](args: VModifierM[R]*): BasicNamespaceVNodeM[N, Env with R] = copy(modifiers = appendSeq(modifiers, args))
+  def append[R](args: VModifierM[R]*): BasicNamespaceVNodeM[N, Env with R] = copy(modifiers = appendSeq(modifiers, args))
+  def prepend[R](args: VModifierM[R]*): BasicNamespaceVNodeM[N, Env with R] = copy(modifiers = prependSeq(modifiers, args))
+  def thunk[R](key: Key.Value)(arguments: Any*)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = ThunkVNodeM[Env with R](this, key, VNodeThunkCondition.Compare(arguments.toJSArray), () => renderFn)
+  def thunkConditional[R](key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = ThunkVNodeM[Env with R](this, key, VNodeThunkCondition.Check(shouldRender), () => renderFn)
+  @inline def thunkStatic[R](key: Key.Value)(renderFn: => VModifierM[R]): ThunkVNodeM[Env with R] = thunkConditional(key)(false)(renderFn)
+}
+
+sealed trait VNodeNamespace
+object VNodeNamespace {
+  case object Html extends VNodeNamespace
+  case object Svg extends VNodeNamespace
+}
+sealed trait VNodeThunkCondition
+object VNodeThunkCondition {
+  case class Check(shouldRender: Boolean) extends VNodeThunkCondition
+  case class Compare(arguments: js.Array[Any]) extends VNodeThunkCondition
+}
