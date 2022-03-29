@@ -1,13 +1,17 @@
 package outwatch
 
-import cats.Monoid
-import org.scalajs.dom._
-import outwatch.helpers.ModifierBooleanOps
+import outwatch.helpers.{BasicAttrBuilder, PropBuilder, BasicStyleBuilder, ModifierBooleanOps}
 import outwatch.helpers.NativeHelpers._
-import colibri.{Observable, Observer, Cancelable, SubscriptionOwner}
 import snabbdom.{DataObject, VNodeProxy}
-import cats.syntax.either._
 
+import colibri._
+import colibri.effect._
+import cats.Monoid
+import cats.syntax.either._
+import cats.syntax.functor._
+import cats.effect.Sync
+
+import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -25,6 +29,33 @@ object VModifier {
 
   @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier): VModifier =
     CompositeModifier(js.Array(modifier, modifier2, modifier3))
+  @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
+  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
+  @inline final def style[T](key: String) = new BasicStyleBuilder[T](key)
+
+  @inline def managed[F[_] : Sync : RunEffect, T : CanCancel](subscription: F[T]): VModifier = VModifier(
+    subscription.map[VModifier](cancelable => CancelableModifier(() => Cancelable.lift(cancelable)))
+  )
+
+  @inline def managedSubscribe[F[_] : Source, T](source: F[T]): VModifier = managedDelay(Source[F].unsafeSubscribe(source)(Observer.empty))
+
+  @deprecated("Use managedDelay(subscription) instead", "")
+  @inline def managedFunction[T : CanCancel](subscription: () => T): VModifier = managedDelay(subscription())
+  @inline def managedDelay[T : CanCancel](subscription: => T): VModifier = CancelableModifier(() => Cancelable.lift(subscription))
+
+  object managedElement {
+    def apply[T : CanCancel](subscription: dom.Element => T): VModifier = VModifier.delay {
+      var lastSub: js.UndefOr[T] = js.undefined
+      VModifier(
+        DomMountHook(proxy => proxy.elm.foreach(elm => lastSub = subscription(elm))),
+        DomUnmountHook(_ => lastSub.foreach(CanCancel[T].unsafeCancel))
+      )
+    }
+
+    @inline def asHtml[T : CanCancel](subscription: dom.html.Element => T): VModifier = apply(elem => subscription(elem.asInstanceOf[dom.html.Element]))
+
+    @inline def asSvg[T : CanCancel](subscription: dom.svg.Element => T): VModifier = apply(elem => subscription(elem.asInstanceOf[dom.svg.Element]))
+  }
 
   @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier): VModifier =
     CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4))
@@ -57,7 +88,7 @@ object VModifier {
   }
 
   @inline implicit def renderToVModifier[T : Render](value: T): VModifier = Render[T].render(value)
-}
+  }
 
 sealed trait StaticVModifier extends VModifier
 
@@ -68,7 +99,7 @@ object Key {
   type Value = DataObject.KeyValue
 }
 
-final case class Emitter(eventType: String, trigger: js.Function1[Event, Unit]) extends StaticVModifier
+final case class Emitter(eventType: String, trigger: js.Function1[dom.Event, Unit]) extends StaticVModifier
 
 sealed trait Attr extends StaticVModifier
 object Attr {
@@ -97,7 +128,7 @@ final case class UpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit])
 final case class PostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class DestroyHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 
-sealed trait DomHook extends SnabbdomHook
+sealed trait DomHook extends StaticVModifier
 final case class DomMountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
 final case class DomUnmountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
 final case class DomUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
@@ -120,8 +151,11 @@ sealed trait VNode extends VModifier {
   def prepend(args: VModifier*): VNode
 }
 object VNode {
+  @inline final def html(name: String): HtmlVNode = HtmlVNode(name, js.Array[VModifier]())
+  @inline final def svg(name: String): SvgVNode = SvgVNode(name, js.Array[VModifier]())
+
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
-    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(managedDelay(subscription()))
+    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(VModifier.managedDelay(subscription()))
   }
 }
 sealed trait BasicVNode extends VNode {

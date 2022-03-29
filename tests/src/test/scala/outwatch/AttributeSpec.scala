@@ -30,8 +30,8 @@ class AttributeSpec extends JSDomSpec {
   "custom attributes" should "be able to be accumulated" in {
 
     val node = SnabbdomOps.toSnabbdom(input(
-      attr("id").accum(",") := "foo1",
-      attr("id").accum(",") := "foo2"
+      VModifier.attr("id").accum(",") := "foo1",
+      VModifier.attr("id").accum(",") := "foo2"
     ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList shouldBe List("id" -> "foo1,foo2")
@@ -81,13 +81,13 @@ class AttributeSpec extends JSDomSpec {
 //   }
 
   "attr/prop/style" should "correctly render type" in {
-    val node = SnabbdomOps.toSnabbdom(htmlTag("input")(
-      attr("foo") := "foo",
-      attr[Boolean]("boo", identity) := true,
-      attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
-      prop("bar") := "bar",
-      prop("num") := 12,
-      style("baz") := "baz",
+    val node = SnabbdomOps.toSnabbdom(VNode.html("input")(
+      VModifier.attr("foo") := "foo",
+      VModifier.attr[Boolean]("boo", identity) := true,
+      VModifier.attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
+      VModifier.prop("bar") := "bar",
+      VModifier.prop("num") := 12,
+      VModifier.style("baz") := "baz",
       contentEditable := false,
       unselectable := false,
       disabled := false
@@ -139,10 +139,10 @@ class AttributeSpec extends JSDomSpec {
 
   it should "correctly merge styles written with style" in {
     val node = SnabbdomOps.toSnabbdom(input(
-      style("color") := "red",
+      VModifier.style("color") := "red",
       fontSize:= "5px"
     )(
-      style("color") := "blue",
+      VModifier.style("color") := "blue",
       border := "1px solid black"
     ), RenderConfig.ignoreError)
 

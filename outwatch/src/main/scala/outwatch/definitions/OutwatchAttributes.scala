@@ -113,7 +113,7 @@ trait SvgAttributeDeprecations { self: SvgAttrs =>
 }
 
 trait AttributeHelpers { self: Attributes =>
-  val innerHTML: PropBuilder[UnsafeHTML] = prop[UnsafeHTML]("innerHTML", _.html)
+  val innerHTML: PropBuilder[UnsafeHTML] = VModifier.prop[UnsafeHTML]("innerHTML", _.html)
 
   @inline def `class` = className
 
@@ -122,8 +122,11 @@ trait AttributeHelpers { self: Attributes =>
   @inline def data = new DynamicAttrBuilder[Any]("data")
   @inline def aria = new DynamicAttrBuilder[Any]("aria")
 
+  @deprecated("use VModifier.attr instead", "0.11.0")
   @inline def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString : Attr.Value) = new BasicAttrBuilder[T](key, convert)
+  @deprecated("use VModifier.prop instead", "0.11.0")
   @inline def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
+  @deprecated("use VModifier.style instead", "0.11.0")
   @inline def style[T](key: String, @annotation.nowarn dummy: Unit = ()) = new BasicStyleBuilder[T](key)
 
   @deprecated("use EmitterBuilder.fromSource instead", "0.11.0")
@@ -134,6 +137,29 @@ trait AttributeHelpers { self: Attributes =>
 }
 
 trait TagHelpers {
-  @inline def htmlTag(name: String): HtmlVNode = HtmlVNode(name, js.Array())
-  @inline def svgTag(name: String): SvgVNode = SvgVNode(name, js.Array())
+  @deprecated("use VNode.html instead", "0.11.0")
+  @inline def htmlTag(name: String): HtmlVNode = VNode.html(name)
+
+  @deprecated("use VNode.svg instead", "0.11.0")
+  @inline def svgTag(name: String): SvgVNode = VNode.svg(name)
+}
+
+trait ManagedHelpers {
+  import colibri._
+  import colibri.effect.RunEffect
+  import cats._
+  import cats.effect.Sync
+  import cats.implicits._
+
+  @deprecated("use VModifier.managed(subscription) instead", "1.0.0")
+  @inline def managed[F[_] : Sync : RunEffect, T : CanCancel](subscription: F[T]): VModifier = VModifier.managed(subscription)
+  @deprecated("use VModifier.managed(sub1), VModifier.managed(sub2), ... instead", "1.0.0")
+  final def managed[F[_] : Sync : RunEffect : Applicative, T : CanCancel : Monoid](sub1: F[T], sub2: F[T], subscriptions: F[T]*): VModifier = {
+    val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
+    managed(composite)
+  }
+  @deprecated("use VModifier.managedDelay(subscription) instead", "1.0.0")
+  @inline def managedFunction[T : CanCancel](subscription: () => T): VModifier = VModifier.managedFunction(subscription)
+  @deprecated("use VModifier.managedElement instead", "1.0.0")
+  val managedElement = VModifier.managedElement
 }

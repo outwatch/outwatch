@@ -966,7 +966,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val messages = Subject.publish[String]()
     val otherMessages = Subject.publish[String]()
-    val vNode = div(style("color") <-- messages)(style("color") <-- otherMessages)
+    val vNode = div(VModifier.style("color") <-- messages)(VModifier.style("color") <-- otherMessages)
 
     val node = IO {
       val node = document.createElement("div")
@@ -1067,7 +1067,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work with custom tags" in {
 
-    val vNode = div(htmlTag("main")())
+    val vNode = div(VNode.html("main")())
 
     val node = IO {
       val node = document.createElement("div")
