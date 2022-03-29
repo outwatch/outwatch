@@ -210,28 +210,32 @@ private[outwatch] class NativeModifiers(
   val subscribables: MutableNestedArray[Subscribable],
   val hasStream: Boolean
 )
-private[outwatch] class Subscribable(
-  newCancelable: Observer[Unit] => Cancelable
-) {
-  var subscription: Cancelable = null
 
-  def unsafeSubscribe(sink: Observer[Unit]): Unit = if (subscription == null) {
-    // this is a weird function, it ignores a subsription, eventhough it does not know
-    // wether this specific observer is already unsafeSubscribed. In this case it is okay,
-    // because this is an internal class that only ever is called with the same observer
+private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
+  private var subscription: Cancelable = null
+
+  // premature subscription on creation of subscribable
+  // We will now subscribe, eventhough the node is not yet mounted.
+  // but we try to get the initial values from the observables synchronously and that
+  // is only possible if we subscribe before rendering.  Succeeding supscriptions will then
+  // soley be handle by mount/unmount hooks.  And every node within this method is going to
+  // be mounted one way or another and this method is guarded by an effect in the public api.
+  unsafeSubscribe()
+
+  def unsafeSubscribe(): Unit = if (subscription == null) {
     val variable = Cancelable.variable()
     subscription = variable
-    variable() = (() => newCancelable(sink))
+    variable() = newCancelable
   }
 
-  def ununsafeSubscribe(): Unit = if (subscription != null) {
+  def unsafeUnsubscribe(): Unit = if (subscription != null) {
     subscription.unsafeCancel()
     subscription = null
   }
 }
 
 private[outwatch] object NativeModifiers {
-  def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig): NativeModifiers = {
+  def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig, sink: Observer[Unit] = Observer.empty): NativeModifiers = {
     val allModifiers = new MutableNestedArray[StaticVModifier]()
     val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream = false
@@ -250,14 +254,14 @@ private[outwatch] object NativeModifiers {
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
         def handleModifier(modifier: VModifier) = {
-          streamedSubscribables.foreach(_.ununsafeSubscribe())
+          streamedSubscribables.foreach(_.unsafeUnsubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
           append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
         }
 
-        subscribables.push(new Subscribable(
-          sink => mod.subscription(Observer.create(
+        subscribables.push(new Subscribable(() =>
+          mod.subscription(Observer.create[VModifier](
             { modifier =>
               handleModifier(modifier)
               sink.unsafeOnNext(())
@@ -272,7 +276,6 @@ private[outwatch] object NativeModifiers {
 
         modifiers.push(streamedModifiers)
         subscribables.push(streamedSubscribables)
-        ()
       }
 
       modifier match {
@@ -283,7 +286,7 @@ private[outwatch] object NativeModifiers {
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, config)))
         case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier => appendStream(m)
-        case s: CancelableModifier => subscribables.push(new Subscribable(_ => s.subscription()))
+        case s: CancelableModifier => subscribables.push(new Subscribable(s.subscription))
         case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
         case m: ChildCommandsModifier => append(subscribables, modifiers, ChildCommand.stream(m.commands, config), inStream)
         case m: ErrorModifier => append(subscribables, modifiers, config.errorModifier(m.error), inStream)

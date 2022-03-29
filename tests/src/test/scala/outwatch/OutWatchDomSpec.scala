@@ -96,7 +96,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     emitters.get.values.size shouldBe 1
-    attrs.get.values.size shouldBe 1
+    attrs.get.values.size shouldBe 2
     streamable.subscribables.isEmpty shouldBe false
     proxies.get.length shouldBe 3
   }
