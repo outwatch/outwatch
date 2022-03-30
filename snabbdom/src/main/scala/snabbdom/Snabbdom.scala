@@ -1,6 +1,5 @@
 package snabbdom
 
-import com.github.ghik.silencer.silent
 import org.scalajs.dom._
 
 import scala.scalajs.js
@@ -195,39 +194,38 @@ object VNodeProxy {
 @js.native
 @JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
 object Snabbdom extends js.Object {
-  @silent("never used|dead code")
-  def init(args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
+  def init(@annotation.unused args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
 }
 
-@silent("never used|dead code")
+@annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
 object SnabbdomClass extends js.Object {
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
+@annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
 object SnabbdomEventListeners extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
+@annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
 object SnabbdomAttributes extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
+@annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
 object SnabbdomProps extends js.Object{
   val default: js.Any = js.native
 }
 
-@silent("never used|dead code")
+@annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
 object SnabbdomStyle extends js.Object {

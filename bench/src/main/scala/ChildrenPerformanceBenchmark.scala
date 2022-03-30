@@ -6,7 +6,7 @@ import outwatch._
 import outwatch.dsl._
 import colibri._
 
-import org.scalajs.dom.{ document, window }
+import org.scalajs.dom.document
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
@@ -14,7 +14,7 @@ import bench._
 @js.native
 @JSImport("jsdom", JSImport.Namespace)
 object jsdom extends js.Object {
-  def jsdom(innerHTML: js.UndefOr[String]): js.Any = js.native
+  def jsdom(@annotation.unused innerHTML: js.UndefOr[String]): js.Any = js.native
 }
 
 object ChildrenPerformance {
@@ -24,6 +24,7 @@ object ChildrenPerformance {
     setupJsDom()
 
     bench.util.runComparison(childrenBenchmark, List(100), 5.minutes)
+    ()
   }
 
   val childrenBenchmark = Comparison("Patching", Seq(
@@ -102,7 +103,7 @@ object ChildrenPerformance {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
       handler.unsafeOnNext(i)
@@ -130,13 +131,13 @@ object ChildrenPerformance {
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
         (0 to i).map { j =>
-          input.thunk("handler")(j)(VDomModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
+          input.thunk("handler")(j)(VModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
         }
         //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
         (0 to i).map { j =>
-          div.thunk("handler2")(j)(VDomModifier(
+          div.thunk("handler2")(j)(VModifier(
             div("hans", cls := j.toString, onClick doAction {}, handler3),
             p(p),
             handler3
@@ -148,7 +149,7 @@ object ChildrenPerformance {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     (0 to size).foreach { i =>
       handler.unsafeOnNext(i)
@@ -189,11 +190,11 @@ object ChildrenPerformance {
     val node = document.createElement("div")
     document.body.appendChild(node)
 
-    OutWatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
     var node1Counter = 0
     var node2Counter = 0
-    (0 to size).foreach { i =>
+    (0 to size).foreach { _ =>
       handler.unsafeOnNext(ChildCommand.Append(node1(node1Counter)))
       handler2.unsafeOnNext(ChildCommand.Append(node2(node2Counter)))
 

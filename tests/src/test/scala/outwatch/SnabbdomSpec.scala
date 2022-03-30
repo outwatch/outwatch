@@ -67,7 +67,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                    node
                  }
 
-               _ <- OutWatch.renderInto[IO]("#app", div(nodes))
+               _ <- Outwatch.renderInto[IO]("#app", div(nodes))
 
         inputEvt <- IO {
                     new Event("input", new EventInit {
@@ -115,7 +115,7 @@ class SnabbdomSpec extends JSDomAsyncSpec {
                 )
               }
             )
-          _ <- OutWatch.renderInto[IO]("#app", vtree)
+          _ <- Outwatch.renderInto[IO]("#app", vtree)
           c1 <- getContent
            _ <- a.onNextIO(1)
           c2 <- getContent

@@ -1,6 +1,5 @@
 package outwatch.helpers
 
-import com.github.ghik.silencer.silent
 import org.scalajs.dom.Element
 import org.scalajs.dom.CSSStyleDeclaration
 
@@ -8,10 +7,9 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSBracketAccess
 
 @js.native
-@silent("never used|dead code")
 private[outwatch] trait DictionaryRawApply[A] extends js.Object {
   @JSBracketAccess
-  def apply(key: String): js.UndefOr[A] = js.native
+  def apply(@annotation.unused key: String): js.UndefOr[A] = js.native
 }
 
 private[outwatch] object NativeHelpers {

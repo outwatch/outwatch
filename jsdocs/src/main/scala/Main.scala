@@ -6,7 +6,7 @@ import scala.scalajs.js.annotation.JSImport
 
 @js.native
 @JSImport("js-beautify", "html")
-object JSBeautify extends js.Object 
+object JSBeautify extends js.Object
 
 object Main {
   def main(args:Array[String]) = {
@@ -14,7 +14,7 @@ object Main {
     // for snabbdom, jsBeautify don't get removed by dead code elimination.
     // It is never executed.
     JSBeautify
-    val app = OutWatch.renderInto[IO]("#app", div())
+    val _ = Outwatch.renderInto[IO]("#app", div())
   }
 }
 

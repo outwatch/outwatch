@@ -11,7 +11,9 @@ jobs:
       matrix:
         scalaVersion: ["2.13.8"]
     runs-on: ubuntu-20.04
-
+    env:
+      JAVA_OPTS: -Xms4096M -Xmx4096M -Xss6M
+      JVM_OPTS:  -Xms4096M -Xmx4096M -Xss6M
     steps:
       - uses: actions/checkout@v2
         with:

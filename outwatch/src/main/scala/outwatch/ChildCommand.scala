@@ -30,46 +30,46 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream(valueStream: Observable[Seq[ChildCommand]], config: RenderConfig): VDomModifier = VDomModifier.delay {
-
+  def stream(valueStream: Observable[Seq[ChildCommand]], config: RenderConfig): VModifier = VModifier.delay {
     val children = new js.Array[VNodeProxyNode]
+    val childrenModifier = VModifier.composite(children)
+
+    def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
+
+    def replaceByIndex(index: Int, node: VNode): Unit = {
+      children(index) = VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config))
+    }
+
+    def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
+      if (isSaneIndex(fromIndex) && isSaneIndex(toIndex) && fromIndex != toIndex) {
+        val tree = children.remove(fromIndex)
+        children.insert(toIndex, tree)
+      }
+    }
+
+    def insertByIndex(index: Int, node: VNode): Unit = {
+      if (isSaneIndex(index)) {
+        children.insert(index, VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config)))
+      }
+    }
+
+    def removeByIndex(index: Int): Unit = {
+      if (isSaneIndex(index)) {
+        children.remove(index)
+        ()
+      }
+    }
+
+    val idToIndex: ChildId => Int = {
+      case ChildId.Key(key) => children.indexWhere { tree =>
+        tree.proxy.key.fold(false)((k: Key.Value) => k == key)
+      }
+      case ChildId.Element(element) => children.indexWhere { tree =>
+        tree.proxy.elm.fold(false)((e: Element) => e == element)
+      }
+    }
 
     valueStream.map { cmds =>
-      val idToIndex: ChildId => Int = {
-        case ChildId.Key(key) => children.indexWhere { tree =>
-          tree.proxy.key.fold(false)((k: Key.Value) => k == key)
-        }
-        case ChildId.Element(element) => children.indexWhere { tree =>
-          tree.proxy.elm.fold(false)((e: Element) => e == element)
-        }
-      }
-
-      def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
-
-      def replaceByIndex(index: Int, node: VNode): Unit = {
-        children(index) = VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config))
-      }
-
-      def moveByIndex(fromIndex: Int, toIndex: Int): Unit = {
-        if (isSaneIndex(fromIndex) && isSaneIndex(toIndex) && fromIndex != toIndex) {
-          val tree = children.remove(fromIndex)
-          children.insert(toIndex, tree)
-        }
-      }
-
-      def insertByIndex(index: Int, node: VNode): Unit = {
-        if (isSaneIndex(index)) {
-          children.insert(index, VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config)))
-        }
-      }
-
-      def removeByIndex(index: Int): Unit = {
-        if (isSaneIndex(index)) {
-          children.remove(index)
-          ()
-        }
-      }
-
       cmds foreach {
         case Append(node) =>
           children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config)))
@@ -107,7 +107,7 @@ object ChildCommand {
           removeByIndex(idToIndex(id))
       }
 
-      CompositeModifier(children)
+      childrenModifier
     }
   }
 }

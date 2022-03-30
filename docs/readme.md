@@ -49,15 +49,15 @@ enablePlugins(ScalaJSPlugin)
 enablePlugins(ScalaJSBundlerPlugin)
 ```
 
-To configure hot reloading with webpack devserver, check out [build.sbt](https://github.com/OutWatch/seed.g8/blob/master/src/main/g8/build.sbt) and [webpack.config.dev.js](https://github.com/OutWatch/seed.g8/blob/master/src/main/g8/webpack.config.dev.js) from the [g8 template](https://github.com/OutWatch/seed.g8).
+To configure hot reloading with webpack devserver, check out [build.sbt](https://github.com/Outwatch/seed.g8/blob/master/src/main/g8/build.sbt) and [webpack.config.dev.js](https://github.com/Outwatch/seed.g8/blob/master/src/main/g8/webpack.config.dev.js) from the [g8 template](https://github.com/Outwatch/seed.g8).
 
 If anything is not working, cross-check how things are done in the template.
 
 We're using [JitPack](https://jitpack.io) to release the libraries. With JitPack you can easily try the latest features from specific commits on `master`, other branches or PRs. Just point `outwatchVersion` to a specific commit.
 
-### Use common javascript libraries with OutWatch
+### Use common javascript libraries with Outwatch
 
-We have prepared helpers for some javascript libraries. You can find them in the [OutWatch-libs](https://github.com/outwatch/outwatch-libs) Repository.
+We have prepared helpers for some javascript libraries. You can find them in the [Outwatch-libs](https://github.com/outwatch/outwatch-libs) Repository.
 
 ## Examples
 
@@ -87,7 +87,7 @@ object Main {
 
     val myComponent = div("Hello World")
 
-    OutWatch.renderReplace[SyncIO]("#app", myComponent).unsafeRunSync()
+    Outwatch.renderReplace[SyncIO]("#app", myComponent).unsafeRunSync()
   }
 }
 ```
@@ -119,12 +119,12 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 To understand how this example works in-depth, please read about [Dynamic Content](#dynamic-content) and [Handling Events](#handling-events).
 
-**Important:** In your application, `OutWatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Obvervable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
+**Important:** In your application, `Outwatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Obvervable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
 
 ## Static Content
 First, we will focus on creating immutable/static content that will not change over time. The following examples illustrate to construct and transform HTML/SVG tags, attributes and inline stylesheets.
@@ -150,7 +150,7 @@ implicit class PreviewVNode(val vnode:VNode) {
 
   def showHTMLForDoc(previewNode: org.scalajs.dom.Element) = {
     val renderNode = document.createElement("div")
-    OutWatch.renderInto[SyncIO](renderNode, vnode).unsafeRunSync()
+    Outwatch.renderInto[SyncIO](renderNode, vnode).unsafeRunSync()
     val textNode = document.createTextNode(_beautifyHtml(renderNode.innerHTML))
     val codeNode = document.createElement("code")
     codeNode.appendChild(textNode)
@@ -267,17 +267,20 @@ All the tags, attributes and styles available in outwatch come from [Scala Dom T
 If you want to use something not available in Scala Dom Types, you can use custom builders:
 
 ```scala mdoc:js
-htmlTag("app")(
-  style("user-select") := "none",
-  attr("everything") := "possible"
+VNode.html("app")(
+  VModifier.style("user-select") := "none",
+  VModifier.attr("everything") := "possible",
+  VModifier.prop("it") := "is"
 ).showHTMLForDoc(docPreview)
 ```
+
+There also exists `VNode.svg(tagName)`.
 
 You can also define the accumulation behavior of custom attributes:
 ```scala mdoc:js
 div(
-  attr("everything").accum("-") := "is",
-  attr("everything").accum("-") := "possible",
+  VModifier.attr("everything").accum("-") := "is",
+  VModifier.attr("everything").accum("-") := "possible",
 ).showHTMLForDoc(docPreview)
 ```
 
@@ -322,41 +325,41 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
-### VNode and VDomModifier
-The important types we are using in the examples above are `VNode` and `VDomModifier`. `VNode` represents a node in the virtual dom, while and `VDomModifier` represents atrributes and styles and children of a node.
+### VNode and VModifier
+The important types we are using in the examples above are `VNode` and `VModifier`. `VNode` represents a node in the virtual dom, while and `VModifier` represents atrributes and styles and children of a node.
 
 ```scala mdoc:js:compile-only
 val vnode: VNode = div()
-val modifiers: List[VDomModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
+val modifiers: List[VModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
 ```
 
-Every `VNode` contains a sequence of `VDomModifier`. And a `VNode` is a `VDomModifier` itself.
+Every `VNode` contains a sequence of `VModifier`. And a `VNode` is a `VModifier` itself.
 
 
 
 ### Grouping Modifiers
-To make a set of modifiers reusable you can group them to become one `VDomModifier`.
+To make a set of modifiers reusable you can group them to become one `VModifier`.
 
 ```scala mdoc:js
-val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
+val bigFont = VModifier(fontSize := "40px", fontWeight.bold)
 div("Argh!", bigFont).showHTMLForDoc(docPreview)
 ```
 
 If you want to reuse `bigFont`, but want to overwrite one of its properties, simply append the overwriting modifier. Here the latter `fontSize` will overwrite the one from `bigFont`:
 ```scala mdoc:js
-val bigFont = VDomModifier(fontSize := "40px", fontWeight.bold)
-val bigFont2 = VDomModifier(bigFont, fontSize := "99px")
+val bigFont = VModifier(fontSize := "40px", fontWeight.bold)
+val bigFont2 = VModifier(bigFont, fontSize := "99px")
 div("Argh!", bigFont2).showHTMLForDoc(docPreview)
 ```
 
-You can also use a `Seq[VDomModifier]` directly instead of using `VDomModifier.apply`.
+You can also use a `Seq[VModifier]` directly instead of using `VModifier.apply`.
 
 
 ### Components
-Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VDomModifier`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
+Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VModifier`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
 
 ```scala mdoc:js
 def fancyHeadLine(content: String) = h1(borderBottom := "1px dashed tomato", content)
@@ -400,7 +403,7 @@ div(
 ).showHTMLForDoc(docPreview)
 ```
 
-Source Code: [VDomModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VDomModifier.scala#L110)
+Source Code: [VModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VModifier.scala#L110)
 
 
 ### Example: Flexbox
@@ -420,7 +423,7 @@ val component = div(
   itemB(alignSelf.center),
 )
 component.showHTMLForDoc(docPreview)
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -452,7 +455,7 @@ case class Person(name: String, age: Int)
 // Type class instance for `Render`:
 object Person {
   implicit object PersonRender extends Render[Person] {
-    def render(person: Person): VDomModifier = div(
+    def render(person: Person): VModifier = div(
       border := "2px dotted coral",
       padding := "10px",
       marginBottom := "5px",
@@ -468,7 +471,7 @@ val peter = Person("Peter", age = 22)
 val component = div(hans, peter)
 
 component.showHTMLForDoc(docPreview)
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Source Code: [Render.scala](@REPOURL@/outwatch/src/main/scala/outwatch/Render.scala)
@@ -524,10 +527,10 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
-**Important:** In your application, `OutWatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Observable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
+**Important:** In your application, `Outwatch.renderReplace` should be called only once at the end of the main method. To create dynamic content, you will design your data-flow with `Observable`, `Subject` and/or `Scala.Rx` and then instantiate outwatch only once with this method call. Before that, no reactive subscriptions will happen.
 
 ### Reactive attributes
 Attributes can also take dynamic values.
@@ -546,11 +549,11 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Reactive Modifiers and VNodes
-You can stream any `VDomModifier` and therefore whole components, attributes, styles, sets of modifiers, and so on:
+You can stream any `VModifier` and therefore whole components, attributes, styles, sets of modifiers, and so on:
 
 ```scala mdoc:js
 import colibri.Observable
@@ -570,7 +573,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -584,7 +587,7 @@ val component = {
   div("Hello ", nodeStream)
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -602,7 +605,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Higher Order Reactiveness
@@ -624,7 +627,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 This is effectively the same as:
@@ -643,7 +646,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Using other streaming libraries
@@ -673,16 +676,16 @@ import colibri.ext.rx._
 
 ### Dom Lifecycle Mangement
 
-OutWatch automatically handles subscriptions of streams and observables in your components. You desribe your component with static and dynamic content (subjects, event emitters, `-->` and `<--`). When using these components, the needed subscriptions will be tied to the lifecycle of the respective dom elements and are managed for you. So whenever an element is mounted the subscriptions are run and whenever it is unmounted the subscriptions are killed.
+Outwatch automatically handles subscriptions of streams and observables in your components. You desribe your component with static and dynamic content (subjects, event emitters, `-->` and `<--`). When using these components, the needed subscriptions will be tied to the lifecycle of the respective dom elements and are managed for you. So whenever an element is mounted the subscriptions are run and whenever it is unmounted the subscriptions are killed.
 
-If you ever need to manually subscribe to a stream, you can let OutWatch manage the subscription for you:
+If you ever need to manually subscribe to a stream, you can let Outwatch manage the subscription for you:
 
 ```scala
 import cats.effect.SyncIO
 
 div(
-  managed(myObservable.subscribeF[SyncIOIO](???)), // this subscription is now bound to the lifetime of the outer div element
-  managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
+  VModifier.managed(myObservable.subscribeF[IO](???)), // this subscription is now bound to the lifetime of the outer div element
+  VModifier.managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
 )
 ```
 
@@ -705,7 +708,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 In the next example, we map the event `e` to extract `e.clientX` and write the result into the reactive variable (`BehaviorSubject`) called `x`:
@@ -725,7 +728,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 `EmitterBuilder` comes with many useful methods to make your life easier. Check the completions of your editor.
@@ -746,7 +749,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -780,7 +783,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Another example with `debounce` functionality. The `debounced` reactive variable is filled once you stop typing for 500ms.
@@ -803,7 +806,7 @@ val component = {
    )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Global events
@@ -823,7 +826,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 
@@ -848,7 +851,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 As you can see, the state is shared between all usages of the component. Therefore, the component counter is not referentially transparent. We can change this, by wrapping the component in `IO` (or here: `SyncIO` for immediate rendering). With this change, the reactive variable `number` is instantiated separately for every usage at rendering time:
@@ -873,7 +876,7 @@ val component = {
   )
 }
 
-OutWatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
+Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Why should we care? Because referentially transparent components can easily be refactored without affecting the meaning of the program. Therefore it is easier to reason about them. Read more about the concept in Wikipedia: [Referential transparency](https://en.wikipedia.org/wiki/Referential_transparency)
@@ -919,7 +922,7 @@ div(
 Alternatively you can do the following to achieve the same effect:
 ```scala mdoc:js:compile-only
 div(
-  VDomModifier.delay {
+  VModifier.delay {
     // doSomething
     "result"
   }
@@ -932,7 +935,7 @@ div(
 
 ### Accessing the DOM Element
 
-Sometimes you need to access the underlying DOM element of a component. But a VNode in OutWatch is just a description of a dom element and we can create multiple different elements from one VNode. Therefore, there is no static element attached to a component. Though, you can get access to the dom element via hooks (callbacks):
+Sometimes you need to access the underlying DOM element of a component. But a VNode in Outwatch is just a description of a dom element and we can create multiple different elements from one VNode. Therefore, there is no static element attached to a component. Though, you can get access to the dom element via hooks (callbacks):
 ```scala mdoc:js:compile-only
 div(
   onDomMount.foreach { element => // the element into which this node is mounted
@@ -944,12 +947,14 @@ div(
 )
 ```
 
-Outwatch has a higher-level API to work with these kinds of callbacks, called `managedElement`, which can be used like this:
+Outwatch has a higher-level API to work with these kinds of callbacks, called `VModifier.managedElement`, which can be used like this:
 ```scala mdoc:js:compile-only
+import colibri.Cancelable
+
 div(
-  managedElement { element => // the element into which this node is mounted
+  VModifier.managedElement { element => // the element into which this node is mounted
     ??? // do something with the dom element
-    cancelable(() => ???) // cleanup when the dom element is unmounted
+    Cancelable(() => ???) // cleanup when the dom element is unmounted
   }
 )
 ```
@@ -969,7 +974,7 @@ import colibri.Observable
 
 val someObservable:Observable[Int] = ???
 div(
-  emitter(someObservable).asLatestEmitter(onDomMount).foreach { element =>
+  EmitterBuilder.fromSource(someObservable).asLatestEmitter(onDomMount).foreach { element =>
     ???
     ()
   }
@@ -979,13 +984,14 @@ div(
 If you need an HTML or SVG Element instead of just an Element, you can do:
 ```scala mdoc:js:compile-only
 import org.scalajs.dom._
+import colibri.Cancelable
 
 onDomMount.asHtml.foreach{ (elem: html.Element) => ??? }
 onDomMount.asSvg.foreach{ (elem: svg.Element) => ??? }
 onClick.asHtml.foreach{ (elem: html.Element) => ??? }
 onClick.asSvg.foreach{ (elem: svg.Element) => ??? }
-managedElement.asHtml { (elem: html.Element) => ???; cancelable(() => ???) }
-managedElement.asSvg { (elem: svg.Element) => ???; cancelable(() => ???) }
+VModifier.managedElement.asHtml { (elem: html.Element) => ???; Cancelable(() => ???) }
+VModifier.managedElement.asSvg { (elem: svg.Element) => ???; Cancelable(() => ???) }
 ```
 
 ### Custom EmitterBuilders
@@ -997,7 +1003,7 @@ button(EmitterBuilder.combine(onMouseUp.as(false), onMouseDown.as(true)).foreach
 // this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
 ```
 
-Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` (`EmitterBuilder.ofSource`) or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
+Furthermore, you can create EmitterBuilders from streams with `EmitterBuilder.fromSource` or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
 
 
 ## Debugging
@@ -1018,22 +1024,22 @@ helpers.OutwatchTracing.patch.zipWithIndex.unsafeForeach { case (proxy, index) =
 
 ### Tracing exceptions in your components
 
-Dynamic components with `Observables` can have errors. This happens if `onError` is called on the underlying `Observer`. Same for `IO` when it fails. In these cases, OutWatch will always print an error message to the dom console.
+Dynamic components with `Observables` can have errors. This happens if `onError` is called on the underlying `Observer`. Same for `IO` when it fails. In these cases, Outwatch will always print an error message to the dom console.
 
-Furthermore, you can configure whether OutWatch should render errors to the dom by providing a `RenderConfig`. `RenderConfig.showError` always shows errors, `RenderConfig.ignoreError` never shows errors and `RenderConfig.default` only shows errors when running on `localhost`.
+Furthermore, you can configure whether Outwatch should render errors to the dom by providing a `RenderConfig`. `RenderConfig.showError` always shows errors, `RenderConfig.ignoreError` never shows errors and `RenderConfig.default` only shows errors when running on `localhost`.
 
 ```scala mdoc:js
 import cats.effect.SyncIO
 
-val component = div("broken?", SyncIO.raiseError[VDomModifier](new Exception("I am broken")))
-OutWatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.showError).unsafeRunSync()
+val component = div("broken?", SyncIO.raiseError[VModifier](new Exception("I am broken")))
+Outwatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.showError).unsafeRunSync()
 ```
 
 ```scala mdoc:js
 import cats.effect.SyncIO
 
-val component = div("broken?", SyncIO.raiseError[VDomModifier](new Exception("I am broken")))
-OutWatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.ignoreError).unsafeRunSync()
+val component = div("broken?", SyncIO.raiseError[VModifier](new Exception("I am broken")))
+Outwatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.ignoreError).unsafeRunSync()
 ```
 
 

@@ -4,24 +4,23 @@ import com.raquo.domtypes.generic.defs.complex.canonical
 import com.raquo.domtypes.generic.defs.{attrs, props, reflectedAttrs, styles}
 import com.raquo.domtypes.generic.{builders, codecs, keys}
 import com.raquo.domtypes.jsdom.defs.eventProps
-import com.raquo.domtypes.jsdom.defs.tags._
+import com.raquo.domtypes.jsdom.defs.tags
 import org.scalajs.dom
 import outwatch._
 import outwatch.helpers._
 import colibri.Observable
 import colibri.jsdom.EventObservable
-import scala.scalajs.js
 
 private[outwatch] object BuilderTypes {
   type ReflectedAttribute[T, _] = AttributeBuilder[T, Attr]
   type Attribute[T] = AttributeBuilder[T, Attr]
   type Property[T, _] = PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VDomModifier]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VModifier]
   type HtmlTag[T] = HtmlVNode
   type SvgTag[T] = SvgVNode
 }
 
-private[outwatch] object CodecBuilder {
+private object CodecBuilder {
   def encodeAttribute[V](codec: codecs.Codec[V, String]): V => Attr.Value = codec match {
     //The BooleanAsAttrPresenceCodec does not play well with snabbdom. it
     //encodes true as "" and false as null, whereas snabbdom needs true/false
@@ -38,29 +37,29 @@ private[outwatch] object CodecBuilder {
 private[outwatch] trait TagBuilder extends builders.HtmlTagBuilder[BuilderTypes.HtmlTag, dom.html.Element] with builders.SvgTagBuilder[BuilderTypes.SvgTag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   //TODO: add element type to VTree for typed interface
-  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = HtmlVNode(tagName, js.Array())
-  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = SvgVNode(tagName, js.Array())
+  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode = VNode.html(tagName)
+  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode = VNode.svg(tagName)
 }
 
 trait Tags
-  extends EmbedTags[BuilderTypes.HtmlTag]
-  with GroupingTags[BuilderTypes.HtmlTag]
-  with TextTags[BuilderTypes.HtmlTag]
-  with FormTags[BuilderTypes.HtmlTag]
-  with SectionTags[BuilderTypes.HtmlTag]
-  with TableTags[BuilderTypes.HtmlTag]
+  extends tags.EmbedTags[BuilderTypes.HtmlTag]
+  with tags.GroupingTags[BuilderTypes.HtmlTag]
+  with tags.TextTags[BuilderTypes.HtmlTag]
+  with tags.FormTags[BuilderTypes.HtmlTag]
+  with tags.SectionTags[BuilderTypes.HtmlTag]
+  with tags.TableTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with TagHelpers
   with EmbedTagDeprecations[BuilderTypes.HtmlTag]
 
 trait TagsExtra
-  extends DocumentTags[BuilderTypes.HtmlTag]
-  with MiscTags[BuilderTypes.HtmlTag]
+  extends tags.DocumentTags[BuilderTypes.HtmlTag]
+  with tags.MiscTags[BuilderTypes.HtmlTag]
   with TagBuilder
   with DocumentTagDeprecations[BuilderTypes.HtmlTag]
 
-trait TagsSvg
-  extends SvgTags[BuilderTypes.SvgTag]
+trait SvgTags
+  extends tags.SvgTags[BuilderTypes.SvgTag]
   with TagBuilder
 
 // all Attributes
@@ -132,31 +131,31 @@ trait Events
 
 // Window / Document events
 
-abstract class WindowEvents
+trait WindowEvents
   extends builders.EventPropBuilder[EventObservable, dom.Event]
   with eventProps.WindowEventProps[EventObservable] {
 
   override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.window, key)
 }
 
-abstract class DocumentEvents
+trait DocumentEvents
   extends builders.EventPropBuilder[EventObservable, dom.Event]
   with eventProps.DocumentEventProps[EventObservable] {
 
   override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.document, key)
 
   def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
-    outwatch.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
+    onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    onKeyUp.collect { case e if e.keyCode == keyCode => false }
   ).prepend(false)
 }
 
 // Styles
 
 private[outwatch] trait SimpleStyleBuilder extends builders.StyleBuilders[Style] {
-  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): Style = new BasicStyleBuilder[Double](style.name) := value
-  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): Style = new BasicStyleBuilder[Int](style.name) := value
-  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): Style = new BasicStyleBuilder[Any](style.name) := value
+  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): Style = BasicStyle(style.name, value.toString)
+  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): Style = BasicStyle(style.name, value.toString)
+  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): Style = BasicStyle(style.name, value.toString)
 }
 
 trait Styles

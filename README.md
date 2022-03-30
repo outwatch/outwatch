@@ -1,7 +1,7 @@
 # Outwatch
 The Functional and Reactive Web-Frontend Library for ScalaJS
 
-[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/OutWatch/Lobby)
+[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Outwatch/Lobby)
 
 
 ```scala
@@ -18,7 +18,7 @@ object Main {
       counter,
     )
 
-    OutWatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
+    Outwatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
   }
 }
 ```
@@ -82,7 +82,7 @@ libraryDependencies ++= Seq(
 ```
 
 ## Bugs and Feedback
-For bugs, questions and discussions please use [GitHub Issues](https://github.com/OutWatch/outwatch/issues).
+For bugs, questions and discussions please use [GitHub Issues](https://github.com/outwatch/outwatch/issues).
 
 
 ## Community
