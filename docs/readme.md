@@ -267,17 +267,20 @@ All the tags, attributes and styles available in outwatch come from [Scala Dom T
 If you want to use something not available in Scala Dom Types, you can use custom builders:
 
 ```scala mdoc:js
-htmlTag("app")(
-  style("user-select") := "none",
-  attr("everything") := "possible"
+VNode.html("app")(
+  VModifier.style("user-select") := "none",
+  VModifier.attr("everything") := "possible",
+  VModifier.prop("it") := "is"
 ).showHTMLForDoc(docPreview)
 ```
+
+There also exists `VNode.svg(tagName)`.
 
 You can also define the accumulation behavior of custom attributes:
 ```scala mdoc:js
 div(
-  attr("everything").accum("-") := "is",
-  attr("everything").accum("-") := "possible",
+  VModifier.attr("everything").accum("-") := "is",
+  VModifier.attr("everything").accum("-") := "possible",
 ).showHTMLForDoc(docPreview)
 ```
 
@@ -681,8 +684,8 @@ If you ever need to manually subscribe to a stream, you can let Outwatch manage 
 import cats.effect.SyncIO
 
 div(
-  managed(myObservable.subscribeF[SyncIOIO](???)), // this subscription is now bound to the lifetime of the outer div element
-  managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
+  VModifier.managed(myObservable.subscribeF[IO](???)), // this subscription is now bound to the lifetime of the outer div element
+  VModifier.managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
 )
 ```
 
@@ -944,12 +947,14 @@ div(
 )
 ```
 
-Outwatch has a higher-level API to work with these kinds of callbacks, called `managedElement`, which can be used like this:
+Outwatch has a higher-level API to work with these kinds of callbacks, called `VModifier.managedElement`, which can be used like this:
 ```scala mdoc:js:compile-only
+import colibri.Cancelable
+
 div(
-  managedElement { element => // the element into which this node is mounted
+  VModifier.managedElement { element => // the element into which this node is mounted
     ??? // do something with the dom element
-    cancelable(() => ???) // cleanup when the dom element is unmounted
+    Cancelable(() => ???) // cleanup when the dom element is unmounted
   }
 )
 ```
@@ -969,7 +974,7 @@ import colibri.Observable
 
 val someObservable:Observable[Int] = ???
 div(
-  emitter(someObservable).asLatestEmitter(onDomMount).foreach { element =>
+  EmitterBuilder.fromSource(someObservable).asLatestEmitter(onDomMount).foreach { element =>
     ???
     ()
   }
@@ -979,13 +984,14 @@ div(
 If you need an HTML or SVG Element instead of just an Element, you can do:
 ```scala mdoc:js:compile-only
 import org.scalajs.dom._
+import colibri.Cancelable
 
 onDomMount.asHtml.foreach{ (elem: html.Element) => ??? }
 onDomMount.asSvg.foreach{ (elem: svg.Element) => ??? }
 onClick.asHtml.foreach{ (elem: html.Element) => ??? }
 onClick.asSvg.foreach{ (elem: svg.Element) => ??? }
-managedElement.asHtml { (elem: html.Element) => ???; cancelable(() => ???) }
-managedElement.asSvg { (elem: svg.Element) => ???; cancelable(() => ???) }
+VModifier.managedElement.asHtml { (elem: html.Element) => ???; Cancelable(() => ???) }
+VModifier.managedElement.asSvg { (elem: svg.Element) => ???; Cancelable(() => ???) }
 ```
 
 ### Custom EmitterBuilders
@@ -997,7 +1003,7 @@ button(EmitterBuilder.combine(onMouseUp.as(false), onMouseDown.as(true)).foreach
 // this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
 ```
 
-Furthermore, you can create EmitterBuilders from streams with `emitter(stream)` (`EmitterBuilder.ofSource`) or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
+Furthermore, you can create EmitterBuilders from streams with `EmitterBuilder.ofSource` or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
 
 
 ## Debugging
