@@ -1003,7 +1003,7 @@ button(EmitterBuilder.combine(onMouseUp.as(false), onMouseDown.as(true)).foreach
 // this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
 ```
 
-Furthermore, you can create EmitterBuilders from streams with `EmitterBuilder.ofSource` or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
+Furthermore, you can create EmitterBuilders from streams with `EmitterBuilder.fromSource` or create custom EmitterBuilders with `EmitterBuilder.ofModifier`, `EmitterBuilder.ofNode` or `EmitterBuilder.apply`.
 
 
 ## Debugging
