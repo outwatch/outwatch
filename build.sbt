@@ -173,6 +173,8 @@ lazy val docs = project
       "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
       "js-mount-node" -> "docPreview"
     ),
+
+    scalacOptions --= Seq("-Xfatal-warnings"),
   )
 
 lazy val root = project
