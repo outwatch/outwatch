@@ -18,7 +18,6 @@ trait EasySubscribe {
 }
 
 trait LocalStorageMock {
-  import scala.collection.mutable
   import scala.scalajs.js
 
   def dispatchStorageEvent(key: String, newValue: String, oldValue: String): Unit = {

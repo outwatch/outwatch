@@ -6,7 +6,7 @@ import outwatch._
 import outwatch.dsl._
 import colibri._
 
-import org.scalajs.dom.{ document, window }
+import org.scalajs.dom.document
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
@@ -14,7 +14,7 @@ import bench._
 @js.native
 @JSImport("jsdom", JSImport.Namespace)
 object jsdom extends js.Object {
-  def jsdom(innerHTML: js.UndefOr[String]): js.Any = js.native
+  def jsdom(@annotation.unused innerHTML: js.UndefOr[String]): js.Any = js.native
 }
 
 object ChildrenPerformance {
@@ -24,6 +24,7 @@ object ChildrenPerformance {
     setupJsDom()
 
     bench.util.runComparison(childrenBenchmark, List(100), 5.minutes)
+    ()
   }
 
   val childrenBenchmark = Comparison("Patching", Seq(
@@ -193,7 +194,7 @@ object ChildrenPerformance {
 
     var node1Counter = 0
     var node2Counter = 0
-    (0 to size).foreach { i =>
+    (0 to size).foreach { _ =>
       handler.unsafeOnNext(ChildCommand.Append(node1(node1Counter)))
       handler2.unsafeOnNext(ChildCommand.Append(node2(node2Counter)))
 

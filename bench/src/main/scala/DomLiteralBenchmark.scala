@@ -1,19 +1,16 @@
 package outwatch
 
-import outwatch._
 import outwatch.dsl._
 
-import org.scalajs.dom.{ document, window }
-import scala.scalajs.js
-import scala.scalajs.js.annotation._
 import bench._
 
 object DomLiteralBenchmark {
 
-  def main(args: Array[String]): Unit = {
+  def main(@annotation.unused args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
     bench.util.runComparison(domLiterals, List(1), 60.seconds)
+    ()
   }
 
   val domLiterals = Comparison("Dom Literals", Seq(
@@ -25,11 +22,11 @@ object DomLiteralBenchmark {
     ),
     BenchmarkWithoutInit(
       "10 literal attrs",
-      { size =>
+      { _ =>
         div(
           idAttr := "a",
-          min := "wo",
-          max := "wa",
+          minAttr := "wo",
+          maxAttr := "wa",
           src := "x",
           href := "k",
           target := "j",

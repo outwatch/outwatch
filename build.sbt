@@ -1,5 +1,3 @@
-import Options._
-
 
 inThisBuild(Seq(
   organization := "io.github.outwatch",
@@ -39,24 +37,17 @@ inThisBuild(Seq(
 ))
 
 val jsdomVersion = "13.2.0"
-val silencerVersion = "1.7.8"
 val colibriVersion = "0.4.1"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-  addCompilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
 
   useYarn := true,
 
   libraryDependencies ++= Seq(
     "org.scalatest" %%% "scalatest" % "3.2.11" % Test,
-    "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full,
   ),
 
-  scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value).map(v =>
-    allOptionsForVersion(s"${v._1}.${v._2}", true)
-  ).getOrElse(Nil),
-  Compile / console / scalacOptions ~= (_.diff(badConsoleFlags)),
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 )
 

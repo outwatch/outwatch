@@ -4,17 +4,15 @@ import outwatch._
 import outwatch.dsl._
 import outwatch.interpreter.SnabbdomOps
 
-import org.scalajs.dom.{ document, window }
-import scala.scalajs.js
-import scala.scalajs.js.annotation._
 import bench._
 
 object VNodeConstructionBenchmark {
 
-  def main(args: Array[String]): Unit = {
+  def main(@annotation.unused args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
     bench.util.runComparison(vnodes, List(1), 60.seconds)
+    ()
   }
 
   val vnodes = Comparison("VNode Construction", Seq(
@@ -26,11 +24,11 @@ object VNodeConstructionBenchmark {
     ),
     BenchmarkWithoutInit(
       "10 literal attrs",
-      { size =>
+      { _ =>
         SnabbdomOps.toSnabbdom(div(
           idAttr := "a",
-          min := "wo",
-          max := "wa",
+          minAttr := "wo",
+          maxAttr := "wa",
           src := "x",
           href := "k",
           target := "j",

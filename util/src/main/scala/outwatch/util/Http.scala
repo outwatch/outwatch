@@ -69,7 +69,7 @@ object Http {
     headers = request.headers,
     withCredentials = request.withCredentials,
     responseType = request.responseType
-  ): @scala.annotation.nowarn("cat=deprecation") // TODO
+  )
 
   private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] =
     observable.switchMap { request =>

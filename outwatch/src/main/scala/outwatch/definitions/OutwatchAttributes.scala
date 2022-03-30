@@ -127,7 +127,7 @@ trait AttributeHelpers { self: Attributes =>
   @deprecated("use VModifier.prop instead", "0.11.0")
   @inline def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   @deprecated("use VModifier.style instead", "0.11.0")
-  @inline def style[T](key: String, @annotation.nowarn dummy: Unit = ()) = new BasicStyleBuilder[T](key)
+  @inline def style[T](key: String, dummy: Unit = ()) = new BasicStyleBuilder[T](key)
 
   @deprecated("use EmitterBuilder.fromSource instead", "0.11.0")
   @inline def emitter[F[_] : Source, E](source: F[E]): EmitterBuilder[E, VModifier] = EmitterBuilder.fromSource(source)
