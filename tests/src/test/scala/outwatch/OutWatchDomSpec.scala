@@ -45,6 +45,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     children = childProxies
   }
 
+  val nonEmptyObservable = Observable.fromEffect(IO.never)
+  def nonEmptyObservable[A](values: A*) = Observable.merge(Observable.fromIterable(values), Observable.fromEffect(IO.never))
+
   "Properties" should "be separated correctly" in {
     val properties = Seq(
       BasicAttr("hidden", "true"),
@@ -97,7 +100,37 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 1
     attrs.get.values.size shouldBe 2
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.calculateLength() shouldBe 0
+    proxies.get.length shouldBe 3
+  }
+
+
+  it should "be separated correctly with non empty stream" in {
+    val modifiers = Seq(
+      BasicAttr("class", "red"),
+      EmptyModifier,
+      Emitter("click", _ => ()),
+      new StringVNode("Test"),
+      div(),
+      CompositeModifier(
+        Seq[VModifier](
+          div(),
+          attributes.`class` := "blue",
+          attributes.onClick.as(1) doAction {},
+          attributes.hidden <-- nonEmptyObservable(false)
+        )
+      ),
+      VModifier(nonEmptyObservable)
+    )
+
+
+    val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
+    val seps = SeparatedModifiers.from(streamable.modifiers)
+    import seps._
+
+    emitters.get.values.size shouldBe 1
+    attrs.get.values.size shouldBe 2
+    streamable.subscribables.calculateLength() shouldBe 2
     proxies.get.length shouldBe 3
   }
 
@@ -108,7 +141,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
       VModifier(Observable.empty),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
       Emitter("keyup",  _ => ()),
       StringVNode("text"),
       div()
@@ -119,7 +152,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.calculateLength() shouldBe 1
     proxies.get.length shouldBe 2
   }
 
@@ -131,7 +164,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("input",  _ => ()),
       Emitter("keyup",  _ => ()),
       VModifier(Observable.empty),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
       StringVNode("text"),
       StringVNode("text2")
     )
@@ -142,7 +175,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.calculateLength() shouldBe 1
     proxies.get.length shouldBe 2
   }
 
@@ -155,8 +188,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("input", _ => ()),
       UpdateHook((_,_) => ()),
       VModifier(Observable.empty),
-      VModifier(Observable.empty),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
+      VModifier(nonEmptyObservable),
       Emitter("keyup", _ => ()),
       InsertHook(_ => ()),
       PrePatchHook((_,_) => ()),
@@ -176,7 +209,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     destroyHook.isDefined shouldBe false
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.calculateLength() shouldBe 2
     proxies.get.length shouldBe 1
   }
 
@@ -204,12 +237,16 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         VModifier(Observable.empty)
       },
       IO {
+        list += "child3"
+        VModifier(nonEmptyObservable(div()))
+      },
+      IO {
         list += "children1"
-        VModifier(Observable.empty)
+        VModifier(nonEmptyObservable)
       },
       IO {
         list += "children2"
-        VModifier(Observable.empty)
+        VModifier(nonEmptyObservable)
       },
       div(
         IO {
@@ -238,7 +275,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield {
 
       list should contain theSameElementsAs List(
-        "child1", "child2", "children1", "children2", "attr1", "attr2"
+        "child1", "child2", "child3", "children1", "children2", "attr1", "attr2"
       )
 
     }
@@ -246,9 +283,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     test
   }
 
-  it should "not provide unique key for child nodes if stream is present" in {
+  it should "not provide unique key for child nodes" in {
     val mods = Seq(
-      VModifier(Observable.empty),
       div(idAttr := "1"),
       div(idAttr := "2"),
       div(), div()
@@ -259,7 +295,36 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 4
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.calculateLength() shouldBe 0
+
+    val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
+    proxy.key.isDefined shouldBe false
+
+    val key1 = proxy.children.get(0).key
+    val key2 = proxy.children.get(1).key
+    val key3 = proxy.children.get(2).key
+    val key4 = proxy.children.get(3).key
+
+    key1.isDefined shouldBe false
+    key2.isDefined shouldBe false
+    key3.isDefined shouldBe false
+    key4.isDefined shouldBe false
+  }
+
+  it should "not provide unique key for child nodes if stream is present" in {
+    val mods = Seq(
+      VModifier(nonEmptyObservable),
+      div(idAttr := "1"),
+      div(idAttr := "2"),
+      div(), div()
+    )
+
+    val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
+    val seps =  SeparatedModifiers.from(streamable.modifiers)
+    import seps._
+
+    proxies.get.length shouldBe 4
+    streamable.subscribables.calculateLength() shouldBe 1
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.isDefined shouldBe false
@@ -278,7 +343,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "keep existing key for child nodes" in {
     val mods = Seq(
       Key(1234),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
       div()(Key(5678))
     )
 
@@ -287,7 +352,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 1
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.calculateLength() shouldBe 1
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.toOption  shouldBe Some(1234)
@@ -1158,7 +1223,21 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
-  "Children stream" should "work for double/boolean/long/int" in {
+  it should "work for string sequences non empty" in {
+
+    val myStrings: Observable[Seq[String]] = nonEmptyObservable(Seq("a", "b"))
+    val node = div(idAttr := "strings", myStrings)
+
+    Outwatch.renderInto[IO]("#app", node).map { _ =>
+
+      val element = document.getElementById("strings")
+      element.innerHTML shouldBe "ab"
+
+    }
+  }
+
+
+  it should "work for double/boolean/long/int" in {
 
     val node = div(idAttr := "strings",
       1.1, true, 133L, 7
@@ -1172,7 +1251,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
-  "Child stream" should "work for string options" in {
+  it should "work for string options" in {
 
     IO(Subject.behavior(Option("a"))).flatMap { myOption =>
 
@@ -1510,7 +1589,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         outerTriggers.size shouldBe 1
         innerTriggers.size shouldBe 1
 
-        myHandler.unsafeOnNext(Observable(BasicAttr("initial", "2")))
+        myHandler.unsafeOnNext(nonEmptyObservable(BasicAttr("initial", "2")))
         element.innerHTML shouldBe """<div initial="2"></div>"""
         outerTriggers.size shouldBe 2
         innerTriggers.size shouldBe 1
@@ -1886,7 +1965,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(Observable[VModifier](Observable[VModifier](cls := "hans")))
+        myHandler.unsafeOnNext(nonEmptyObservable[VModifier](nonEmptyObservable[VModifier](cls := "hans")))
         element.innerHTML shouldBe """<div class="hans"></div>"""
       }
 
@@ -1906,7 +1985,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(Observable[VModifier](Observable[VModifier](Observable(cls := "hans"))))
+        myHandler.unsafeOnNext(nonEmptyObservable[VModifier](nonEmptyObservable[VModifier](nonEmptyObservable(cls := "hans"))))
         element.innerHTML shouldBe """<div class="hans"></div>"""
       }
 
@@ -1926,7 +2005,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(Observable[VModifier](VModifier(Observable[VModifier]("a"), Observable(span("b")))))
+        myHandler.unsafeOnNext(nonEmptyObservable[VModifier](VModifier(nonEmptyObservable[VModifier]("a"), nonEmptyObservable(span("b")))))
         element.innerHTML shouldBe """<div>a<span>b</span></div>"""
       }
 
@@ -1946,7 +2025,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         val element = document.getElementById("strings")
         element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(cls <-- Observable("hans"))
+        myHandler.unsafeOnNext(cls <-- nonEmptyObservable("hans"))
         element.innerHTML shouldBe """<div class="hans"></div>"""
       }
 
@@ -2935,7 +3014,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") colibri.Observable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
         else myInner.map[VNode](s => div(s, mountHooks)).prepend(b(idAttr <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
           VModifier(cls := "b", myString, mountHooks, thunkContent)
@@ -3077,7 +3156,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     }
   }
 
-  it should "work with streams (flatMap)" in {
+  it should "work with streams (switchMap 2)" in {
     val myString: Subject[String] = Subject.replayLatest[String]()
     val myId: Subject[String] = Subject.replayLatest[String]()
     val myInner: Subject[String] = Subject.replayLatest[String]()
@@ -3098,7 +3177,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") Observable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
         else myInner.map[VNode](s => div(s, mountHooks)).prepend(b(idAttr <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
           VModifier(cls := "b", myString, mountHooks, thunkContent)
