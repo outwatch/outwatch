@@ -5,7 +5,7 @@ import outwatch.helpers.AttributeBuilder
 import colibri._
 import colibri.effect._
 import cats.data.{NonEmptyList, NonEmptySeq, NonEmptyVector, NonEmptyChain}
-import cats.effect.{SyncIO, IO}
+import cats.effect.{Sync, SyncIO, IO, Resource}
 
 import scala.scalajs.js
 import scala.concurrent.Future
@@ -80,6 +80,16 @@ trait RenderLowPrio extends RenderLowPrio0 {
   @inline implicit def SyncEffectRenderAs[F[_] : RunSyncEffect, T : Render]: Render[F[T]] = new SyncEffectRenderAsClass[F, T]
   @inline private class SyncEffectRenderAsClass[F[_] : RunSyncEffect, T : Render] extends Render[F[T]] {
     @inline def render(effect: F[T]) = syncToModifierRender(effect)
+  }
+
+  @inline implicit def ResourceRender[F[_] : RunEffect: Sync]: Render[Resource[F, VModifier]] = new ResourceRenderClass[F]
+  @inline private class ResourceRenderClass[F[_] : RunEffect: Sync] extends Render[Resource[F, VModifier]] {
+    @inline def render(resource: Resource[F, VModifier]) = resourceToModifier(resource)
+  }
+
+  @inline implicit def ResourceRenderAs[F[_] : RunEffect: Sync, T : Render]: Render[Resource[F, T]] = new ResourceRenderAsClass[F, T]
+  @inline private class ResourceRenderAsClass[F[_] : RunEffect: Sync, T : Render] extends Render[Resource[F, T]] {
+    @inline def render(resource: Resource[F, T]) = resourceToModifierRender(resource)
   }
 
   @inline implicit def FutureRenderAs[T : Render]: Render[Future[T]] = new FutureRenderAsClass[T]
@@ -213,6 +223,8 @@ private object RenderOps {
   @noinline def syncToModifier[F[_] : RunSyncEffect](effect: F[VModifier]): VModifier = VModifier.delayEither(RunSyncEffect[F].unsafeRun(effect))
   @noinline def effectToModifier[F[_]: RunEffect](effect: F[VModifier]): VModifier = StreamModifier(Observable.fromEffect(effect).unsafeSubscribe(_))
   @noinline def effectToModifierRender[F[_]: RunEffect, T: Render](effect: F[T]): VModifier = StreamModifier(obs => Observable.fromEffect(effect).unsafeSubscribe(obs.contramap(VModifier(_))))
+  @noinline def resourceToModifier[F[_]: RunEffect: Sync](resource: Resource[F, VModifier]): VModifier = StreamModifier(Observable.fromResource(resource).unsafeSubscribe(_))
+  @noinline def resourceToModifierRender[F[_]: RunEffect: Sync, T: Render](resource: Resource[F, T]): VModifier = StreamModifier(obs => Observable.fromResource(resource).unsafeSubscribe(obs.contramap(VModifier(_))))
   @noinline def sourceToModifier[F[_] : Source](source: F[VModifier]): VModifier = StreamModifier(Source[F].unsafeSubscribe(source))
   @noinline def sourceToModifierRender[F[_] : Source, T: Render](source: F[T]): VModifier = StreamModifier(sink => Source[F].unsafeSubscribe(source)(sink.contramap(VModifier(_))))
   @noinline def childCommandSeqToModifier[F[_] : Source](source: F[Seq[ChildCommand]]): VModifier = ChildCommandsModifier(Observable.lift(source))
