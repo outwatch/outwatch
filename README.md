@@ -73,10 +73,10 @@ val outwatchVersion = "<latest outwatch version>"
 libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % outwatchVersion,
   // optional dependencies:
-  "com.github.cornerman" %%% "colibri-zio"       % "0.3.2", // ZIO
-  "com.github.cornerman" %%% "colibri-airstream" % "0.3.2", // Airstream
-  "com.github.cornerman" %%% "colibri-rx"        % "0.3.2", // Scala.rx
-  "com.github.cornerman" %%% "colibri-router"    % "0.3.2", // Url Router
+  "com.github.cornerman" %%% "colibri-zio"       % "0.4.2", // ZIO
+  "com.github.cornerman" %%% "colibri-airstream" % "0.4.2", // Airstream
+  "com.github.cornerman" %%% "colibri-rx"        % "0.4.2", // Scala.rx
+  "com.github.cornerman" %%% "colibri-router"    % "0.4.2", // Url Router
 )
 
 ```
