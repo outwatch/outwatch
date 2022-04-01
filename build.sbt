@@ -37,7 +37,7 @@ inThisBuild(Seq(
 ))
 
 val jsdomVersion = "13.2.0"
-val colibriVersion = "0.4.1"
+val colibriVersion = "0.4.2"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -141,6 +141,7 @@ lazy val bench = project
   )
 
 lazy val jsdocs = project
+  .disablePlugins(TpolecatPlugin)
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .settings(
@@ -160,6 +161,7 @@ lazy val jsdocs = project
 
 lazy val docs = project
   .in(file("outwatch-docs")) // important: it must not be docs/
+  .disablePlugins(TpolecatPlugin)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(
     test/skip := true,
@@ -173,8 +175,6 @@ lazy val docs = project
       "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
       "js-mount-node" -> "docPreview"
     ),
-
-    scalacOptions --= Seq("-Xfatal-warnings"),
   )
 
 lazy val root = project

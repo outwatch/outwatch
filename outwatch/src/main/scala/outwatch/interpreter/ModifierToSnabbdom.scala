@@ -225,7 +225,7 @@ private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
   def unsafeSubscribe(): Unit = if (subscription == null) {
     val variable = Cancelable.variable()
     subscription = variable
-    variable() = newCancelable
+    variable.add(newCancelable)
   }
 
   def unsafeUnsubscribe(): Unit = if (subscription != null) {

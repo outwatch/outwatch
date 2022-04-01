@@ -608,6 +608,53 @@ val component = {
 Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
+### Rendering Async Effects
+
+You can render any type like `cats.effect.IO` or `zio.Task` (using the typeclass `colibri.effect.RunEffect`). The effect will be run whenever an element is rendered with this modifier. The implementation normally tries to run the effect sync and switches if there is an async boundary (e.g. `IO#syncStep`). So you can do:
+```scala mdoc:js:compile-only
+import cats.effect.IO
+// import cats.effect.unsafe.Runtime.default
+
+import colibri.ext.zio._
+import zio.Task
+// import zio.Runtime.default
+
+div(
+  IO {
+    // doSomething
+    "result from IO"
+  },
+  Task {
+    // doSomething
+    "result from ZIO"
+  }
+)
+```
+
+### Rendering Sync Effects
+
+You can render synchronous effects like `cats.effect.SyncIO` as well (using the typeclass `colibri.effect.RunSyncEffect`). The effect will be run sync whenever an element is rendered with this modifier. Example:
+```scala mdoc:js:compile-only
+import cats.effect.SyncIO
+
+div(
+  SyncIO {
+    // doSomething
+    "result"
+  }
+)
+```
+
+Alternatively you can do the following to achieve the same effect:
+```scala mdoc:js:compile-only
+div(
+  VModifier.delay {
+    // doSomething
+    "result"
+  }
+)
+```
+
 ### Higher Order Reactiveness
 
 Don't fear to nest different reactive constructs. Outwatch will handle everything for you. Example use-cases include sequences of api-requests, live database queries, etc.
@@ -836,6 +883,7 @@ When looking at our counter component, you might have noticed that the reactive 
 
 ```scala mdoc:js
 import colibri.Subject
+
 val counter = {
   val number = Subject.behavior(0)
   div(
@@ -854,19 +902,19 @@ val component = {
 Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
-As you can see, the state is shared between all usages of the component. Therefore, the component counter is not referentially transparent. We can change this, by wrapping the component in `IO` (or here: `SyncIO` for immediate rendering). With this change, the reactive variable `number` is instantiated separately for every usage at rendering time:
+As you can see, the state is shared between all usages of the component. Therefore, the component counter is not referentially transparent. We can change this, by wrapping the component in `IO` (or here: `SyncIO`). With this change, the reactive variable `number` is instantiated separately for every usage at rendering time:
 
 
 ```scala mdoc:js
 import colibri.Subject
 import cats.effect.SyncIO
 
-val counter = SyncIO { // <-- added IO
-  val number = Subject.behavior(0)
-  div(
-      button(number, onClick(number.map(_ + 1)) --> number),
-   )
-}
+val counter = for {
+  number <- SyncIO(Subject.behavior(0)) // <-- added IO
+} yield div(
+    number,
+    button(number, onClick(number.map(_ + 1)) --> number),
+)
 
 val component = {
   div(
@@ -880,56 +928,6 @@ Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 Why should we care? Because referentially transparent components can easily be refactored without affecting the meaning of the program. Therefore it is easier to reason about them. Read more about the concept in Wikipedia: [Referential transparency](https://en.wikipedia.org/wiki/Referential_transparency)
-
-
-### Rendering Async Effects
-
-You can render any type like `cats.effect.IO` or `zio.Task` (using the typeclass `colibri.effect.RunEffect`). The effect will be run whenever an element is rendered with this modifier. The implementation normally tries to run the effect sync and switches if there is an async boundary (e.g. `IO#syncStep`). So you can do:
-```scala mdoc:js:compile-only
-import cats.effect.IO
-// import cats.effect.unsafe.Runtime.default
-
-import colibri.ext.zio._
-import zio.Task
-// import zio.Runtime.default
-
-div(
-  IO {
-    // doSomething
-    "result from IO"
-  },
-  Task {
-    // doSomething
-    "result from ZIO"
-  }
-)
-```
-
-### Rendering Sync Effects
-
-You can render synchronous effects like `cats.effect.SyncIO` as well (using the typeclass `colibri.effect.RunSyncEffect`). The effect will be run sync whenever an element is rendered with this modifier. Example:
-```scala mdoc:js:compile-only
-import cats.effect.SyncIO
-
-div(
-  SyncIO {
-    // doSomething
-    "result"
-  }
-)
-```
-
-Alternatively you can do the following to achieve the same effect:
-```scala mdoc:js:compile-only
-div(
-  VModifier.delay {
-    // doSomething
-    "result"
-  }
-)
-```
-
-
 
 ## Advanced
 
