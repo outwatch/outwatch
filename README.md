@@ -8,17 +8,17 @@ The Functional and Reactive Web-Frontend Library for ScalaJS
 import outwatch._
 import outwatch.dsl._
 import colibri._
-import cats.effect.IO
+import cats.effect.{IO, IOApp}
 
-object Main {
-  def main(args: Array[String]): Unit = {
+object Main extends IOApp.Simple {
+  override def run = {
     val counter = Subject.behavior(0)
     val myComponent = div(
       button("+", onClick(counter.map(_ + 1)) --> counter),
       counter,
     )
 
-    Outwatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
+    Outwatch.renderReplace[IO]("#app", myComponent)
   }
 }
 ```
