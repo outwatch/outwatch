@@ -7,7 +7,7 @@ import colibri.effect._
 
 import org.scalajs.dom
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 
 // The EmitterBuilder[O, R] allows you to build an R that produces values of type O.
@@ -106,14 +106,17 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @deprecated("Use .asEffect(value) instead", "")
   @inline final def useAsync[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asEffect(value)
   @inline final def asEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = mapEffect(_ => value)
+  @inline final def withEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] = mapEffect(x => Functor[G].map(value)(x-> _))
 
   @deprecated("Use .asFuture(value) instead", "")
   @inline final def useFuture[T](value: => Future[T]): EmitterBuilder[T, R] = asFuture(value)
   @inline final def asFuture[T](value: => Future[T]): EmitterBuilder[T, R] = mapFuture(_ => value)
+  @inline final def withFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] = mapFuture(x => value.map(x -> _)(ExecutionContext.parasitic))
 
   @deprecated("Use .asEffectSingleOrDrop(value) instead", "")
   @inline final def useAsyncSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asEffectSingleOrDrop(value)
   @inline final def asEffectSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = mapEffectSingleOrDrop(_ => value)
+  @inline final def withEffectSingleOrDrop[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] = mapEffectSingleOrDrop(x => Functor[G].map(value)(x-> _))
 
   @deprecated("Use .asFutureSingleOrDrop(value) instead", "")
   @inline final def useFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] = asFutureSingleOrDrop(value)
@@ -127,6 +130,9 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
 
   def withLatest[F[_] : Source, T](latest: F[T]): EmitterBuilderExecution[(O, T), R, Exec] =
     transformWithExec[(O, T)](source => source.withLatest(Observable.lift(latest)))
+
+  @inline final def asHead[F[_] : Source, T](source: F[T]): EmitterBuilder[T, R] = asEffect(Observable.lift(source).headIO)
+  @inline final def withHead[F[_] : Source, T](source: F[T]): EmitterBuilder[(O, T), R] = withEffect(Observable.lift(source).headIO)
 
   def scan[T](seed: T)(f: (T, O) => T): EmitterBuilderExecution[T, R, Exec] =
     transformWithExec[T](source => source.scan(seed)(f))
@@ -148,8 +154,13 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   def debounceMillis(millis: Int): EmitterBuilder[O, R] =
     transformWithExec[O](source => source.debounceMillis(millis))
 
-  def async: EmitterBuilder[O, R] =
-    transformWithExec[O](source => source.async)
+  def async: EmitterBuilder[O, R] = asyncMacro
+
+  def asyncMacro: EmitterBuilder[O, R] =
+    transformWithExec[O](source => source.asyncMacro)
+
+  def asyncMicro: EmitterBuilder[O, R] =
+    transformWithExec[O](source => source.asyncMicro)
 
   def delay(duration: FiniteDuration): EmitterBuilder[O, R] =
     transformWithExec[O](source => source.delay(duration))
