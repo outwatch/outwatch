@@ -11,9 +11,9 @@ inThisBuild(Seq(
   homepage := Some(url("https://outwatch.github.io/")),
 
   scmInfo := Some(ScmInfo(
-    url("https://github.com/OutWatch/outwatch"),
-    "scm:git:git@github.com:OutWatch/outwatch.git",
-    Some("scm:git:git@github.com:OutWatch/outwatch.git"))
+    url("https://github.com/outwatch/outwatch"),
+    "scm:git:git@github.com:outwatch/outwatch.git",
+    Some("scm:git:git@github.com:outwatch/outwatch.git"))
   ),
 
   pomExtra :=
@@ -57,8 +57,7 @@ lazy val outwatchUtil = project
   .in(file("util"))
   .settings(commonSettings)
   .settings(
-    name := "OutWatch-Util",
-    normalizedName := "outwatch-util",
+    name := "outwatch-util",
   )
 
 lazy val outwatchRepairDom = project
@@ -67,8 +66,7 @@ lazy val outwatchRepairDom = project
   .dependsOn(outwatch)
   .settings(commonSettings)
   .settings(
-    name := "OutWatch-RepairDom",
-    normalizedName := "outwatch-repairdom",
+    name := "outwatch-repairdom",
   )
 
 lazy val outwatchSnabbdom = project
@@ -76,8 +74,7 @@ lazy val outwatchSnabbdom = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .settings(commonSettings)
   .settings(
-    name := "OutWatch-Snabbdom",
-    normalizedName := "outwatch-snabbdom",
+    name := "outwatch-snabbdom",
 
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.1.0"
@@ -94,8 +91,7 @@ lazy val outwatch = project
   .dependsOn(outwatchSnabbdom)
   .settings(commonSettings)
   .settings(
-    name := "OutWatch",
-    normalizedName := "outwatch",
+    name := "outwatch",
 
     libraryDependencies ++= Seq(
       "com.raquo"            %%% "domtypes" % "0.15.1",
@@ -172,7 +168,7 @@ lazy val docs = project
     mdocVariables := Map(
       /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
       "VERSION" -> version.value,
-      "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
+      "REPOURL" -> "https://github.com/outwatch/outwatch/blob/master",
       "js-mount-node" -> "docPreview"
     ),
   )
