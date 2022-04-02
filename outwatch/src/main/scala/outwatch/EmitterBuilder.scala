@@ -83,8 +83,8 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
 
   @inline final def mapIterable[T](f: O => Iterable[T]): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramapIterable(f))
 
-  @inline final def as[T](value: => T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
-  @inline final def asDelay[T](value: T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
+  @inline final def as[T](value: T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
+  @inline final def asDelay[T](value: => T): EmitterBuilderExecution[T, R, Exec] = map(_ => value)
 
   @deprecated("Use .as(value) instead", "")
   @inline final def use[T](value: T): EmitterBuilderExecution[T, R, Exec] = as(value)
