@@ -146,18 +146,18 @@ class Index extends React.Component {
       <Block layout="fourColumn">
         {[
           {
-            title: 'OutWatch is declarative',
+            title: 'Outwatch is declarative',
             content: ['In Outwatch, you can describe your whole web application without doing any side effect - you only run your application when rendering it.',
-                      'You won’t see any imperative calls like dispatch or setState.',
-                      'Declarative code makes your app easier to reason about and more predictable, allowing you peace of mind.'].join('<br/>'),
+              'You won’t see any imperative calls like dispatch or setState.',
+              'Declarative code makes your app easier to reason about and more predictable, allowing you peace of mind.'].join('<br/>'),
           },
           {
             title: 'Simple components',
-            content: 'In OutWatch components are just functions, no boilerplate necessary. Reactive Programming allows you to create fully self-responsible components that never touch external state. No more wondering where an action or a change in state came from. Components are fully decoupled and therefore extremely reusable.',
+            content: 'In Outwatch components are just functions, no boilerplate necessary. Reactive Programming allows you to create fully self-responsible components that never touch external state. No more wondering where an action or a change in state came from. Components are fully decoupled and therefore extremely reusable.',
           },
           {
             title: 'Complete type safety',
-            content: 'With OutWatch typos and type-errors are a thing of the past. Your editor will immediately catch such bugs, without needing to compile. Explore the whole API with its documentation right there in-line with your code.',
+            content: 'With Outwatch typos and type-errors are a thing of the past. Your editor will immediately catch such bugs, without needing to compile. Explore the whole API with its documentation right there in-line with your code.',
           }
         ]}
       </Block>
