@@ -214,6 +214,7 @@ private[outwatch] final class NativeModifiers(
 )
 
 private[outwatch] final class Subscribable(newCancelable: () => Cancelable) {
+  private var hasEnded = false
   private var subscription: Cancelable = null
 
   // premature subscription on creation of subscribable
@@ -224,25 +225,26 @@ private[outwatch] final class Subscribable(newCancelable: () => Cancelable) {
   // be mounted one way or another and this method is guarded by an effect in the public api.
   unsafeSubscribe()
 
-  def unsafeSubscribe(): Unit = if (subscription == null) {
+  def unsafeSubscribe(): Unit = if (!hasEnded && subscription == null) {
     val variable = Cancelable.variable()
     subscription = variable
     variable.add(newCancelable)
     variable.freeze()
   }
 
-  def unsafeUnsubscribe(): Unit = if (subscription != null) {
+  def unsafeUnsubscribe(): Unit = if (!hasEnded && subscription != null) {
+    if (subscription.isEmpty()) {
+      hasEnded = true
+    }
     subscription.unsafeCancel()
     subscription = null
   }
 
-  def isEmpty() = subscription == null || subscription.isEmpty()
+  def isEmpty() = hasEnded || subscription != null && subscription.isEmpty()
 }
 
 private[outwatch] object NativeModifiers {
   def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig, sink: Observer[Unit] = Observer.empty): NativeModifiers = {
-    val allModifiers = new MutableNestedArray[StaticVModifier]()
-    val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream = false
 
     @inline def appendCall(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = append(subscribables, modifiers, modifier, inStream)
@@ -316,6 +318,9 @@ private[outwatch] object NativeModifiers {
         case m: ErrorModifier => append(subscribables, modifiers, config.errorModifier(m.error), inStream)
       }
     }
+
+    val allModifiers = new MutableNestedArray[StaticVModifier]()
+    val allSubscribables = new MutableNestedArray[Subscribable]()
 
     appendModifiers.foreach(append(allSubscribables, allModifiers, _, inStream = false))
 

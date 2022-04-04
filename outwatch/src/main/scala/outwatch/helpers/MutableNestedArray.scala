@@ -13,6 +13,12 @@ private[outwatch] final class MutableNestedArray[T] {
     case t: T@unchecked => f(t)
   })
 
+  def forall(condition: T => Boolean): Boolean = !exists(t => !condition(t))
+  def exists(condition: T => Boolean): Boolean = {
+    foreach { t => if (condition(t)) return true }
+    return false
+  }
+
   @inline def push(value: T | MutableNestedArray[T]): Unit = { array.push(value); () }
   @inline def clear(): Unit = array.clear()
   @inline def isEmpty: Boolean = array.isEmpty
