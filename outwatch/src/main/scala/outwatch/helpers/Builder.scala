@@ -24,8 +24,6 @@ trait AttributeBuilder[-T, +A <: VModifier] extends Any {
 }
 
 object AttributeBuilder {
-  @inline implicit def toAttribute[A <: VModifier](builder: AttributeBuilder[Boolean, A]): A = builder := true
-
   @inline def ofModifier[T, A <: VModifier](create: T => A): AttributeBuilder[T, A] = new AttributeBuilder[T, A] {
     def assign(value: T): A = create(value)
   }

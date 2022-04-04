@@ -80,10 +80,10 @@ trait HtmlAttrs
   with builders.ReflectedHtmlAttrBuilder[BuilderTypes.ReflectedAttribute]
   with builders.PropBuilder[BuilderTypes.Property] {
 
-  override protected def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
+  override protected final def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 
-  override protected def reflectedAttr[V, DomPropV](
+  override protected final def reflectedAttr[V, DomPropV](
     attrKey: String,
     propKey: String,
     attrCodec: codecs.Codec[V, String],
@@ -91,18 +91,18 @@ trait HtmlAttrs
   ): BasicAttrBuilder[V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
   //or: new PropertyBuilder(propKey, propCodec.encode)
 
-  override protected def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
+  override protected final def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
     new PropBuilder(key, codec.encode)
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override lazy val className: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
+  override final lazy val className: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
     "class",
     identity,
     (v1, v2) => s"$v1 $v2"
   )
 
   // super.styleAttr.accum(";") would have been nicer, but we can't do super.styleAttr on a lazy val
-  override lazy val styleAttr: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
+  override final lazy val styleAttr: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
     "style",
     identity,
     (v1, v2) => s"$v1;$v2"
@@ -116,7 +116,7 @@ trait SvgAttrs
   with SvgAttributeDeprecations {
 
   // According to snabbdom documentation, the namespace can be ignore as it is handled automatically.
-  override protected def svgAttr[V](key: String, codec: codecs.Codec[V, String], namespace: Option[String]): BasicAttrBuilder[V] =
+  override protected final def svgAttr[V](key: String, codec: codecs.Codec[V, String], namespace: Option[String]): BasicAttrBuilder[V] =
     new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
 }
 
@@ -125,7 +125,7 @@ trait Events
   extends eventProps.HTMLElementEventProps[BuilderTypes.EventEmitter]
   with builders.EventPropBuilder[BuilderTypes.EventEmitter, dom.Event] {
 
-  override def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] =  EmitterBuilder.fromEvent[V](key)
+  override final def eventProp[V <: dom.Event](key: String): BuilderTypes.EventEmitter[V] =  EmitterBuilder.fromEvent[V](key)
 }
 
 
@@ -135,16 +135,16 @@ trait WindowEvents
   extends builders.EventPropBuilder[EventObservable, dom.Event]
   with eventProps.WindowEventProps[EventObservable] {
 
-  override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.window, key)
+  override final def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.window, key)
 }
 
 trait DocumentEvents
   extends builders.EventPropBuilder[EventObservable, dom.Event]
   with eventProps.DocumentEventProps[EventObservable] {
 
-  override def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.document, key)
+  override final def eventProp[V <: dom.Event](key: String): EventObservable[V] = EventObservable[V](dom.document, key)
 
-  def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
+  final def isKeyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
     onKeyDown.collect { case e if e.keyCode == keyCode => true },
     onKeyUp.collect { case e if e.keyCode == keyCode => false }
   ).prepend(false)
@@ -153,9 +153,9 @@ trait DocumentEvents
 // Styles
 
 private[outwatch] trait SimpleStyleBuilder extends builders.StyleBuilders[Style] {
-  override protected def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): Style = BasicStyle(style.name, value.toString)
-  override protected def buildIntStyleSetter(style: keys.Style[Int], value: Int): Style = BasicStyle(style.name, value.toString)
-  override protected def buildStringStyleSetter(style: keys.Style[_], value: String): Style = BasicStyle(style.name, value.toString)
+  override protected final def buildDoubleStyleSetter(style: keys.Style[Double], value: Double): Style = BasicStyle(style.name, value.toString)
+  override protected final def buildIntStyleSetter(style: keys.Style[Int], value: Int): Style = BasicStyle(style.name, value.toString)
+  override protected final def buildStringStyleSetter(style: keys.Style[_], value: String): Style = BasicStyle(style.name, value.toString)
 }
 
 trait Styles

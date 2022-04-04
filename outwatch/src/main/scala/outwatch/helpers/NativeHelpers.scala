@@ -13,16 +13,14 @@ private[outwatch] trait DictionaryRawApply[A] extends js.Object {
 }
 
 private[outwatch] object NativeHelpers {
-  implicit class WithRaw[A](val dict: js.Dictionary[A]) extends AnyVal {
+  @inline implicit class WithRaw[A](val dict: js.Dictionary[A]) extends AnyVal {
     @inline def raw: DictionaryRawApply[A] = dict.asInstanceOf[DictionaryRawApply[A]]
   }
 
-  implicit class RichElement(val elem: Element) extends AnyVal {
+  @inline implicit class RichElement(val elem: Element) extends AnyVal {
     @inline def style: CSSStyleDeclaration = elem.asInstanceOf[js.Dynamic].style.asInstanceOf[CSSStyleDeclaration] // HTMLElement already has .style, but SVGElement doesn't
     @inline def dataset: js.Dictionary[String] = elem.asInstanceOf[js.Dynamic].dataset.asInstanceOf[js.Dictionary[String]] //TODO: https://github.com/scala-js/scala-js-dom/pull/337
   }
-
-  @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
   @noinline def appendSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
     case wrappedOther:js.WrappedArray[T] =>

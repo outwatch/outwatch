@@ -18,7 +18,7 @@ import scala.scalajs.js
 // using native js types to reduce overhead.
 
 // This represents the structured definition of a VNodeProxy (like snabbdom expects it).
-private[outwatch] class SeparatedModifiers {
+private[outwatch] final class SeparatedModifiers {
   var hasOnlyTextChildren = true
   var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
   var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
@@ -40,6 +40,8 @@ private[outwatch] object SeparatedModifiers {
   def from(modifiers: MutableNestedArray[StaticVModifier], prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined, appendModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined): SeparatedModifiers = {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
+
+    @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
     @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
     @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVModifier])(nextModifiers = _)
@@ -205,13 +207,13 @@ private[outwatch] object SeparatedModifiers {
 //    - currently active modifiers: Array("a", ?, ?)
 //    - dynamic changes: collections of callbacks that fill the array of active modifiers
 
-private[outwatch] class NativeModifiers(
+private[outwatch] final class NativeModifiers(
   val modifiers: MutableNestedArray[StaticVModifier],
   val subscribables: MutableNestedArray[Subscribable],
   val hasStream: Boolean
 )
 
-private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
+private[outwatch] final class Subscribable(newCancelable: () => Cancelable) {
   private var subscription: Cancelable = null
 
   // premature subscription on creation of subscribable
@@ -234,7 +236,7 @@ private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
     subscription = null
   }
 
-  @inline def isEmpty() = subscription == null || subscription.isEmpty()
+  def isEmpty() = subscription == null || subscription.isEmpty()
 }
 
 private[outwatch] object NativeModifiers {
@@ -243,6 +245,9 @@ private[outwatch] object NativeModifiers {
     val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream = false
 
+    @inline def appendCall(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = append(subscribables, modifiers, modifier, inStream)
+
+    @annotation.tailrec
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = {
 
       def addSubscribable(subscription: () => Cancelable): Boolean = {
@@ -271,7 +276,7 @@ private[outwatch] object NativeModifiers {
           streamedSubscribables.foreach(_.unsafeUnsubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
-          append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
+          appendCall(streamedSubscribables, streamedModifiers, modifier, inStream = true)
         }
 
         val addedSubscribable = addSubscribable(() =>
@@ -299,7 +304,7 @@ private[outwatch] object NativeModifiers {
 
       modifier match {
         case EmptyModifier => ()
-        case c: CompositeModifier => c.modifiers.foreach(append(subscribables, modifiers, _, inStream))
+        case c: CompositeModifier => c.modifiers.foreach(appendCall(subscribables, modifiers, _, inStream))
         case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
         case mod: StaticVModifier => appendStatic(mod)
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, config)))
@@ -390,8 +395,8 @@ private[outwatch] object NativeModifiers {
 }
 
 private object StyleKey {
-  @inline def delayed = "delayed"
-  @inline def remove = "remove"
-  @inline def destroy = "destroy"
+  val delayed = "delayed"
+  val remove = "remove"
+  val destroy = "destroy"
 }
 

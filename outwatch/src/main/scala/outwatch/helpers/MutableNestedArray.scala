@@ -3,7 +3,7 @@ package outwatch.helpers
 import scala.scalajs.js
 import scala.scalajs.js.|
 
-private[outwatch] class MutableNestedArray[T] {
+private[outwatch] final class MutableNestedArray[T] {
   private val array = new js.Array[T | MutableNestedArray[T]]
 
   // not safe if T = MutableNestedArray.

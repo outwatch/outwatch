@@ -7,7 +7,6 @@ import snabbdom.{DataObject, VNodeProxy}
 import colibri._
 import colibri.effect._
 import cats.Monoid
-import cats.syntax.either._
 import cats.syntax.functor._
 import cats.effect.Sync
 
@@ -33,15 +32,15 @@ object VModifier {
   @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
   @inline final def style[T](key: String) = new BasicStyleBuilder[T](key)
 
-  @inline def managed[F[_] : Sync : RunEffect, T : CanCancel](subscription: F[T]): VModifier = VModifier(
+  def managed[F[_] : Sync : RunEffect, T : CanCancel](subscription: F[T]): VModifier = VModifier(
     subscription.map[VModifier](cancelable => CancelableModifier(() => Cancelable.lift(cancelable)))
   )
 
-  @inline def managedSubscribe[F[_] : Source, T](source: F[T]): VModifier = managedDelay(Source[F].unsafeSubscribe(source)(Observer.empty))
+  def managedSubscribe[F[_] : Source, T](source: F[T]): VModifier = managedDelay(Source[F].unsafeSubscribe(source)(Observer.empty))
 
   @deprecated("Use managedDelay(subscription) instead", "")
   @inline def managedFunction[T : CanCancel](subscription: () => T): VModifier = managedDelay(subscription())
-  @inline def managedDelay[T : CanCancel](subscription: => T): VModifier = CancelableModifier(() => Cancelable.lift(subscription))
+  def managedDelay[T : CanCancel](subscription: => T): VModifier = CancelableModifier(() => Cancelable.lift(subscription))
 
   object managedElement {
     def apply[T : CanCancel](subscription: dom.Element => T): VModifier = VModifier.delay {
@@ -52,9 +51,9 @@ object VModifier {
       )
     }
 
-    @inline def asHtml[T : CanCancel](subscription: dom.html.Element => T): VModifier = apply(elem => subscription(elem.asInstanceOf[dom.html.Element]))
+    @inline def asHtml[T : CanCancel](subscription: dom.html.Element => T): VModifier = apply(subscription.asInstanceOf[dom.Element => T])
 
-    @inline def asSvg[T : CanCancel](subscription: dom.svg.Element => T): VModifier = apply(elem => subscription(elem.asInstanceOf[dom.svg.Element]))
+    @inline def asSvg[T : CanCancel](subscription: dom.svg.Element => T): VModifier = apply(subscription.asInstanceOf[dom.Element => T])
   }
 
   @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier, modifier4: VModifier): VModifier =
@@ -71,7 +70,7 @@ object VModifier {
 
   @inline def fromEither[T : Render](modifier: Either[Throwable, T]): VModifier = modifier.fold(raiseError(_), apply(_))
   @inline def delayEither[T : Render](modifier: => Either[Throwable, T]): VModifier = SyncEffectModifier(() => fromEither(modifier))
-  @inline def delay[T : Render](modifier: => T): VModifier = delayEither(Either.catchNonFatal(modifier))
+  @inline def delay[T : Render](modifier: => T): VModifier = SyncEffectModifier(() => modifier)
   @inline def composite(modifiers: Iterable[VModifier]): VModifier = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError[T](error: Throwable): VModifier = ErrorModifier(error)
 
@@ -88,7 +87,7 @@ object VModifier {
   }
 
   @inline implicit def renderToVModifier[T : Render](value: T): VModifier = Render[T].render(value)
-  }
+}
 
 sealed trait StaticVModifier extends VModifier
 
@@ -151,8 +150,9 @@ sealed trait VNode extends VModifier {
   def prepend(args: VModifier*): VNode
 }
 object VNode {
-  @inline final def html(name: String): HtmlVNode = HtmlVNode(name, js.Array[VModifier]())
-  @inline final def svg(name: String): SvgVNode = SvgVNode(name, js.Array[VModifier]())
+  private val emptyModifierArray = js.Array[VModifier]()
+  @inline def html(name: String): HtmlVNode = HtmlVNode(name, emptyModifierArray)
+  @inline def svg(name: String): SvgVNode = SvgVNode(name, emptyModifierArray)
 
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
     @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(VModifier.managedDelay(subscription()))
@@ -164,28 +164,28 @@ sealed trait BasicVNode extends VNode {
   def apply(args: VModifier*): BasicVNode
   def append(args: VModifier*): BasicVNode
   def prepend(args: VModifier*): BasicVNode
-  def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode = ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
-  def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
-  @inline def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode = thunkConditional(key)(false)(renderFn)
+  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode = ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
+  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode = ConditionalVNode(this, key, shouldRender, () => renderFn)
+  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode = thunkConditional(key)(false)(renderFn)
 }
 @inline final case class ThunkVNode(baseNode: BasicVNode, key: Key.Value, arguments: js.Array[Any], renderFn: () => VModifier) extends VNode {
   @inline def apply(args: VModifier*): ThunkVNode = append(args: _*)
-  def append(args: VModifier*): ThunkVNode = copy(baseNode = baseNode(args: _*))
-  def prepend(args: VModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args :_*))
+  @inline def append(args: VModifier*): ThunkVNode = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args :_*))
 }
 @inline final case class ConditionalVNode(baseNode: BasicVNode, key: Key.Value, shouldRender: Boolean, renderFn: () => VModifier) extends VNode {
   @inline def apply(args: VModifier*): ConditionalVNode = append(args: _*)
-  def append(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode(args: _*))
-  def prepend(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
+  @inline def append(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
   @inline def apply(args: VModifier*): HtmlVNode = append(args: _*)
-  def append(args: VModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
-  def prepend(args: VModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
+  @inline def append(args: VModifier*): HtmlVNode = copy(modifiers = appendSeq(modifiers, args))
+  @inline def prepend(args: VModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
   @inline def apply(args: VModifier*): SvgVNode = append(args: _*)
-  def append(args: VModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
-  def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
+  @inline def append(args: VModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
+  @inline def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
 }
 
