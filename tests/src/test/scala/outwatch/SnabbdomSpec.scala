@@ -85,12 +85,15 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
              btn <- IO(document.getElementById("btn"))
 
-              ie <- IO {
+              _  <- IO {
                     inputElement().value = "Something"
                     inputElement().dispatchEvent(inputEvt)
                     btn.dispatchEvent(clickEvt)
-                    inputElement().value
                   }
+
+              _  <- IO.cede
+
+              ie <- IO(inputElement().value)
                _ = ie shouldBe ""
 
       } yield succeed
@@ -117,9 +120,9 @@ class SnabbdomSpec extends JSDomAsyncSpec {
             )
           _ <- Outwatch.renderInto[IO]("#app", vtree)
           c1 <- getContent
-           _ <- a.onNextIO(1)
+          _  <- a.onNextIO(1) *> IO.cede
           c2 <- getContent
-           _ <- b.onNextIO(200)
+          _  <- b.onNextIO(200) *> IO.cede
           c3 <- getContent
     } yield {
       c1 shouldBe """0<div id="meh">100</div>"""

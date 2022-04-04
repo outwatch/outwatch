@@ -3,16 +3,12 @@ package outwatch.interpreter
 import outwatch._
 import outwatch.helpers._
 import colibri._
+import colibri.helpers.NativeTypes
 import snabbdom._
 
 import scala.scalajs.js
-import scala.annotation.tailrec
 
 private[outwatch] object SnabbdomOps {
-  // currently async patching is disabled, because it yields flickering render results.
-  // We would like to evaluate whether async patching can make sense and whether some kind
-  // sync/async batching like monix-scheduler makes sense for us.
-  var asyncPatchEnabled = false
 
   @inline private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
     new DataObject {
@@ -74,15 +70,6 @@ private[outwatch] object SnabbdomOps {
      }
    }
 
-   type SetImmediate = js.Function1[js.Function0[Unit], Int]
-   type ClearImmediate = js.Function1[Int, Unit]
-   private val (setImmediateRef, clearImmediateRef): (SetImmediate, ClearImmediate) = {
-     if (js.typeOf(js.Dynamic.global.setImmediate) != "undefined")
-        (js.Dynamic.global.setImmediate.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearImmediate.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
-      else
-        (js.Dynamic.global.setTimeout.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearTimeout.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
-    }
-
     // we are mutating the initial proxy with VNodeProxy.copyInto, because parents of this node have a reference to this proxy.
     // if we are changing the content of this proxy via a stream, the parent will not see this change.
     // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
@@ -108,16 +95,14 @@ private[outwatch] object SnabbdomOps {
       var proxy: VNodeProxy = null
       var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
       var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
-      var lastTimeout: js.UndefOr[Int] = js.undefined
       var isActive: Boolean = false
 
       var patchIsRunning = false
-      var patchIsNeeded = false
 
-      @tailrec
+      val asyncCancelable = Cancelable.variable()
+
       def doPatch(): Unit = {
         patchIsRunning = true
-        patchIsNeeded = false
 
         // update the current proxy with the new state
         val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers, appendModifiers = nextModifiers)
@@ -131,35 +116,28 @@ private[outwatch] object SnabbdomOps {
         patch(proxy, newProxy)
 
         patchIsRunning = false
-        if (patchIsNeeded) doPatch()
       }
 
-      def resetTimeout(): Unit = {
-        lastTimeout.foreach(clearImmediateRef)
-        lastTimeout = js.undefined
+      def cancelAsyncPatch(): Unit = {
+        asyncCancelable.addExisting(Cancelable.empty)
       }
 
-      def asyncDoPatch(): Unit = {
-        resetTimeout()
-        lastTimeout = setImmediateRef(() => doPatch())
-      }
-
-      def invokeDoPatch(async: Boolean): Unit = if (isActive) {
-        if (patchIsRunning) {
-          patchIsNeeded = true
-        } else {
-          if (async) asyncDoPatch()
-          else doPatch()
+      def asyncPatch(): Unit = if (isActive) {
+        asyncCancelable.add { () =>
+          var isCancel = false
+          val cancelable = Cancelable(() => isCancel = true)
+          NativeTypes.queueMicrotask(() => if (!isCancel) doPatch())
+          cancelable
         }
       }
 
       def start(): Unit = {
-        resetTimeout()
+        cancelAsyncPatch()
         nativeModifiers.subscribables.foreach(_.unsafeSubscribe())
       }
 
       def stop(): Unit = {
-        resetTimeout()
+        cancelAsyncPatch()
         nativeModifiers.subscribables.foreach(_.unsafeUnsubscribe())
       }
 
@@ -196,7 +174,7 @@ private[outwatch] object SnabbdomOps {
 
       // set the patch observer so on subscribable updates we get a patch call
       observer.set(Observer.create[Unit](
-        _ => invokeDoPatch(async = asyncPatchEnabled),
+        _ => asyncPatch(),
         OutwatchTracing.errorSubject.unsafeOnNext
       ))
 
