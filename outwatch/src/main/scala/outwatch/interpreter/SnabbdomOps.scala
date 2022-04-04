@@ -97,7 +97,7 @@ private[outwatch] object SnabbdomOps {
 
     val nativeModifiers = NativeModifiers.from(node.modifiers, config, observer)
 
-    if (nativeModifiers.subscribables.isEmpty) {
+    if (nativeModifiers.subscribables.forall(_.isEmpty())) {
       // if no dynamic/subscribable content, then just create a simple proxy
       createProxy(SeparatedModifiers.from(nativeModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
     } else if (nativeModifiers.hasStream) {
