@@ -100,7 +100,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 1
     attrs.get.values.size shouldBe 2
-    streamable.subscribables.calculateLength() shouldBe 0
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 0
     proxies.get.length shouldBe 3
   }
 
@@ -130,7 +130,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 1
     attrs.get.values.size shouldBe 2
-    streamable.subscribables.calculateLength() shouldBe 2
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 2
     proxies.get.length shouldBe 3
   }
 
@@ -152,7 +152,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
-    streamable.subscribables.calculateLength() shouldBe 1
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
     proxies.get.length shouldBe 2
   }
 
@@ -175,7 +175,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
-    streamable.subscribables.calculateLength() shouldBe 1
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
     proxies.get.length shouldBe 2
   }
 
@@ -209,7 +209,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     destroyHook.isDefined shouldBe false
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
-    streamable.subscribables.calculateLength() shouldBe 2
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 2
     proxies.get.length shouldBe 1
   }
 
@@ -295,7 +295,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 4
-    streamable.subscribables.calculateLength() shouldBe 0
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 0
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.isDefined shouldBe false
@@ -324,7 +324,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 4
-    streamable.subscribables.calculateLength() shouldBe 1
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.isDefined shouldBe false
@@ -352,7 +352,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 1
-    streamable.subscribables.calculateLength() shouldBe 1
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.toOption  shouldBe Some(1234)

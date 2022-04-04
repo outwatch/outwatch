@@ -22,9 +22,13 @@ private[outwatch] final class MutableNestedArray[T] {
   @inline def push(value: T | MutableNestedArray[T]): Unit = { array.push(value); () }
   @inline def clear(): Unit = array.clear()
   @inline def isEmpty: Boolean = array.isEmpty
-  @inline def calculateLength(): Int = {
-    var counter = 0
-    foreach(_ => counter += 1)
-    counter
+
+  def toFlatArray: js.Array[T] = {
+    val flatArray = new js.Array[T]
+    foreach { t =>
+      flatArray.push(t)
+      ()
+    }
+    flatArray
   }
 }
