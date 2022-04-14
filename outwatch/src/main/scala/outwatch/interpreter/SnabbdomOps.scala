@@ -3,12 +3,12 @@ package outwatch.interpreter
 import outwatch._
 import outwatch.helpers._
 import colibri._
-import colibri.helpers.NativeTypes
 import snabbdom._
 
 import scala.scalajs.js
 
 private[outwatch] object SnabbdomOps {
+  private val MicrotaskExecutor = scala.scalajs.concurrent.QueueExecutionContext.promises()
 
   @inline private def createDataObject(modifiers: SeparatedModifiers, vNodeNS: js.UndefOr[String]): DataObject =
     new DataObject {
@@ -60,6 +60,8 @@ private[outwatch] object SnabbdomOps {
        thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.shouldRender)
      case node: ThunkVNode =>
        thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.arguments)
+     case node: SyncEffectVNode =>
+       toSnabbdom(node.unsafeRun(), config)
    }
 
    private val newNodeId: () => Int = {
@@ -119,14 +121,14 @@ private[outwatch] object SnabbdomOps {
       }
 
       def cancelAsyncPatch(): Unit = {
-        asyncCancelable.addExisting(Cancelable.empty)
+        asyncCancelable.unsafeAddExisting(Cancelable.empty)
       }
 
       def asyncPatch(): Unit = if (isActive) {
-        asyncCancelable.add { () =>
+        asyncCancelable.unsafeAdd { () =>
           var isCancel = false
           val cancelable = Cancelable(() => isCancel = true)
-          NativeTypes.queueMicrotask(() => if (!isCancel) doPatch())
+          MicrotaskExecutor.execute(() => if (!isCancel) doPatch())
           cancelable
         }
       }
