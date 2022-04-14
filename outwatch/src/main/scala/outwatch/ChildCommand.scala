@@ -30,7 +30,7 @@ object ChildCommand {
   case class MoveBehindId(fromId: ChildId, toId: ChildId) extends ChildCommand
   case class RemoveId(id: ChildId) extends ChildCommand
 
-  def stream(valueStream: Observable[Seq[ChildCommand]], config: RenderConfig): VModifier = VModifier.delay {
+  def stream(valueStream: Observable[Seq[ChildCommand]], config: RenderConfig): VModifier = VModifier.eval {
     val children = new js.Array[VNodeProxyNode]
     val childrenModifier = VModifier.composite(children)
 
