@@ -380,7 +380,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
     val sub = Subject.publish[String]()
 
     val node = div(nodes.startWith(Seq(
-      span(VModifier.managedDelay(sub.unsafeSubscribe(observer)))
+      span(VModifier.managedEval(sub.unsafeSubscribe(observer)))
     )))
 
     for {

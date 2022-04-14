@@ -60,6 +60,8 @@ private[outwatch] object SnabbdomOps {
        thunk.conditional(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.shouldRender)
      case node: ThunkVNode =>
        thunk(getNamespace(node.baseNode), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), node.arguments)
+     case node: SyncEffectVNode =>
+       toSnabbdom(node.unsafeRun(), config)
    }
 
    private val newNodeId: () => Int = {

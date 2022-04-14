@@ -247,9 +247,6 @@ private[outwatch] object NativeModifiers {
   def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig, sink: Observer[Unit] = Observer.empty): NativeModifiers = {
     var hasStream = false
 
-    @inline def appendCall(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = append(subscribables, modifiers, modifier, inStream)
-
-    @annotation.tailrec
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = {
 
       @inline def appendStatic(mod: StaticVModifier): Unit = {
@@ -267,7 +264,7 @@ private[outwatch] object NativeModifiers {
           streamedSubscribables.foreach(_.unsafeUnsubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
-          appendCall(streamedSubscribables, streamedModifiers, modifier, inStream = true)
+          append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
         }
 
         subscribables.push(new Subscribable(() =>
@@ -290,7 +287,7 @@ private[outwatch] object NativeModifiers {
 
       modifier match {
         case EmptyModifier => ()
-        case c: CompositeModifier => c.modifiers.foreach(appendCall(subscribables, modifiers, _, inStream))
+        case c: CompositeModifier => c.modifiers.foreach(append(subscribables, modifiers, _, inStream))
         case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
         case mod: StaticVModifier => appendStatic(mod)
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, config)))
