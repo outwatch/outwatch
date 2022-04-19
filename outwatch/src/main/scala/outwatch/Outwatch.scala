@@ -40,7 +40,7 @@ object Outwatch {
 
   def renderReplace[F[_]: Sync](element: dom.Element, vNode: VNode, config: RenderConfig = RenderConfig.default): F[Unit] = for {
     node <- toSnabbdom(vNode, config)
-    elementNode <- Sync[F].delay(snabbdom.tovnode(element))
+    elementNode <- Sync[F].delay(snabbdom.Snabbdom.toVNode(element))
     _ <- Sync[F].delay(snabbdom.patch(elementNode, node))
   } yield ()
 

@@ -18,11 +18,19 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.JSON
 import colibri.Subject
+import colibri.reactive._
 
 final case class Fixture(proxy: VNodeProxy)
 class OutwatchDomSpec extends JSDomAsyncSpec {
 
   implicit def ListToJsArray[T](list: Seq[T]): js.Array[T] = list.toJSArray
+
+  implicit def unsafeSubscriptionOwner[T]: SubscriptionOwner[T] = new SubscriptionOwner[T] {
+    def own(owner: T)(subscription: () => Cancelable): T = {
+      subscription()
+      owner
+    }
+  }
 
   def sendEvent(elem: Element, eventType: String) = {
     val event = new Event(eventType, new EventInit {
@@ -64,12 +72,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val seps = SeparatedModifiers.from(propertiesArr)
     import seps._
 
-    initHook.isDefined shouldBe true
-    insertHook.isDefined shouldBe true
-    prePatchHook.isDefined shouldBe true
-    updateHook.isDefined shouldBe true
-    postPatchHook.isDefined shouldBe true
-    destroyHook.isDefined shouldBe true
+    hook.init.isDefined shouldBe true
+    hook.insert.isDefined shouldBe true
+    hook.prepatch.isDefined shouldBe true
+    hook.update.isDefined shouldBe true
+    hook.postpatch.isDefined shouldBe true
+    hook.destroy.isDefined shouldBe true
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
   }
@@ -201,11 +209,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     emitters.get.keys.toList shouldBe List("click", "input", "keyup")
-    insertHook.isDefined shouldBe true
-    prePatchHook.isDefined shouldBe true
-    updateHook.isDefined shouldBe true
-    postPatchHook.isDefined shouldBe true
-    destroyHook.isDefined shouldBe false
+    hook.insert.isDefined shouldBe true
+    hook.prepatch.isDefined shouldBe true
+    hook.update.isDefined shouldBe true
+    hook.postpatch.isDefined shouldBe true
+    hook.destroy.isDefined shouldBe false
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
     streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 2
@@ -2073,7 +2081,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
                       idAttr := "strings",
                       myHandler,
                       cls <-- clsHandler,
-                      onClick.asDelay(0) --> myHandler,
+                      onClick.asEval(0) --> myHandler,
                       onDomMount doAction  { mounts += 1 },
                       onDomUnmount doAction  { unmounts += 1 },
                       onDomUpdate doAction  { updates += 1 }
@@ -3758,4 +3766,86 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = mountedSecond shouldBe 3
     } yield succeed
   }
+
+  "EmitterBuilder" should "be referential transparent" in {
+    val emitted1 = mutable.ArrayBuffer[Int]()
+    val emitted2 = mutable.ArrayBuffer[Int]()
+
+    val subject1 = Subject.replayLatest[Int]()
+    val subject2 = Subject.replayLatest[Int]()
+
+    def newEmitter() = onClick.as(0).transform(s => Observable.merge(s,subject1)).foreach(emitted1 += _)
+    val emitter = onClick.as(0).transform(s => Observable.merge(s,subject2)).foreach(emitted2 += _)
+
+    val node = div(
+      div(idAttr := "click1", newEmitter(), newEmitter()),
+      div(idAttr := "click2", emitter, emitter)
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      _ = emitted1.toList shouldBe List()
+      _ = emitted2.toList shouldBe List()
+
+      _ <- IO(sendEvent(document.getElementById("click1"), "click"))
+
+      _ = emitted1.toList shouldBe List(0, 0)
+      _ = emitted2.toList shouldBe List()
+
+      _ <- IO(sendEvent(document.getElementById("click2"), "click"))
+
+      _ = emitted1.toList shouldBe List(0, 0)
+      _ = emitted2.toList shouldBe List(0, 0)
+
+      _ <- subject1.onNextIO(1)
+
+      _ = emitted1.toList shouldBe List(0, 0, 1, 1)
+      _ = emitted2.toList shouldBe List(0, 0)
+
+      _ <- subject2.onNextIO(1)
+
+      _ = emitted1.toList shouldBe List(0, 0, 1, 1)
+      _ = emitted2.toList shouldBe List(0, 0, 1, 1)
+    } yield succeed
+  }
+
+  "Rx component" should "work" in Owned {
+
+    var liveCounter = 0
+
+    val variable1 = Var(1)
+    val variable2 = Var("hallo")
+
+    val modifier = Rx {
+      liveCounter += 1
+      VModifier(s"${variable1()}. ${variable2()}")
+    }
+
+    val node = div(
+      idAttr := "test",
+      modifier
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe "1. hallo"
+      _ = liveCounter shouldBe 1
+
+      _ = variable1.set(2)
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe "2. hallo"
+      _ = liveCounter shouldBe 2
+
+      _ = variable2.set("du")
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe "2. du"
+      _ = liveCounter shouldBe 3
+    } yield succeed
+  }.unsafeRunSync()
 }

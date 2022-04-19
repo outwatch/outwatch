@@ -1,3 +1,4 @@
+Global / onChangedBuildSource := ReloadOnSourceChanges
 
 inThisBuild(Seq(
   organization := "io.github.outwatch",
@@ -37,7 +38,7 @@ inThisBuild(Seq(
 ))
 
 val jsdomVersion = "13.2.0"
-val colibriVersion = "0.4.5"
+val colibriVersion = "0.4.6+26-ccde0c30-SNAPSHOT"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -49,6 +50,7 @@ lazy val commonSettings = Seq(
   ),
 
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
+  scalacOptions --= Seq("-Xfatal-warnings"),
 )
 
 lazy val outwatchUtil = project
@@ -81,7 +83,7 @@ lazy val outwatchSnabbdom = project
     ),
 
     Compile/npmDependencies ++= Seq(
-      "snabbdom" -> "github:outwatch/snabbdom.git#semver:0.7.5"
+      "outwatch-snabbdom" -> "github:outwatch/snabbdom.git#e6d5d87"
     )
   )
 
@@ -95,6 +97,7 @@ lazy val outwatch = project
 
     libraryDependencies ++= Seq(
       "com.raquo"            %%% "domtypes" % "0.15.1",
+      "com.github.cornerman" %%% "colibri" % colibriVersion,
       "com.github.cornerman" %%% "colibri-jsdom" % colibriVersion,
     )
   )
@@ -108,6 +111,10 @@ lazy val tests = project
 
     Test/requireJsDomEnv := true,
     installJsdom/version := jsdomVersion,
+
+    libraryDependencies ++= Seq(
+      "com.github.cornerman" %%% "colibri-reactive" % colibriVersion % Test,
+    )
   )
 
 lazy val bench = project

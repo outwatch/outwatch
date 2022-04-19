@@ -20,31 +20,23 @@ import scala.scalajs.js
 // This represents the structured definition of a VNodeProxy (like snabbdom expects it).
 private[outwatch] final class SeparatedModifiers {
   var hasOnlyTextChildren = true
-  var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
   var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
   var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]] = js.undefined
   var props: js.UndefOr[js.Dictionary[DataObject.PropValue]] = js.undefined
   var styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]] = js.undefined
   var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
   var keyOption: js.UndefOr[Key.Value] = js.undefined
-  var initHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var prePatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var updateHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var postPatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  val hook = new Hooks {}
 }
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: MutableNestedArray[StaticVModifier], prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined, appendModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined): SeparatedModifiers = {
+  def from(modifiers: MutableNestedArray[StaticVModifier], prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined): SeparatedModifiers = {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
 
     @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
     @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
-    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVModifier])(nextModifiers = _)
     @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
     @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
     @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
@@ -66,11 +58,11 @@ private[outwatch] object SeparatedModifiers {
     // append unmount hook for when patching a different proxy out of the dom.
     // the proxies will then have different OutwatchStates and we then need to
     // call the unmount hook of the oldProxy.
-    postPatchHook = { (oldProxy, proxy) =>
-      if (!NativeModifiers.equalsVNodeIds(proxy._id, oldProxy._id)) {
-        oldProxy._unmount.foreach(_(oldProxy))
-      }
-    }: Hooks.HookPairFn
+    // hook.postpatch = { (oldProxy, proxy) =>
+    //   if (!NativeModifiers.equalsVNodeIds(proxy._id, oldProxy._id)) {
+    //     oldProxy._unmount.foreach(_(oldProxy))
+    //   }
+    // }: Hooks.HookPairFn
 
     def append(mod: StaticVModifier): Unit = mod match {
       case VNodeProxyNode(proxy) =>
@@ -126,58 +118,60 @@ private[outwatch] object SeparatedModifiers {
         emitters(e.eventType) = createHooksSingle(emitter, e.trigger)
         ()
       case h: DomMountHook =>
-        insertHook = createHooksSingle(insertHook, h.trigger)
-        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
+        hook.insert = createHooksSingle(hook.insert, h.trigger)
+        hook.postpatch = createHooksPair[VNodeProxy](hook.postpatch, { (oldproxy, proxy) =>
           if (!NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
             h.trigger(proxy)
           }
         })
         ()
       case h: DomUnmountHook =>
-        destroyHook = createHooksSingle(destroyHook, h.trigger)
-        domUnmountHook = createHooksSingle(domUnmountHook, h.trigger)
+        hook.destroy = createHooksSingle(hook.destroy, h.trigger)
+        hook.oldpostpatch = createHooksPair[VNodeProxy](hook.oldpostpatch, { (oldproxy, proxy) =>
+          if (!NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
+            h.trigger(oldproxy)
+          }
+        })
         ()
       case h: DomUpdateHook =>
-        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
+        hook.postpatch = createHooksPair[VNodeProxy](hook.postpatch, { (oldproxy, proxy) =>
           if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
-            h.trigger(proxy, proxy)
+            h.trigger(oldproxy, proxy)
           }
         })
         ()
       case h: DomPreUpdateHook =>
-        prePatchHook = createHooksPair[VNodeProxy](prePatchHook, { (oldproxy, proxy) =>
+        hook.prepatch = createHooksPair[VNodeProxy](hook.prepatch, { (oldproxy, proxy) =>
           if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
             h.trigger(oldproxy, proxy)
           }
         })
         ()
       case h: InitHook =>
-        initHook = createHooksSingle(initHook, h.trigger)
+        hook.init = createHooksSingle(hook.init, h.trigger)
         ()
       case h: InsertHook =>
-        insertHook = createHooksSingle(insertHook, h.trigger)
+        hook.insert = createHooksSingle(hook.insert, h.trigger)
         ()
       case h: PrePatchHook =>
-        prePatchHook = createHooksPair(prePatchHook, h.trigger)
+        hook.prepatch = createHooksPair(hook.prepatch, h.trigger)
         ()
       case h: UpdateHook =>
-        updateHook = createHooksPair(updateHook, h.trigger)
+        hook.update = createHooksPair(hook.update, h.trigger)
+        ()
+      case h: OldPostPatchHook =>
+        hook.oldpostpatch = createHooksPair(hook.oldpostpatch, h.trigger)
         ()
       case h: PostPatchHook =>
-        postPatchHook = createHooksPair(postPatchHook, h.trigger)
+        hook.postpatch = createHooksPair(hook.postpatch, h.trigger)
         ()
       case h: DestroyHook =>
-        destroyHook = createHooksSingle(destroyHook, h.trigger)
-        ()
-      case n: NextVModifier =>
-        val nextModifiers = assureNextModifiers()
-        nextModifiers += n.modifier
+        hook.destroy = createHooksSingle(hook.destroy, h.trigger)
         ()
     }
 
     prependModifiers.foreach(_.foreach(append))
     modifiers.foreach(append)
-    appendModifiers.foreach(_.foreach(append))
 
     separatedModifiers
   }
@@ -247,9 +241,6 @@ private[outwatch] object NativeModifiers {
   def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig, sink: Observer[Unit] = Observer.empty): NativeModifiers = {
     var hasStream = false
 
-    @inline def appendCall(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = append(subscribables, modifiers, modifier, inStream)
-
-    @annotation.tailrec
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = {
 
       @inline def appendStatic(mod: StaticVModifier): Unit = {
@@ -267,7 +258,7 @@ private[outwatch] object NativeModifiers {
           streamedSubscribables.foreach(_.unsafeUnsubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
-          appendCall(streamedSubscribables, streamedModifiers, modifier, inStream = true)
+          append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
         }
 
         subscribables.push(new Subscribable(() =>
@@ -290,7 +281,7 @@ private[outwatch] object NativeModifiers {
 
       modifier match {
         case EmptyModifier => ()
-        case c: CompositeModifier => c.modifiers.foreach(appendCall(subscribables, modifiers, _, inStream))
+        case c: CompositeModifier => c.modifiers.foreach(append(subscribables, modifiers, _, inStream))
         case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
         case mod: StaticVModifier => appendStatic(mod)
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, config)))
@@ -327,7 +318,8 @@ private[outwatch] object NativeModifiers {
         PostPatchHook { (o, p) =>
           if (!triggered || !equalsVNodeIds(o._id, p._id)) h.trigger(p)
           triggered = true
-        })
+        }
+      )
     case h: DomPreUpdateHook =>
       // ignore the next pre-update event, we are streamed into the node with this update
       // trigger on all succeeding pre-update events. if we are streamed in with an insert
@@ -364,16 +356,24 @@ private[outwatch] object NativeModifiers {
       var triggered = false
       var isOpen = true
       js.Array(
-        h,
-        InsertHook { _ => triggered = true },
-        UpdateHook { (o, p) =>
+        InsertHook { _ =>
+          triggered = true
+        },
+        DestroyHook { p =>
+          h.trigger(p)
+        },
+        PrePatchHook { (o, p) =>
           if (triggered && equalsVNodeIds(o._id, p._id)) isOpen = false
           triggered = true
         },
-        NextVModifier(UpdateHook { (o, p) =>
-          if (isOpen && equalsVNodeIds(o._id, p._id)) h.trigger(p)
+        OldPostPatchHook { (o, p) =>
+          if (equalsVNodeIds(o._id, p._id)) {
+            if (isOpen) h.trigger(o)
+          } else {
+            if (triggered) h.trigger(o)
+          }
           isOpen = true
-        })
+        }
       )
   }
 

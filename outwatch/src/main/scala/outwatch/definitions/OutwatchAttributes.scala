@@ -10,10 +10,6 @@ import com.raquo.domtypes.jsdom.defs.tags._
 
 import scala.scalajs.js
 
-/** Trait containing the contents of the `Attributes` module, so they can be
-  * mixed in to other objects if needed. This should contain "all" attributes
-  * and mix in other traits (defined above) as needed to get full coverage.
-  */
 trait OutwatchAttributes {
 
   private final def proxyElementEmitter(f: js.Function1[VNodeProxy, Unit] => VModifier): Observer[dom.Element] => VModifier =
@@ -38,12 +34,15 @@ trait OutwatchAttributes {
     * This hook is invoked once the DOM element for a vnode has been inserted into the document
     * and the rest of the patch cycle is done.
     */
+  @deprecated("Use onDomMount instead", "")
   final lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, VModifier] = EmitterBuilder(proxyElementEmitter(InsertHook))
 
   /** Lifecycle hook for component prepatch. */
+  @deprecated("Use onDomPreUpdate instead", "")
   final lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element],Option[dom.Element]), VModifier] = EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook))
 
   /** Lifecycle hook for component updates. */
+  @deprecated("Use onDomUpdate instead", "")
   final lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element,dom.Element), VModifier] = EmitterBuilder(proxyElementPairEmitter(UpdateHook))
 
   /**
@@ -51,6 +50,7 @@ trait OutwatchAttributes {
     *
     *  This hook is invoked every time a node has been patched against an older instance of itself.
     */
+  @deprecated("Use onDomUpdate instead", "")
   final lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element,dom.Element), VModifier] = EmitterBuilder(proxyElementPairEmitter(PostPatchHook))
 
   /**
@@ -59,6 +59,7 @@ trait OutwatchAttributes {
     * This hook is invoked on a virtual node when its DOM element is removed from the DOM
     * or if its parent is being removed from the DOM.
     */
+  @deprecated("Use onDomUnmount instead", "")
   final lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DestroyHook))
 
   /** Snabbdom Key Attribute */

@@ -36,14 +36,14 @@ object VModifier {
     subscription.map[VModifier](cancelable => CancelableModifier(() => Cancelable.lift(cancelable)))
   )
 
-  def managedSubscribe[F[_] : Source, T](source: F[T]): VModifier = managedDelay(Source[F].unsafeSubscribe(source)(Observer.empty))
+  def managedSubscribe[F[_] : Source, T](source: F[T]): VModifier = managedEval(Source[F].unsafeSubscribe(source)(Observer.empty))
 
-  @deprecated("Use managedDelay(subscription) instead", "")
-  @inline def managedFunction[T : CanCancel](subscription: () => T): VModifier = managedDelay(subscription())
-  def managedDelay[T : CanCancel](subscription: => T): VModifier = CancelableModifier(() => Cancelable.lift(subscription))
+  @deprecated("Use managedEval(subscription) instead", "")
+  @inline def managedFunction[T : CanCancel](subscription: () => T): VModifier = managedEval(subscription())
+  def managedEval[T : CanCancel](subscription: => T): VModifier = CancelableModifier(() => Cancelable.lift(subscription))
 
   object managedElement {
-    def apply[T : CanCancel](subscription: dom.Element => T): VModifier = VModifier.delay {
+    def apply[T : CanCancel](subscription: dom.Element => T): VModifier = VModifier.eval {
       var lastSub: js.UndefOr[T] = js.undefined
       VModifier(
         DomMountHook(proxy => proxy.elm.foreach(elm => lastSub = subscription(elm))),
@@ -69,8 +69,10 @@ object VModifier {
     CompositeModifier(js.Array(modifier, modifier2, modifier3, modifier4, modifier5, modifier6, modifier7, CompositeModifier(modifiers)))
 
   @inline def fromEither[T : Render](modifier: Either[Throwable, T]): VModifier = modifier.fold(raiseError(_), apply(_))
-  @inline def delayEither[T : Render](modifier: => Either[Throwable, T]): VModifier = SyncEffectModifier(() => fromEither(modifier))
-  @inline def delay[T : Render](modifier: => T): VModifier = SyncEffectModifier(() => modifier)
+  @inline def evalEither[T : Render](modifier: => Either[Throwable, T]): VModifier = SyncEffectModifier(() => fromEither(modifier))
+  @deprecated("Use VModifier.eval instead", "1.0.0")
+  @inline def delay[T : Render](modifier: => T): VModifier = eval(modifier)
+  @inline def eval[T : Render](modifier: => T): VModifier = SyncEffectModifier(() => modifier)
   @inline def composite(modifiers: Iterable[VModifier]): VModifier = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError[T](error: Throwable): VModifier = ErrorModifier(error)
 
@@ -83,7 +85,11 @@ object VModifier {
   }
 
   implicit object subscriptionOwner extends SubscriptionOwner[VModifier] {
-    @inline def own(owner: VModifier)(subscription: () => Cancelable): VModifier = VModifier(managedDelay(subscription()), owner)
+    @inline def own(owner: VModifier)(subscription: () => Cancelable): VModifier = VModifier(managedEval(subscription()), owner)
+  }
+
+  implicit object syncEmbed extends SyncEmbed[VModifier] {
+    @inline def delay(body: => VModifier): VModifier = VModifier.eval(body)
   }
 
   @inline implicit def renderToVModifier[T : Render](value: T): VModifier = Render[T].render(value)
@@ -124,6 +130,7 @@ final case class InitHook(trigger: js.Function1[VNodeProxy, Unit]) extends Snabb
 final case class InsertHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 final case class PrePatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class UpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
+final case class OldPostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class PostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class DestroyHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 
@@ -132,8 +139,6 @@ final case class DomMountHook(trigger: js.Function1[VNodeProxy, Unit]) extends D
 final case class DomUnmountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
 final case class DomUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
 final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
-
-final case class NextVModifier(modifier: StaticVModifier) extends StaticVModifier
 
 case object EmptyModifier extends VModifier
 final case class CompositeModifier(modifiers: Iterable[VModifier]) extends VModifier
@@ -153,11 +158,17 @@ object VNode {
   private val emptyModifierArray = js.Array[VModifier]()
   @inline def html(name: String): HtmlVNode = HtmlVNode(name, emptyModifierArray)
   @inline def svg(name: String): SvgVNode = SvgVNode(name, emptyModifierArray)
+  @inline def eval(body: => VNode): VNode = SyncEffectVNode(() => body)
 
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
-    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(VModifier.managedDelay(subscription()))
+    @inline def own(owner: VNode)(subscription: () => Cancelable): VNode = owner.append(VModifier.managedEval(subscription()))
+  }
+
+  implicit object syncEmbed extends SyncEmbed[VNode] {
+    @inline def delay(body: => VNode): VNode = VNode.eval(body)
   }
 }
+
 sealed trait BasicVNode extends VNode {
   def nodeType: String
   def modifiers: js.Array[VModifier]
@@ -188,4 +199,8 @@ sealed trait BasicVNode extends VNode {
   @inline def append(args: VModifier*): SvgVNode = copy(modifiers = appendSeq(modifiers, args))
   @inline def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
 }
-
+@inline final case class SyncEffectVNode(unsafeRun: () => VNode) extends VNode {
+  @inline def apply(args: VModifier*): VNode = append(args: _*)
+  @inline def append(args: VModifier*): VNode = SyncEffectVNode(() => unsafeRun().append(args))
+  @inline def prepend(args: VModifier*): VNode = SyncEffectVNode(() => unsafeRun().prepend(args))
+}
