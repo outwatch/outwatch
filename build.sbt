@@ -50,6 +50,7 @@ lazy val commonSettings = Seq(
   ),
 
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
+  scalacOptions --= Seq("-Xfatal-warnings"),
 )
 
 lazy val outwatchUtil = project
@@ -82,7 +83,7 @@ lazy val outwatchSnabbdom = project
     ),
 
     Compile/npmDependencies ++= Seq(
-      "snabbdom" -> "github:outwatch/snabbdom.git#semver:0.7.5"
+      "outwatch-snabbdom" -> "github:outwatch/snabbdom.git#e6d5d87"
     )
   )
 

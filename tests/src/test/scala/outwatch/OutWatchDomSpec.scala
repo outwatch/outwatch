@@ -72,12 +72,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val seps = SeparatedModifiers.from(propertiesArr)
     import seps._
 
-    initHook.isDefined shouldBe true
-    insertHook.isDefined shouldBe true
-    prePatchHook.isDefined shouldBe true
-    updateHook.isDefined shouldBe true
-    postPatchHook.isDefined shouldBe true
-    destroyHook.isDefined shouldBe true
+    hook.init.isDefined shouldBe true
+    hook.insert.isDefined shouldBe true
+    hook.prepatch.isDefined shouldBe true
+    hook.update.isDefined shouldBe true
+    hook.postpatch.isDefined shouldBe true
+    hook.destroy.isDefined shouldBe true
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
   }
@@ -209,11 +209,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     emitters.get.keys.toList shouldBe List("click", "input", "keyup")
-    insertHook.isDefined shouldBe true
-    prePatchHook.isDefined shouldBe true
-    updateHook.isDefined shouldBe true
-    postPatchHook.isDefined shouldBe true
-    destroyHook.isDefined shouldBe false
+    hook.insert.isDefined shouldBe true
+    hook.prepatch.isDefined shouldBe true
+    hook.update.isDefined shouldBe true
+    hook.postpatch.isDefined shouldBe true
+    hook.destroy.isDefined shouldBe false
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
     streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 2

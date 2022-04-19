@@ -2574,6 +2574,10 @@ os-locale@^3.0.0:
     lcid "^2.0.0"
     mem "^4.0.0"
 
+"outwatch-snabbdom@github:outwatch/snabbdom.git#e6d5d87":
+  version "3.4.0"
+  resolved "https://codeload.github.com/outwatch/snabbdom/tar.gz/e6d5d875f43ab8f3e810c421f7b71e64843dc539"
+
 p-defer@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/p-defer/-/p-defer-1.0.0.tgz#9f6eb182f6c9aa8cd743004a7d4f96b196b0fb0c"
@@ -3175,10 +3179,6 @@ signal-exit@^3.0.0:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.3.tgz#a1410c2edd8f077b08b4e253c8eacfcaf057461c"
   integrity sha512-VUJ49FC8U1OxwZLxIbTTrDvLnf/6TDgxZcK8wxR8zs13xpx7xbG60ndBlhNrFi2EMuFRoeDoJO7wthSLq42EjA==
-
-"snabbdom@github:outwatch/snabbdom.git#semver:0.7.5":
-  version "0.7.5"
-  resolved "https://codeload.github.com/outwatch/snabbdom/tar.gz/f92761a40914825d7b8f702f607f9d929f95033f"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"

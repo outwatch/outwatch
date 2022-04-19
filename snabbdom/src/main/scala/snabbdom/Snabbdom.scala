@@ -8,9 +8,11 @@ import scala.scalajs.js.|
 
 trait Hooks extends js.Object {
   var init: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var create: js.UndefOr[Hooks.HookSingleFn] = js.undefined
   var insert: js.UndefOr[Hooks.HookSingleFn] = js.undefined
   var prepatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var update: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var oldpostpatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var postpatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var destroy: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
@@ -44,20 +46,9 @@ object DataObject {
   def empty: DataObject = new DataObject {}
 }
 
-// These are the original facades for snabbdom thunk. But we implement our own, so that for equality checks, the equals method is used.
-// @js.native
-// @JSImport("snabbdom/thunk", JSImport.Namespace, globalFallback = "thunk")
-// object thunkProvider extends js.Object {
-//   val default: thunkFunction = js.native
-// }
-// @js.native
-// trait thunkFunction extends js.Any {
-//   def apply(selector: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
-//   def apply(selector: String, key: String, renderFn: js.Function, argument: js.Array[Any]): VNodeProxy = js.native
-// }
 object thunk {
   // own implementation of https://github.com/snabbdom/snabbdom/blob/master/src/thunk.ts
-  //does respect equality via the equals method. snabbdom thunk uses reference equality: https://github.com/snabbdom/snabbdom/issues/143
+  // does respect equality via the equals method. snabbdom thunk uses reference equality: https://github.com/snabbdom/snabbdom/issues/143
 
   private def initThunk(fn: () => VNodeProxy)(thunk: VNodeProxy): Unit = {
     for {
@@ -114,6 +105,7 @@ object thunk {
       data = new DataObject {
         hook = new Hooks {
           init = initHook
+          create = { (p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.create.foreach(_ (p)))) }: Hooks.HookSingleFn
           insert = { (p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.insert.foreach(_ (p)))) }: Hooks.HookSingleFn
           prepatch = prepatchHook
           update = { (o: VNodeProxy, p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.update.foreach(_ (o, p)))) }: Hooks.HookPairFn
@@ -140,11 +132,10 @@ object thunk {
 object patch {
 
   private val p = Snabbdom.init(js.Array(
-    SnabbdomClass.default,
-    SnabbdomEventListeners.default,
-    SnabbdomAttributes.default,
-    SnabbdomProps.default,
-    SnabbdomStyle.default
+    Snabbdom.eventListenersModule,
+    Snabbdom.attributesModule,
+    Snabbdom.propsModule,
+    Snabbdom.styleModule,
   ))
 
   def apply(firstNode: VNodeProxy, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
@@ -154,6 +145,7 @@ object patch {
 
 trait VNodeProxy extends js.Object {
   var sel: js.UndefOr[String] = js.undefined
+  var is: js.UndefOr[String] = js.undefined
   var data: js.UndefOr[DataObject] = js.undefined
   var children: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
   var elm: js.UndefOr[Element] = js.undefined
@@ -162,7 +154,6 @@ trait VNodeProxy extends js.Object {
   var listener: js.UndefOr[js.Any] = js.undefined
 
   var _id: js.UndefOr[Int] = js.undefined
-  var _unmount: js.UndefOr[Hooks.HookSingleFn] = js.undefined
   var _update: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
   var _args: js.UndefOr[js.Array[Any] | Boolean] = js.undefined
 }
@@ -181,7 +172,6 @@ object VNodeProxy {
     target.elm = source.elm
     target.listener = source.listener
     target._id = source._id
-    target._unmount = source._unmount
   }
 
   def copyInto(source: VNodeProxy, target: VNodeProxy): Unit = if (source ne target) {
@@ -192,48 +182,12 @@ object VNodeProxy {
 }
 
 @js.native
-@JSImport("snabbdom", JSImport.Namespace, globalFallback = "snabbdom")
+@JSImport("outwatch-snabbdom", JSImport.Namespace)
 object Snabbdom extends js.Object {
   def init(@annotation.unused args: js.Array[Any]): js.Function2[Node | VNodeProxy, VNodeProxy, VNodeProxy] = js.native
-}
-
-@annotation.nowarn("msg=dead code")
-@js.native
-@JSImport("snabbdom/modules/class", JSImport.Namespace, globalFallback = "snabbdom_class")
-object SnabbdomClass extends js.Object {
-  val default: js.Any = js.native
-}
-
-@annotation.nowarn("msg=dead code")
-@js.native
-@JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
-object SnabbdomEventListeners extends js.Object{
-  val default: js.Any = js.native
-}
-
-@annotation.nowarn("msg=dead code")
-@js.native
-@JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
-object SnabbdomAttributes extends js.Object{
-  val default: js.Any = js.native
-}
-
-@annotation.nowarn("msg=dead code")
-@js.native
-@JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
-object SnabbdomProps extends js.Object{
-  val default: js.Any = js.native
-}
-
-@annotation.nowarn("msg=dead code")
-@js.native
-@JSImport("snabbdom/modules/style", JSImport.Namespace, globalFallback = "snabbdom_style")
-object SnabbdomStyle extends js.Object {
-  val default: js.Any = js.native
-}
-
-@js.native
-@JSImport("snabbdom/tovnode", JSImport.Default)
-object tovnode extends js.Function1[Element, VNodeProxy] {
-  def apply(element: Element): VNodeProxy = js.native
+  def eventListenersModule: js.Any = js.native
+  def propsModule: js.Any = js.native
+  def styleModule: js.Any = js.native
+  def attributesModule: js.Any = js.native
+  def toVNode: js.Function1[Element, VNodeProxy] = js.native
 }

@@ -16,14 +16,7 @@ private[outwatch] object SnabbdomOps {
       props = modifiers.props
       style = modifiers.styles
       on = modifiers.emitters
-      hook = new Hooks {
-        init = modifiers.initHook
-        insert = modifiers.insertHook
-        prepatch = modifiers.prePatchHook
-        update = modifiers.updateHook
-        postpatch = modifiers.postPatchHook
-        destroy = modifiers.destroyHook
-      }
+      hook = modifiers.hook
       key = modifiers.keyOption
       ns = vNodeNS
     }
@@ -38,7 +31,6 @@ private[outwatch] object SnabbdomOps {
       text = string
       key = modifiers.keyOption
       _id = vNodeId
-      _unmount = modifiers.domUnmountHook
     }
 
     if (modifiers.hasOnlyTextChildren) {
@@ -95,7 +87,6 @@ private[outwatch] object SnabbdomOps {
       // based in dom events.
 
       var proxy: VNodeProxy = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
       var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
       var isActive: Boolean = false
 
@@ -107,8 +98,7 @@ private[outwatch] object SnabbdomOps {
         patchIsRunning = true
 
         // update the current proxy with the new state
-        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers, appendModifiers = nextModifiers)
-        nextModifiers = separatedModifiers.nextModifiers
+        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers)
         val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
         newProxy._update = proxy._update
         newProxy._args = proxy._args
@@ -171,7 +161,6 @@ private[outwatch] object SnabbdomOps {
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
       val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers)
-      nextModifiers = separatedModifiers.nextModifiers
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
       // set the patch observer so on subscribable updates we get a patch call

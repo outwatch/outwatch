@@ -130,6 +130,7 @@ final case class InitHook(trigger: js.Function1[VNodeProxy, Unit]) extends Snabb
 final case class InsertHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 final case class PrePatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class UpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
+final case class OldPostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class PostPatchHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends SnabbdomHook
 final case class DestroyHook(trigger: js.Function1[VNodeProxy, Unit]) extends SnabbdomHook
 
@@ -138,8 +139,6 @@ final case class DomMountHook(trigger: js.Function1[VNodeProxy, Unit]) extends D
 final case class DomUnmountHook(trigger: js.Function1[VNodeProxy, Unit]) extends DomHook
 final case class DomUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
 final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, Unit]) extends DomHook
-
-final case class NextVModifier(modifier: StaticVModifier) extends StaticVModifier
 
 case object EmptyModifier extends VModifier
 final case class CompositeModifier(modifiers: Iterable[VModifier]) extends VModifier

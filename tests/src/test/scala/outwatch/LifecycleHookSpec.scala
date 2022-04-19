@@ -622,7 +622,7 @@ class LifecycleHookSpec extends JSDomAsyncSpec {
       _ = domHooks shouldBe List("mount1", "child-mount1")
 
       _ <- countHandler.onNextIO(2) *> IO.cede
-      _ = domHooks shouldBe List("mount1", "child-mount1", "unmount1", "child-unmount1", "child-mount2", "mount2")
+      _ = domHooks shouldBe List("mount1", "child-mount1", "child-unmount1", "child-mount2", "unmount1", "mount2")
     } yield succeed
   }
 
