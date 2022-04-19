@@ -12,10 +12,8 @@ import scala.scalajs.js.annotation._
 import bench._
 
 @js.native
-@JSImport("jsdom", JSImport.Namespace)
-object jsdom extends js.Object {
-  def jsdom(@annotation.unused innerHTML: js.UndefOr[String]): js.Any = js.native
-}
+@JSImport("jsdom", "JSDOM")
+class JsDom(@annotation.unused innerHTML: String) extends js.Object
 
 object ChildrenPerformance {
 
@@ -51,10 +49,13 @@ object ChildrenPerformance {
   def setupJsDom(): Unit = {
     // see https://airbnb.io/enzyme/docs/guides/jsdom.html
 
-    val jdom = jsdom.jsdom("")
-    js.Dynamic.global.document = jdom
-    js.Dynamic.global.window = jdom.asInstanceOf[js.Dynamic].defaultView
-    js.Dynamic.global.navigator = js.Dynamic.literal(userAgent = "node.js");
+    val jdom = new JsDom("").asInstanceOf[js.Dynamic]
+
+    import js.Dynamic.{global => g}
+    g.global.window = jdom.window
+    g.global.document = jdom.window.document
+    g.global.navigator = js.Dynamic.literal(userAgent = "node.js");
+    ()
   }
 
   def beforeEach(): Unit = {
