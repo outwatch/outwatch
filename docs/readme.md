@@ -597,7 +597,7 @@ Futures are natively supported too:
 
 ```scala mdoc:js
 import scala.concurrent.Future
-implicit val ec = scala.concurrent.ExecutionContext.global
+import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 
 val component = {
   div(
@@ -661,14 +661,13 @@ Don't fear to nest different reactive constructs. Outwatch will handle everythin
 
 ```scala mdoc:js
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import concurrent.duration._
 import colibri.Observable
 import cats.effect.{SyncIO, IO}
 
 val component = {
   div(
-    div(Observable.interval(1.seconds).map(i => Future { i*i })),
+    div(Observable.interval(1.seconds).map(i => Future.successful { i*i })),
     div(Observable.interval(1.seconds).map(i => IO { i*2 })),
     div(IO { Observable.interval(1.seconds) }),
   )
@@ -680,7 +679,7 @@ Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 This is effectively the same as:
 ```scala mdoc:js
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 import concurrent.duration._
 import colibri.Observable
 import cats.effect.{SyncIO, IO}
