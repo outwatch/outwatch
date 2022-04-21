@@ -8,19 +8,25 @@ import scala.language.dynamics
 trait AttributeBuilder[-T, +A <: VModifier] extends Any {
   def assign(value: T): A
 
-  final def assignOption(value: Option[T]): Option[A] = value.map(assign)
+  final def assign(value: Option[T]): Option[A] = value.map(assign)
+
+  @deprecated("Use assign instead", "")
+  final def assignOption(value: Option[T]): Option[A] = assign(value)
 
   final def toggle(value: T): AttributeBuilder[Boolean, VModifier] = AttributeBuilder.ofModifier { enabled =>
     if (enabled) assign(value) else VModifier.empty
   }
 
   @inline final def :=(value: T): A = assign(value)
-
-  @inline final def :=?(value: Option[T]): Option[A] = assignOption(value)
+  @inline final def :=(value: Option[T]): Option[A] = assign(value)
 
   final def <--[F[_] : Source](source: F[_ <: T]): Observable[A] = Observable.lift(source).map(assign)
+  final def <--[F[_] : Source](source: F[_ <: Option[T]], @annotation.unused dummy: Unit = ()): Observable[Option[A]] = Observable.lift(source).map(assign)
 
-  final def <--?[F[_] : Source](source: F[_ <: Option[T]]): Observable[Option[A]] = Observable.lift(source).map(assignOption)
+  @deprecated("Use := instead", "")
+  final def :=?(value: Option[T]): Option[A] = :=(value)
+  @deprecated("Use <-- instead", "")
+  final def <--?[F[_] : Source](source: F[_ <: Option[T]]): Observable[Option[A]] = <--(source)
 }
 
 object AttributeBuilder {

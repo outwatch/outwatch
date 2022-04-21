@@ -112,12 +112,25 @@ class AttributeSpec extends JSDomSpec {
 
   "optional attributes" should "correctly render" in {
     val node = SnabbdomOps.toSnabbdom(input(
-      data.foo :=? Option("bar"),
-      data.bar :=? Option.empty[String]
+      cls := Option("bar"),
+      styleAttr := Option.empty[String]
     ), RenderConfig.ignoreError)
 
     node.data.get.attrs.get.toList should contain theSameElementsAs List(
-      "data-foo" -> "bar"
+      "class" -> "bar"
+    )
+  }
+
+  "optional attributes" should "correctly render with streams" in {
+    val node = SnabbdomOps.toSnabbdom(input(
+      cls <-- colibri.Observable(Option("bar")),
+      styleAttr <-- colibri.Observable(Option.empty[String]),
+      styleAttr <-- colibri.Subject.publish[Option[String]](),
+      styleAttr <-- colibri.Subject.publish[String](),
+    ), RenderConfig.ignoreError)
+
+    node.data.get.attrs.get.toList should contain theSameElementsAs List(
+      "class" -> "bar"
     )
   }
 
