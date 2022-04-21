@@ -155,6 +155,8 @@ lazy val jsdocs = project
       "com.github.cornerman" %%% "colibri-airstream" % colibriVersion,
       "com.github.cornerman" %%% "colibri-zio" % colibriVersion,
       "com.github.cornerman" %%% "colibri-fs2" % colibriVersion,
+      "io.github.cquiroz"    %%% "scala-java-time" % "2.4.0-M1",
+      "io.github.cquiroz"    %%% "scala-java-time-tzdb" % "2.4.0-M1"
     ),
     Compile / npmDependencies ++= Seq(
       "js-beautify" -> "1.14.0"
