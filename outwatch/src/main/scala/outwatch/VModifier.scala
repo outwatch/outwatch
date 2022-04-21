@@ -14,7 +14,11 @@ import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-sealed trait VModifier
+sealed trait VModifier {
+  def apply(args: VModifier*): VModifier
+  def append(args: VModifier*): VModifier
+  def prepend(args: VModifier*): VModifier
+}
 
 object VModifier {
   @inline def empty: VModifier = EmptyModifier
@@ -95,7 +99,13 @@ object VModifier {
   @inline implicit def renderToVModifier[T : Render](value: T): VModifier = Render[T].render(value)
 }
 
-sealed trait StaticVModifier extends VModifier
+sealed trait DefaultVModifier extends VModifier {
+  def apply(args: VModifier*): VModifier = append(args)
+  def append(args: VModifier*): VModifier = VModifier(this, args)
+  def prepend(args: VModifier*): VModifier = VModifier(args, this)
+}
+
+sealed trait StaticVModifier extends DefaultVModifier
 
 final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVModifier
 
@@ -141,14 +151,14 @@ final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, 
 
 final case class NextVModifier(modifier: StaticVModifier) extends StaticVModifier
 
-case object EmptyModifier extends VModifier
-final case class CompositeModifier(modifiers: Iterable[VModifier]) extends VModifier
-final case class StreamModifier(subscription: Observer[VModifier] => Cancelable) extends VModifier
-final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends VModifier
-final case class CancelableModifier(subscription: () => Cancelable) extends VModifier
-final case class SyncEffectModifier(unsafeRun: () => VModifier) extends VModifier
-final case class ErrorModifier(error: Throwable) extends VModifier
-final case class StringVNode(text: String) extends VModifier
+case object EmptyModifier extends DefaultVModifier
+final case class CompositeModifier(modifiers: Iterable[VModifier]) extends DefaultVModifier
+final case class StreamModifier(subscription: Observer[VModifier] => Cancelable) extends DefaultVModifier
+final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends DefaultVModifier
+final case class CancelableModifier(subscription: () => Cancelable) extends DefaultVModifier
+final case class SyncEffectModifier(unsafeRun: () => VModifier) extends DefaultVModifier
+final case class ErrorModifier(error: Throwable) extends DefaultVModifier
+final case class StringVNode(text: String) extends DefaultVModifier
 
 sealed trait VNode extends VModifier {
   def apply(args: VModifier*): VNode
