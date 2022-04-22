@@ -648,7 +648,7 @@ div(
 Alternatively you can do the following to achieve the same effect:
 ```scala mdoc:js:compile-only
 div(
-  VModifier.delay {
+  VModifier.eval {
     // doSomething
     "result"
   }
@@ -679,14 +679,13 @@ Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 This is effectively the same as:
 ```scala mdoc:js
 import scala.concurrent.Future
-import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 import concurrent.duration._
 import colibri.Observable
 import cats.effect.{SyncIO, IO}
 
 val component = {
   div(
-    div(Observable.interval(1.seconds).mapFuture(i => Future { i*i })),
+    div(Observable.interval(1.seconds).mapFuture(i => Future.successful { i*i })),
     div(Observable.interval(1.seconds).mapEffect(i => IO { i*2 })),
     div(Observable.interval(1.seconds)),
   )
