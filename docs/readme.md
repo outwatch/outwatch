@@ -59,6 +59,11 @@ We're using [JitPack](https://jitpack.io) to release the libraries. With JitPack
 
 We have prepared helpers for some javascript libraries. You can find them in the [Outwatch-libs](https://github.com/outwatch/outwatch-libs) Repository.
 
+
+### Convert html to outwatch
+
+You can convert html code to outwatch code on this wonderful page: https://simerplaha.github.io/html-to-scala-converter/
+
 ## Examples
 
 
