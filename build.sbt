@@ -46,7 +46,7 @@ lazy val commonSettings = Seq(
   useYarn := true,
 
   libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.11" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.12" % Test,
   ),
 
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
