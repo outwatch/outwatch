@@ -41,16 +41,4 @@ private[outwatch] object NativeHelpers {
       source.foreach(arr.push(_))
       arr
   }
-
-  // See: https://www.scala-js.org/doc/interoperability/global-scope.html#dynamically-lookup-a-global-variable-given-its-name
-  lazy val globalObject: js.Dynamic = {
-    import js.Dynamic.{global => g}
-    if (js.typeOf(g.global) != "undefined" && (g.global.Object eq g.Object)) {
-      // Node.js environment detected
-      g.global
-    } else {
-      // In all other well-known environment, we can use the global `this`
-      js.special.fileLevelThis.asInstanceOf[js.Dynamic]
-    }
-  }
 }

@@ -34,11 +34,11 @@ Add the outwatch dependencies to your `build.sbt`:
 libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % "@VERSION@",
   // optional dependencies:
-  "com.github.cornerman" %%% "colibri-zio"       % "0.4.2", // zio support
-  "com.github.cornerman" %%% "colibri-fs2"       % "0.4.2", // fs2 support
-  "com.github.cornerman" %%% "colibri-airstream" % "0.4.2", // sirstream support
-  "com.github.cornerman" %%% "colibri-rx"        % "0.4.2", // scala.rx support
-  "com.github.cornerman" %%% "colibri-router"    % "0.4.2", // Url Router support
+  "com.github.cornerman" %%% "colibri-zio"       % "0.5.0", // zio support
+  "com.github.cornerman" %%% "colibri-fs2"       % "0.5.0", // fs2 support
+  "com.github.cornerman" %%% "colibri-airstream" % "0.5.0", // sirstream support
+  "com.github.cornerman" %%% "colibri-rx"        % "0.5.0", // scala.rx support
+  "com.github.cornerman" %%% "colibri-router"    % "0.5.0", // Url Router support
 )
 
 ```
@@ -58,6 +58,11 @@ We're using [JitPack](https://jitpack.io) to release the libraries. With JitPack
 ### Use common javascript libraries with Outwatch
 
 We have prepared helpers for some javascript libraries. You can find them in the [Outwatch-libs](https://github.com/outwatch/outwatch-libs) Repository.
+
+
+### Convert html to outwatch
+
+You can convert html code to outwatch code on this wonderful page: https://simerplaha.github.io/html-to-scala-converter/
 
 ## Examples
 
@@ -597,7 +602,7 @@ Futures are natively supported too:
 
 ```scala mdoc:js
 import scala.concurrent.Future
-implicit val ec = scala.concurrent.ExecutionContext.global
+import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 
 val component = {
   div(
@@ -648,7 +653,7 @@ div(
 Alternatively you can do the following to achieve the same effect:
 ```scala mdoc:js:compile-only
 div(
-  VModifier.delay {
+  VModifier.eval {
     // doSomething
     "result"
   }
@@ -661,14 +666,13 @@ Don't fear to nest different reactive constructs. Outwatch will handle everythin
 
 ```scala mdoc:js
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import concurrent.duration._
 import colibri.Observable
 import cats.effect.{SyncIO, IO}
 
 val component = {
   div(
-    div(Observable.interval(1.seconds).map(i => Future { i*i })),
+    div(Observable.interval(1.seconds).map(i => Future.successful { i*i })),
     div(Observable.interval(1.seconds).map(i => IO { i*2 })),
     div(IO { Observable.interval(1.seconds) }),
   )
@@ -680,14 +684,13 @@ Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 This is effectively the same as:
 ```scala mdoc:js
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import concurrent.duration._
 import colibri.Observable
 import cats.effect.{SyncIO, IO}
 
 val component = {
   div(
-    div(Observable.interval(1.seconds).mapFuture(i => Future { i*i })),
+    div(Observable.interval(1.seconds).mapFuture(i => Future.successful { i*i })),
     div(Observable.interval(1.seconds).mapEffect(i => IO { i*2 })),
     div(Observable.interval(1.seconds)),
   )

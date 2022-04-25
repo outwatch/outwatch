@@ -1,3 +1,4 @@
+Global / onChangedBuildSource := ReloadOnSourceChanges
 
 inThisBuild(Seq(
   organization := "io.github.outwatch",
@@ -37,7 +38,7 @@ inThisBuild(Seq(
 ))
 
 val jsdomVersion = "13.2.0"
-val colibriVersion = "0.4.4"
+val colibriVersion = "0.5.0"
 
 lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
@@ -95,6 +96,7 @@ lazy val outwatch = project
 
     libraryDependencies ++= Seq(
       "com.raquo"            %%% "domtypes" % "0.15.1",
+      "com.github.cornerman" %%% "colibri" % colibriVersion,
       "com.github.cornerman" %%% "colibri-jsdom" % colibriVersion,
     )
   )
@@ -108,6 +110,10 @@ lazy val tests = project
 
     Test/requireJsDomEnv := true,
     installJsdom/version := jsdomVersion,
+
+    libraryDependencies ++= Seq(
+      "com.github.cornerman" %%% "colibri-reactive" % colibriVersion % Test,
+    )
   )
 
 lazy val bench = project
@@ -149,6 +155,8 @@ lazy val jsdocs = project
       "com.github.cornerman" %%% "colibri-airstream" % colibriVersion,
       "com.github.cornerman" %%% "colibri-zio" % colibriVersion,
       "com.github.cornerman" %%% "colibri-fs2" % colibriVersion,
+      "io.github.cquiroz"    %%% "scala-java-time" % "2.4.0-M1",
+      "io.github.cquiroz"    %%% "scala-java-time-tzdb" % "2.4.0-M1"
     ),
     Compile / npmDependencies ++= Seq(
       "js-beautify" -> "1.14.0"

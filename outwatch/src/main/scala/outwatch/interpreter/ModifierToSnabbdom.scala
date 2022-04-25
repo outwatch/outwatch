@@ -214,6 +214,7 @@ private[outwatch] final class NativeModifiers(
 )
 
 private[outwatch] final class Subscribable(newCancelable: () => Cancelable) {
+  private var hasEnded = false
   private var subscription: Cancelable = null
 
   // premature subscription on creation of subscribable
@@ -224,43 +225,29 @@ private[outwatch] final class Subscribable(newCancelable: () => Cancelable) {
   // be mounted one way or another and this method is guarded by an effect in the public api.
   unsafeSubscribe()
 
-  def unsafeSubscribe(): Unit = if (subscription == null) {
+  def unsafeSubscribe(): Unit = if (!hasEnded && subscription == null) {
     val variable = Cancelable.variable()
     subscription = variable
-    variable.add(newCancelable)
-    variable.freeze()
+    variable.unsafeAdd(newCancelable)
+    variable.unsafeFreeze()
   }
 
-  def unsafeUnsubscribe(): Unit = if (subscription != null) {
+  def unsafeUnsubscribe(): Unit = if (!hasEnded && subscription != null) {
+    if (subscription.isEmpty()) {
+      hasEnded = true
+    }
     subscription.unsafeCancel()
     subscription = null
   }
 
-  def isEmpty() = subscription == null || subscription.isEmpty()
+  def isEmpty() = hasEnded || subscription != null && subscription.isEmpty()
 }
 
 private[outwatch] object NativeModifiers {
   def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig, sink: Observer[Unit] = Observer.empty): NativeModifiers = {
-    val allModifiers = new MutableNestedArray[StaticVModifier]()
-    val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream = false
 
-    @inline def appendCall(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = append(subscribables, modifiers, modifier, inStream)
-
-    @annotation.tailrec
     def append(subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifier, inStream: Boolean): Unit = {
-
-      def addSubscribable(subscription: () => Cancelable): Boolean = {
-        val subscribable = new Subscribable(subscription)
-        if (!subscribable.isEmpty()) {
-          hasStream = true
-          subscribables.push(subscribable)
-          true
-        }
-        else {
-          false
-        }
-      }
 
       @inline def appendStatic(mod: StaticVModifier): Unit = {
         modifiers.push(mod)
@@ -268,6 +255,7 @@ private[outwatch] object NativeModifiers {
       }
 
       @inline def appendStream(mod: StreamModifier): Unit = {
+        hasStream = true
 
         val streamedModifiers = new MutableNestedArray[StaticVModifier]()
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
@@ -276,10 +264,10 @@ private[outwatch] object NativeModifiers {
           streamedSubscribables.foreach(_.unsafeUnsubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
-          appendCall(streamedSubscribables, streamedModifiers, modifier, inStream = true)
+          append(streamedSubscribables, streamedModifiers, modifier, inStream = true)
         }
 
-        val addedSubscribable = addSubscribable(() =>
+        subscribables.push(new Subscribable(() =>
           mod.subscription(Observer.create[VModifier](
             { modifier =>
               handleModifier(modifier)
@@ -291,31 +279,29 @@ private[outwatch] object NativeModifiers {
               sink.unsafeOnError(error)
             }
           ))
-        )
+        ))
 
-        if (addedSubscribable || !streamedModifiers.isEmpty) {
-          modifiers.push(streamedModifiers)
-        }
-
-        if (addedSubscribable || !streamedSubscribables.isEmpty) {
-          subscribables.push(streamedSubscribables)
-        }
+        modifiers.push(streamedModifiers)
+        subscribables.push(streamedSubscribables)
       }
 
       modifier match {
         case EmptyModifier => ()
-        case c: CompositeModifier => c.modifiers.foreach(appendCall(subscribables, modifiers, _, inStream))
+        case c: CompositeModifier => c.modifiers.foreach(append(subscribables, modifiers, _, inStream))
         case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
         case mod: StaticVModifier => appendStatic(mod)
         case child: VNode  => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child, config)))
         case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier => appendStream(m)
-        case s: CancelableModifier => val _ = addSubscribable(s.subscription)
+        case s: CancelableModifier => subscribables.push(new Subscribable(s.subscription))
         case m: SyncEffectModifier => append(subscribables, modifiers, m.unsafeRun(), inStream)
         case m: ChildCommandsModifier => append(subscribables, modifiers, ChildCommand.stream(m.commands, config), inStream)
         case m: ErrorModifier => append(subscribables, modifiers, config.errorModifier(m.error), inStream)
       }
     }
+
+    val allModifiers = new MutableNestedArray[StaticVModifier]()
+    val allSubscribables = new MutableNestedArray[Subscribable]()
 
     appendModifiers.foreach(append(allSubscribables, allModifiers, _, inStream = false))
 
