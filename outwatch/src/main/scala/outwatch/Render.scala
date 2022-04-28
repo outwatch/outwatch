@@ -15,7 +15,16 @@ trait Render[-T] {
   def render(value: T): VModifier
 }
 
-trait RenderLowPrio0 {
+trait RenderLowPrio1 {
+  import RenderOps._
+
+  @inline implicit def UndefinedModifierAs[T : Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
+  @inline private class UndefinedRenderAsClass[T : Render] extends Render[js.UndefOr[T]] {
+    @inline def render(value: js.UndefOr[T]) = undefinedToModifierRender(value)
+  }
+}
+
+trait RenderLowPrio0 extends RenderLowPrio1 {
   import RenderOps._
 
   @inline implicit def EffectRender[F[_] : RunEffect]: Render[F[VModifier]] = new EffectRenderClass[F]
@@ -34,17 +43,17 @@ trait RenderLowPrio extends RenderLowPrio0 {
 
   @inline implicit def JsArrayModifierAs[T : Render]: Render[js.Array[T]] = new JsArrayRenderAsClass[T]
   @inline private class JsArrayRenderAsClass[T : Render] extends Render[js.Array[T]] {
-    @inline def render(value: js.Array[T]) = iterableToModifierRender(value)
+    @inline def render(value: js.Array[T]): VModifier = iterableToModifierRender(value)
   }
 
   @inline implicit def ArrayModifierAs[T : Render]: Render[Array[T]] = new ArrayRenderAsClass[T]
   @inline private class ArrayRenderAsClass[T : Render] extends Render[Array[T]] {
-    @inline def render(value: Array[T]) = iterableToModifierRender(value)
+    @inline def render(value: Array[T]): VModifier = iterableToModifierRender(value)
   }
 
   @inline implicit def SeqModifierAs[T : Render]: Render[Seq[T]] = new SeqRenderAsClass[T]
   @inline private class SeqRenderAsClass[T : Render] extends Render[Seq[T]] {
-    @inline def render(value: Seq[T]) = iterableToModifierRender(value)
+    @inline def render(value: Seq[T]): VModifier = iterableToModifierRender(value)
   }
 
   @inline implicit def NonEmptyListModifierAs[T : Render]: Render[NonEmptyList[T]] = new NonEmptyListRenderAsClass[T]
@@ -69,17 +78,12 @@ trait RenderLowPrio extends RenderLowPrio0 {
 
   @inline implicit def OptionModifierAs[T : Render]: Render[Option[T]] = new OptionRenderAsClass[T]
   @inline private class OptionRenderAsClass[T : Render] extends Render[Option[T]] {
-    @inline def render(value: Option[T]) = optionToModifierRender(value)
-  }
-
-  @inline implicit def UndefinedModifierAs[T : Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
-  @inline private class UndefinedRenderAsClass[T : Render] extends Render[js.UndefOr[T]] {
-    @inline def render(value: js.UndefOr[T]) = undefinedToModifierRender(value)
+    @inline def render(value: Option[T]): VModifier = optionToModifierRender(value)
   }
 
   @inline implicit def SyncEffectRenderAs[F[_] : RunSyncEffect, T : Render]: Render[F[T]] = new SyncEffectRenderAsClass[F, T]
   @inline private class SyncEffectRenderAsClass[F[_] : RunSyncEffect, T : Render] extends Render[F[T]] {
-    @inline def render(effect: F[T]) = syncToModifierRender(effect)
+    @inline def render(effect: F[T]): VModifier = syncToModifierRender(effect)
   }
 
   @inline implicit def ResourceRender[F[_] : RunEffect: Sync]: Render[Resource[F, VModifier]] = new ResourceRenderClass[F]
@@ -99,7 +103,7 @@ trait RenderLowPrio extends RenderLowPrio0 {
 
   @inline implicit def SourceRenderAs[F[_] : Source, T : Render]: Render[F[T]] = new SourceRenderAsClass[F, T]
   @inline private class SourceRenderAsClass[F[_]: Source, T: Render] extends Render[F[T]] {
-    @inline def render(source: F[T]) = sourceToModifierRender(source)
+    @inline def render(source: F[T]): VModifier = sourceToModifierRender(source)
   }
 }
 
@@ -140,9 +144,9 @@ object Render extends RenderLowPrio {
     @inline def render(value: Option[VModifier]): VModifier = value.getOrElse(VModifier.empty)
   }
 
-  implicit object UndefinedModifier extends Render[js.UndefOr[VModifier]] {
-    @inline def render(value: js.UndefOr[VModifier]): VModifier = value.getOrElse(VModifier.empty)
-  }
+  // implicit object UndefinedModifier extends Render[js.UndefOr[VModifier]] {
+  //   @inline def render(value: js.UndefOr[VModifier]): VModifier = value.getOrElse(VModifier.empty)
+  // }
 
   implicit object VModifierRender extends Render[VModifier] {
     @inline def render(value: VModifier): VModifier = value
@@ -206,12 +210,12 @@ object Render extends RenderLowPrio {
 
   @inline implicit def ChildCommandSourceRender[F[_] : Source]: Render[F[ChildCommand]] = new ChildCommandRenderClass[F]
   @inline private class ChildCommandRenderClass[F[_] : Source] extends Render[F[ChildCommand]] {
-    @inline def render(source: F[ChildCommand]) = childCommandToModifier(source)
+    @inline def render(source: F[ChildCommand]): VModifier = childCommandToModifier(source)
   }
 
   @inline implicit def ChildCommandSeqSourceRender[F[_] : Source]: Render[F[Seq[ChildCommand]]] = new ChildCommandSeqRenderClass[F]
   @inline private class ChildCommandSeqRenderClass[F[_] : Source] extends Render[F[Seq[ChildCommand]]] {
-    @inline def render(source: F[Seq[ChildCommand]]) = childCommandSeqToModifier(source)
+    @inline def render(source: F[Seq[ChildCommand]]): VModifier = childCommandSeqToModifier(source)
   }
 }
 

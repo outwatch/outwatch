@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        scalaVersion: ["2.13.8"]
+        scalaVersion: ["2.13.8", "3.1.1"]
     runs-on: ubuntu-20.04
     env:
       JAVA_OPTS: -Xms4096M -Xmx4096M -Xss6M
@@ -35,7 +35,7 @@ jobs:
           key: ${{ runner.os }}-scala-target-${{ github.sha }}
 
       - name: Test
-        run: sbt ++${{matrix.scalaVersion}} test docs/mdoc
+        run: sbt ++${{matrix.scalaVersion}} test docs/mdoc bench/compile
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}

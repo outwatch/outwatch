@@ -79,9 +79,9 @@ object ChildrenPerformance {
     val vtree = div(
       idAttr := elemId,
       span(idAttr := "pete", "Go!"),
-      onClick doAction {},
-      onDomMount doAction {},
-      onDomUnmount doAction {},
+      onClick doAction (),
+      onDomMount doAction (),
+      onDomUnmount doAction (),
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
@@ -93,7 +93,7 @@ object ChildrenPerformance {
       handler2.map { i =>
         (0 to i).map { j =>
           div(
-            div("hans", cls := j.toString, onClick doAction {}, handler3),
+            div("hans", cls := j.toString, onClick doAction (), handler3),
             p(p),
             handler3
           )
@@ -125,9 +125,9 @@ object ChildrenPerformance {
     val vtree = div(
       idAttr := elemId,
       span(idAttr := "pete", "Go!"),
-      onClick doAction {},
-      onDomMount doAction {},
-      onDomUnmount doAction {},
+      onClick doAction (),
+      onDomMount doAction (),
+      onDomUnmount doAction (),
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
@@ -139,7 +139,7 @@ object ChildrenPerformance {
       handler2.map { i =>
         (0 to i).map { j =>
           div.thunk("handler2")(j)(VModifier(
-            div("hans", cls := j.toString, onClick doAction {}, handler3),
+            div("hans", cls := j.toString, onClick doAction (), handler3),
             p(p),
             handler3
           ))
@@ -168,7 +168,7 @@ object ChildrenPerformance {
 
     def node1(j: Int) = input(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3)
     def node2(j: Int) = div(
-      div("hans", cls := j.toString, onClick doAction {}, handler3),
+      div("hans", cls := j.toString, onClick doAction (), handler3),
       p(p),
       handler3
     )
@@ -179,9 +179,9 @@ object ChildrenPerformance {
     val vtree = div(
       idAttr := elemId,
       span(idAttr := "pete", "Go!"),
-      onClick doAction {},
-      onDomMount doAction {},
-      onDomUnmount doAction {},
+      onClick doAction (),
+      onDomMount doAction (),
+      onDomUnmount doAction (),
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler,

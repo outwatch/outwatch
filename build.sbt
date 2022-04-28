@@ -5,12 +5,10 @@ inThisBuild(Seq(
 
   scalaVersion := crossScalaVersions.value.last,
 
-  crossScalaVersions := Seq("2.13.8"),
+  crossScalaVersions := Seq("2.13.8", "3.1.2"),
 
   licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-
   homepage := Some(url("https://outwatch.github.io/")),
-
   scmInfo := Some(ScmInfo(
     url("https://github.com/outwatch/outwatch"),
     "scm:git:git@github.com:outwatch/outwatch.git",
@@ -40,9 +38,9 @@ inThisBuild(Seq(
 val jsdomVersion = "13.2.0"
 val colibriVersion = "0.5.0"
 
-lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
 
+val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
+lazy val commonSettings = Seq(
   useYarn := true,
 
   libraryDependencies ++= Seq(
@@ -50,6 +48,13 @@ lazy val commonSettings = Seq(
   ),
 
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
+
+  libraryDependencies ++= (if (isDotty.value) Nil
+  else
+    Seq(
+      compilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.2").cross(CrossVersion.full))
+      ))
+
 )
 
 lazy val outwatchUtil = project
@@ -124,16 +129,12 @@ lazy val bench = project
 
     scalaJSUseMainModuleInitializer := true,
 
-    resolvers ++=
-      ("jitpack" at "https://jitpack.io") ::
-      Nil,
-
-    libraryDependencies ++=
-      "com.github.fdietze.bench" %%% "bench" % "5ffab44" ::
-      Nil,
+    resolvers += "jitpack" at "https://jitpack.io",
+    libraryDependencies ++= Seq(
+      "com.github.fdietze.bench" %%% "bench" % "d411db1",
+    ),
 
     Compile/scalaJSStage := FullOptStage,
-    scalacOptions ++= Seq ("-Xdisable-assertions"),
 
     useYarn := true,
 
@@ -169,7 +170,7 @@ lazy val docs = project
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(
     test/skip := true,
-    publish/skip := true,
+    publish/skip  := true,
     moduleName := "outwatch-docs",
     mdocJS := Some(jsdocs),
     mdocJSLibraries := (jsdocs / Compile / fullOptJS / webpack).value,

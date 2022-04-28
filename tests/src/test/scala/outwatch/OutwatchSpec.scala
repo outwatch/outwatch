@@ -56,7 +56,7 @@ abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
     // override final def reportFailure(t: Throwable): Unit = ExecutionContext.defaultReporter(t)
   // }
 
-  implicit val ioRuntime = unsafe.IORuntime(
+  implicit val ioRuntime: unsafe.IORuntime = unsafe.IORuntime(
     compute = executionContext,
     blocking = executionContext,
     config = unsafe.IORuntimeConfig(),

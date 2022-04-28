@@ -718,8 +718,8 @@ For using outwatch with airstream:
 import colibri.ext.airstream._
 ```
 
-For using outwatch with scala.rx:
-```scala mdoc:js:compile-only
+For using outwatch with scala.rx (Only Scala 2.x):
+```scala
 import colibri.ext.rx._
 ```
 

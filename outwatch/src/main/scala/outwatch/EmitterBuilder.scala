@@ -38,14 +38,15 @@ import scala.concurrent.duration.FiniteDuration
 
 trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
 
-  @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R
+  @inline def forwardTo[F[_] : Sink, O2 >: O](sink: F[O2]): R
 
   // this method keeps the current Execution but actually, the caller must decide,
   // whether this really keeps the execution type or might be async. Therefore private.
   @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec]
   @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec]
 
-  @inline final def -->[F[_] : Sink](sink: F[_ >: O]): R = forwardTo(sink)
+  @inline final def -->(sink: Observer[O]): R = forwardTo(sink)
+  @inline final def -->[F[_] : Sink, O2 >: O](sink: F[O2], @annotation.nowarn dummy: Unit = ()): R = forwardTo(sink)
 
   @inline final def discard: R = forwardTo(Observer.empty)
 
@@ -70,7 +71,7 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline def foreachAsyncSingleOrDrop[G[_] : RunEffect](action: O => G[Unit]): R = mapEffectSingleOrDrop(action).discard
   @inline def doAsyncSingleOrDrop[G[_] : RunEffect](action: G[Unit]): R = foreachAsyncSingleOrDrop(_ => action)
 
-  @inline def via[F[_] : Sink](sink: F[_ >: O]): EmitterBuilderExecution[O, R, Exec] = transformSinkWithExec[O](Observer.combine(_, Observer.lift(sink)))
+  @inline def via[F[_] : Sink, O2 >: O](sink: F[O2]): EmitterBuilderExecution[O, R, Exec] = transformSinkWithExec[O](Observer.combine(_, Observer.lift(sink)))
   @inline def dispatchWith(dispatcher: EventDispatcher[O]): R = transform(dispatcher.dispatch).discard
 
   @inline final def map[T](f: O => T): EmitterBuilderExecution[T, R, Exec] = transformSinkWithExec(_.contramap(f))
@@ -212,37 +213,37 @@ object EmitterBuilder {
   @inline final class MapResult[+O, +I, +R, +Exec <: Execution](base: EmitterBuilder[O, I], mapF: I => R) extends EmitterBuilderExecution[O, R, Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec] = new MapResult(base.transformSink(f), mapF)
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec] = new MapResult(base.transformWithExec(f), mapF)
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = mapF(base.forwardTo(sink))
+    @inline def forwardTo[F[_] : Sink, O2 >: O](sink: F[O2]): R = mapF(base.forwardTo(sink))
   }
 
   @inline final class Empty[+R](empty: R) extends EmitterBuilderExecution[Nothing, R, Nothing] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[Nothing]): EmitterBuilderExecution[T, R, Nothing] = this
     @inline private[outwatch] def transformWithExec[T](f: Observable[Nothing] => Observable[T]): EmitterBuilderExecution[T, R, Nothing] = this
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: Nothing]): R = empty
+    @inline def forwardTo[F[_] : Sink, O2 >: Nothing](sink: F[O2]): R = empty
   }
 
   @inline final class Stream[+O, +R: SubscriptionOwner : SyncEmbed](source: Observable[O], result: R) extends EmitterBuilderExecution[O, R, Execution] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Execution] = new Stream(source.transformSink(f), result)
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Execution] = new Stream(f(source), result)
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = SubscriptionOwner[R].own(result)(() => source.unsafeSubscribe(Observer.lift(sink)))
+    @inline def forwardTo[F[_] : Sink, O2 >: O](sink: F[O2]): R = SubscriptionOwner[R].own(result)(() => source.unsafeSubscribe(Observer.lift(sink)))
   }
 
   @inline final class Custom[+O, +R : SubscriptionOwner : SyncEmbed, +Exec <: Execution](create: Observer[O] => R) extends EmitterBuilderExecution[O, R, Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec] = new TransformSink(this, f)
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec] = new Transform(this, f)
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = create(Observer.lift(sink))
+    @inline def forwardTo[F[_] : Sink, O2 >: O](sink: F[O2]): R = create(Observer.lift(sink))
   }
 
   @inline final class TransformSink[+I, +O, +R: SubscriptionOwner : SyncEmbed, Exec <: Execution](base: EmitterBuilderExecution[I, R, Exec], transformF: Observer[O] => Observer[I]) extends EmitterBuilderExecution[O, R, Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec] = new TransformSink(base, s => transformF(f(s)))
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec] = new Transform[I, T, R, Exec](base, s => f(s.transformSink(transformF)))
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = base.forwardTo(transformF(Observer.lift(sink)))
+    @inline def forwardTo[F[_] : Sink, O2 >: O](sink: F[O2]): R = base.forwardTo(transformF(Observer.lift(sink)))
   }
 
   @inline final class Transform[+I, +O, +R: SubscriptionOwner : SyncEmbed, Exec <: Execution](base: EmitterBuilderExecution[I, R, Exec], transformF: Observable[I] => Observable[O]) extends EmitterBuilderExecution[O, R, Exec] {
     @inline private[outwatch] def transformSinkWithExec[T](f: Observer[T] => Observer[O]): EmitterBuilderExecution[T, R, Exec] = new Transform[I, T, R, Exec](base, s => transformF(s).transformSink(f))
     @inline private[outwatch] def transformWithExec[T](f: Observable[O] => Observable[T]): EmitterBuilderExecution[T, R, Exec] = new Transform[I, T, R, Exec](base, s => f(transformF(s)))
-    @inline def forwardTo[F[_] : Sink](sink: F[_ >: O]): R = forwardToInTransform(base, transformF, sink)
+    @inline def forwardTo[F[_] : Sink, O2 >: O](sink: F[O2]): R = forwardToInTransform(base, transformF, sink)
   }
 
   //TODO: we requiring Monoid here, but actually just want an empty. Would allycats be better with Empty?
@@ -371,9 +372,9 @@ object EmitterBuilder {
       }
     })
 
-  @noinline private def forwardToInTransform[F[_] : Sink, I, O, R : SubscriptionOwner : SyncEmbed](base: EmitterBuilder[I, R], transformF: Observable[I] => Observable[O], sink: F[_ >: O]): R = SyncEmbed[R].delay {
+  @noinline private def forwardToInTransform[F[_] : Sink, I, O, O2 >: O, R : SubscriptionOwner : SyncEmbed](base: EmitterBuilder[I, R], transformF: Observable[I] => Observable[O], sink: F[O2]): R = SyncEmbed[R].delay {
     val connectable = Observer.lift(sink).redirect(transformF)
-    SubscriptionOwner[R].own(base.forwardTo(connectable.value))(connectable.connect)
+    SubscriptionOwner[R].own(base.forwardTo(connectable.value))(() => connectable.connect())
   }
 }
 
