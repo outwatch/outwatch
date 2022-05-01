@@ -22,6 +22,10 @@ trait RenderLowPrio1 {
   @inline private class UndefinedRenderAsClass[T : Render] extends Render[js.UndefOr[T]] {
     @inline def render(value: js.UndefOr[T]) = undefinedToModifierRender(value)
   }
+
+  implicit object UndefinedModifier extends Render[js.UndefOr[VModifier]] {
+    @inline def render(value: js.UndefOr[VModifier]): VModifier = value.getOrElse(VModifier.empty)
+  }
 }
 
 trait RenderLowPrio0 extends RenderLowPrio1 {
@@ -143,10 +147,6 @@ object Render extends RenderLowPrio {
   implicit object OptionModifier extends Render[Option[VModifier]] {
     @inline def render(value: Option[VModifier]): VModifier = value.getOrElse(VModifier.empty)
   }
-
-  // implicit object UndefinedModifier extends Render[js.UndefOr[VModifier]] {
-  //   @inline def render(value: js.UndefOr[VModifier]): VModifier = value.getOrElse(VModifier.empty)
-  // }
 
   implicit object VModifierRender extends Render[VModifier] {
     @inline def render(value: VModifier): VModifier = value
