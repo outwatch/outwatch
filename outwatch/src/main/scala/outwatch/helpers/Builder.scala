@@ -20,13 +20,13 @@ trait AttributeBuilder[-T, +A <: VModifier] extends Any {
   @inline final def :=(value: T): A = assign(value)
   @inline final def :=(value: Option[T]): Option[A] = assign(value)
 
-  final def <--[F[+_] : Source](source: F[T]): Observable[A] = Observable.lift(source).map(assign)
-  final def <--[F[+_] : Source](source: F[Option[T]], @annotation.unused dummy: Unit = ()): Observable[Option[A]] = Observable.lift(source).map(assign)
+  final def <--[F[_] : Source, T2 <: T](source: F[T2]): Observable[A] = Observable.lift(source).map(assign)
+  final def <--[F[_] : Source, T2 <: Option[T]](source: F[T2], @annotation.unused dummy: Unit = ()): Observable[Option[A]] = Observable.lift(source).map(assign)
 
   @deprecated("Use := instead", "")
   final def :=?(value: Option[T]): Option[A] = :=(value)
   @deprecated("Use <-- instead", "")
-  final def <--?[F[+_] : Source](source: F[Option[T]]): Observable[Option[A]] = <--(source)
+  final def <--?[F[_] : Source, T2 <: Option[T]](source: F[T2]): Observable[Option[A]] = <--(source)
 }
 
 object AttributeBuilder {
