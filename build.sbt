@@ -78,7 +78,7 @@ lazy val outwatchSnabbdom = project
     name := "outwatch-snabbdom",
 
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.1.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0"
     ),
 
     Compile/npmDependencies ++= Seq(
@@ -150,7 +150,7 @@ lazy val jsdocs = project
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.1.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0",
       "com.github.cornerman" %%% "colibri-rx" % colibriVersion,
       "com.github.cornerman" %%% "colibri-airstream" % colibriVersion,
       "com.github.cornerman" %%% "colibri-zio" % colibriVersion,
