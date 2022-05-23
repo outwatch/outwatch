@@ -1,5 +1,5 @@
 # Outwatch
-The Functional and Reactive Web-Frontend Library for ScalaJS
+The Functional and Reactive Web-Frontend Library for Scala.js
 
 [![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Outwatch/Lobby)
 
