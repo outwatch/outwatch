@@ -125,7 +125,9 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(input(
       cls <-- colibri.Observable(Option("bar")),
       styleAttr <-- colibri.Observable(Option.empty[String]),
-      styleAttr <-- colibri.Subject.publish[Option[String]](),
+      // TODO: does not work with Scala3, because of bug:
+      // https://github.com/lampepfl/dotty/issues/15210
+      // styleAttr <-- colibri.Subject.publish[Option[String]](),
       styleAttr <-- colibri.Subject.publish[String](),
     ), RenderConfig.ignoreError)
 
