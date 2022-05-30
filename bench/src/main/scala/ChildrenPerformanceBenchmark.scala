@@ -25,26 +25,26 @@ object ChildrenPerformance {
     ()
   }
 
-  val childrenBenchmark = Comparison("Patching", Seq(
-    Benchmark[Int](
-      "Children",
-      { size => beforeEach(); size },
-      size =>
-        runChildren(size)
+  val childrenBenchmark = Comparison(
+    "Patching",
+    Seq(
+      Benchmark[Int](
+        "Children",
+        { size => beforeEach(); size },
+        size => runChildren(size),
+      ),
+      Benchmark[Int](
+        "Thunk",
+        { size => beforeEach(); size },
+        size => runThunks(size),
+      ),
+      Benchmark[Int](
+        "Command",
+        { size => beforeEach(); size },
+        size => runCommands(size),
+      ),
     ),
-    Benchmark[Int](
-      "Thunk",
-      { size => beforeEach(); size },
-      size =>
-        runThunks(size)
-    ),
-    Benchmark[Int](
-      "Command",
-      { size => beforeEach(); size },
-      size =>
-        runCommands(size)
-    )
-  ))
+  )
 
   def setupJsDom(): Unit = {
     // see https://airbnb.io/enzyme/docs/guides/jsdom.html
@@ -72,7 +72,7 @@ object ChildrenPerformance {
   def runChildren(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler = Subject.behavior[Int](0)
+    val handler  = Subject.behavior[Int](0)
     val handler2 = Subject.behavior[Int](0)
     val handler3 = Subject.replayLatest[Int]()
 
@@ -86,19 +86,25 @@ object ChildrenPerformance {
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
         (0 to i).map { j =>
-          div(dsl.defaultValue := j.toString, styleAttr := "background:black;", input(tpe := "text"), span(span(span)), handler3)
+          div(
+            dsl.defaultValue := j.toString,
+            styleAttr        := "background:black;",
+            input(tpe := "text"),
+            span(span(span)),
+            handler3,
+          )
         }
-        //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
+      //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
         (0 to i).map { j =>
           div(
             div("hans", cls := j.toString, onClick doAction (), handler3),
             p(p),
-            handler3
+            handler3,
           )
         }
-      }
+      },
     )
 
     val node = document.createElement("div")
@@ -118,7 +124,7 @@ object ChildrenPerformance {
   def runThunks(size: Int): Unit = {
     val elemId = "msg"
 
-    val handler = Subject.behavior[Int](0)
+    val handler  = Subject.behavior[Int](0)
     val handler2 = Subject.behavior[Int](0)
     val handler3 = Subject.replayLatest[Int]()
 
@@ -132,19 +138,23 @@ object ChildrenPerformance {
       //      dsl.value <-- handler.map(_.toString),
       handler.map { i =>
         (0 to i).map { j =>
-          input.thunk("handler")(j)(VModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3))
+          input.thunk("handler")(j)(
+            VModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3),
+          )
         }
-        //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
+      //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
       },
       handler2.map { i =>
         (0 to i).map { j =>
-          div.thunk("handler2")(j)(VModifier(
-            div("hans", cls := j.toString, onClick doAction (), handler3),
-            p(p),
-            handler3
-          ))
+          div.thunk("handler2")(j)(
+            VModifier(
+              div("hans", cls := j.toString, onClick doAction (), handler3),
+              p(p),
+              handler3,
+            ),
+          )
         }
-      }
+      },
     )
 
     val node = document.createElement("div")
@@ -170,10 +180,10 @@ object ChildrenPerformance {
     def node2(j: Int) = div(
       div("hans", cls := j.toString, onClick doAction (), handler3),
       p(p),
-      handler3
+      handler3,
     )
 
-    val handler = Subject.behavior[ChildCommand](ChildCommand.ReplaceAll(js.Array(node1(0))))
+    val handler  = Subject.behavior[ChildCommand](ChildCommand.ReplaceAll(js.Array(node1(0))))
     val handler2 = Subject.behavior[ChildCommand](ChildCommand.ReplaceAll(js.Array(node2(0))))
 
     val vtree = div(
@@ -185,7 +195,7 @@ object ChildrenPerformance {
       //      dsl.cls <-- handler.map(_.toString),
       //      dsl.value <-- handler.map(_.toString),
       handler,
-      handler2
+      handler2,
     )
 
     val node = document.createElement("div")
