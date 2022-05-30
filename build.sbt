@@ -171,7 +171,7 @@ lazy val docs = project
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(
     test/skip := true,
-    publish/skip  := true,
+    publish/skip := true,
     moduleName := "outwatch-docs",
     mdocJS := Some(jsdocs),
     mdocJSLibraries := (jsdocs / Compile / fullOptJS / webpack).value,
