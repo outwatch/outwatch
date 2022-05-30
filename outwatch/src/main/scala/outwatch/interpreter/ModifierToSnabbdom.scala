@@ -43,12 +43,12 @@ private[outwatch] object SeparatedModifiers {
 
     @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
-    @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])( x => proxies = x)
-    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVModifier])( x => nextModifiers = x)
-    @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())( x => emitters = x)
-    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(x => attrs = x)
-    @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(x => props = x)
-    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[DataObject.StyleValue]())(x => styles = x)
+    @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
+    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVModifier])(nextModifiers = _)
+    @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
+    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
+    @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
+    @inline def assureStyles() = styles getOrElse assign(js.Dictionary[DataObject.StyleValue]())(styles = _)
     @inline def setSpecialStyle(styleName: String)(title: String, value: String): Unit = {
       val styles = assureStyles()
       styles.raw(styleName).fold {
