@@ -374,7 +374,7 @@ object EmitterBuilder {
 
   @noinline private def forwardToInTransform[F[_] : Sink, I, O, O2 >: O, R : SubscriptionOwner : SyncEmbed](base: EmitterBuilder[I, R], transformF: Observable[I] => Observable[O], sink: F[O2]): R = SyncEmbed[R].delay {
     val connectable = Observer.lift(sink).redirect(transformF)
-    SubscriptionOwner[R].own(base.forwardTo(connectable.value))(() => connectable.connect())
+    SubscriptionOwner[R].own(base.forwardTo(connectable.value))(connectable.connect)
   }
 }
 
