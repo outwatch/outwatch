@@ -1,7 +1,9 @@
 # Outwatch
 The Functional and Reactive Web-Frontend Library for Scala.js
 
-[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Outwatch/Lobby)
+[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org)
+[![Discord](https://img.shields.io/discord/632277896739946517.svg?label=&logo=discord&logoColor=ffffff&color=404244&labelColor=6A7EC2)](https://discord.gg/9V8FZTVZ9R)
+[![outwatch Scala version support](https://index.scala-lang.org/outwatch/outwatch/outwatch/latest-by-scala-version.svg?platform=sjs1)](https://index.scala-lang.org/outwatch/outwatch/outwatch)
 
 
 ```scala
