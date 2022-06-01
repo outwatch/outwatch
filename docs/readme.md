@@ -440,7 +440,7 @@ Outwatch can render anything that implements the type class [`Render`](@REPOURL@
 div(
   Some("thing"),
   Some(color := "steelblue"),
-  fontSize :=? Some("70px"),
+  fontSize := Some("70px"),
   Seq("Hey", "How are you?"),
   List("a", "b", "c").map(div(_)),
   Some(Seq("x")),
@@ -718,8 +718,8 @@ For using outwatch with airstream:
 import colibri.ext.airstream._
 ```
 
-For using outwatch with scala.rx:
-```scala mdoc:js:compile-only
+For using outwatch with scala.rx (Only Scala 2.x):
+```scala
 import colibri.ext.rx._
 ```
 

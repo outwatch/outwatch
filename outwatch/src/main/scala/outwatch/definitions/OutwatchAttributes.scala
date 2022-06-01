@@ -27,10 +27,10 @@ trait OutwatchAttributes {
 
 
   /** Outwatch component life cycle hooks. */
-  final lazy val onDomMount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DomMountHook))
-  final lazy val onDomUnmount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DomUnmountHook))
-  final lazy val onDomPreUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementFirstEmitter(DomPreUpdateHook))
-  final lazy val onDomUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementFirstEmitter(DomUpdateHook))
+  final lazy val onDomMount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DomMountHook.apply))
+  final lazy val onDomUnmount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DomUnmountHook.apply))
+  final lazy val onDomPreUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementFirstEmitter(DomPreUpdateHook.apply))
+  final lazy val onDomUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementFirstEmitter(DomUpdateHook.apply))
 
   /**
     * Lifecycle hook for component insertion.
@@ -38,20 +38,20 @@ trait OutwatchAttributes {
     * This hook is invoked once the DOM element for a vnode has been inserted into the document
     * and the rest of the patch cycle is done.
     */
-  final lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, VModifier] = EmitterBuilder(proxyElementEmitter(InsertHook))
+  final lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, VModifier] = EmitterBuilder(proxyElementEmitter(InsertHook.apply))
 
   /** Lifecycle hook for component prepatch. */
-  final lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element],Option[dom.Element]), VModifier] = EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook))
+  final lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element],Option[dom.Element]), VModifier] = EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook.apply))
 
   /** Lifecycle hook for component updates. */
-  final lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element,dom.Element), VModifier] = EmitterBuilder(proxyElementPairEmitter(UpdateHook))
+  final lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element,dom.Element), VModifier] = EmitterBuilder(proxyElementPairEmitter(UpdateHook.apply))
 
   /**
     * Lifecycle hook for component postpatch.
     *
     *  This hook is invoked every time a node has been patched against an older instance of itself.
     */
-  final lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element,dom.Element), VModifier] = EmitterBuilder(proxyElementPairEmitter(PostPatchHook))
+  final lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element,dom.Element), VModifier] = EmitterBuilder(proxyElementPairEmitter(PostPatchHook.apply))
 
   /**
     * Lifecycle hook for component destruction.
@@ -59,18 +59,18 @@ trait OutwatchAttributes {
     * This hook is invoked on a virtual node when its DOM element is removed from the DOM
     * or if its parent is being removed from the DOM.
     */
-  final lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DestroyHook))
+  final lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(proxyElementEmitter(DestroyHook.apply))
 
   /** Snabbdom Key Attribute */
   @inline final def key = KeyBuilder
 }
 
-trait DocumentTagDeprecations[T[_ <: dom.html.Element]] { self: DocumentTags[T] =>
+trait DocumentTagDeprecations[T[_]] { self: DocumentTags[T] with com.raquo.domtypes.generic.builders.HtmlTagBuilder[T, org.scalajs.dom.html.Element] => //Workaround for https://github.com/lampepfl/dotty/issues/14095
   @deprecated("removed to free up name for use in local variables, use linkTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline final def link = linkTag
 }
 
-trait EmbedTagDeprecations[T[_ <: dom.html.Element]] { self: EmbedTags[T] =>
+trait EmbedTagDeprecations[T[_]] { self: EmbedTags[T] with com.raquo.domtypes.generic.builders.HtmlTagBuilder[T, org.scalajs.dom.html.Element] => //Workaround for https://github.com/lampepfl/dotty/issues/14095
   @deprecated("removed to free up name for use in local variables, use objectTag instead", "scala-dom-types: 0.10.0; outwatch: 1.0.0")
   @inline final def `object` = objectTag
 

@@ -78,7 +78,7 @@ object thunk {
         (oldArgs.length != newArgs.length) || existsIndexWhere(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
 
-      prepatch(fn, isDifferent, oldProxy, thunk)
+      thunkPrepatch(fn, isDifferent, oldProxy, thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
@@ -88,13 +88,13 @@ object thunk {
     for {
       shouldRender <- thunk._args.asInstanceOf[js.UndefOr[Boolean]]
     } {
-      prepatch(fn, shouldRender, oldProxy, thunk)
+      thunkPrepatch(fn, shouldRender, oldProxy, thunk)
     }
 
     thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
   }
 
-  @inline private def prepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
+  @inline private def thunkPrepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     if(shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
     else VNodeProxy.updateInto(source = oldProxy, target = thunk)
   }
@@ -131,10 +131,10 @@ object thunk {
   }
 
   @inline def apply(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
-    createProxy(namespace, selector, keyValue, renderArgs, initThunk(renderFn), prepatchArray(renderFn))
+    createProxy(namespace, selector, keyValue, renderArgs, initThunk(renderFn) _, prepatchArray(renderFn) _)
 
   @inline def conditional(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
-    createProxy(namespace, selector, keyValue, shouldRender, initThunk(renderFn), prepatchBoolean(renderFn))
+    createProxy(namespace, selector, keyValue, shouldRender, initThunk(renderFn) _, prepatchBoolean(renderFn) _)
 }
 
 object patch {

@@ -23,8 +23,8 @@ private[outwatch] object NativeHelpers {
   }
 
   @noinline def appendSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
-    case wrappedOther:js.WrappedArray[T] =>
-      if (source.isEmpty) wrappedOther else source.concat(wrappedOther)
+    case wrappedOther:js.WrappedArray[_] =>
+      if (source.isEmpty) wrappedOther.asInstanceOf[js.WrappedArray[T]] else source.concat(wrappedOther)
     case _ =>
       val arr = new js.Array[T]()
       source.foreach(arr.push(_))
@@ -33,8 +33,8 @@ private[outwatch] object NativeHelpers {
   }
 
   @noinline def prependSeq[T](source: js.Array[T], other: collection.Seq[T]): js.Array[T] = if (other.isEmpty) source else other match {
-    case wrappedOther:js.WrappedArray[T] =>
-      if (source.isEmpty) wrappedOther else (wrappedOther: js.Array[T]).concat(source)
+    case wrappedOther:js.WrappedArray[_] =>
+      if (source.isEmpty) wrappedOther.asInstanceOf[js.WrappedArray[T]] else (wrappedOther.asInstanceOf[js.WrappedArray[T]]: js.Array[T]).concat(source)
     case _ =>
       val arr = new js.Array[T]()
       other.foreach(arr.push(_))

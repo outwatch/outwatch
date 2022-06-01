@@ -27,5 +27,5 @@ object Reducer {
    * Creates a Reducer with an optional effect.
    */
   def withOptionalEffects[F[_]: ObservableLike, A, M](f: (M, A) => (M, Option[F[A]])): Reducer[A, M] = (s: M, a: A) =>
-    f(s, a).map(_.fold[Observable[A]](Observable.empty)(ObservableLike[F].toObservable))
+    f(s, a).map((x: Option[F[A]]) => x.fold[Observable[A]](Observable.empty)(ObservableLike[F].toObservable))
 }

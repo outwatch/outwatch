@@ -52,7 +52,7 @@ private[outwatch] object SeparatedModifiers {
     @inline def setSpecialStyle(styleName: String)(title: String, value: String): Unit = {
       val styles = assureStyles()
       styles.raw(styleName).fold {
-        styles(styleName) = js.Dictionary[String](title -> value): DataObject.StyleValue
+        styles(styleName) = js.Dictionary[String](title -> value)
       } { style =>
         style.asInstanceOf[js.Dictionary[String]](title) = value
       }
@@ -84,10 +84,10 @@ private[outwatch] object SeparatedModifiers {
         ()
       case a : AccumAttr =>
         val attrs = assureAttrs()
-        val attr = attrs.raw(a.title)
+        val attr: js.UndefOr[Attr.Value] = attrs.raw(a.title)
         attr.fold {
           attrs(a.title) = a.value
-        } { attr =>
+        } { (attr: Attr.Value) =>
           attrs(a.title) = a.accum(attr, a.value)
         }
         ()

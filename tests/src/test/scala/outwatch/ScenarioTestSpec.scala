@@ -16,7 +16,6 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
   def getCounter: Element = document.getElementById("counter")
 
   "A simple counter application" should "work as intended" in {
-
     for {
        handlePlus <- IO(Subject.replayLatest[MouseEvent]())
       handleMinus <- IO(Subject.replayLatest[MouseEvent]())
@@ -79,8 +78,8 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
-        button(idAttr := "plus", "+", onClick.as(Plus) -->[colibri.Observer] store),
-        button(idAttr := "minus", "-", onClick.as(Minus) -->[colibri.Observer] store),
+        button(idAttr := "plus", "+", onClick.as(Plus) --> store),
+        button(idAttr := "minus", "-", onClick.as(Minus) --> store),
         span(idAttr :="counter")(
           state.map(_.count)
         ),
@@ -218,7 +217,6 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
   }
 
   "A todo application" should "work with components" in {
-
     def TodoComponent(title: String, deleteStream: Observer[String]) =
       li(
         span(title),
@@ -231,31 +229,34 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       clickStream <- IO(Subject.replayLatest[MouseEvent]())
       keyStream <- IO(Subject.replayLatest[KeyboardEvent]())
 
-      buttonDisabled = textFieldStream
+
+    } yield {
+      val buttonDisabled = textFieldStream
         .map(_.length < 2)
         .startWith(Seq(true))
 
-      enterPressed = keyStream
+      val enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = Observable.merge(enterPressed, clickStream)
+      val confirm = Observable.merge(enterPressed, clickStream)
         .withLatestMap(textFieldStream)((_, input) => input)
 
-    } yield div(
+      div(
         EmitterBuilder.fromSource(confirm) --> outputStream,
         label(labelText),
         input(idAttr := "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
         button(idAttr := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
+    }
 
 
 
     def addToList(todo: String) = {
-      list: Vector[String] => list :+ todo
+      (list: Vector[String]) => list :+ todo
     }
 
     def removeFromList(todo: String) = {
-      list: Vector[String] => list.filterNot(_ == todo)
+      (list: Vector[String]) => list.filterNot(_ == todo)
     }
 
     val vtree = for {
