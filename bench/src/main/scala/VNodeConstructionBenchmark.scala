@@ -15,30 +15,39 @@ object VNodeConstructionBenchmark {
     ()
   }
 
-  val vnodes = Comparison("VNode Construction", Seq(
-    BenchmarkWithoutInit(
-      "10 literal tags",
-      { _ =>
-        SnabbdomOps.toSnabbdom(div(span(), a(), img(), hr(), button(), input(), form(), label(), b(), i()), RenderConfig.default)
-      }
+  val vnodes = Comparison(
+    "VNode Construction",
+    Seq(
+      BenchmarkWithoutInit(
+        "10 literal tags",
+        { _ =>
+          SnabbdomOps.toSnabbdom(
+            div(span(), a(), img(), hr(), button(), input(), form(), label(), b(), i()),
+            RenderConfig.default,
+          )
+        },
+      ),
+      BenchmarkWithoutInit(
+        "10 literal attrs",
+        { _ =>
+          SnabbdomOps.toSnabbdom(
+            div(
+              idAttr          := "a",
+              minAttr         := "wo",
+              maxAttr         := "wa",
+              src             := "x",
+              href            := "k",
+              target          := "j",
+              value           := "jo",
+              contentEditable := true,
+              name            := "hui",
+              autoComplete    := "true",
+            ),
+            RenderConfig.default,
+          )
+        },
+      ),
     ),
-    BenchmarkWithoutInit(
-      "10 literal attrs",
-      { _ =>
-        SnabbdomOps.toSnabbdom(div(
-          idAttr := "a",
-          minAttr := "wo",
-          maxAttr := "wa",
-          src := "x",
-          href := "k",
-          target := "j",
-          value := "jo",
-          contentEditable := true,
-          name := "hui",
-          autoComplete := "true"
-        ), RenderConfig.default)
-      }
-    )
-  ))
+  )
 
 }

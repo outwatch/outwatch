@@ -14,6 +14,7 @@ package object outwatch extends definitions.ManagedHelpers {
   @deprecated("Use Outwatch instead", "")
   val OutWatch = Outwatch
 
-  //TODO: invent typeclass CanBuildStyle[F[_]]
-  @inline implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.name)
+  // TODO: invent typeclass CanBuildStyle[F[_]]
+  @inline implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] =
+    new BasicStyleBuilder[T](style.name)
 }
