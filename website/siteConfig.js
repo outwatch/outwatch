@@ -20,7 +20,7 @@ const siteConfig = {
   //   baseUrl: '/test-site/',
 
   // Used for publishing and more
-  organizationName: 'OutWatch',
+  organizationName: 'Outwatch',
   projectName: 'outwatch.github.io',
   customDocsPath: "outwatch-docs/target/mdoc",
   // For top-level user or org sites, the organization is still the same.

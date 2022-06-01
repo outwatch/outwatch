@@ -7,17 +7,17 @@ import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.|
 
 trait Hooks extends js.Object {
-  var init: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var insert: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var prepatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var update: js.UndefOr[Hooks.HookPairFn] = js.undefined
+  var init: js.UndefOr[Hooks.HookSingleFn]    = js.undefined
+  var insert: js.UndefOr[Hooks.HookSingleFn]  = js.undefined
+  var prepatch: js.UndefOr[Hooks.HookPairFn]  = js.undefined
+  var update: js.UndefOr[Hooks.HookPairFn]    = js.undefined
   var postpatch: js.UndefOr[Hooks.HookPairFn] = js.undefined
   var destroy: js.UndefOr[Hooks.HookSingleFn] = js.undefined
 }
 
 object Hooks {
   type HookSingleFn = js.Function1[VNodeProxy, Unit]
-  type HookPairFn = js.Function2[VNodeProxy, VNodeProxy, Unit]
+  type HookPairFn   = js.Function2[VNodeProxy, VNodeProxy, Unit]
 
   def empty: Hooks = new Hooks {}
 }
@@ -25,21 +25,21 @@ object Hooks {
 trait DataObject extends js.Object {
   import DataObject._
 
-  var attrs: js.UndefOr[js.Dictionary[AttrValue]] = js.undefined
-  var props: js.UndefOr[js.Dictionary[PropValue]] = js.undefined
-  var style: js.UndefOr[js.Dictionary[StyleValue]] = js.undefined
+  var attrs: js.UndefOr[js.Dictionary[AttrValue]]              = js.undefined
+  var props: js.UndefOr[js.Dictionary[PropValue]]              = js.undefined
+  var style: js.UndefOr[js.Dictionary[StyleValue]]             = js.undefined
   var on: js.UndefOr[js.Dictionary[js.Function1[Event, Unit]]] = js.undefined
-  var hook: js.UndefOr[Hooks] = js.undefined
-  var key: js.UndefOr[KeyValue] = js.undefined
-  var ns: js.UndefOr[String] = js.undefined
+  var hook: js.UndefOr[Hooks]                                  = js.undefined
+  var key: js.UndefOr[KeyValue]                                = js.undefined
+  var ns: js.UndefOr[String]                                   = js.undefined
 }
 
 object DataObject {
 
-  type PropValue = Any
-  type AttrValue = String | Boolean | Double | Int
+  type PropValue  = Any
+  type AttrValue  = String | Boolean | Double | Int
   type StyleValue = String | js.Dictionary[String]
-  type KeyValue = String | Double | Int // https://github.com/snabbdom/snabbdom#key--string--number
+  type KeyValue   = String | Double | Int // https://github.com/snabbdom/snabbdom#key--string--number
 
   def empty: DataObject = new DataObject {}
 }
@@ -57,7 +57,7 @@ object DataObject {
 // }
 object thunk {
   // own implementation of https://github.com/snabbdom/snabbdom/blob/master/src/thunk.ts
-  //does respect equality via the equals method. snabbdom thunk uses reference equality: https://github.com/snabbdom/snabbdom/issues/143
+  // does respect equality via the equals method. snabbdom thunk uses reference equality: https://github.com/snabbdom/snabbdom/issues/143
 
   private def initThunk(fn: () => VNodeProxy)(thunk: VNodeProxy): Unit = {
     for {
@@ -66,7 +66,7 @@ object thunk {
       VNodeProxy.updateInto(source = fn(), target = thunk)
     }
 
-    thunk.data.foreach(_.hook.foreach(_.init.foreach(_ (thunk))))
+    thunk.data.foreach(_.hook.foreach(_.init.foreach(_(thunk))))
   }
 
   private def prepatchArray(fn: () => VNodeProxy)(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
@@ -78,47 +78,63 @@ object thunk {
         (oldArgs.length != newArgs.length) || existsIndexWhere(oldArgs.length)(i => oldArgs(i) != newArgs(i))
       }
 
-      prepatch(fn, isDifferent, oldProxy, thunk)
+      thunkPrepatch(fn, isDifferent, oldProxy, thunk)
     }
 
-    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
+    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_(oldProxy, thunk))))
   }
 
   private def prepatchBoolean(fn: () => VNodeProxy)(oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
     for {
       shouldRender <- thunk._args.asInstanceOf[js.UndefOr[Boolean]]
     } {
-      prepatch(fn, shouldRender, oldProxy, thunk)
+      thunkPrepatch(fn, shouldRender, oldProxy, thunk)
     }
 
-    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_ (oldProxy, thunk))))
+    thunk.data.foreach(_.hook.foreach(_.prepatch.foreach(_(oldProxy, thunk))))
   }
 
-  @inline private def prepatch(fn: () => VNodeProxy, shouldRender: Boolean, oldProxy: VNodeProxy, thunk: VNodeProxy): Unit = {
-    if(shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
+  @inline private def thunkPrepatch(
+    fn: () => VNodeProxy,
+    shouldRender: Boolean,
+    oldProxy: VNodeProxy,
+    thunk: VNodeProxy,
+  ): Unit = {
+    if (shouldRender) VNodeProxy.updateInto(source = fn(), target = thunk)
     else VNodeProxy.updateInto(source = oldProxy, target = thunk)
   }
 
   @inline private def existsIndexWhere(maxIndex: Int)(predicate: Int => Boolean): Boolean = {
     var i = 0
-    while(i < maxIndex) {
-      if(predicate(i)) return true
+    while (i < maxIndex) {
+      if (predicate(i)) return true
       i += 1
     }
     false
   }
 
-  private def createProxy(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderArgs: js.Array[Any] | Boolean, initHook: Hooks.HookSingleFn, prepatchHook: Hooks.HookPairFn): VNodeProxy = {
+  private def createProxy(
+    namespace: js.UndefOr[String],
+    selector: String,
+    keyValue: DataObject.KeyValue,
+    renderArgs: js.Array[Any] | Boolean,
+    initHook: Hooks.HookSingleFn,
+    prepatchHook: Hooks.HookPairFn,
+  ): VNodeProxy = {
     val proxy = new VNodeProxy {
       sel = selector
       data = new DataObject {
         hook = new Hooks {
           init = initHook
-          insert = { (p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.insert.foreach(_ (p)))) }: Hooks.HookSingleFn
+          insert = { (p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.insert.foreach(_(p)))) }: Hooks.HookSingleFn
           prepatch = prepatchHook
-          update = { (o: VNodeProxy, p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.update.foreach(_ (o, p)))) }: Hooks.HookPairFn
-          postpatch = { (o: VNodeProxy, p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.postpatch.foreach(_ (o, p)))) }: Hooks.HookPairFn
-          destroy = { (p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.destroy.foreach(_ (p)))) }: Hooks.HookSingleFn
+          update = { (o: VNodeProxy, p: VNodeProxy) =>
+            p.data.foreach(_.hook.foreach(_.update.foreach(_(o, p))))
+          }: Hooks.HookPairFn
+          postpatch = { (o: VNodeProxy, p: VNodeProxy) =>
+            p.data.foreach(_.hook.foreach(_.postpatch.foreach(_(o, p))))
+          }: Hooks.HookPairFn
+          destroy = { (p: VNodeProxy) => p.data.foreach(_.hook.foreach(_.destroy.foreach(_(p)))) }: Hooks.HookSingleFn
         }
         key = keyValue
         ns = namespace
@@ -130,41 +146,55 @@ object thunk {
     proxy
   }
 
-  @inline def apply(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], renderArgs: js.Array[Any]): VNodeProxy =
-    createProxy(namespace, selector, keyValue, renderArgs, initThunk(renderFn), prepatchArray(renderFn))
+  @inline def apply(
+    namespace: js.UndefOr[String],
+    selector: String,
+    keyValue: DataObject.KeyValue,
+    renderFn: js.Function0[VNodeProxy],
+    renderArgs: js.Array[Any],
+  ): VNodeProxy =
+    createProxy(namespace, selector, keyValue, renderArgs, initThunk(renderFn) _, prepatchArray(renderFn) _)
 
-  @inline def conditional(namespace: js.UndefOr[String], selector: String, keyValue: DataObject.KeyValue, renderFn: js.Function0[VNodeProxy], shouldRender: Boolean): VNodeProxy =
-    createProxy(namespace, selector, keyValue, shouldRender, initThunk(renderFn), prepatchBoolean(renderFn))
+  @inline def conditional(
+    namespace: js.UndefOr[String],
+    selector: String,
+    keyValue: DataObject.KeyValue,
+    renderFn: js.Function0[VNodeProxy],
+    shouldRender: Boolean,
+  ): VNodeProxy =
+    createProxy(namespace, selector, keyValue, shouldRender, initThunk(renderFn) _, prepatchBoolean(renderFn) _)
 }
 
 object patch {
 
-  private val p = Snabbdom.init(js.Array(
-    SnabbdomClass.default,
-    SnabbdomEventListeners.default,
-    SnabbdomAttributes.default,
-    SnabbdomProps.default,
-    SnabbdomStyle.default
-  ))
+  private val p = Snabbdom.init(
+    js.Array(
+      SnabbdomClass.default,
+      SnabbdomEventListeners.default,
+      SnabbdomAttributes.default,
+      SnabbdomProps.default,
+      SnabbdomStyle.default,
+    ),
+  )
 
-  def apply(firstNode: VNodeProxy, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
+  def apply(firstNode: VNodeProxy, vNode: VNodeProxy): VNodeProxy = p(firstNode, vNode)
 
-  def apply(firstNode: Element, vNode: VNodeProxy): VNodeProxy = p(firstNode,vNode)
+  def apply(firstNode: Element, vNode: VNodeProxy): VNodeProxy = p(firstNode, vNode)
 }
 
 trait VNodeProxy extends js.Object {
-  var sel: js.UndefOr[String] = js.undefined
-  var data: js.UndefOr[DataObject] = js.undefined
+  var sel: js.UndefOr[String]                    = js.undefined
+  var data: js.UndefOr[DataObject]               = js.undefined
   var children: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
-  var elm: js.UndefOr[Element] = js.undefined
-  var text: js.UndefOr[String] = js.undefined
-  var key: js.UndefOr[DataObject.KeyValue] = js.undefined
-  var listener: js.UndefOr[js.Any] = js.undefined
+  var elm: js.UndefOr[Element]                   = js.undefined
+  var text: js.UndefOr[String]                   = js.undefined
+  var key: js.UndefOr[DataObject.KeyValue]       = js.undefined
+  var listener: js.UndefOr[js.Any]               = js.undefined
 
-  var _id: js.UndefOr[Int] = js.undefined
-  var _unmount: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var _id: js.UndefOr[Int]                                = js.undefined
+  var _unmount: js.UndefOr[Hooks.HookSingleFn]            = js.undefined
   var _update: js.UndefOr[js.Function1[VNodeProxy, Unit]] = js.undefined
-  var _args: js.UndefOr[js.Array[Any] | Boolean] = js.undefined
+  var _args: js.UndefOr[js.Array[Any] | Boolean]          = js.undefined
 }
 
 object VNodeProxy {
@@ -207,21 +237,21 @@ object SnabbdomClass extends js.Object {
 @annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/eventlisteners", JSImport.Namespace, globalFallback = "snabbdom_eventlisteners")
-object SnabbdomEventListeners extends js.Object{
+object SnabbdomEventListeners extends js.Object {
   val default: js.Any = js.native
 }
 
 @annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/attributes", JSImport.Namespace, globalFallback = "snabbdom_attributes")
-object SnabbdomAttributes extends js.Object{
+object SnabbdomAttributes extends js.Object {
   val default: js.Any = js.native
 }
 
 @annotation.nowarn("msg=dead code")
 @js.native
 @JSImport("snabbdom/modules/props", JSImport.Namespace, globalFallback = "snabbdom_props")
-object SnabbdomProps extends js.Object{
+object SnabbdomProps extends js.Object {
   val default: js.Any = js.native
 }
 

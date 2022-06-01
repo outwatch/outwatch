@@ -7,6 +7,7 @@ import outwatch.dsl._
 import org.scalajs.dom.EventInit
 import colibri._
 import outwatch.util._
+import cats.implicits._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
 
@@ -15,8 +16,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
   def getCounter: Element = document.getElementById("counter")
 
   "A simple counter application" should "work as intended" in {
-
-    val test: IO[Assertion] = for {
+    for {
        handlePlus <- IO(Subject.replayLatest[MouseEvent]())
       handleMinus <- IO(Subject.replayLatest[MouseEvent]())
           plusOne = handlePlus.map(_ => 1)
@@ -43,19 +43,18 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                 _ <- IO {
                       getCounter.innerHTML shouldBe 0.toString
                       getMinus.dispatchEvent(event)
+                    }
+                _ <- IO.cede
+                _ <- IO {
                       getCounter.innerHTML shouldBe (-1).toString
                     }
-                as <- IO {
-                      (0 to 10).map { _ =>
-                        getPlus.dispatchEvent(event)
-                        getCounter.innerHTML
-                     }}
+
+                as <- (0 to 10).toList.traverse { _ =>
+                      IO(getPlus.dispatchEvent(event)) *> IO.cede *> IO(getCounter.innerHTML)
+                    }
     } yield {
       as should contain theSameElementsInOrderAs (0 to 10).map(_.toString)
     }
-
-    test
-
   }
 
 
@@ -73,14 +72,14 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       case (state, Plus) => state.copy(state.count + 1, state.iterations + 1)
       case (state, Minus) => state.copy(state.count - 1, state.iterations + 1)
     }
-  
+
     val node: IO[VNode] = for {
       store <- Store.create[IO, CounterAction, CounterModel](Initial, CounterModel(0, 0), reduce)
       state = store.collect { case (action@_, state) => state }
     } yield div(
       div(
-        button(idAttr := "plus", "+", onClick.as(Plus) -->[colibri.Observer] store),
-        button(idAttr := "minus", "-", onClick.as(Minus) -->[colibri.Observer] store),
+        button(idAttr := "plus", "+", onClick.as(Plus) --> store),
+        button(idAttr := "minus", "-", onClick.as(Minus) --> store),
         span(idAttr :="counter")(
           state.map(_.count)
         ),
@@ -92,7 +91,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
 
     def getIterations: Element = document.getElementById("iterations")
 
-    val test: IO[Assertion] = for {
+    for {
       r <- IO {
             val root = document.createElement("div")
             document.body.appendChild(root)
@@ -109,25 +108,24 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       _ <- IO {
             getCounter.innerHTML shouldBe 0.toString
             getIterations.innerHTML shouldBe 0.toString
-
+          }
+      _ <- IO {
             getMinus.dispatchEvent(e)
+          }
+      _ <- IO.cede
 
+      _ <- IO {
             getCounter.innerHTML shouldBe (-1).toString
             getIterations.innerHTML shouldBe 1.toString
-      }
-      as <- IO {
-            (0 to 10).map { _ =>
-              getPlus.dispatchEvent(e)
-              getCounter.innerHTML
-           }}
+          }
+      as <- (0 to 10).toList.traverse { _ =>
+            IO(getPlus.dispatchEvent(e)) *> IO.cede *> IO(getCounter.innerHTML)
+          }
 
     } yield {
       as should contain theSameElementsInOrderAs (0 to 10).map(_.toString)
       getIterations.innerHTML shouldBe 12.toString
     }
-
-    test
-
   }
 
   "A simple name application" should "work as intended" in {
@@ -136,10 +134,10 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     val name1 = "Luka"
     val name2 = "Peter"
 
-    def getGreeting(evt: Event, name: String): IO[String] = IO {
+    def getGreeting(evt: Event, name: String): IO[Unit] = IO {
       document.getElementById("input").asInstanceOf[html.Input].value = name
       document.getElementById("input").dispatchEvent(evt)
-      document.getElementById("greeting").innerHTML
+      ()
     }
 
     def assertGreeting(greeting: String, name: String): Assertion =
@@ -154,7 +152,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       )
     }
 
-    val test: IO[Assertion] = for {
+    for {
           r <- IO {
                 val root = document.createElement("div")
                 document.body.appendChild(root)
@@ -168,14 +166,14 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
                   cancelable = true
                 })
               }
-          g1 <- getGreeting(event, name1)
-          g2 <- getGreeting(event, name2)
+          _ <- getGreeting(event, name1) *> IO.cede
+          g1 <- IO(document.getElementById("greeting").innerHTML)
+          _ <- getGreeting(event, name2) *> IO.cede
+          g2 <- IO(document.getElementById("greeting").innerHTML)
            _ = assertGreeting(g1, name1)
            _ = assertGreeting(g2, name2)
 
     } yield succeed
-
-    test
   }
 
   "A component" should "be referential transparent" in {
@@ -197,7 +195,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
     val component1 = div(component(), component())
     val component2 = div(comp, comp)
 
-    val test: IO[Assertion] = for {
+    for {
       evt <- IO {
         new Event("click", new EventInit {
           bubbles = true
@@ -212,15 +210,13 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
              getButton(e1).dispatchEvent(evt)
              getButton(e2).dispatchEvent(evt)
            }
+       _ <- IO.cede
        _ = e1.innerHTML shouldBe e1.innerHTML
 
     } yield succeed
-
-    test
   }
 
   "A todo application" should "work with components" in {
-
     def TodoComponent(title: String, deleteStream: Observer[String]) =
       li(
         span(title),
@@ -233,31 +229,34 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
       clickStream <- IO(Subject.replayLatest[MouseEvent]())
       keyStream <- IO(Subject.replayLatest[KeyboardEvent]())
 
-      buttonDisabled = textFieldStream
+
+    } yield {
+      val buttonDisabled = textFieldStream
         .map(_.length < 2)
         .startWith(Seq(true))
 
-      enterPressed = keyStream
+      val enterPressed = keyStream
         .filter(_.key == "Enter")
 
-      confirm = Observable.merge(enterPressed, clickStream)
+      val confirm = Observable.merge(enterPressed, clickStream)
         .withLatestMap(textFieldStream)((_, input) => input)
 
-    } yield div(
+      div(
         EmitterBuilder.fromSource(confirm) --> outputStream,
         label(labelText),
         input(idAttr := "input", tpe := "text", onInput.value --> textFieldStream, onKeyUp --> keyStream),
         button(idAttr := "submit", onClick --> clickStream, disabled <-- buttonDisabled, "Submit")
       )
+    }
 
 
 
     def addToList(todo: String) = {
-      list: Vector[String] => list :+ todo
+      (list: Vector[String]) => list :+ todo
     }
 
     def removeFromList(todo: String) = {
-      list: Vector[String] => list.filterNot(_ == todo)
+      (list: Vector[String]) => list.filterNot(_ == todo)
     }
 
     val vtree = for {
@@ -280,7 +279,7 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         ul(idAttr := "list", state)
       )
 
-    val test: IO[Assertion] = for {
+    for {
 
       root <- IO {
         val root = document.createElement("div")
@@ -317,6 +316,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         submitBtn.dispatchEvent(clickEvt)
         todo
       }
+
+      _ <- IO.cede
+
       _ = list.childElementCount shouldBe 1
 
       t2 <- IO {
@@ -326,6 +328,9 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         submitBtn.dispatchEvent(clickEvt)
         todo2
       }
+
+      _ <- IO.cede
+
       _ = list.childElementCount shouldBe 2
 
       t3 <- IO {
@@ -335,20 +340,23 @@ class ScenarioTestSpec extends JSDomAsyncSpec {
         submitBtn.dispatchEvent(clickEvt)
         todo3
       }
+
+      _ <- IO.cede
+
       _ = list.childElementCount shouldBe 3
 
       _ <- IO(document.getElementById(t2).dispatchEvent(clickEvt))
+      _ <- IO.cede
       _ = list.childElementCount shouldBe 2
 
       _ <- IO(document.getElementById(t3).dispatchEvent(clickEvt))
+      _ <- IO.cede
       _ = list.childElementCount shouldBe 1
 
       _ <- IO(document.getElementById(t).dispatchEvent(clickEvt))
+      _ <- IO.cede
       _ = list.childElementCount shouldBe 0
 
     } yield succeed
-
-    test
-
   }
 }

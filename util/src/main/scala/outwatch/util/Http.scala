@@ -15,13 +15,14 @@ import scala.concurrent.Future
 
 @deprecated("Use org.scalajs.dom.fetch instead, you can render future or js.Promise responses in the dom as usual", "")
 object Http {
-  final case class Request(url: String,
+  final case class Request(
+    url: String,
     data: InputData = "",
     timeout: Int = 0,
     headers: Map[String, String] = Map.empty,
     responseType: String = "",
     method: String = Get.toString,
-    withCredentials: Boolean = false
+    withCredentials: Boolean = false,
   )
 
   type BodyType = String | ArrayBuffer | Blob | js.Dynamic | js.Any
@@ -31,25 +32,25 @@ object Http {
     status: Int,
     responseType: String,
     xhr: XMLHttpRequest,
-    response: js.Any
+    response: js.Any,
   )
 
   sealed trait HttpRequestType
-  case object Get extends HttpRequestType
-  case object Post extends HttpRequestType
-  case object Delete extends HttpRequestType
-  case object Put extends HttpRequestType
+  case object Get     extends HttpRequestType
+  case object Post    extends HttpRequestType
+  case object Delete  extends HttpRequestType
+  case object Put     extends HttpRequestType
   case object Options extends HttpRequestType
-  case object Head extends HttpRequestType
+  case object Head    extends HttpRequestType
 
   private def toResponse(req: XMLHttpRequest): Response = {
-    val body : BodyType = req.responseType match {
-      case "" => req.response.asInstanceOf[String]
-      case "text" => req.responseText
-      case "json" => req.response.asInstanceOf[js.Dynamic]
+    val body: BodyType = req.responseType match {
+      case ""            => req.response.asInstanceOf[String]
+      case "text"        => req.responseText
+      case "json"        => req.response.asInstanceOf[js.Dynamic]
       case "arraybuffer" => req.response.asInstanceOf[ArrayBuffer]
-      case "blob" => req.response.asInstanceOf[Blob]
-      case _ => req.response
+      case "blob"        => req.response.asInstanceOf[Blob]
+      case _             => req.response
     }
 
     Response(
@@ -57,7 +58,7 @@ object Http {
       status = req.status,
       responseType = req.responseType,
       xhr = req,
-      response = req.response
+      response = req.response,
     )
   }
 
@@ -68,16 +69,17 @@ object Http {
     timeout = request.timeout,
     headers = request.headers,
     withCredentials = request.withCredentials,
-    responseType = request.responseType
+    responseType = request.responseType,
   )
 
   private def request(observable: Observable[Request], requestType: HttpRequestType): Observable[Response] =
     observable.switchMap { request =>
-      Observable.fromFuture(ajax(request.copy(method = requestType.toString)))
-          .map(toResponse)
-          .recover {
-            case AjaxException(req) => toResponse(req)
-          }
+      Observable
+        .fromFuture(ajax(request.copy(method = requestType.toString)))
+        .map(toResponse)
+        .recover { case AjaxException(req) =>
+          toResponse(req)
+        }
     }.publish.refCount
 
   private def requestWithUrl(urls: Observable[String], requestType: HttpRequestType) =

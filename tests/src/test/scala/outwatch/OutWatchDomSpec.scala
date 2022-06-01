@@ -8,7 +8,6 @@ import org.scalajs.dom.{Element, Event, document, html}
 import outwatch.helpers._
 import outwatch.dsl._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
-import org.scalatest.Assertion
 import outwatch.interpreter._
 import colibri._
 import org.scalajs.dom.EventInit
@@ -19,11 +18,19 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.JSON
 import colibri.Subject
+import colibri.reactive._
 
 final case class Fixture(proxy: VNodeProxy)
 class OutwatchDomSpec extends JSDomAsyncSpec {
 
   implicit def ListToJsArray[T](list: Seq[T]): js.Array[T] = list.toJSArray
+
+  implicit def unsafeSubscriptionOwner[T]: SubscriptionOwner[T] = new SubscriptionOwner[T] {
+    def own(owner: T)(subscription: () => Cancelable): T = {
+      subscription()
+      owner
+    }
+  }
 
   def sendEvent(elem: Element, eventType: String) = {
     val event = new Event(eventType, new EventInit {
@@ -44,6 +51,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     data = dataObject
     children = childProxies
   }
+
+  val nonEmptyObservable = Observable.fromEffect(IO.never)
+  def nonEmptyObservable[A](values: A*) = Observable.merge(Observable.fromIterable(values), Observable.fromEffect(IO.never))
 
   "Properties" should "be separated correctly" in {
     val properties = Seq(
@@ -97,7 +107,37 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 1
     attrs.get.values.size shouldBe 2
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 0
+    proxies.get.length shouldBe 3
+  }
+
+
+  it should "be separated correctly with non empty stream" in {
+    val modifiers = Seq(
+      BasicAttr("class", "red"),
+      EmptyModifier,
+      Emitter("click", _ => ()),
+      new StringVNode("Test"),
+      div(),
+      CompositeModifier(
+        Seq[VModifier](
+          div(),
+          attributes.`class` := "blue",
+          attributes.onClick.as(1) doAction {},
+          attributes.hidden <-- nonEmptyObservable(false)
+        )
+      ),
+      VModifier(nonEmptyObservable)
+    )
+
+
+    val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
+    val seps = SeparatedModifiers.from(streamable.modifiers)
+    import seps._
+
+    emitters.get.values.size shouldBe 1
+    attrs.get.values.size shouldBe 2
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 2
     proxies.get.length shouldBe 3
   }
 
@@ -108,7 +148,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("click", _ => ()),
       Emitter("input",  _ => ()),
       VModifier(Observable.empty),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
       Emitter("keyup",  _ => ()),
       StringVNode("text"),
       div()
@@ -119,7 +159,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
     proxies.get.length shouldBe 2
   }
 
@@ -131,7 +171,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("input",  _ => ()),
       Emitter("keyup",  _ => ()),
       VModifier(Observable.empty),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
       StringVNode("text"),
       StringVNode("text2")
     )
@@ -142,7 +182,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     emitters.get.values.size shouldBe 3
     attrs.get.values.size shouldBe 1
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
     proxies.get.length shouldBe 2
   }
 
@@ -155,8 +195,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("input", _ => ()),
       UpdateHook((_,_) => ()),
       VModifier(Observable.empty),
-      VModifier(Observable.empty),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
+      VModifier(nonEmptyObservable),
       Emitter("keyup", _ => ()),
       InsertHook(_ => ()),
       PrePatchHook((_,_) => ()),
@@ -176,7 +216,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     destroyHook.isDefined shouldBe false
     attrs.get.values.size shouldBe 1
     keyOption.isEmpty shouldBe true
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 2
     proxies.get.length shouldBe 1
   }
 
@@ -204,12 +244,16 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         VModifier(Observable.empty)
       },
       IO {
+        list += "child3"
+        VModifier(nonEmptyObservable(div()))
+      },
+      IO {
         list += "children1"
-        VModifier(Observable.empty)
+        VModifier(nonEmptyObservable)
       },
       IO {
         list += "children2"
-        VModifier(Observable.empty)
+        VModifier(nonEmptyObservable)
       },
       div(
         IO {
@@ -225,7 +269,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    val test = for {
+    for {
 
       node <- IO {
         val node = document.createElement("div")
@@ -235,20 +279,15 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
       _ <- IO(list.isEmpty shouldBe true)
       _ <- Outwatch.renderInto[IO](node, vtree)
-    } yield {
-
-      list should contain theSameElementsAs List(
-        "child1", "child2", "children1", "children2", "attr1", "attr2"
+      _ = list should contain theSameElementsAs List(
+        "child1", "child2", "child3", "children1", "children2", "attr1", "attr2"
       )
 
-    }
-
-    test
+    } yield succeed
   }
 
-  it should "not provide unique key for child nodes if stream is present" in {
+  it should "not provide unique key for child nodes" in {
     val mods = Seq(
-      VModifier(Observable.empty),
       div(idAttr := "1"),
       div(idAttr := "2"),
       div(), div()
@@ -259,7 +298,36 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 4
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 0
+
+    val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
+    proxy.key.isDefined shouldBe false
+
+    val key1 = proxy.children.get(0).key
+    val key2 = proxy.children.get(1).key
+    val key3 = proxy.children.get(2).key
+    val key4 = proxy.children.get(3).key
+
+    key1.isDefined shouldBe false
+    key2.isDefined shouldBe false
+    key3.isDefined shouldBe false
+    key4.isDefined shouldBe false
+  }
+
+  it should "not provide unique key for child nodes if stream is present" in {
+    val mods = Seq(
+      VModifier(nonEmptyObservable),
+      div(idAttr := "1"),
+      div(idAttr := "2"),
+      div(), div()
+    )
+
+    val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
+    val seps =  SeparatedModifiers.from(streamable.modifiers)
+    import seps._
+
+    proxies.get.length shouldBe 4
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.isDefined shouldBe false
@@ -278,7 +346,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "keep existing key for child nodes" in {
     val mods = Seq(
       Key(1234),
-      VModifier(Observable.empty),
+      VModifier(nonEmptyObservable),
       div()(Key(5678))
     )
 
@@ -287,7 +355,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     import seps._
 
     proxies.get.length shouldBe 1
-    streamable.subscribables.isEmpty shouldBe false
+    streamable.subscribables.toFlatArray.filterNot(_.isEmpty()).length shouldBe 1
 
     val proxy = SnabbdomOps.toSnabbdom(div(mods), RenderConfig.ignoreError)
     proxy.key.toOption  shouldBe Some(1234)
@@ -324,79 +392,77 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
 
   it should "run its effect modifiers once!" in {
-    IO(Subject.replayLatest[String]()).flatMap { stringHandler =>
+    val stringHandler = Subject.replayLatest[String]()
 
-      var ioCounter = 0
-      var handlerCounter = 0
-      stringHandler { _ =>
-        handlerCounter += 1
-      }
-
-      val vtree = div(
-        div(
-          IO {
-            ioCounter += 1
-            BasicAttr("hans", "")
-          }
-        ),
-        stringHandler
-      )
-
-      val node = document.createElement("div")
-      document.body.appendChild(node)
-
-      ioCounter shouldBe 0
-      handlerCounter shouldBe 0
-
-
-      Outwatch.renderInto[IO](node, vtree).map { _ =>
-
-        ioCounter shouldBe 1
-        handlerCounter shouldBe 0
-        stringHandler.unsafeOnNext("pups")
-        ioCounter shouldBe 1
-        handlerCounter shouldBe 1
-
-      }
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler.unsafeForeach { _ =>
+      handlerCounter += 1
     }
+
+    val vtree = div(
+      div(
+        IO {
+          ioCounter += 1
+          BasicAttr("hans", "")
+        }
+      ),
+      stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+
+
+    for {
+      _ <- Outwatch.renderInto[IO](node, vtree)
+
+      _ = ioCounter shouldBe 1
+      _ = handlerCounter shouldBe 0
+      _ <- stringHandler.onNextIO("pups") *> IO.cede
+      _ = ioCounter shouldBe 1
+      _ = handlerCounter shouldBe 1
+    } yield succeed
   }
 
   it should "run its effect modifiers once in CompositeModifier!" in {
-    IO(Subject.replayLatest[String]()).flatMap { stringHandler =>
+    val stringHandler = Subject.replayLatest[String]()
 
-      var ioCounter = 0
-      var handlerCounter = 0
-      stringHandler { _ =>
-        handlerCounter += 1
-      }
-
-      val vtree = div(
-        div(Seq(
-          IO {
-            ioCounter += 1
-            BasicAttr("hans", "")
-          }
-        )),
-        stringHandler
-      )
-
-      val node = document.createElement("div")
-      document.body.appendChild(node)
-
-      ioCounter shouldBe 0
-      handlerCounter shouldBe 0
-
-      Outwatch.renderInto[IO](node, vtree).map { _ =>
-
-        ioCounter shouldBe 1
-        handlerCounter shouldBe 0
-        stringHandler.unsafeOnNext("pups")
-        ioCounter shouldBe 1
-        handlerCounter shouldBe 1
-
-      }
-
+    var ioCounter = 0
+    var handlerCounter = 0
+    stringHandler.unsafeForeach { _ =>
+      handlerCounter += 1
     }
+
+    val vtree = div(
+      div(Seq(
+        IO {
+          ioCounter += 1
+          BasicAttr("hans", "")
+        }
+      )),
+      stringHandler
+    )
+
+    val node = document.createElement("div")
+    document.body.appendChild(node)
+
+    ioCounter shouldBe 0
+    handlerCounter shouldBe 0
+
+    for {
+      _ <- Outwatch.renderInto[IO](node, vtree)
+
+      _ = ioCounter shouldBe 1
+      _ = handlerCounter shouldBe 0
+      _ <- stringHandler.onNextIO("pups") *> IO.cede
+      _ = ioCounter shouldBe 1
+      _ = handlerCounter shouldBe 1
+
+    } yield succeed
   }
 
   it should "be correctly patched into the DOM" in {
@@ -408,24 +474,20 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val child = span(message)
     val vtree = div(attributes.head, attributes(1), child)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vtree)
 
-      Outwatch.renderInto[IO](n, vtree).map { _ =>
-
-          val patchedNode = document.getElementById(id)
-          patchedNode.childElementCount shouldBe 1
-          patchedNode.classList.contains(cls) shouldBe true
-          patchedNode.children(0).innerHTML shouldBe message
-      }
-
-    }
-
+      patchedNode = document.getElementById(id)
+      _ = patchedNode.childElementCount shouldBe 1
+      _ = patchedNode.classList.contains(cls) shouldBe true
+      _ = patchedNode.children(0).innerHTML shouldBe message
+    } yield succeed
   }
 
   it should "be replaced if they contain changeables (SyncIO)" in {
@@ -448,19 +510,18 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       div(pageHandler.map(page))
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
     for {
-      n <- node
-      _ <- Outwatch.renderInto[IO](n, vtree)
-      _ <- pageHandler.onNextIO(1)
+      _ <- Outwatch.renderInto[IO](node, vtree)
+      _ <- pageHandler.onNextIO(1) *> IO.cede
       domNode = document.getElementById("page")
       _ = domNode.textContent shouldBe "1"
-      _ <- pageHandler.onNextIO(2)
+      _ <- pageHandler.onNextIO(2) *> IO.cede
       _ = domNode.textContent shouldBe "2"
     } yield succeed
   }
@@ -485,7 +546,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       div(pageHandler.map(page))
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
@@ -494,12 +555,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     // import scala.concurrent.duration._
 
     for {
-      n <- node
-      _ <- Outwatch.renderInto[IO](n, vtree)
-      _ <- pageHandler.onNextIO(1)
+      _ <- Outwatch.renderInto[IO](node, vtree)
+      _ <- pageHandler.onNextIO(1) *> IO.cede
       domNode = document.getElementById("page")
       _ = domNode.textContent shouldBe "1"
-      _ <- pageHandler.onNextIO(2)
+      _ <- pageHandler.onNextIO(2) *> IO.cede
       domNode2 = document.getElementById("page")
       _ = domNode2.textContent shouldBe "2"
     } yield succeed
@@ -560,24 +620,20 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap {n =>
+    Outwatch.renderInto[IO](node, vtree).map {_ =>
 
-      Outwatch.renderInto[IO](n, vtree).map {_ =>
+      val patchedNode = document.getElementById("test")
 
-        val patchedNode = document.getElementById("test")
-
-        patchedNode.childElementCount shouldBe 2
-        patchedNode.classList.contains("blue") shouldBe true
-        patchedNode.children(0).innerHTML shouldBe message
-        document.getElementById("list").childElementCount shouldBe 3
-      }
-
+      patchedNode.childElementCount shouldBe 2
+      patchedNode.classList.contains("blue") shouldBe true
+      patchedNode.children(0).innerHTML shouldBe message
+      document.getElementById("list").childElementCount shouldBe 3
     }
   }
 
@@ -588,32 +644,29 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       input(attributes.value <-- messages, idAttr := "input")
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vtree)
 
-      Outwatch.renderInto[IO](n, vtree).map { _ =>
+      field = document.getElementById("input").asInstanceOf[html.Input]
 
-        val field = document.getElementById("input").asInstanceOf[html.Input]
+      _ = field.value shouldBe ""
 
-        field.value shouldBe ""
+      message = "Hello"
+      _ <- messages.onNextIO(message) *> IO.cede
 
-        val message = "Hello"
-        messages.unsafeOnNext(message)
+      _ = field.value shouldBe message
 
-        field.value shouldBe message
+      message2 = "World"
+      _ <- messages.onNextIO(message2) *> IO.cede
 
-        val message2 = "World"
-        messages.unsafeOnNext(message2)
-
-        field.value shouldBe message2
-      }
-
-    }
+      _ = field.value shouldBe message2
+    } yield succeed
   }
 
   it should "render child nodes in correct order" in {
@@ -628,23 +681,20 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       messagesB.map(span(_))
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ <- messagesA.onNextIO("1") *> IO.cede
+      _ <- messagesB.onNextIO("2") *> IO.cede
 
-        messagesA.unsafeOnNext("1")
-        messagesB.unsafeOnNext("2")
-
-        n.innerHTML shouldBe "<div><span>A</span><span>1</span><span>B</span><span>2</span></div>"
-      }
-
-    }
+      _ = node.innerHTML shouldBe "<div><span>A</span><span>1</span><span>B</span><span>2</span></div>"
+    } yield succeed
   }
 
   it should "render child string-nodes in correct order" in {
@@ -658,26 +708,23 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       messagesB
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ = node.innerHTML shouldBe "<div>AB</div>"
 
-        n.innerHTML shouldBe "<div>AB</div>"
+      _ <- messagesA.onNextIO("1") *> IO.cede
+      _ = node.innerHTML shouldBe "<div>A1B</div>"
 
-        messagesA.unsafeOnNext("1")
-        n.innerHTML shouldBe "<div>A1B</div>"
-
-        messagesB.unsafeOnNext("2")
-        n.innerHTML shouldBe "<div>A1B2</div>"
-      }
-
-    }
+      _ <- messagesB.onNextIO("2") *> IO.cede
+      _ = node.innerHTML shouldBe "<div>A1B2</div>"
+    } yield succeed
   }
 
   it should "render child string-nodes in correct order, mixed with children" in {
@@ -694,29 +741,26 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       messagesB
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ = node.innerHTML shouldBe "<div>AB</div>"
 
-        n.innerHTML shouldBe "<div>AB</div>"
+      _ <- messagesA.onNextIO("1") *> IO.cede
+      _ = node.innerHTML shouldBe "<div>A1B</div>"
 
-        messagesA.unsafeOnNext("1")
-        n.innerHTML shouldBe "<div>A1B</div>"
+      _ <- messagesB.onNextIO("2") *> IO.cede
+      _ = node.innerHTML shouldBe "<div>A1B2</div>"
 
-        messagesB.unsafeOnNext("2")
-        n.innerHTML shouldBe "<div>A1B2</div>"
-
-        messagesC.unsafeOnNext(Seq(div("5"), div("7")))
-        n.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
-      }
-
-    }
+      _ <- messagesC.onNextIO(Seq(div("5"), div("7"))) *> IO.cede
+      _ = node.innerHTML shouldBe "<div>A1<div>5</div><div>7</div>B2</div>"
+    } yield succeed
   }
 
   it should "update merged nodes children correctly" in {
@@ -726,27 +770,24 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val vNode = div(messages)(otherMessages)
 
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ <- otherMessages.onNextIO(Seq(div("otherMessage"))) *> IO.cede
+      _ = node.children(0).innerHTML shouldBe "<div>otherMessage</div>"
 
-        otherMessages.unsafeOnNext(Seq(div("otherMessage")))
-        n.children(0).innerHTML shouldBe "<div>otherMessage</div>"
+      _ <- messages.onNextIO(Seq(div("message"))) *> IO.cede
+      _ = node.children(0).innerHTML shouldBe "<div>message</div><div>otherMessage</div>"
 
-        messages.unsafeOnNext(Seq(div("message")))
-        n.children(0).innerHTML shouldBe "<div>message</div><div>otherMessage</div>"
-
-        otherMessages.unsafeOnNext(Seq(div("genus")))
-        n.children(0).innerHTML shouldBe "<div>message</div><div>genus</div>"
-      }
-
-    }
+      _ <- otherMessages.onNextIO(Seq(div("genus"))) *> IO.cede
+      _ = node.children(0).innerHTML shouldBe "<div>message</div><div>genus</div>"
+    } yield succeed
   }
 
   it should "update merged nodes separate children correctly" in {
@@ -755,29 +796,27 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val otherMessages = Subject.publish[String]()
     val vNode = div(messages)(otherMessages)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ = node.children(0).innerHTML shouldBe ""
 
-        n.children(0).innerHTML shouldBe ""
+      _ <- otherMessages.onNextIO("otherMessage") *> IO.cede
+      _ = node.children(0).innerHTML shouldBe "otherMessage"
 
-        otherMessages.unsafeOnNext("otherMessage")
-        n.children(0).innerHTML shouldBe "otherMessage"
+      _ <- messages.onNextIO("message") *> IO.cede
+      _ = node.children(0).innerHTML shouldBe "messageotherMessage"
 
-        messages.unsafeOnNext("message")
-        n.children(0).innerHTML shouldBe "messageotherMessage"
+      _ <- otherMessages.onNextIO("genus") *> IO.cede
+      _ = node.children(0).innerHTML shouldBe "messagegenus"
+    } yield succeed
 
-        otherMessages.unsafeOnNext("genus")
-        n.children(0).innerHTML shouldBe "messagegenus"
-      }
-
-    }
   }
 
   it should "partially render component even if parts not present" in {
@@ -792,40 +831,38 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       childString
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      inner = document.getElementById("inner").asInstanceOf[html.Div]
 
-        val inner = document.getElementById("inner").asInstanceOf[html.Div]
+      _ = inner.innerHTML shouldBe ""
+      _ = inner.style.color shouldBe ""
+      _ = inner.style.backgroundColor shouldBe ""
 
-        inner.innerHTML shouldBe ""
-        inner.style.color shouldBe ""
-        inner.style.backgroundColor shouldBe ""
+      _ <- childString.onNextIO("fish") *> IO.cede
+      _ = inner.innerHTML shouldBe "fish"
+      _ = inner.style.color shouldBe ""
+      _ = inner.style.backgroundColor shouldBe ""
 
-        childString.unsafeOnNext("fish")
-        inner.innerHTML shouldBe "fish"
-        inner.style.color shouldBe ""
-        inner.style.backgroundColor shouldBe ""
+      _ <- messagesColor.onNextIO("red") *> IO.cede
+      _ = inner.innerHTML shouldBe "fish"
+      _ = inner.style.color shouldBe "red"
+      _ = inner.style.backgroundColor shouldBe ""
 
-        messagesColor.unsafeOnNext("red")
-        inner.innerHTML shouldBe "fish"
-        inner.style.color shouldBe "red"
-        inner.style.backgroundColor shouldBe ""
+      _ <- messagesBgColor.onNextIO("blue") *> IO.cede
+      _ = inner.innerHTML shouldBe "fish"
+      _ = inner.style.color shouldBe "red"
+      _ = inner.style.backgroundColor shouldBe "blue"
 
-        messagesBgColor.unsafeOnNext("blue")
-        inner.innerHTML shouldBe "fish"
-        inner.style.color shouldBe "red"
-        inner.style.backgroundColor shouldBe "blue"
+    } yield succeed
 
-      }
-
-    }
   }
 
   it should "partially render component even if parts not present2" in {
@@ -838,31 +875,29 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       childString
     )
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      inner = document.getElementById("inner").asInstanceOf[html.Div]
 
-        val inner = document.getElementById("inner").asInstanceOf[html.Div]
+      _ = inner.innerHTML shouldBe ""
+      _ = inner.style.color shouldBe ""
 
-        inner.innerHTML shouldBe ""
-        inner.style.color shouldBe ""
+      _ <- childString.onNextIO("fish") *> IO.cede
+      _ = inner.innerHTML shouldBe "fish"
+      _ = inner.style.color shouldBe ""
 
-        childString.unsafeOnNext("fish")
-        inner.innerHTML shouldBe "fish"
-        inner.style.color shouldBe ""
+      _ <- messagesColor.onNextIO("red") *> IO.cede
+      _ = inner.innerHTML shouldBe "fish"
+      _ = inner.style.color shouldBe "red"
+    } yield succeed
 
-        messagesColor.unsafeOnNext("red")
-        inner.innerHTML shouldBe "fish"
-        inner.style.color shouldBe "red"
-      }
-
-    }
   }
 
   it should "update reused vnodes correctly" in {
@@ -871,26 +906,24 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val vNode = div(data.ralf := true, messages)
     val container = div(vNode, vNode)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, container)
 
-      Outwatch.renderInto[IO](n, container).map { _ =>
+      _ <- messages.onNextIO("message") *> IO.cede
+      _ = node.children(0).children(0).innerHTML shouldBe "message"
+      _ = node.children(0).children(1).innerHTML shouldBe "message"
 
-        messages.unsafeOnNext("message")
-        n.children(0).children(0).innerHTML shouldBe "message"
-        n.children(0).children(1).innerHTML shouldBe "message"
+      _ <- messages.onNextIO("bumo") *> IO.cede
+      _ = node.children(0).children(0).innerHTML shouldBe "bumo"
+      _ = node.children(0).children(1).innerHTML shouldBe "bumo"
+    } yield succeed
 
-        messages.unsafeOnNext("bumo")
-        n.children(0).children(0).innerHTML shouldBe "bumo"
-        n.children(0).children(1).innerHTML shouldBe "bumo"
-      }
-
-    }
   }
 
   it should "update merged nodes correctly (render reuse)" in {
@@ -906,31 +939,26 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       node
     }
 
-    val test = for {
-
+    for {
       node1 <- node
-       _ <- Outwatch.renderInto[IO](node1, vNodeTemplate)
+      _ <- Outwatch.renderInto[IO](node1, vNodeTemplate)
 
       node2 <- node
-       _ <- Outwatch.renderInto[IO](node2, vNode)
+      _ <- Outwatch.renderInto[IO](node2, vNode)
 
-    } yield {
+      _ <- messages.onNextIO("gurkon") *> IO.cede
+      _ <- otherMessages.onNextIO("otherMessage") *> IO.cede
+      _ = node1.children(0).innerHTML shouldBe "gurkon"
+      _ = node2.children(0).innerHTML shouldBe "gurkonotherMessage"
 
-      messages.unsafeOnNext("gurkon")
-      otherMessages.unsafeOnNext("otherMessage")
-      node1.children(0).innerHTML shouldBe "gurkon"
-      node2.children(0).innerHTML shouldBe "gurkonotherMessage"
+      _ <- messages.onNextIO("message") *> IO.cede
+      _ = node1.children(0).innerHTML shouldBe "message"
+      _ = node2.children(0).innerHTML shouldBe "messageotherMessage"
 
-      messages.unsafeOnNext("message")
-      node1.children(0).innerHTML shouldBe "message"
-      node2.children(0).innerHTML shouldBe "messageotherMessage"
-
-      otherMessages.unsafeOnNext("genus")
-      node1.children(0).innerHTML shouldBe "message"
-      node2.children(0).innerHTML shouldBe "messagegenus"
-    }
-
-    test
+      _ <- otherMessages.onNextIO("genus") *> IO.cede
+      _ = node1.children(0).innerHTML shouldBe "message"
+      _ = node2.children(0).innerHTML shouldBe "messagegenus"
+    } yield succeed
   }
 
   it should "update merged node attributes correctly" in {
@@ -939,27 +967,24 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val otherMessages = Subject.publish[String]()
     val vNode = div(data.noise <-- messages)(data.noise <-- otherMessages)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ <- otherMessages.onNextIO("otherMessage") *> IO.cede
+      _ = node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
 
-        otherMessages.unsafeOnNext("otherMessage")
-        n.children(0).getAttribute("data-noise") shouldBe "otherMessage"
+      _ <- messages.onNextIO("message") // should be ignored *> IO.cede
+      _ = node.children(0).getAttribute("data-noise") shouldBe "otherMessage"
 
-        messages.unsafeOnNext("message") // should be ignored
-        n.children(0).getAttribute("data-noise") shouldBe "otherMessage"
-
-        otherMessages.unsafeOnNext("genus")
-        n.children(0).getAttribute("data-noise") shouldBe "genus"
-      }
-
-    }
+      _ <- otherMessages.onNextIO("genus") *> IO.cede
+      _ = node.children(0).getAttribute("data-noise") shouldBe "genus"
+    } yield succeed
   }
 
   it should "update merged node styles written with style() correctly" in {
@@ -968,27 +993,25 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val otherMessages = Subject.publish[String]()
     val vNode = div(VModifier.style("color") <-- messages)(VModifier.style("color") <-- otherMessages)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ <- otherMessages.onNextIO("red") *> IO.cede
+      _ = node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-        otherMessages.unsafeOnNext("red")
-        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+      _ <- messages.onNextIO("blue") // should be ignored *> IO.cede
+      _ = node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-        messages.unsafeOnNext("blue") // should be ignored
-        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+      _ <- otherMessages.onNextIO("green") *> IO.cede
+      _ = node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+    } yield succeed
 
-        otherMessages.unsafeOnNext("green")
-        n.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
-      }
-
-    }
   }
 
   it should "update merged node styles correctly" in {
@@ -997,49 +1020,43 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val otherMessages = Subject.publish[String]()
     val vNode = div(color <-- messages)(color <-- otherMessages)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ <- otherMessages.onNextIO("red") *> IO.cede
+      _ = node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-        otherMessages.unsafeOnNext("red")
-        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+      _ <- messages.onNextIO("blue") // should be ignored *> IO.cede
+      _ = node.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
 
-        messages.unsafeOnNext("blue") // should be ignored
-        n.children(0).asInstanceOf[html.Element].style.color shouldBe "red"
+      _ <- otherMessages.onNextIO("green") *> IO.cede
+      _ = node.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
+    } yield succeed
 
-        otherMessages.unsafeOnNext("green")
-        n.children(0).asInstanceOf[html.Element].style.color shouldBe "green"
-      }
-
-    }
   }
-
 
   it should "render composite VNodes properly" in {
 
     val items = Seq("one", "two", "three")
     val vNode = div(items.map(item => span(item)))
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
-
-        n.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
-      }
-
-    }
+      _ = node.innerHTML shouldBe "<div><span>one</span><span>two</span><span>three</span></div>"
+    } yield succeed
   }
 
   it should "render nodes with only attribute receivers properly" in {
@@ -1047,71 +1064,61 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val classes = Subject.publish[String]()
     val vNode = button( className <-- classes, "Submit")
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
+      _ <- classes.onNextIO("active") *> IO.cede
 
-        classes.unsafeOnNext("active")
-
-        n.innerHTML shouldBe """<button class="active">Submit</button>"""
-      }
-
-    }
+      _ = node.innerHTML shouldBe """<button class="active">Submit</button>"""
+    } yield succeed
   }
 
   it should "work with custom tags" in {
 
     val vNode = div(VNode.html("main")())
 
-    val node = IO {
+    val node = {
       val node = document.createElement("div")
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    for {
+      _ <- Outwatch.renderInto[IO](node, vNode)
 
-      Outwatch.renderInto[IO](n, vNode).map { _ =>
-
-        n.innerHTML shouldBe "<div><main></main></div>"
-      }
-
-    }
+      _ = node.innerHTML shouldBe "<div><main></main></div>"
+    } yield succeed
   }
 
   it should "work with un-assigned booleans attributes and props" in {
 
     val vNode = option(selected, disabled)
 
-    val node = IO {
+    val node = {
       val node = document.createElement("option").asInstanceOf[html.Option]
       document.body.appendChild(node)
       node
     }
 
-    node.flatMap { n =>
+    node.selected shouldBe false
+    node.disabled shouldBe false
 
-      n.selected shouldBe false
-      n.disabled shouldBe false
+    Outwatch.renderReplace[IO](node, vNode).map {_ =>
 
-      Outwatch.renderReplace[IO](n, vNode).map {_ =>
-
-        n.selected shouldBe true
-        n.disabled shouldBe true
-      }
-
+      node.selected shouldBe true
+      node.disabled shouldBe true
     }
   }
 
   it should "correctly work with Render conversions" in {
 
-    val test: IO[Assertion] = for {
+    for {
       n1 <- IO(document.createElement("div"))
 
        _ <- Outwatch.renderReplace[IO](n1, div("one"))
@@ -1141,8 +1148,6 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = n1.innerHTML shouldBe "12"
 
     } yield succeed
-
-    test
   }
 
   "Children stream" should "work for string sequences" in {
@@ -1150,44 +1155,57 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
     val node = div(idAttr := "strings", myStrings)
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      val element = document.getElementById("strings")
-      element.innerHTML shouldBe "ab"
-
-    }
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "ab"
+    } yield succeed
   }
 
-  "Children stream" should "work for double/boolean/long/int" in {
+  it should "work for string sequences non empty" in {
+
+    val myStrings: Observable[Seq[String]] = nonEmptyObservable(Seq("a", "b"))
+    val node = div(idAttr := "strings", myStrings)
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "ab"
+    } yield succeed
+  }
+
+
+  it should "work for double/boolean/long/int" in {
 
     val node = div(idAttr := "strings",
       1.1, true, 133L, 7
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      val element = document.getElementById("strings")
-      element.innerHTML shouldBe "1.1true1337"
-
-    }
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "1.1true1337"
+    } yield succeed
   }
 
-  "Child stream" should "work for string options" in {
+  it should "work for string options" in {
 
     IO(Subject.behavior(Option("a"))).flatMap { myOption =>
 
       val node = div(idAttr := "strings", myOption)
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+      for {
+        _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "a"
+        element = document.getElementById("strings")
+        _ = element.innerHTML shouldBe "a"
 
-        myOption.unsafeOnNext(None)
-        element.innerHTML shouldBe ""
-
-      }
-
+        _ <- myOption.onNextIO(None) *> IO.cede
+        _ = element.innerHTML shouldBe ""
+      } yield succeed
     }
   }
 
@@ -1197,238 +1215,214 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
       val node = div(idAttr := "strings", myOption)
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+      for {
+        _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div>a</div>"
+        element = document.getElementById("strings")
+        _ = element.innerHTML shouldBe "<div>a</div>"
 
-        myOption.unsafeOnNext(None)
-        element.innerHTML shouldBe ""
+        _ <- myOption.onNextIO(None) *> IO.cede
+        _ = element.innerHTML shouldBe ""
 
-      }
-
+      } yield succeed
     }
   }
 
   "Modifier stream" should "work for modifier" in {
 
-    IO(Subject.behavior[VModifier](Seq(cls := "hans", b("stark")))).flatMap { myHandler =>
+    val myHandler = Subject.behavior[VModifier](Seq(cls := "hans", b("stark")))
+    val node = div(idAttr := "strings",
+      div(VModifier(myHandler))
+    )
 
-      val node = div(idAttr := "strings",
-        div(VModifier(myHandler))
-      )
-
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
-
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe """<div class="hans"><b>stark</b></div>"""
-
-        myHandler.unsafeOnNext(Option(idAttr := "fair"))
-        element.innerHTML shouldBe """<div id="fair"></div>"""
-
-      }
-
-    }
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe """<div class="hans"><b>stark</b></div>"""
+      _ <- myHandler.onNextIO(Option(idAttr := "fair")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="fair"></div>"""
+    } yield succeed
   }
 
   it should "work for multiple mods" in {
 
-    val test: IO[Assertion] = IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
+    val node = div(idAttr := "strings",
+      div(myHandler, "bla")
+    )
 
-      val node = div(idAttr := "strings",
-        div(myHandler, "bla")
-      )
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      Outwatch.renderInto[IO]("#app", node).flatMap { _ =>
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div>bla</div>"
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div>bla</div>"
+      _ <- myHandler.onNextIO(cls := "hans") *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="hans">bla</div>"""
 
-        myHandler.unsafeOnNext(cls := "hans")
-        element.innerHTML shouldBe """<div class="hans">bla</div>"""
+      innerHandler = Subject.replayLatest[VModifier]()
 
-        IO(Subject.replayLatest[VModifier]()).map { innerHandler =>
+      _ <- myHandler.onNextIO(div(
+        innerHandler,
+        cls := "no?",
+        "yes?"
+      )) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><div class="no?">yes?</div>bla</div>"""
 
-          myHandler.unsafeOnNext(div(
-            innerHandler,
-            cls := "no?",
-            "yes?"
-          ))
-          element.innerHTML shouldBe """<div><div class="no?">yes?</div>bla</div>"""
+      _ <- innerHandler.onNextIO(Seq(span("question:"), idAttr := "heidi")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?</div>bla</div>"""
 
-          innerHandler.unsafeOnNext(Seq(span("question:"), idAttr := "heidi"))
-          element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?</div>bla</div>"""
+      _ <- myHandler.onNextIO(div(
+        innerHandler,
+        cls := "no?",
+        "yes?",
+        b("go!")
+      )) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?<b>go!</b></div>bla</div>"""
 
-          myHandler.unsafeOnNext(div(
-            innerHandler,
-            cls := "no?",
-            "yes?",
-            b("go!")
-          ))
+      _ <- innerHandler.onNextIO(Seq(span("question and answer:"), idAttr := "heidi")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question and answer:</span>yes?<b>go!</b></div>bla</div>"""
 
-          element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question:</span>yes?<b>go!</b></div>bla</div>"""
+      _ <- myHandler.onNextIO(Seq(span("nope"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
 
-          innerHandler.unsafeOnNext(Seq(span("question and answer:"), idAttr := "heidi"))
-          element.innerHTML shouldBe """<div><div class="no?" id="heidi"><span>question and answer:</span>yes?<b>go!</b></div>bla</div>"""
-
-          myHandler.unsafeOnNext(Seq(span("nope")))
-          element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
-
-          innerHandler.unsafeOnNext(b("me?"))
-          element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
-
-        }
-      }
-
-    }
-
-    test
+      _ <- innerHandler.onNextIO(b("me?")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><span>nope</span>bla</div>"""
+    } yield succeed
   }
 
   it should "work for nested stream modifier" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
+    val node = div(idAttr := "strings",
+      div(myHandler)
+    )
 
-      val node = div(idAttr := "strings",
-        div(myHandler)
-      )
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div></div>"
 
-      Outwatch.renderInto[IO]("#app", node).flatMap { _ =>
+      innerHandler = Subject.replayLatest[VModifier]()
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div></div>"
+      _ <- myHandler.onNextIO(innerHandler) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
 
-        IO(Subject.replayLatest[VModifier]()).flatMap { innerHandler =>
+      _ <- innerHandler.onNextIO(VModifier(cls := "hans", "1")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="hans">1</div>"""
 
-          myHandler.unsafeOnNext(innerHandler)
-          element.innerHTML shouldBe """<div></div>"""
+      innerHandler2 = Subject.replayLatest[VModifier]()
 
-          innerHandler.unsafeOnNext(VModifier(cls := "hans", "1"))
-          element.innerHTML shouldBe """<div class="hans">1</div>"""
+      _ <- myHandler.onNextIO(innerHandler2) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
 
-          IO(Subject.replayLatest[VModifier]()).map { innerHandler2 =>
+      _ <- myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
 
-          myHandler.unsafeOnNext(innerHandler2)
-          element.innerHTML shouldBe """<div></div>"""
+      _ <- myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
 
-          myHandler.unsafeOnNext(CompositeModifier(VModifier(innerHandler2) :: Nil))
-          element.innerHTML shouldBe """<div></div>"""
+      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>pete</div>"""
 
-          myHandler.unsafeOnNext(CompositeModifier(VModifier(innerHandler2) :: Nil))
+      _ <- innerHandler2.onNextIO(VModifier(idAttr := "dieter", "r")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
 
-          myHandler.unsafeOnNext(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil))
-          element.innerHTML shouldBe """<div>pete</div>"""
+      _ <- innerHandler.onNextIO(b("me?")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
 
-          innerHandler2.unsafeOnNext(VModifier(idAttr := "dieter", "r"))
-          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-
-          innerHandler.unsafeOnNext(b("me?"))
-          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-
-          myHandler.unsafeOnNext(span("the end"))
-          element.innerHTML shouldBe """<div><span>the end</span></div>"""
-
-          }
-        }
-      }
-
-    }
+      _ <- myHandler.onNextIO(span("the end")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><span>the end</span></div>"""
+    } yield succeed
   }
 
   it should "work for nested stream modifier and default value" in {
 
     var numPatches = 0
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
-
-      val node: VNode = div(idAttr := "strings",
-        div(
-          onSnabbdomPrePatch doAction { numPatches += 1 },
-          myHandler.prepend(VModifier("initial"))
-        )
+    val myHandler = Subject.replayLatest[VModifier]()
+    val node: VNode = div(idAttr := "strings",
+      div(
+        onSnabbdomPrePatch doAction { numPatches += 1 },
+        myHandler.prepend(VModifier("initial"))
       )
+    )
 
-      Outwatch.renderInto[IO]("#app", node).flatMap { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div>initial</div>"
-        numPatches shouldBe 0
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div>initial</div>"
+      _ = numPatches shouldBe 0
 
-      IO(Subject.replayLatest[VModifier]()).flatMap { innerHandler =>
+      innerHandler = Subject.replayLatest[VModifier]()
 
-        numPatches shouldBe 0
+      _ <- myHandler.onNextIO(innerHandler.prepend(BasicAttr("initial", "2"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div initial="2"></div>"""
+      _ = numPatches shouldBe 1
 
-        myHandler.unsafeOnNext(innerHandler.prepend(BasicAttr("initial", "2")))
-        element.innerHTML shouldBe """<div initial="2"></div>"""
-        numPatches shouldBe 2
+      _ <- innerHandler.onNextIO(BasicAttr("attr", "3")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div attr="3"></div>"""
+      _ = numPatches shouldBe 2
 
-        innerHandler.unsafeOnNext(BasicAttr("attr", "3"))
-        element.innerHTML shouldBe """<div attr="3"></div>"""
-        numPatches shouldBe 3
+      innerHandler2 = Subject.replayLatest[VModifier]()
+      _ <- myHandler.onNextIO(innerHandler2.prepend(VModifier("initial3"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>initial3</div>"""
+      _ = numPatches shouldBe 3
 
-        IO(Subject.replayLatest[VModifier]()).map {innerHandler2 =>
-          myHandler.unsafeOnNext(innerHandler2.prepend(VModifier("initial3")))
-          element.innerHTML shouldBe """<div>initial3</div>"""
-          numPatches shouldBe 5
+      _ <- myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2.prepend(VModifier("initial4"))) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>initial4</div>"""
+      _ = numPatches shouldBe 4
 
-          myHandler.unsafeOnNext(CompositeModifier(VModifier(innerHandler2.prepend(VModifier("initial4"))) :: Nil))
-          element.innerHTML shouldBe """<div>initial4</div>"""
-          numPatches shouldBe 7
+      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>pete</div>"""
+      _ = numPatches shouldBe 5
 
-          myHandler.unsafeOnNext(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil))
-          element.innerHTML shouldBe """<div>pete</div>"""
-          numPatches shouldBe 8
+      _ <- innerHandler2.onNextIO(VModifier(idAttr := "dieter", "r")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+      _ = numPatches shouldBe 6
 
-          innerHandler2.unsafeOnNext(VModifier(idAttr := "dieter", "r"))
-          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-          numPatches shouldBe 9
+      _ <- innerHandler.onNextIO("me?") *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+      _ = numPatches shouldBe 6
 
-          innerHandler.unsafeOnNext("me?")
-          element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-          numPatches shouldBe 9
-
-          myHandler.unsafeOnNext(span("the end"))
-          element.innerHTML shouldBe """<div><span>the end</span></div>"""
-          numPatches shouldBe 10
-      }}}}
+      _ <- myHandler.onNextIO(span("the end")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><span>the end</span></div>"""
+      _ = numPatches shouldBe 7
+    } yield succeed
   }
 
   it should "work for deeply nested handlers" in {
 
-    val test: IO[Assertion] = IO(Subject.behavior(0)).flatMap { a =>
-
-      val b = a.map(_.toString)
-      val node =
-        div(
-          a.map(_ =>
-              div(
-                b.map(b =>
-                  div(b)
-                )
+    val a = Subject.behavior(0)
+    val b = a.map(_.toString)
+    val node =
+      div(
+        a.map(_ =>
+            div(
+              b.map(b =>
+                div(b)
               )
-          )
+            )
         )
+      )
 
-      Outwatch.renderInto[IO]("#app", node).map {_ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("app")
-        element.innerHTML shouldBe "<div><div><div>0</div></div></div>"
+      element = document.getElementById("app")
+      _ = element.innerHTML shouldBe "<div><div><div>0</div></div></div>"
 
-        a.unsafeOnNext(1)
-        element.innerHTML shouldBe "<div><div><div>1</div></div></div>"
-
-      }
-    }
-
-    test
+      _ <- a.onNextIO(1) *> IO.cede
+      _ = element.innerHTML shouldBe "<div><div><div>1</div></div></div>"
+    } yield succeed
   }
 
   it should "work for nested stream modifier and empty default and start with" in {
 
     var numPatches = 0
 
-    IO(Subject.behavior[VModifier]("initial")).flatMap { myHandler =>
-
+    val myHandler = Subject.behavior[VModifier]("initial")
     val node = div(idAttr := "strings",
       div(
         onSnabbdomPrePatch doAction { numPatches += 1 },
@@ -1436,156 +1430,157 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    Outwatch.renderInto[IO]("#app", node).flatMap { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      val element = document.getElementById("strings")
-      element.innerHTML shouldBe "<div>initial</div>"
-      numPatches shouldBe 0
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div>initial</div>"
+      _ = numPatches shouldBe 0
 
-      IO(Subject.replayLatest[VModifier]()).flatMap { innerHandler =>
-      myHandler.unsafeOnNext(innerHandler.startWith(BasicAttr("initial", "2") :: Nil))
-      element.innerHTML shouldBe """<div initial="2"></div>"""
-      numPatches shouldBe 2
+      innerHandler = Subject.replayLatest[VModifier]()
+      _ <- myHandler.onNextIO(innerHandler.startWith(BasicAttr("initial", "2") :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div initial="2"></div>"""
+      _ = numPatches shouldBe 1
 
-      innerHandler.unsafeOnNext(BasicAttr("attr", "3"))
-      element.innerHTML shouldBe """<div attr="3"></div>"""
-      numPatches shouldBe 3
+      _ <- innerHandler.onNextIO(BasicAttr("attr", "3")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div attr="3"></div>"""
+      _ = numPatches shouldBe 2
 
-        IO(Subject.replayLatest[VModifier]()).map { innerHandler2 =>
-        myHandler.unsafeOnNext(innerHandler2.startWith(VModifier("initial3") :: Nil))
-        element.innerHTML shouldBe """<div>initial3</div>"""
-        numPatches shouldBe 5
+      innerHandler2 = Subject.replayLatest[VModifier]()
+      _ <- myHandler.onNextIO(innerHandler2.startWith(VModifier("initial3") :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>initial3</div>"""
+      _ = numPatches shouldBe 3
 
-        myHandler.unsafeOnNext(CompositeModifier(VModifier(innerHandler2.prepend(VModifier("initial4"))) :: Nil))
-        element.innerHTML shouldBe """<div>initial4</div>"""
-        numPatches shouldBe 7
+      _ <- myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2.prepend(VModifier("initial4"))) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>initial4</div>"""
+      _ = numPatches shouldBe 4
 
-        myHandler.unsafeOnNext(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil))
-        element.innerHTML shouldBe """<div>pete</div>"""
-        numPatches shouldBe 8
+      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>pete</div>"""
+      _ = numPatches shouldBe 5
 
-        innerHandler2.unsafeOnNext(VModifier(idAttr := "dieter", "r"))
-        element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-        numPatches shouldBe 9
+      _ <- innerHandler2.onNextIO(VModifier(idAttr := "dieter", "r")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+      _ = numPatches shouldBe 6
 
-        innerHandler.unsafeOnNext("me?")
-        element.innerHTML shouldBe """<div id="dieter">peter</div>"""
-        numPatches shouldBe 9
+      _ <- innerHandler.onNextIO("me?") *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
+      _ = numPatches shouldBe 6
 
-        myHandler.unsafeOnNext(span("the end"))
-        element.innerHTML shouldBe """<div><span>the end</span></div>"""
-        numPatches shouldBe 10
-
-    }}}}
+      _ <- myHandler.onNextIO(span("the end")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div><span>the end</span></div>"""
+      _ = numPatches shouldBe 7
+    } yield succeed
   }
 
   it should "work for stream modifier and streaming default value (subscriptions are canceled properly)" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
-    IO(Subject.replayLatest[VModifier]()).flatMap { innerHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
+    val innerHandler = Subject.replayLatest[VModifier]()
 
-      val outerTriggers = new scala.collection.mutable.ArrayBuffer[VModifier]
-      val innerTriggers = new scala.collection.mutable.ArrayBuffer[VModifier]
+    val outerTriggers = new scala.collection.mutable.ArrayBuffer[VModifier]
+    val innerTriggers = new scala.collection.mutable.ArrayBuffer[VModifier]
 
-      val node = div(idAttr := "strings",
-        div(
-          myHandler.map { x => outerTriggers += x; x }.prepend(VModifier(innerHandler.map { x => innerTriggers += x; x }.prepend(VModifier("initial"))))
-        )
+    val node = div(idAttr := "strings",
+      div(
+        myHandler.map { x => outerTriggers += x; x }.prepend(VModifier(innerHandler.map { x => innerTriggers += x; x }.prepend(VModifier("initial"))))
       )
+    )
 
-      Outwatch.renderInto[IO]("#app", node).flatMap {_ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div>initial</div>"
-        outerTriggers.size shouldBe 0
-        innerTriggers.size shouldBe 0
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div>initial</div>"
+      _ = outerTriggers.size shouldBe 0
+      _ = innerTriggers.size shouldBe 0
 
-        innerHandler.unsafeOnNext(VModifier("hi!"))
-        element.innerHTML shouldBe """<div>hi!</div>"""
-        outerTriggers.size shouldBe 0
-        innerTriggers.size shouldBe 1
+      _ <- innerHandler.onNextIO(VModifier("hi!")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>hi!</div>"""
+      _ = outerTriggers.size shouldBe 0
+      _ = innerTriggers.size shouldBe 1
 
-        myHandler.unsafeOnNext(VModifier("test"))
-        element.innerHTML shouldBe """<div>test</div>"""
-        outerTriggers.size shouldBe 1
-        innerTriggers.size shouldBe 1
+      _ <- myHandler.onNextIO(VModifier("test")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>test</div>"""
+      _ = outerTriggers.size shouldBe 1
+      _ = innerTriggers.size shouldBe 1
 
-        myHandler.unsafeOnNext(Observable(BasicAttr("initial", "2")))
-        element.innerHTML shouldBe """<div initial="2"></div>"""
-        outerTriggers.size shouldBe 2
-        innerTriggers.size shouldBe 1
+      _ <- myHandler.onNextIO(nonEmptyObservable(BasicAttr("initial", "2"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div initial="2"></div>"""
+      _ = outerTriggers.size shouldBe 2
+      _ = innerTriggers.size shouldBe 1
 
-        innerHandler.unsafeOnNext(VModifier("me?"))
-        element.innerHTML shouldBe """<div initial="2"></div>"""
-        outerTriggers.size shouldBe 2
-        innerTriggers.size shouldBe 1
+      _ <- innerHandler.onNextIO(VModifier("me?")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div initial="2"></div>"""
+      _ = outerTriggers.size shouldBe 2
+      _ = innerTriggers.size shouldBe 1
 
-        myHandler.unsafeOnNext(innerHandler.map { x => innerTriggers += x; x }.prepend(VModifier.empty))
-        element.innerHTML shouldBe """<div>me?</div>"""
-        outerTriggers.size shouldBe 3
-        innerTriggers.size shouldBe 2
+      _ <- myHandler.onNextIO(innerHandler.map { x => innerTriggers += x; x }.prepend(VModifier.empty)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>me?</div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 2
 
-        innerHandler.unsafeOnNext(BasicAttr("attr", "3"))
-        element.innerHTML shouldBe """<div attr="3"></div>"""
-        outerTriggers.size shouldBe 3
-        innerTriggers.size shouldBe 3
+      _ <- innerHandler.onNextIO(BasicAttr("attr", "3")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div attr="3"></div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 3
 
-        val innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VModifier]
-        val innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VModifier]
+      innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VModifier]
+      innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VModifier]
 
-        IO(Subject.replayLatest[VModifier]()).flatMap { innerHandler2 =>
-        IO(Subject.replayLatest[VModifier]()).map { innerHandler3 =>
+      innerHandler2 = Subject.replayLatest[VModifier]()
+      innerHandler3 = Subject.replayLatest[VModifier]()
 
-            innerHandler.unsafeOnNext(innerHandler2.map { x => innerTriggers2 += x; x }.prepend(VModifier(innerHandler3.map { x => innerTriggers3 += x; x })))
-            element.innerHTML shouldBe """<div></div>"""
-            outerTriggers.size shouldBe 3
-            innerTriggers.size shouldBe 4
-            innerTriggers2.size shouldBe 0
-            innerTriggers3.size shouldBe 0
+      _ <- innerHandler.onNextIO(innerHandler2.map { x => innerTriggers2 += x; x }.prepend(VModifier(innerHandler3.map { x => innerTriggers3 += x; x }))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 4
+      _ = innerTriggers2.size shouldBe 0
+      _ = innerTriggers3.size shouldBe 0
 
-            innerHandler2.unsafeOnNext(VModifier("2"))
-            element.innerHTML shouldBe """<div>2</div>"""
-            outerTriggers.size shouldBe 3
-            innerTriggers.size shouldBe 4
-            innerTriggers2.size shouldBe 1
-            innerTriggers3.size shouldBe 0
+      _ <- innerHandler2.onNextIO(VModifier("2")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>2</div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 4
+      _ = innerTriggers2.size shouldBe 1
+      _ = innerTriggers3.size shouldBe 0
 
-            innerHandler.unsafeOnNext(EmptyModifier)
-            element.innerHTML shouldBe """<div></div>"""
-            outerTriggers.size shouldBe 3
-            innerTriggers.size shouldBe 5
-            innerTriggers2.size shouldBe 1
-            innerTriggers3.size shouldBe 0
+      _ <- innerHandler.onNextIO(EmptyModifier) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 5
+      _ = innerTriggers2.size shouldBe 1
+      _ = innerTriggers3.size shouldBe 0
 
-            innerHandler2.unsafeOnNext(VModifier("me?"))
-            element.innerHTML shouldBe """<div></div>"""
-            outerTriggers.size shouldBe 3
-            innerTriggers.size shouldBe 5
-            innerTriggers2.size shouldBe 1
-            innerTriggers3.size shouldBe 0
+      _ <- innerHandler2.onNextIO(VModifier("me?")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 5
+      _ = innerTriggers2.size shouldBe 1
+      _ = innerTriggers3.size shouldBe 0
 
-            innerHandler3.unsafeOnNext(VModifier("me?"))
-            element.innerHTML shouldBe """<div></div>"""
-            outerTriggers.size shouldBe 3
-            innerTriggers.size shouldBe 5
-            innerTriggers2.size shouldBe 1
-            innerTriggers3.size shouldBe 0
+      _ <- innerHandler3.onNextIO(VModifier("me?")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div></div>"""
+      _ = outerTriggers.size shouldBe 3
+      _ = innerTriggers.size shouldBe 5
+      _ = innerTriggers2.size shouldBe 1
+      _ = innerTriggers3.size shouldBe 0
 
-            myHandler.unsafeOnNext(VModifier("go away"))
-            element.innerHTML shouldBe """<div>go away</div>"""
-            outerTriggers.size shouldBe 4
-            innerTriggers.size shouldBe 5
-            innerTriggers2.size shouldBe 1
-            innerTriggers3.size shouldBe 0
+      _ <- myHandler.onNextIO(VModifier("go away")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>go away</div>"""
+      _ = outerTriggers.size shouldBe 4
+      _ = innerTriggers.size shouldBe 5
+      _ = innerTriggers2.size shouldBe 1
+      _ = innerTriggers3.size shouldBe 0
 
-            innerHandler.unsafeOnNext(VModifier("me?"))
-            element.innerHTML shouldBe """<div>go away</div>"""
-            outerTriggers.size shouldBe 4
-            innerTriggers.size shouldBe 5
-            innerTriggers2.size shouldBe 1
-            innerTriggers3.size shouldBe 0
+      _ <- innerHandler.onNextIO(VModifier("me?")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>go away</div>"""
+      _ = outerTriggers.size shouldBe 4
+      _ = innerTriggers.size shouldBe 5
+      _ = innerTriggers2.size shouldBe 1
+      _ = innerTriggers3.size shouldBe 0
 
-      }}}}}
+    } yield succeed
   }
 
   it should "be able to render basic handler" in {
@@ -1598,17 +1593,18 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val vtree = div(counter)
 
-    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
-      val element = document.getElementById("click")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", vtree)
+      element = document.getElementById("click")
 
-      element.innerHTML shouldBe "0"
+      _ = element.innerHTML shouldBe "0"
 
-      sendEvent(element, "click")
-      element.innerHTML shouldBe "1"
+      _ <- IO(sendEvent(element, "click")) *> IO.cede
+      _ = element.innerHTML shouldBe "1"
 
-      sendEvent(element, "click")
-      element.innerHTML shouldBe "2"
-    }
+      _ <- IO(sendEvent(element, "click")) *> IO.cede
+      _ = element.innerHTML shouldBe "2"
+    } yield succeed
   }
 
   it should "be able to render basic handler with scan" in {
@@ -1621,17 +1617,18 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val vtree = div(counter)
 
-    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
-      val element = document.getElementById("click")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", vtree)
+      element = document.getElementById("click")
 
-      element.innerHTML shouldBe "0"
+      _ = element.innerHTML shouldBe "0"
 
-      sendEvent(element, "click")
-      element.innerHTML shouldBe "1"
+      _ <- IO(sendEvent(element, "click")) *> IO.cede
+      _ = element.innerHTML shouldBe "1"
 
-      sendEvent(element, "click")
-      element.innerHTML shouldBe "2"
-    }
+      _ <- IO(sendEvent(element, "click")) *> IO.cede
+      _ = element.innerHTML shouldBe "2"
+    } yield succeed
   }
 
   it should "to render basic handler with scan directly from EmitterBuilder" in {
@@ -1642,17 +1639,18 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val vtree = div(counter)
 
-    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
-      val element = document.getElementById("click")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", vtree)
+      element = document.getElementById("click")
 
-      element.innerHTML shouldBe "0"
+      _ = element.innerHTML shouldBe "0"
 
-      sendEvent(element, "click")
-      element.innerHTML shouldBe "1"
+      _ <- IO(sendEvent(element, "click")) *> IO.cede
+      _ = element.innerHTML shouldBe "1"
 
-      sendEvent(element, "click")
-      element.innerHTML shouldBe "2"
-    }
+      _ <- IO(sendEvent(element, "click")) *> IO.cede
+      _ = element.innerHTML shouldBe "2"
+    } yield succeed
   }
 
   it should "work for not overpatching keep proxy from previous patch" in {
@@ -1680,345 +1678,339 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       div("klara", onSnabbdomPostPatch.doAction { patchedKlara += 1 }, onSnabbdomInsert.doAction { insertedKlara += 1 }, onSnabbdomDestroy.doAction{  uninsertedKlara += 1 }),
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      val element = document.getElementById("strings")
+      element = document.getElementById("strings")
 
-      element.innerHTML shouldBe """<div>heinz</div><div>klara</div>"""
-      inserted shouldBe 0
-      destroyed shouldBe 0
-      patched shouldBe 0
-      inserted2 shouldBe 0
-      uninserted2 shouldBe 0
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ = element.innerHTML shouldBe """<div>heinz</div><div>klara</div>"""
+      _ = inserted shouldBe 0
+      _ = destroyed shouldBe 0
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 0
+      _ = uninserted2 shouldBe 0
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler.unsafeOnNext(1)
-      element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>klara</div>"""
-      inserted shouldBe 1
-      destroyed shouldBe 0
-      patched shouldBe 0
-      inserted2 shouldBe 0
-      uninserted2 shouldBe 0
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler.onNextIO(1) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>klara</div>"""
+      _ = inserted shouldBe 1
+      _ = destroyed shouldBe 0
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 0
+      _ = uninserted2 shouldBe 0
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler2.unsafeOnNext(99)
-      element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>99</div><div>klara</div>"""
-      inserted shouldBe 1
-      destroyed shouldBe 0
-      patched shouldBe 0
-      inserted2 shouldBe 1
-      uninserted2 shouldBe 0
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler2.onNextIO(99) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>99</div><div>klara</div>"""
+      _ = inserted shouldBe 1
+      _ = destroyed shouldBe 0
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 1
+      _ = uninserted2 shouldBe 0
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler2.unsafeOnNext(0)
-      element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>klara</div>"""
-      inserted shouldBe 1
-      destroyed shouldBe 0
-      patched shouldBe 0
-      inserted2 shouldBe 1
-      uninserted2 shouldBe 1
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler2.onNextIO(0) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>1</div><div>heinz</div><div>klara</div>"""
+      _ = inserted shouldBe 1
+      _ = destroyed shouldBe 0
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 1
+      _ = uninserted2 shouldBe 1
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler.unsafeOnNext(0)
-      element.innerHTML shouldBe """<div>heinz</div><div>klara</div>"""
-      inserted shouldBe 1
-      destroyed shouldBe 1
-      patched shouldBe 0
-      inserted2 shouldBe 1
-      uninserted2 shouldBe 1
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler.onNextIO(0) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>heinz</div><div>klara</div>"""
+      _ = inserted shouldBe 1
+      _ = destroyed shouldBe 1
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 1
+      _ = uninserted2 shouldBe 1
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler2.unsafeOnNext(3)
-      element.innerHTML shouldBe """<div>heinz</div><div>3</div><div>klara</div>"""
-      inserted shouldBe 1
-      destroyed shouldBe 1
-      patched shouldBe 0
-      inserted2 shouldBe 2
-      uninserted2 shouldBe 1
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler2.onNextIO(3) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>heinz</div><div>3</div><div>klara</div>"""
+      _ = inserted shouldBe 1
+      _ = destroyed shouldBe 1
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 2
+      _ = uninserted2 shouldBe 1
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler.unsafeOnNext(2)
-      element.innerHTML shouldBe """<div>2</div><div>heinz</div><div>3</div><div>klara</div>"""
-      inserted shouldBe 2
-      destroyed shouldBe 1
-      patched shouldBe 0
-      inserted2 shouldBe 2
-      uninserted2 shouldBe 1
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler.onNextIO(2) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>2</div><div>heinz</div><div>3</div><div>klara</div>"""
+      _ = inserted shouldBe 2
+      _ = destroyed shouldBe 1
+      _ = patched shouldBe 0
+      _ = inserted2 shouldBe 2
+      _ = uninserted2 shouldBe 1
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler.unsafeOnNext(18)
-      element.innerHTML shouldBe """<div>18</div><div>heinz</div><div>3</div><div>klara</div>"""
-      inserted shouldBe 2
-      destroyed shouldBe 1
-      patched shouldBe 1
-      inserted2 shouldBe 2
-      uninserted2 shouldBe 1
-      patched2 shouldBe 0
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
+      _ <- handler.onNextIO(18) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>18</div><div>heinz</div><div>3</div><div>klara</div>"""
+      _ = inserted shouldBe 2
+      _ = destroyed shouldBe 1
+      _ = patched shouldBe 1
+      _ = inserted2 shouldBe 2
+      _ = uninserted2 shouldBe 1
+      _ = patched2 shouldBe 0
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
 
-      handler2.unsafeOnNext(19)
-      element.innerHTML shouldBe """<div>18</div><div>heinz</div><div>19</div><div>klara</div>"""
-      inserted shouldBe 2
-      destroyed shouldBe 1
-      patched shouldBe 1
-      inserted2 shouldBe 2
-      uninserted2 shouldBe 1
-      patched2 shouldBe 1
-      insertedHeinz shouldBe 1
-      uninsertedHeinz shouldBe 0
-      patchedHeinz shouldBe 0
-      insertedKlara shouldBe 1
-      uninsertedKlara shouldBe 0
-      patchedKlara shouldBe 0
-    }
+      _ <- handler2.onNextIO(19) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>18</div><div>heinz</div><div>19</div><div>klara</div>"""
+      _ = inserted shouldBe 2
+      _ = destroyed shouldBe 1
+      _ = patched shouldBe 1
+      _ = inserted2 shouldBe 2
+      _ = uninserted2 shouldBe 1
+      _ = patched2 shouldBe 1
+      _ = insertedHeinz shouldBe 1
+      _ = uninsertedHeinz shouldBe 0
+      _ = patchedHeinz shouldBe 0
+      _ = insertedKlara shouldBe 1
+      _ = uninsertedKlara shouldBe 0
+      _ = patchedKlara shouldBe 0
+    } yield succeed
   }
 
   it should "work for nested observables with seq modifiers " in {
 
-    IO(Subject.behavior("b")).flatMap { innerHandler =>
-    IO(Subject.behavior(Seq[VModifier]("a", data.test := "v", innerHandler))).flatMap { outerHandler =>
+    val innerHandler = Subject.behavior("b")
+    val outerHandler = Subject.behavior(Seq[VModifier]("a", data.test := "v", innerHandler))
 
-      val node = div(
-        idAttr := "strings",
-        outerHandler
-      )
+    val node = div(
+      idAttr := "strings",
+      outerHandler
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.outerHTML shouldBe """<div id="strings" data-test="v">ab</div>"""
+      element = document.getElementById("strings")
+      _ = element.outerHTML shouldBe """<div id="strings" data-test="v">ab</div>"""
 
-        innerHandler.unsafeOnNext("c")
-        element.outerHTML shouldBe """<div id="strings" data-test="v">ac</div>"""
+      _ <- innerHandler.onNextIO("c") *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" data-test="v">ac</div>"""
 
-        outerHandler.unsafeOnNext(Seq[VModifier]("meh"))
-        element.outerHTML shouldBe """<div id="strings">meh</div>"""
-      }
-
-    }}
+      _ <- outerHandler.onNextIO(Seq[VModifier]("meh")) *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings">meh</div>"""
+    } yield succeed
   }
 
   it should "work for nested observables with seq modifiers and attribute stream" in {
+    val innerHandler = Subject.replayLatest[String]()
+    val outerHandler = Subject.behavior(Seq[VModifier]("a", data.test := "v", href <-- innerHandler))
 
-    IO(Subject.replayLatest[String]()).flatMap { innerHandler =>
-    IO(Subject.behavior(Seq[VModifier]("a", data.test := "v", href <-- innerHandler))).flatMap { outerHandler =>
+    val node = div(
+      idAttr := "strings",
+      outerHandler
+    )
 
-      val node = div(
-        idAttr := "strings",
-        outerHandler
-      )
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+      element = document.getElementById("strings")
+      _ = element.outerHTML shouldBe """<div id="strings" data-test="v">a</div>"""
 
-        val element = document.getElementById("strings")
-        element.outerHTML shouldBe """<div id="strings" data-test="v">a</div>"""
+      _ <- innerHandler.onNextIO("c") *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" data-test="v" href="c">a</div>"""
 
-        innerHandler.unsafeOnNext("c")
-        element.outerHTML shouldBe """<div id="strings" data-test="v" href="c">a</div>"""
+      _ <- innerHandler.onNextIO("d") *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" data-test="v" href="d">a</div>"""
 
-        innerHandler.unsafeOnNext("d")
-        element.outerHTML shouldBe """<div id="strings" data-test="v" href="d">a</div>"""
-
-        outerHandler.unsafeOnNext(Seq[VModifier]("meh"))
-        element.outerHTML shouldBe """<div id="strings">meh</div>"""
-      }
-
-    }}
+      _ <- outerHandler.onNextIO(Seq[VModifier]("meh")) *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings">meh</div>"""
+    } yield succeed
   }
 
   it should "work for double nested stream modifier" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
 
-      val node = div(idAttr := "strings",
-        div(myHandler)
-      )
+    val node = div(idAttr := "strings",
+      div(myHandler)
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div></div>"
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(Observable[VModifier](Observable[VModifier](cls := "hans")))
-        element.innerHTML shouldBe """<div class="hans"></div>"""
-      }
-
-    }
+      _ <- myHandler.onNextIO(nonEmptyObservable[VModifier](nonEmptyObservable[VModifier](cls := "hans"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="hans"></div>"""
+    } yield succeed
   }
 
   it should "work for triple nested stream modifier" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
 
-      val node = div(idAttr := "strings",
-        div(myHandler)
-      )
+    val node = div(idAttr := "strings",
+      div(myHandler)
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div></div>"
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(Observable[VModifier](Observable[VModifier](Observable(cls := "hans"))))
-        element.innerHTML shouldBe """<div class="hans"></div>"""
-      }
-
-    }
+      _ <- myHandler.onNextIO(nonEmptyObservable[VModifier](nonEmptyObservable[VModifier](nonEmptyObservable(cls := "hans")))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="hans"></div>"""
+    } yield succeed
   }
 
   it should "work for multiple nested stream modifier" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
 
-      val node = div(idAttr := "strings",
-        div(myHandler)
-      )
+    val node = div(idAttr := "strings",
+      div(myHandler)
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div></div>"
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(Observable[VModifier](VModifier(Observable[VModifier]("a"), Observable(span("b")))))
-        element.innerHTML shouldBe """<div>a<span>b</span></div>"""
-      }
-
-    }
+      _ <- myHandler.onNextIO(nonEmptyObservable[VModifier](VModifier(nonEmptyObservable[VModifier]("a"), nonEmptyObservable(span("b"))))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>a<span>b</span></div>"""
+    } yield succeed
   }
 
   it should "work for nested attribute stream receiver" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
 
-      val node = div(idAttr := "strings",
-        div(myHandler)
-      )
+    val node = div(idAttr := "strings",
+      div(myHandler)
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe "<div></div>"
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div></div>"
 
-        myHandler.unsafeOnNext(cls <-- Observable("hans"))
-        element.innerHTML shouldBe """<div class="hans"></div>"""
-      }
-
-    }
+      _ <- myHandler.onNextIO(cls <-- nonEmptyObservable("hans")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="hans"></div>"""
+    } yield succeed
   }
 
   it should "work for nested emitter" in {
 
-    IO(Subject.replayLatest[VModifier]()).flatMap { myHandler =>
+    val myHandler = Subject.replayLatest[VModifier]()
 
-      val node = div(idAttr := "strings",
-        div(idAttr := "click", myHandler)
-      )
+    val node = div(idAttr := "strings",
+      div(idAttr := "click", myHandler)
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map { _ =>
+    var clickCounter = 0
 
-        val element = document.getElementById("strings")
-        element.innerHTML shouldBe """<div id="click"></div>"""
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        var clickCounter = 0
-        myHandler.unsafeOnNext(onClick doAction (clickCounter += 1))
-        element.innerHTML shouldBe """<div id="click"></div>"""
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe """<div id="click"></div>"""
 
-        clickCounter shouldBe 0
-        sendEvent(document.getElementById("click"), "click")
-        clickCounter shouldBe 1
+      _ <- myHandler.onNextIO(onClick doAction (clickCounter += 1)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="click"></div>"""
 
-        sendEvent(document.getElementById("click"), "click")
-        clickCounter shouldBe 2
+      _ = clickCounter shouldBe 0
+      _ <- IO(sendEvent(document.getElementById("click"), "click")) *> IO.cede
+      _ = clickCounter shouldBe 1
 
-        myHandler.unsafeOnNext(VModifier.empty)
-        element.innerHTML shouldBe """<div id="click"></div>"""
+      _ <- IO(sendEvent(document.getElementById("click"), "click")) *> IO.cede
+      _ = clickCounter shouldBe 2
 
-        sendEvent(document.getElementById("click"), "click")
-        clickCounter shouldBe 2
-      }
+      _ <- myHandler.onNextIO(VModifier.empty) *> IO.cede
+      _ = element.innerHTML shouldBe """<div id="click"></div>"""
 
-    }
+      _ <- IO(sendEvent(document.getElementById("click"), "click")) *> IO.cede
+      _ = clickCounter shouldBe 2
+    } yield succeed
   }
 
   it should "work for streaming accum attributes" in {
 
-    IO(Subject.behavior("second")).flatMap { myClasses =>
-    IO(Subject.replayLatest[String]()).flatMap { myClasses2 =>
+    val myClasses = Subject.behavior("second")
+    val myClasses2 = Subject.replayLatest[String]()
 
-      val node = div(
-        idAttr := "strings",
-        div(
-          cls := "first",
-          myClasses.map { cls := _ },
-          Seq[VModifier](
-            cls <-- myClasses2
-          )
+    val node = div(
+      idAttr := "strings",
+      div(
+        cls := "first",
+        myClasses.map { cls := _ },
+        Seq[VModifier](
+          cls <-- myClasses2
         )
       )
+    )
 
-      Outwatch.renderInto[IO]("#app", node).map {_ =>
-        val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        element.innerHTML shouldBe """<div class="first second"></div>"""
+      element = document.getElementById("strings")
 
-        myClasses2.unsafeOnNext("third")
-        element.innerHTML shouldBe """<div class="first second third"></div>"""
+      _ = element.innerHTML shouldBe """<div class="first second"></div>"""
 
-        myClasses2.unsafeOnNext("more")
-        element.innerHTML shouldBe """<div class="first second more"></div>"""
+      _ <- myClasses2.onNextIO("third") *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="first second third"></div>"""
 
-        myClasses.unsafeOnNext("yeah")
-        element.innerHTML shouldBe """<div class="first yeah more"></div>"""
-      }
+      _ <- myClasses2.onNextIO("more") *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="first second more"></div>"""
 
-    }}
+      _ <- myClasses.onNextIO("yeah") *> IO.cede
+      _ = element.innerHTML shouldBe """<div class="first yeah more"></div>"""
+    } yield succeed
   }
 
   "LocalStorage" should "provide a handler" in {
@@ -2089,39 +2081,38 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
                       idAttr := "strings",
                       myHandler,
                       cls <-- clsHandler,
-                      onClick.asDelay(0) --> myHandler,
+                      onClick.asEval(0) --> myHandler,
                       onDomMount doAction  { mounts += 1 },
                       onDomUnmount doAction  { unmounts += 1 },
                       onDomUpdate doAction  { updates += 1 }
                     )
           _ <- Outwatch.renderInto[IO]("#app", node)
-    } yield {
 
-      val element = document.getElementById("strings")
-      element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 0
+      element = document.getElementById("strings")
+      _ = element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 0
 
-      myHandler.unsafeOnNext(1)
-      element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 1
+      _ <- myHandler.onNextIO(1) *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 1
 
-      sendEvent(document.getElementById("strings"), "click")
+      _ <- IO(sendEvent(document.getElementById("strings"), "click")) *> IO.cede
 
-      element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 2
+      _ = element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 2
 
-      clsHandler.unsafeOnNext("two")
-      element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 3
-    }
+      _ <- clsHandler.onNextIO("two") *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 3
+    } yield succeed
   }
 
   it should "work for empty publish Subject" in {
@@ -2143,45 +2134,44 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
                       onDomUpdate doAction  { updates += 1 }
                     )
           _ <- Outwatch.renderInto[IO]("#app", node)
-    } yield {
 
-      val element = document.getElementById("strings")
-      element.outerHTML shouldBe """<div id="strings"></div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 0
+      element = document.getElementById("strings")
+      _ = element.outerHTML shouldBe """<div id="strings"></div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 0
 
-      myHandler.unsafeOnNext(-1)
-      element.outerHTML shouldBe """<div id="strings">-1</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 1
+      _ <- myHandler.onNextIO(-1) *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings">-1</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 1
 
-      clsHandler.unsafeOnNext("one")
-      element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 2
+      _ <- clsHandler.onNextIO("one") *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" class="one">-1</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 2
 
-      myHandler.unsafeOnNext(1)
-      element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 3
+      _ <- myHandler.onNextIO(1) *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" class="one">1</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 3
 
-      sendEvent(document.getElementById("strings"), "click")
+      _ <- IO(sendEvent(document.getElementById("strings"), "click")) *> IO.cede
 
-      element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 4
+      _ = element.outerHTML shouldBe """<div id="strings" class="one">0</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 4
 
-      clsHandler.unsafeOnNext("two")
-      element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
-      mounts shouldBe 1
-      unmounts shouldBe 0
-      updates shouldBe 5
-    }
+      _ <- clsHandler.onNextIO("two") *> IO.cede
+      _ = element.outerHTML shouldBe """<div id="strings" class="two">0</div>"""
+      _ = mounts shouldBe 1
+      _ = unmounts shouldBe 0
+      _ = updates shouldBe 5
+    } yield succeed
   }
 
   "ChildCommand" should "work in handler" in {
@@ -2192,25 +2182,27 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       cmds
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
-      element.innerHTML shouldBe ""
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      cmds.unsafeOnNext(ChildCommand.ReplaceAll(b("Hello World") :: span("!") :: Nil))
-      element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe ""
 
-      cmds.unsafeOnNext(ChildCommand.Insert(1, p("and friends", dsl.key := 42)))
-      element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
+      _ <- cmds.onNextIO(ChildCommand.ReplaceAll(b("Hello World") :: span("!") :: Nil)) *> IO.cede
+      _ = element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
 
-      cmds.unsafeOnNext(ChildCommand.Move(1, 2))
-      element.innerHTML shouldBe """<b>Hello World</b><span>!</span><p>and friends</p>"""
+      _ <- cmds.onNextIO(ChildCommand.Insert(1, p("and friends", dsl.key := 42))) *> IO.cede
+      _ = element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
 
-      cmds.unsafeOnNext(ChildCommand.MoveId(ChildCommand.ChildId.Key(42), 1))
-      element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
+      _ <- cmds.onNextIO(ChildCommand.Move(1, 2)) *> IO.cede
+      _ = element.innerHTML shouldBe """<b>Hello World</b><span>!</span><p>and friends</p>"""
 
-      cmds.unsafeOnNext(ChildCommand.RemoveId(ChildCommand.ChildId.Key(42)))
-      element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
-    }
+      _ <- cmds.onNextIO(ChildCommand.MoveId(ChildCommand.ChildId.Key(42), 1)) *> IO.cede
+      _ = element.innerHTML shouldBe """<b>Hello World</b><p>and friends</p><span>!</span>"""
+
+      _ <- cmds.onNextIO(ChildCommand.RemoveId(ChildCommand.ChildId.Key(42))) *> IO.cede
+      _ = element.innerHTML shouldBe """<b>Hello World</b><span>!</span>"""
+    } yield succeed
   }
 
   it should "work in handler with element reference" in {
@@ -2239,23 +2231,25 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
-      element.innerHTML shouldBe """<p id="id-1">How much?</p><p id="id-2">Why so cheap?</p>"""
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      sendEvent(document.getElementById("id-1"), "click")
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe """<p id="id-1">How much?</p><p id="id-2">Why so cheap?</p>"""
 
-      element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p>"""
+      _ <- IO(sendEvent(document.getElementById("id-1"), "click")) *> IO.cede
 
-      cmds.unsafeOnNext(ChildCommand.InsertBeforeId(ChildCommand.ChildId.Key("question-2"), div("spam")))
-      element.innerHTML shouldBe """<div>spam</div><p id="id-2">Why so cheap?</p>"""
+      _ = element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p>"""
 
-      cmds.unsafeOnNext(ChildCommand.MoveId(ChildCommand.ChildId.Key("question-2"), 0))
-      element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p><div>spam</div>"""
+      _ <- cmds.onNextIO(ChildCommand.InsertBeforeId(ChildCommand.ChildId.Key("question-2"), div("spam"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>spam</div><p id="id-2">Why so cheap?</p>"""
 
-      sendEvent(document.getElementById("id-2"), "click")
-      element.innerHTML shouldBe """<div>spam</div>"""
-    }
+      _ <- cmds.onNextIO(ChildCommand.MoveId(ChildCommand.ChildId.Key("question-2"), 0)) *> IO.cede
+      _ = element.innerHTML shouldBe """<p id="id-2">Why so cheap?</p><div>spam</div>"""
+
+      _ <- IO(sendEvent(document.getElementById("id-2"), "click")) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>spam</div>"""
+    } yield succeed
   }
 
   it should "work in value observable" in {
@@ -2266,19 +2260,21 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       cmds.prepend(ChildCommand.ReplaceAll(div("huch") :: Nil))
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
-      element.innerHTML shouldBe "<div>huch</div>"
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      cmds.unsafeOnNext(ChildCommand.Prepend(b("nope")))
-      element.innerHTML shouldBe """<b>nope</b><div>huch</div>"""
+      element = document.getElementById("strings")
+      _ = element.innerHTML shouldBe "<div>huch</div>"
 
-      cmds.unsafeOnNext(ChildCommand.Move(0, 1))
-      element.innerHTML shouldBe """<div>huch</div><b>nope</b>"""
+      _ <- cmds.onNextIO(ChildCommand.Prepend(b("nope"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<b>nope</b><div>huch</div>"""
 
-      cmds.unsafeOnNext(ChildCommand.Replace(1, b("yes")))
-      element.innerHTML shouldBe """<div>huch</div><b>yes</b>"""
-    }
+      _ <- cmds.onNextIO(ChildCommand.Move(0, 1)) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>huch</div><b>nope</b>"""
+
+      _ <- cmds.onNextIO(ChildCommand.Replace(1, b("yes"))) *> IO.cede
+      _ = element.innerHTML shouldBe """<div>huch</div><b>yes</b>"""
+    } yield succeed
   }
 
   "Emitter subscription" should "be correctly subscribed" in {
@@ -2287,7 +2283,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     var incCounter =  0
     var mapCounter = 0
-    val innerMod  = onClick.transformLift(_ => clicks.map { c => mapCounter += 1; c }) doAction { incCounter += 1 }
+    val innerMod  = onClick.transform(_ => clicks.map { c => mapCounter += 1; c }) doAction { incCounter += 1 }
     val modHandler = Subject.behavior(innerMod)
 
     val innerNode = div(modHandler)
@@ -2301,38 +2297,40 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     incCounter shouldBe 0
     mapCounter shouldBe 0
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      incCounter shouldBe 1
-      mapCounter shouldBe 1
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      clicks.unsafeOnNext(1)
-      incCounter shouldBe 2
-      mapCounter shouldBe 2
+      _ = incCounter shouldBe 1
+      _ = mapCounter shouldBe 1
 
-      modHandler.unsafeOnNext(VModifier.empty)
-      incCounter shouldBe 2
-      mapCounter shouldBe 2
+      _ <- clicks.onNextIO(1) *> IO.cede
+      _ = incCounter shouldBe 2
+      _ = mapCounter shouldBe 2
 
-      clicks.unsafeOnNext(2)
-      incCounter shouldBe 2
-      mapCounter shouldBe 2
+      _ <- modHandler.onNextIO(VModifier.empty) *> IO.cede
+      _ = incCounter shouldBe 2
+      _ = mapCounter shouldBe 2
 
-      modHandler.unsafeOnNext(innerMod)
-      incCounter shouldBe 3
-      mapCounter shouldBe 3
+      _ <- clicks.onNextIO(2) *> IO.cede
+      _ = incCounter shouldBe 2
+      _ = mapCounter shouldBe 2
 
-      clicks.unsafeOnNext(3)
-      incCounter shouldBe 4
-      mapCounter shouldBe 4
+      _ <- modHandler.onNextIO(innerMod) *> IO.cede
+      _ = incCounter shouldBe 3
+      _ = mapCounter shouldBe 3
 
-      nodeHandler.unsafeOnNext(span)
-      incCounter shouldBe 4
-      mapCounter shouldBe 4
+      _ <- clicks.onNextIO(3) *> IO.cede
+      _ = incCounter shouldBe 4
+      _ = mapCounter shouldBe 4
 
-      clicks.unsafeOnNext(4)
-      incCounter shouldBe 4
-      mapCounter shouldBe 4
-    }
+      _ <- nodeHandler.onNextIO(span) *> IO.cede
+      _ = incCounter shouldBe 4
+      _ = mapCounter shouldBe 4
+
+      _ <- clicks.onNextIO(4) *> IO.cede
+      _ = incCounter shouldBe 4
+      _ = mapCounter shouldBe 4
+    } yield succeed
   }
 
   it should "be correctly subscribed for emitterbuilder.asLatestEmitter" in {
@@ -2354,55 +2352,57 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       handler
     )
 
-    aEvent.unsafeOnNext("nope?")
-    bEvent.unsafeOnNext("nope?")
-    aCounter shouldBe 0
-    bCounter shouldBe 0
-    lastValue shouldBe null
+    for {
+      _ <- aEvent.onNextIO("nope?") *> IO.cede
+      _ <- bEvent.onNextIO("nope?") *> IO.cede
+      _ = aCounter shouldBe 0
+      _ = bCounter shouldBe 0
+      _ = lastValue shouldBe null
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      aCounter shouldBe 0
-      bCounter shouldBe 0
-      lastValue shouldBe null
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      aEvent.unsafeOnNext("a")
-      aCounter shouldBe 1
-      bCounter shouldBe 0
-      lastValue shouldBe null
+      _ = aCounter shouldBe 0
+      _ = bCounter shouldBe 0
+      _ = lastValue shouldBe null
 
-      bEvent.unsafeOnNext("b")
-      aCounter shouldBe 1
-      bCounter shouldBe 1
-      lastValue shouldBe null
+      _ <- aEvent.onNextIO("a") *> IO.cede
+      _ = aCounter shouldBe 1
+      _ = bCounter shouldBe 0
+      _ = lastValue shouldBe null
 
-      aEvent.unsafeOnNext("a2")
-      aCounter shouldBe 2
-      bCounter shouldBe 1
-      lastValue shouldBe "b"
+      _ <- bEvent.onNextIO("b") *> IO.cede
+      _ = aCounter shouldBe 1
+      _ = bCounter shouldBe 1
+      _ = lastValue shouldBe null
 
-      bEvent.unsafeOnNext("ahja")
-      aCounter shouldBe 2
-      bCounter shouldBe 2
-      lastValue shouldBe "b"
+      _ <- aEvent.onNextIO("a2") *> IO.cede
+      _ = aCounter shouldBe 2
+      _ = bCounter shouldBe 1
+      _ = lastValue shouldBe "b"
 
-      aEvent.unsafeOnNext("oh")
-      aCounter shouldBe 3
-      bCounter shouldBe 2
-      lastValue shouldBe "ahja"
+      _ <- bEvent.onNextIO("ahja") *> IO.cede
+      _ = aCounter shouldBe 2
+      _ = bCounter shouldBe 2
+      _ = lastValue shouldBe "b"
 
-      handler.unsafeOnNext(VModifier.empty)
+      _ <- aEvent.onNextIO("oh") *> IO.cede
+      _ = aCounter shouldBe 3
+      _ = bCounter shouldBe 2
+      _ = lastValue shouldBe "ahja"
 
-      aEvent.unsafeOnNext("hmm?")
-      aCounter shouldBe 3
-      bCounter shouldBe 2
-      lastValue shouldBe "ahja"
+      _ <- handler.onNextIO(VModifier.empty) *> IO.cede
 
-      bEvent.unsafeOnNext("no?")
-      aCounter shouldBe 3
-      bCounter shouldBe 2
-      lastValue shouldBe "ahja"
+      _ <- aEvent.onNextIO("hmm?") *> IO.cede
+      _ = aCounter shouldBe 3
+      _ = bCounter shouldBe 2
+      _ = lastValue shouldBe "ahja"
 
-    }
+      _ <- bEvent.onNextIO("no?") *> IO.cede
+      _ = aCounter shouldBe 3
+      _ = bCounter shouldBe 2
+      _ = lastValue shouldBe "ahja"
+
+    } yield succeed
   }
 
   "Thunk" should "work" in {
@@ -2424,48 +2424,50 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      mountCount shouldBe 0
-      preupdateCount shouldBe 0
-      updateCount shouldBe 0
-      unmountCount shouldBe 0
-      element.innerHTML shouldBe "<b>something else</b>"
+      element = document.getElementById("strings")
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mountCount shouldBe 1
-      preupdateCount shouldBe 0
-      updateCount shouldBe 0
-      unmountCount shouldBe 0
-      element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+      _ = renderFnCounter shouldBe 0
+      _ = mountCount shouldBe 0
+      _ = preupdateCount shouldBe 0
+      _ = updateCount shouldBe 0
+      _ = unmountCount shouldBe 0
+      _ = element.innerHTML shouldBe "<b>something else</b>"
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mountCount shouldBe 1
-      preupdateCount shouldBe 1
-      updateCount shouldBe 1
-      unmountCount shouldBe 0
-      element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mountCount shouldBe 1
+      _ = preupdateCount shouldBe 0
+      _ = updateCount shouldBe 0
+      _ = unmountCount shouldBe 0
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hai!")
-      renderFnCounter shouldBe 2
-      mountCount shouldBe 2
-      preupdateCount shouldBe 1
-      updateCount shouldBe 1
-      unmountCount shouldBe 1
-      element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mountCount shouldBe 1
+      _ = preupdateCount shouldBe 1
+      _ = updateCount shouldBe 1
+      _ = unmountCount shouldBe 0
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("fuchs.")
-      renderFnCounter shouldBe 3
-      mountCount shouldBe 3
-      preupdateCount shouldBe 1
-      updateCount shouldBe 1
-      unmountCount shouldBe 2
-      element.innerHTML shouldBe """<b id="bla" class="b">fuchs.</b><b>something else</b>"""
-    }
+      _ <- myString.onNextIO("hai!") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mountCount shouldBe 2
+      _ = preupdateCount shouldBe 1
+      _ = updateCount shouldBe 1
+      _ = unmountCount shouldBe 1
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+
+      _ <- myString.onNextIO("fuchs.") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mountCount shouldBe 3
+      _ = preupdateCount shouldBe 1
+      _ = updateCount shouldBe 1
+      _ = unmountCount shouldBe 2
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">fuchs.</b><b>something else</b>"""
+    } yield succeed
   }
 
   it should "work with equals" in {
@@ -2494,34 +2496,36 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      equalsCounter shouldBe 0
-      element.innerHTML shouldBe "<b>something else</b>"
+      element = document.getElementById("strings")
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      equalsCounter shouldBe 0
-      element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+      _ = renderFnCounter shouldBe 0
+      _ = equalsCounter shouldBe 0
+      _ = element.innerHTML shouldBe "<b>something else</b>"
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      equalsCounter shouldBe 1
-      element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = equalsCounter shouldBe 0
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hai!")
-      renderFnCounter shouldBe 2
-      equalsCounter shouldBe 2
-      element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
-    }
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = equalsCounter shouldBe 1
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">wal?</b><b>something else</b>"""
+
+      _ <- myString.onNextIO("hai!") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = equalsCounter shouldBe 2
+      _ = element.innerHTML shouldBe """<b id="bla" class="b">hai!</b><b>something else</b>"""
+    } yield succeed
   }
 
   it should "work with inner stream" in {
     val myString: Subject[String] = Subject.replayLatest[String]()
     val myThunk: Subject[Unit] = Subject.replayLatest[Unit]()
-    
+
 
     var renderFnCounter = 0
     val node = div(
@@ -2536,36 +2540,38 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       }
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      element.innerHTML shouldBe ""
+      element = document.getElementById("strings")
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b></b>"
+      _ = renderFnCounter shouldBe 0
+      _ = element.innerHTML shouldBe ""
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b></b>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b></b>"
 
-      myString.unsafeOnNext("ok?")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b><p>ok?</p></b>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b></b>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b><p>ok?</p></b>"
+      _ <- myString.onNextIO("ok?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b><p>ok?</p></b>"
 
-      myString.unsafeOnNext("hope so")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b><p>hope so</p></b>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b><p>ok?</p></b>"
 
-      myString.unsafeOnNext("ohai")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b><p>ohai</p></b>"
-    }
+      _ <- myString.onNextIO("hope so") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b><p>hope so</p></b>"
+
+      _ <- myString.onNextIO("ohai") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b><p>ohai</p></b>"
+    } yield succeed
   }
 
   it should "work with inner and adjacent stream" in {
@@ -2591,96 +2597,98 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       myOther
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      element.innerHTML shouldBe ""
+      element = document.getElementById("strings")
 
-      myThunk.unsafeOnNext(0)
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b>0</b>"
+      _ = renderFnCounter shouldBe 0
+      _ = element.innerHTML shouldBe ""
 
-      myThunk.unsafeOnNext(0)
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b>0</b>"
+      _ <- myThunk.onNextIO(0) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b>0</b>"
 
-      myString.unsafeOnNext("ok?")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b>0<p>ok?</p></b>"
+      _ <- myThunk.onNextIO(0) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b>0</b>"
 
-      myString.unsafeOnNext("got it?")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b>0<p>got it?</p></b>"
+      _ <- myString.onNextIO("ok?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b>0<p>ok?</p></b>"
 
-      myOther.unsafeOnNext("nope")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<b>0<p>got it?</p></b>nope"
+      _ <- myString.onNextIO("got it?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b>0<p>got it?</p></b>"
 
-      myThunk.unsafeOnNext(1)
-      renderFnCounter shouldBe 2
-      element.innerHTML shouldBe "<b>1<p>got it?</p></b>nope"
+      _ <- myOther.onNextIO("nope") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<b>0<p>got it?</p></b>nope"
 
-      myThunk.unsafeOnNext(2)
-      renderFnCounter shouldBe 3
-      element.innerHTML shouldBe "<b>2<p>got it?</p></b>nope"
+      _ <- myThunk.onNextIO(1) *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = element.innerHTML shouldBe "<b>1<p>got it?</p></b>nope"
 
-      myOther.unsafeOnNext("yes")
-      renderFnCounter shouldBe 3
-      element.innerHTML shouldBe "<b>2<p>got it?</p></b>yes"
+      _ <- myThunk.onNextIO(2) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = element.innerHTML shouldBe "<b>2<p>got it?</p></b>nope"
 
-      myString.unsafeOnNext("sad?")
-      renderFnCounter shouldBe 3
-      element.innerHTML shouldBe "<b>2<p>sad?</p></b>yes"
+      _ <- myOther.onNextIO("yes") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = element.innerHTML shouldBe "<b>2<p>got it?</p></b>yes"
 
-      myString.unsafeOnNext("hungry?")
-      renderFnCounter shouldBe 3
-      element.innerHTML shouldBe "<b>2<p>hungry?</p></b>yes"
+      _ <- myString.onNextIO("sad?") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = element.innerHTML shouldBe "<b>2<p>sad?</p></b>yes"
 
-      myString.unsafeOnNext("thursty?")
-      renderFnCounter shouldBe 3
-      element.innerHTML shouldBe "<b>2<p>thursty?</p></b>yes"
+      _ <- myString.onNextIO("hungry?") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = element.innerHTML shouldBe "<b>2<p>hungry?</p></b>yes"
 
-      myOther.unsafeOnNext("maybe")
-      renderFnCounter shouldBe 3
-      element.innerHTML shouldBe "<b>2<p>thursty?</p></b>maybe"
+      _ <- myString.onNextIO("thursty?") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = element.innerHTML shouldBe "<b>2<p>thursty?</p></b>yes"
 
-      myThunk.unsafeOnNext(3)
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<p>thursty?</p></b>maybe"
+      _ <- myOther.onNextIO("maybe") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = element.innerHTML shouldBe "<b>2<p>thursty?</p></b>maybe"
 
-      myString.unsafeOnNext("")
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<span>nope</span></b>maybe"
+      _ <- myThunk.onNextIO(3) *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<p>thursty?</p></b>maybe"
 
-      myOther.unsafeOnNext("come on")
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<span>nope</span></b>come on"
+      _ <- myString.onNextIO("") *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<span>nope</span></b>maybe"
 
-      myThunk.unsafeOnNext(3)
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<span>nope</span></b>come on"
+      _ <- myOther.onNextIO("come on") *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<span>nope</span></b>come on"
 
-      myOther.unsafeOnNext("hey?")
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<span>nope</span></b>hey?"
+      _ <- myThunk.onNextIO(3) *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<span>nope</span></b>come on"
 
-      myString.unsafeOnNext("oh")
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<p>oh</p></b>hey?"
+      _ <- myOther.onNextIO("hey?") *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<span>nope</span></b>hey?"
 
-      myOther.unsafeOnNext("ah")
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<p>oh</p></b>ah"
+      _ <- myString.onNextIO("oh") *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<p>oh</p></b>hey?"
 
-      myThunk.unsafeOnNext(3)
-      renderFnCounter shouldBe 4
-      element.innerHTML shouldBe "<b>3<p>oh</p></b>ah"
+      _ <- myOther.onNextIO("ah") *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<p>oh</p></b>ah"
 
-      myThunk.unsafeOnNext(4)
-      renderFnCounter shouldBe 5
-      element.innerHTML shouldBe "<b>4<p>oh</p></b>ah"
-    }
+      _ <- myThunk.onNextIO(3) *> IO.cede
+      _ = renderFnCounter shouldBe 4
+      _ = element.innerHTML shouldBe "<b>3<p>oh</p></b>ah"
+
+      _ <- myThunk.onNextIO(4) *> IO.cede
+      _ = renderFnCounter shouldBe 5
+      _ = element.innerHTML shouldBe "<b>4<p>oh</p></b>ah"
+    } yield succeed
   }
 
   it should "work with nested inner stream" in {
@@ -2689,7 +2697,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val myInnerOther: Subject[String] = Subject.replayLatest[String]()
     val myOther: Subject[String] = Subject.replayLatest[String]()
     val myThunk: Subject[Unit] = Subject.replayLatest[Unit]()
-    
+
 
     var renderFnCounter = 0
     val node = div(
@@ -2710,208 +2718,210 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       }
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      element.innerHTML shouldBe ""
+      element = document.getElementById("strings")
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b></b></div>"
+      _ = renderFnCounter shouldBe 0
+      _ = element.innerHTML shouldBe ""
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b></b></div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b></b></div>"
 
-      myString.unsafeOnNext("ok?")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b></b></div>"
 
-      myString.unsafeOnNext("ok?")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
+      _ <- myString.onNextIO("ok?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
+      _ <- myString.onNextIO("ok?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
 
-      myString.unsafeOnNext("hope so")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>hope so</p></div></b></div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ok?</p></div></b></div>"
 
-      myString.unsafeOnNext("ohai")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ohai</p></div></b></div>"
+      _ <- myString.onNextIO("hope so") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>hope so</p></div></b></div>"
 
-      myString.unsafeOnNext("")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><div>empty</div></div></b></div>"
+      _ <- myString.onNextIO("ohai") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ohai</p></div></b></div>"
 
-      myInner.unsafeOnNext("!")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><div>empty</div></div></b></div>"
+      _ <- myString.onNextIO("") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><div>empty</div></div></b></div>"
 
-      myString.unsafeOnNext("torst")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>torst!</p></div></b></div>"
+      _ <- myInner.onNextIO("!") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><div>empty</div></div></b></div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>torst!</p></div></b></div>"
+      _ <- myString.onNextIO("torst") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>torst!</p></div></b></div>"
 
-      myInner.unsafeOnNext("?")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>torst?</p></div></b></div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>torst!</p></div></b></div>"
 
-      myString.unsafeOnNext("gandalf")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b></div>"
+      _ <- myInner.onNextIO("?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>torst?</p></div></b></div>"
 
-      myString.unsafeOnNext("gandalf")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b></div>"
+      _ <- myString.onNextIO("gandalf") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b></div>"
 
-      myOther.unsafeOnNext("du")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b>du</div>"
+      _ <- myString.onNextIO("gandalf") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b></div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b>du</div>"
+      _ <- myOther.onNextIO("du") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b>du</div>"
 
-      myInner.unsafeOnNext("!")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gandalf!</p></div></b>du</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gandalf?</p></div></b>du</div>"
 
-      myString.unsafeOnNext("fanta")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
+      _ <- myInner.onNextIO("!") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gandalf!</p></div></b>du</div>"
 
-      myString.unsafeOnNext("fanta")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
+      _ <- myString.onNextIO("fanta") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
+      _ <- myString.onNextIO("fanta") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
 
-      myOther.unsafeOnNext("nee")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>nee</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>du</div>"
 
-      myInnerOther.unsafeOnNext("muh")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>fanta!</p>muh</div></b>nee</div>"
+      _ <- myOther.onNextIO("nee") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>fanta!</p></div></b>nee</div>"
 
-      myString.unsafeOnNext("ghost")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
+      _ <- myInnerOther.onNextIO("muh") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>fanta!</p>muh</div></b>nee</div>"
 
-      myString.unsafeOnNext("ghost")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
+      _ <- myString.onNextIO("ghost") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
+      _ <- myString.onNextIO("ghost") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
 
-      myOther.unsafeOnNext("life")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>nee</div>"
 
-      myInnerOther.unsafeOnNext("muh")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
+      _ <- myOther.onNextIO("life") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
 
-      myString.unsafeOnNext("ghost")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
+      _ <- myInnerOther.onNextIO("muh") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
 
-      myOther.unsafeOnNext("seen")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>seen</div>"
+      _ <- myString.onNextIO("ghost") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>life</div>"
 
-      myInnerOther.unsafeOnNext("muh")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>seen</div>"
+      _ <- myOther.onNextIO("seen") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>seen</div>"
 
-      myString.unsafeOnNext("")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><div>empty</div>muh</div></b>seen</div>"
+      _ <- myInnerOther.onNextIO("muh") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>ghost!</p>muh</div></b>seen</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><div>empty</div>muh</div></b>seen</div>"
+      _ <- myString.onNextIO("") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><div>empty</div>muh</div></b>seen</div>"
 
-      myString.unsafeOnNext("gott")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gott!</p>muh</div></b>seen</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><div>empty</div>muh</div></b>seen</div>"
 
-      myOther.unsafeOnNext("dorf")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gott!</p>muh</div></b>dorf</div>"
+      _ <- myString.onNextIO("gott") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gott!</p>muh</div></b>seen</div>"
 
-      myInnerOther.unsafeOnNext("ach")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
+      _ <- myOther.onNextIO("dorf") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gott!</p>muh</div></b>dorf</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
+      _ <- myInnerOther.onNextIO("ach") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
 
-      myString.unsafeOnNext("gott")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
 
-      myInner.unsafeOnNext("hans")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>ach</div></b>dorf</div>"
+      _ <- myString.onNextIO("gott") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gott!</p>ach</div></b>dorf</div>"
 
-      myOther.unsafeOnNext("das")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>ach</div></b>das</div>"
+      _ <- myInner.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gotthans</p>ach</div></b>dorf</div>"
 
-      myInnerOther.unsafeOnNext("tank")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>tank</div></b>das</div>"
+      _ <- myOther.onNextIO("das") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gotthans</p>ach</div></b>das</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gotthans</p>tank</div></b>das</div>"
+      _ <- myInnerOther.onNextIO("tank") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gotthans</p>tank</div></b>das</div>"
 
-      myInner.unsafeOnNext("so")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gottso</p>tank</div></b>das</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gotthans</p>tank</div></b>das</div>"
 
-      myOther.unsafeOnNext("datt")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gottso</p>tank</div></b>datt</div>"
+      _ <- myInner.onNextIO("so") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gottso</p>tank</div></b>das</div>"
 
-      myInnerOther.unsafeOnNext("ohje")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gottso</p>ohje</div></b>datt</div>"
+      _ <- myOther.onNextIO("datt") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gottso</p>tank</div></b>datt</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>gottso</p>ohje</div></b>datt</div>"
+      _ <- myInnerOther.onNextIO("ohje") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gottso</p>ohje</div></b>datt</div>"
 
-      myString.unsafeOnNext("ende")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>datt</div>"
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>gottso</p>ohje</div></b>datt</div>"
 
-      myString.unsafeOnNext("ende")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>datt</div>"
+      _ <- myString.onNextIO("ende") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>datt</div>"
 
-      myOther.unsafeOnNext("fin")
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>fin</div>"
+      _ <- myString.onNextIO("ende") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>datt</div>"
 
-      myThunk.unsafeOnNext(())
-      renderFnCounter shouldBe 1
-      element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>fin</div>"
-    }
+      _ <- myOther.onNextIO("fin") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>fin</div>"
+
+      _ <- myThunk.onNextIO(()) *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = element.innerHTML shouldBe "<div><b><div><p>endeso</p>ohje</div></b>fin</div>"
+    } yield succeed
   }
 
   it should "work with streams (switchMap)" in {
@@ -2935,7 +2945,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") colibri.Observable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
         else myInner.map[VNode](s => div(s, mountHooks)).prepend(b(idAttr <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
           VModifier(cls := "b", myString, mountHooks, thunkContent)
@@ -2945,139 +2955,141 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      mounts shouldBe Nil
-      preupdates shouldBe Nil
-      updates shouldBe Nil
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe "<b>something else</b>"
+      element = document.getElementById("strings")
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe Nil
-      updates shouldBe Nil
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
+      _ = renderFnCounter shouldBe 0
+      _ = mounts shouldBe Nil
+      _ = preupdates shouldBe Nil
+      _ = updates shouldBe Nil
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe "<b>something else</b>"
 
-      myId.unsafeOnNext("tier")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe List(0)
-      updates shouldBe List(0)
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe Nil
+      _ = updates shouldBe Nil
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe List(0, 0)
-      updates shouldBe List(0, 0)
-      unmounts shouldBe List()
-      element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+      _ <- myId.onNextIO("tier") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0)
+      _ = updates shouldBe List(0)
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hai!")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1)
-      preupdates shouldBe List(0, 0)
-      updates shouldBe List(0, 0)
-      unmounts shouldBe List(0)
-      element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0, 0)
+      _ = updates shouldBe List(0, 0)
+      _ = unmounts shouldBe List()
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myId.unsafeOnNext("nope")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0)
-      element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
+      _ <- myString.onNextIO("hai!") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1)
+      _ = preupdates shouldBe List(0, 0)
+      _ = updates shouldBe List(0, 0)
+      _ = unmounts shouldBe List(0)
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
 
-      myString.unsafeOnNext("empty")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1, 2)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1)
-      element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+      _ <- myId.onNextIO("nope") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0)
+      _ = element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
 
-      myId.unsafeOnNext("nothing")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1, 2)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1)
-      element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+      _ <- myString.onNextIO("empty") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1, 2)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0, 1)
+      _ = element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hans")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="nothing" class="b">hans</b><b>something else</b>"""
+      _ <- myId.onNextIO("nothing") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1, 2)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0, 1)
+      _ = element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
 
-      myId.unsafeOnNext("hans")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3)
-      updates shouldBe List(0, 0, 1, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
+      _ <- myString.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="nothing" class="b">hans</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hans")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
+      _ <- myId.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3)
+      _ = updates shouldBe List(0, 0, 1, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
 
-      thunkContent.unsafeOnNext(p(dsl.key := "1", "el dieter"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter</p></b><b>something else</b>"""
+      _ <- myString.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
 
-      thunkContent.unsafeOnNext(p(dsl.key := "2", "el dieter II"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><b>something else</b>"""
+      _ <- thunkContent.onNextIO(p(dsl.key := "1", "el dieter")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter</p></b><b>something else</b>"""
 
-      myOther.unsafeOnNext(div("baem!"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
+      _ <- thunkContent.onNextIO(p(dsl.key := "2", "el dieter II")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><b>something else</b>"""
 
-      myInner.unsafeOnNext("meh")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3, 4)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2, 3)
-      element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+      _ <- myOther.onNextIO(div("baem!")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
 
-      myOther.unsafeOnNext(div("fini"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3, 4)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2, 3)
-      element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
-    }
+      _ <- myInner.onNextIO("meh") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3, 4)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2, 3)
+      _ = element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+
+      _ <- myOther.onNextIO(div("fini")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3, 4)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2, 3)
+      _ = element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
+    } yield succeed
   }
 
-  it should "work with streams (flatMap)" in {
+  it should "work with streams (switchMap 2)" in {
     val myString: Subject[String] = Subject.replayLatest[String]()
     val myId: Subject[String] = Subject.replayLatest[String]()
     val myInner: Subject[String] = Subject.replayLatest[String]()
@@ -3098,7 +3110,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") Observable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
         else myInner.map[VNode](s => div(s, mountHooks)).prepend(b(idAttr <-- myId).thunk("component")(myString) {
           renderFnCounter += 1
           VModifier(cls := "b", myString, mountHooks, thunkContent)
@@ -3108,136 +3120,138 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      mounts shouldBe Nil
-      preupdates shouldBe Nil
-      updates shouldBe Nil
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe "<b>something else</b>"
+      element = document.getElementById("strings")
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe Nil
-      updates shouldBe Nil
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
+      _ = renderFnCounter shouldBe 0
+      _ = mounts shouldBe Nil
+      _ = preupdates shouldBe Nil
+      _ = updates shouldBe Nil
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe "<b>something else</b>"
 
-      myId.unsafeOnNext("tier")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe List(0)
-      updates shouldBe List(0)
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe Nil
+      _ = updates shouldBe Nil
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe List(0, 0)
-      updates shouldBe List(0, 0)
-      unmounts shouldBe List()
-      element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+      _ <- myId.onNextIO("tier") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0)
+      _ = updates shouldBe List(0)
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hai!")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1)
-      preupdates shouldBe List(0, 0)
-      updates shouldBe List(0, 0)
-      unmounts shouldBe List(0)
-      element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0, 0)
+      _ = updates shouldBe List(0, 0)
+      _ = unmounts shouldBe List()
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myId.unsafeOnNext("nope")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0)
-      element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
+      _ <- myString.onNextIO("hai!") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1)
+      _ = preupdates shouldBe List(0, 0)
+      _ = updates shouldBe List(0, 0)
+      _ = unmounts shouldBe List(0)
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
 
-      myString.unsafeOnNext("empty")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1, 2)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1)
-      element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+      _ <- myId.onNextIO("nope") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0)
+      _ = element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
 
-      myId.unsafeOnNext("nothing")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1, 2)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1)
-      element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+      _ <- myString.onNextIO("empty") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1, 2)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0, 1)
+      _ = element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hans")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="nothing" class="b">hans</b><b>something else</b>"""
+      _ <- myId.onNextIO("nothing") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1, 2)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0, 1)
+      _ = element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
 
-      myId.unsafeOnNext("hans")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3)
-      updates shouldBe List(0, 0, 1, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
+      _ <- myString.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1)
+      _ = updates shouldBe List(0, 0, 1)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="nothing" class="b">hans</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hans")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
+      _ <- myId.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3)
+      _ = updates shouldBe List(0, 0, 1, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
 
-      thunkContent.unsafeOnNext(p(dsl.key := "1", "el dieter"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter</p></b><b>something else</b>"""
+      _ <- myString.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
 
-      thunkContent.unsafeOnNext(p(dsl.key := "2", "el dieter II"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><b>something else</b>"""
+      _ <- thunkContent.onNextIO(p(dsl.key := "1", "el dieter")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter</p></b><b>something else</b>"""
 
-      myOther.unsafeOnNext(div("baem!"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
+      _ <- thunkContent.onNextIO(p(dsl.key := "2", "el dieter II")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><b>something else</b>"""
 
-      myInner.unsafeOnNext("meh")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3, 4)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2, 3)
-      element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+      _ <- myOther.onNextIO(div("baem!")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
 
-      myOther.unsafeOnNext(div("fini"))
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3, 4)
-      preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
-      unmounts shouldBe List(0, 1, 2, 3)
-      element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
-    }
+      _ <- myInner.onNextIO("meh") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3, 4)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2, 3)
+      _ = element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+
+      _ <- myOther.onNextIO(div("fini")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3, 4)
+      _ = preupdates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2, 3)
+      _ = element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
+    } yield succeed
   }
 
   it should "work with streams" in {
@@ -3271,155 +3285,156 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       b("something else")
     )
 
-    Outwatch.renderInto[IO]("#app", node).map { _ =>
-      val element = document.getElementById("strings")
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-      renderFnCounter shouldBe 0
-      mounts shouldBe Nil
-      preupdates shouldBe Nil
-      updates shouldBe Nil
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe "<b>something else</b>"
+      element = document.getElementById("strings")
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe Nil
-      updates shouldBe Nil
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
+      _ = renderFnCounter shouldBe 0
+      _ = mounts shouldBe Nil
+      _ = preupdates shouldBe Nil
+      _ = updates shouldBe Nil
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe "<b>something else</b>"
 
-      myId.unsafeOnNext("tier")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe List(0)
-      updates shouldBe List(0)
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe Nil
+      _ = updates shouldBe Nil
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b">wal?</b><b>something else</b>"""
 
-      myId.unsafeOnNext("tier")
-      renderFnCounter shouldBe 1
-      mounts shouldBe List(0)
-      preupdates shouldBe List(0, 0)
-      updates shouldBe List(0, 0)
-      unmounts shouldBe Nil
-      element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
+      _ <- myId.onNextIO("tier") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0)
+      _ = updates shouldBe List(0)
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("wal?")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1)
-      preupdates shouldBe List(0, 0)
-      updates shouldBe List(0, 0)
-      unmounts shouldBe List(0)
-      element.innerHTML shouldBe """<b id="tier" class="b">wal?</b><b>something else</b>"""
+      _ <- myId.onNextIO("tier") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0, 0)
+      _ = updates shouldBe List(0, 0)
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myId.unsafeOnNext("tier")
-      renderFnCounter shouldBe 2
-      mounts shouldBe List(0, 1)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0)
-      element.innerHTML shouldBe """<b id="tier" class="b">wal?</b><b>something else</b>"""
+      _ <- myString.onNextIO("wal?") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0, 0, 0)
+      _ = updates shouldBe List(0, 0, 0)
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hai!")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2)
-      preupdates shouldBe List(0, 0, 1)
-      updates shouldBe List(0, 0, 1)
-      unmounts shouldBe List(0, 1)
-      element.innerHTML shouldBe """<b id="tier" class="b">hai!</b><b>something else</b>"""
+      _ <- myId.onNextIO("tier") *> IO.cede
+      _ = renderFnCounter shouldBe 1
+      _ = mounts shouldBe List(0)
+      _ = preupdates shouldBe List(0, 0, 0, 0)
+      _ = updates shouldBe List(0, 0, 0, 0)
+      _ = unmounts shouldBe Nil
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">wal?</b><b>something else</b>"""
 
-      myId.unsafeOnNext("nope")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2)
-      preupdates shouldBe List(0, 0, 1, 2)
-      updates shouldBe List(0, 0, 1, 2)
-      unmounts shouldBe List(0, 1)
-      element.innerHTML shouldBe """<b id="nope" class="b">hai!</b><b>something else</b>"""
+      _ <- myString.onNextIO("hai!") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1)
+      _ = preupdates shouldBe List(0, 0, 0, 0)
+      _ = updates shouldBe List(0, 0, 0, 0)
+      _ = unmounts shouldBe List(0)
+      _ = element.innerHTML shouldBe """<b class="b" id="tier">hai!</b><b>something else</b>"""
 
-      myString.unsafeOnNext("empty")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 2)
-      updates shouldBe List(0, 0, 1, 2)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+      _ <- myId.onNextIO("nope") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1)
+      _ = updates shouldBe List(0, 0, 0, 0, 1)
+      _ = unmounts shouldBe List(0)
+      _ = element.innerHTML shouldBe """<b class="b" id="nope">hai!</b><b>something else</b>"""
 
-      myId.unsafeOnNext("nothing")
-      renderFnCounter shouldBe 3
-      mounts shouldBe List(0, 1, 2, 3)
-      preupdates shouldBe List(0, 0, 1, 2)
-      updates shouldBe List(0, 0, 1, 2)
-      unmounts shouldBe List(0, 1, 2)
-      element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
+      _ <- myString.onNextIO("empty") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1, 2)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1)
+      _ = updates shouldBe List(0, 0, 0, 0, 1)
+      _ = unmounts shouldBe List(0, 1)
+      _ = element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hans")
-      renderFnCounter shouldBe 4
-      mounts shouldBe List(0, 1, 2, 3, 4)
-      preupdates shouldBe List(0, 0, 1, 2)
-      updates shouldBe List(0, 0, 1, 2)
-      unmounts shouldBe List(0, 1, 2, 3)
-      element.innerHTML shouldBe """<b id="nothing" class="b">hans</b><b>something else</b>"""
+      _ <- myId.onNextIO("nothing") *> IO.cede
+      _ = renderFnCounter shouldBe 2
+      _ = mounts shouldBe List(0, 1, 2)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1)
+      _ = updates shouldBe List(0, 0, 0, 0, 1)
+      _ = unmounts shouldBe List(0, 1)
+      _ = element.innerHTML shouldBe """<b>empty</b><b>something else</b>"""
 
-      myId.unsafeOnNext("hans")
-      renderFnCounter shouldBe 4
-      mounts shouldBe List(0, 1, 2, 3, 4)
-      preupdates shouldBe List(0, 0, 1, 2, 4)
-      updates shouldBe List(0, 0, 1, 2, 4)
-      unmounts shouldBe List(0, 1, 2, 3)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
+      _ <- myString.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1)
+      _ = updates shouldBe List(0, 0, 0, 0, 1)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="nothing" class="b">hans</b><b>something else</b>"""
 
-      myString.unsafeOnNext("hans")
-      renderFnCounter shouldBe 5
-      mounts shouldBe List(0, 1, 2, 3, 4, 5)
-      preupdates shouldBe List(0, 0, 1, 2, 4)
-      updates shouldBe List(0, 0, 1, 2, 4)
-      unmounts shouldBe List(0, 1, 2, 3, 4)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
+      _ <- myId.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
 
-      thunkContent.unsafeOnNext(p(dsl.key := "1", "el dieter"))
-      renderFnCounter shouldBe 5
-      mounts shouldBe List(0, 1, 2, 3, 4, 5)
-      preupdates shouldBe List(0, 0, 1, 2, 4, 5)
-      updates shouldBe List(0, 0, 1, 2, 4, 5)
-      unmounts shouldBe List(0, 1, 2, 3, 4)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter</p></b><b>something else</b>"""
+      _ <- myString.onNextIO("hans") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans</b><b>something else</b>"""
 
-      thunkContent.unsafeOnNext(p(dsl.key := "2", "el dieter II"))
-      renderFnCounter shouldBe 5
-      mounts shouldBe List(0, 1, 2, 3, 4, 5)
-      preupdates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      updates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      unmounts shouldBe List(0, 1, 2, 3, 4)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><b>something else</b>"""
+      _ <- thunkContent.onNextIO(p(dsl.key := "1", "el dieter")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter</p></b><b>something else</b>"""
 
-      myOther.unsafeOnNext(div("baem!"))
-      renderFnCounter shouldBe 5
-      mounts shouldBe List(0, 1, 2, 3, 4, 5)
-      preupdates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      updates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      unmounts shouldBe List(0, 1, 2, 3, 4)
-      element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
+      _ <- thunkContent.onNextIO(p(dsl.key := "2", "el dieter II")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><b>something else</b>"""
 
-      myInner.unsafeOnNext("meh")
-      renderFnCounter shouldBe 5
-      mounts shouldBe List(0, 1, 2, 3, 4, 5, 6)
-      preupdates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      updates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      unmounts shouldBe List(0, 1, 2, 3, 4, 5)
-      element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+      _ <- myOther.onNextIO(div("baem!")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2)
+      _ = element.innerHTML shouldBe """<b id="hans" class="b">hans<p>el dieter II</p></b><div>baem!</div><b>something else</b>"""
 
-      myOther.unsafeOnNext(div("fini"))
-      renderFnCounter shouldBe 5
-      mounts shouldBe List(0, 1, 2, 3, 4, 5, 6)
-      preupdates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      updates shouldBe List(0, 0, 1, 2, 4, 5, 5)
-      unmounts shouldBe List(0, 1, 2, 3, 4, 5)
-      element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
-    }
+      _ <- myInner.onNextIO("meh") *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3, 4)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2, 3)
+      _ = element.innerHTML shouldBe """<div>meh</div><div>baem!</div><b>something else</b>"""
+
+      _ <- myOther.onNextIO(div("fini")) *> IO.cede
+      _ = renderFnCounter shouldBe 3
+      _ = mounts shouldBe List(0, 1, 2, 3, 4)
+      _ = preupdates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = updates shouldBe List(0, 0, 0, 0, 1, 3, 3, 3, 3)
+      _ = unmounts shouldBe List(0, 1, 2, 3)
+      _ = element.innerHTML shouldBe """<div>meh</div><div>fini</div><b>something else</b>"""
+    } yield succeed
   }
 
-  // TODO: this test does not actually fail if it is wrong, but you just see an error message in the console output. Fix when merging error observable in OutwatchTracing.
   "Nested VNode" should "work without outdated patch" in {
     val myList: Subject[List[String]] = Subject.behavior[List[String]](List("hi"))
     val isSynced: Subject[Int] = Subject.behavior[Int](-1)
@@ -3455,15 +3470,18 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
+    val errors = mutable.ArrayBuffer[Throwable]()
+    OutwatchTracing.error.unsafeForeach(errors += _)
+
     Outwatch.renderInto[IO]("#app", node).flatMap { _ =>
       val editButton = document.getElementById("edit-button")
 
       for {
-        _ <- IO.unit
-        _ = sendEvent(editButton, "click")
+        _ <- IO(sendEvent(editButton, "click")) *> IO.cede
         _ <- IO.sleep(1.seconds)
-        _ = sendEvent(editButton, "click")
+        _ <- IO(sendEvent(editButton, "click")) *> IO.cede
         _ <- IO.sleep(1.seconds)
+        _ = errors.toList shouldBe List.empty
       } yield succeed
     }
   }
@@ -3677,26 +3695,28 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       )
     )
 
-    Outwatch.renderInto[SyncIO]("#app", node).unsafeRunSync()
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-    insertedFirst shouldBe 0
-    mountedFirst shouldBe 0
-    insertedSecond shouldBe 1
-    mountedSecond shouldBe 1
+      _ = insertedFirst shouldBe 0
+      _ = mountedFirst shouldBe 0
+      _ = insertedSecond shouldBe 1
+      _ = mountedSecond shouldBe 1
 
-    otherDiv.unsafeOnNext(div())
+      _ <- otherDiv.onNextIO(div()) *> IO.cede
 
-    insertedFirst shouldBe 1
-    mountedFirst shouldBe 1
-    insertedSecond shouldBe 1
-    mountedSecond shouldBe 1
+      _ = insertedFirst shouldBe 1
+      _ = mountedFirst shouldBe 1
+      _ = insertedSecond shouldBe 1
+      _ = mountedSecond shouldBe 1
 
-    otherDiv.unsafeOnNext(div("hallo"))
+      _ <- otherDiv.onNextIO(div("hallo")) *> IO.cede
 
-    insertedFirst shouldBe 1
-    mountedFirst shouldBe 2
-    insertedSecond shouldBe 1
-    mountedSecond shouldBe 1
+      _ = insertedFirst shouldBe 1
+      _ = mountedFirst shouldBe 2
+      _ = insertedSecond shouldBe 1
+      _ = mountedSecond shouldBe 1
+    } yield succeed
   }
 
 
@@ -3723,25 +3743,109 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       ))
     )
 
-    Outwatch.renderInto[SyncIO]("#app", node).unsafeRunSync()
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-    insertedFirst shouldBe 0
-    mountedFirst shouldBe 0
-    insertedSecond shouldBe 1
-    mountedSecond shouldBe 1
+      _ = insertedFirst shouldBe 0
+      _ = mountedFirst shouldBe 0
+      _ = insertedSecond shouldBe 1
+      _ = mountedSecond shouldBe 1
 
-    otherDiv.unsafeOnNext(Some(div()))
+      _ <- otherDiv.onNextIO(Some(div())) *> IO.cede
 
-    insertedFirst shouldBe 0
-    mountedFirst shouldBe 1
-    insertedSecond shouldBe 2
-    mountedSecond shouldBe 2
+      _ = insertedFirst shouldBe 0
+      _ = mountedFirst shouldBe 1
+      _ = insertedSecond shouldBe 2
+      _ = mountedSecond shouldBe 2
 
-    otherDiv.unsafeOnNext(Some(div("hallo")))
+      _ <- otherDiv.onNextIO(Some(div("hallo"))) *> IO.cede
 
-    insertedFirst shouldBe 0
-    mountedFirst shouldBe 2
-    insertedSecond shouldBe 2
-    mountedSecond shouldBe 3
+      _ = insertedFirst shouldBe 0
+      _ = mountedFirst shouldBe 2
+      _ = insertedSecond shouldBe 2
+      _ = mountedSecond shouldBe 3
+    } yield succeed
   }
+
+  "EmitterBuilder" should "be referential transparent" in {
+    val emitted1 = mutable.ArrayBuffer[Int]()
+    val emitted2 = mutable.ArrayBuffer[Int]()
+
+    val subject1 = Subject.replayLatest[Int]()
+    val subject2 = Subject.replayLatest[Int]()
+
+    def newEmitter() = onClick.as(0).transform(s => Observable.merge(s,subject1)).foreach(emitted1 += _)
+    val emitter = onClick.as(0).transform(s => Observable.merge(s,subject2)).foreach(emitted2 += _)
+
+    val node = div(
+      div(idAttr := "click1", newEmitter(), newEmitter()),
+      div(idAttr := "click2", emitter, emitter)
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      _ = emitted1.toList shouldBe List()
+      _ = emitted2.toList shouldBe List()
+
+      _ <- IO(sendEvent(document.getElementById("click1"), "click"))
+
+      _ = emitted1.toList shouldBe List(0, 0)
+      _ = emitted2.toList shouldBe List()
+
+      _ <- IO(sendEvent(document.getElementById("click2"), "click"))
+
+      _ = emitted1.toList shouldBe List(0, 0)
+      _ = emitted2.toList shouldBe List(0, 0)
+
+      _ <- subject1.onNextIO(1)
+
+      _ = emitted1.toList shouldBe List(0, 0, 1, 1)
+      _ = emitted2.toList shouldBe List(0, 0)
+
+      _ <- subject2.onNextIO(1)
+
+      _ = emitted1.toList shouldBe List(0, 0, 1, 1)
+      _ = emitted2.toList shouldBe List(0, 0, 1, 1)
+    } yield succeed
+  }
+
+  "Rx component" should "work" in Owned {
+
+    var liveCounter = 0
+
+    val variable1 = Var(1)
+    val variable2 = Var("hallo")
+
+    val modifier = Rx {
+      liveCounter += 1
+      VModifier(s"${variable1()}. ${variable2()}")
+    }
+
+    val node = div(
+      idAttr := "test",
+      modifier
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe "1. hallo"
+      _ = liveCounter shouldBe 1
+
+      _ = variable1.set(2)
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe "2. hallo"
+      _ = liveCounter shouldBe 2
+
+      _ = variable2.set("du")
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe "2. du"
+      _ = liveCounter shouldBe 3
+    } yield succeed
+  }.unsafeRunSync()
 }

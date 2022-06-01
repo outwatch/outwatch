@@ -6,16 +6,8 @@ import org.scalajs.dom.{Event, document, window}
 import org.scalatest.{BeforeAndAfterEach, _}
 import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
 import org.scalatest.matchers.should.Matchers
-import colibri._
 
-import scala.concurrent.{ExecutionContext, Future}
-
-trait EasySubscribe {
-
-  implicit class Subscriber[T](obs: Observable[T]) {
-    def apply(next: T => Unit): Cancelable = obs.unsafeForeach(next)
-  }
-}
+import scala.concurrent.Future
 
 trait LocalStorageMock {
   import scala.scalajs.js
@@ -37,7 +29,7 @@ trait LocalStorageMock {
   }
 }
 
-trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe with LocalStorageMock { self: Suite =>
+trait OutwatchSpec extends Matchers with BeforeAndAfterEach with LocalStorageMock { self: Suite =>
   override def beforeEach(): Unit = {
 
     document.body.innerHTML = ""
@@ -59,12 +51,12 @@ abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
   // implicit private val ioRuntime: unsafe.IORuntime = unsafe.IORuntime.global
 
   // ExecutionContext.parasitic only exists in scala 2.13. Not 2.12.
-  override val executionContext = new ExecutionContext {
-    override final def execute(runnable: Runnable): Unit = runnable.run()
-    override final def reportFailure(t: Throwable): Unit = ExecutionContext.defaultReporter(t)
-  }
+  override val executionContext = scala.scalajs.concurrent.QueueExecutionContext()
+    // override final def execute(runnable: Runnable): Unit = runnable.run()
+    // override final def reportFailure(t: Throwable): Unit = ExecutionContext.defaultReporter(t)
+  // }
 
-  implicit val ioRuntime = unsafe.IORuntime(
+  implicit val ioRuntime: unsafe.IORuntime = unsafe.IORuntime(
     compute = executionContext,
     blocking = executionContext,
     config = unsafe.IORuntimeConfig(),

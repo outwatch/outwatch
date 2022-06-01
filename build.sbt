@@ -1,23 +1,21 @@
+Global / onChangedBuildSource := ReloadOnSourceChanges
 
-inThisBuild(Seq(
-  organization := "io.github.outwatch",
-
-  scalaVersion := crossScalaVersions.value.last,
-
-  crossScalaVersions := Seq("2.13.8"),
-
-  licenses += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-
-  homepage := Some(url("https://outwatch.github.io/")),
-
-  scmInfo := Some(ScmInfo(
-    url("https://github.com/OutWatch/outwatch"),
-    "scm:git:git@github.com:OutWatch/outwatch.git",
-    Some("scm:git:git@github.com:OutWatch/outwatch.git"))
-  ),
-
-  pomExtra :=
-    <developers>
+inThisBuild(
+  Seq(
+    organization       := "io.github.outwatch",
+    scalaVersion       := crossScalaVersions.value.last,
+    crossScalaVersions := Seq("2.13.8", "3.1.2"),
+    licenses           += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+    homepage           := Some(url("https://outwatch.github.io/")),
+    scmInfo := Some(
+      ScmInfo(
+        url("https://github.com/outwatch/outwatch"),
+        "scm:git:git@github.com:outwatch/outwatch.git",
+        Some("scm:git:git@github.com:outwatch/outwatch.git"),
+      ),
+    ),
+    pomExtra :=
+      <developers>
         <developer>
         <id>jk</id>
         <name>Johannes Karoff</name>
@@ -34,21 +32,25 @@ inThisBuild(Seq(
         <url>https://github.com/LukaJCB</url>
         </developer>
     </developers>,
-))
-
-val jsdomVersion = "13.2.0"
-val colibriVersion = "0.4.2"
-
-lazy val commonSettings = Seq(
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-
-  useYarn := true,
-
-  libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.11" % Test,
   ),
+)
 
+val jsdomVersion   = "13.2.0"
+val colibriVersion = "0.5.0"
+
+val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
+lazy val commonSettings = Seq(
+  useYarn := true,
+  libraryDependencies ++= Seq(
+    "org.scalatest" %%% "scalatest" % "3.2.12" % Test,
+  ),
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
+
+  libraryDependencies ++= (if (isDotty.value) Nil
+                           else
+                             Seq(
+                               compilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.2").cross(CrossVersion.full)),
+                             )),
 )
 
 lazy val outwatchUtil = project
@@ -57,8 +59,7 @@ lazy val outwatchUtil = project
   .in(file("util"))
   .settings(commonSettings)
   .settings(
-    name := "OutWatch-Util",
-    normalizedName := "outwatch-util",
+    name := "outwatch-util",
   )
 
 lazy val outwatchRepairDom = project
@@ -67,8 +68,7 @@ lazy val outwatchRepairDom = project
   .dependsOn(outwatch)
   .settings(commonSettings)
   .settings(
-    name := "OutWatch-RepairDom",
-    normalizedName := "outwatch-repairdom",
+    name := "outwatch-repairdom",
   )
 
 lazy val outwatchSnabbdom = project
@@ -76,16 +76,13 @@ lazy val outwatchSnabbdom = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .settings(commonSettings)
   .settings(
-    name := "OutWatch-Snabbdom",
-    normalizedName := "outwatch-snabbdom",
-
+    name := "outwatch-snabbdom",
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.1.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0",
     ),
-
-    Compile/npmDependencies ++= Seq(
-      "snabbdom" -> "github:outwatch/snabbdom.git#semver:0.7.5"
-    )
+    Compile / npmDependencies ++= Seq(
+      "snabbdom" -> "github:outwatch/snabbdom.git#semver:0.7.5",
+    ),
   )
 
 lazy val outwatch = project
@@ -94,13 +91,12 @@ lazy val outwatch = project
   .dependsOn(outwatchSnabbdom)
   .settings(commonSettings)
   .settings(
-    name := "OutWatch",
-    normalizedName := "outwatch",
-
+    name := "outwatch",
     libraryDependencies ++= Seq(
-      "com.raquo"            %%% "domtypes" % "0.15.1",
+      "com.raquo"            %%% "domtypes"      % "0.15.1",
+      "com.github.cornerman" %%% "colibri"       % colibriVersion,
       "com.github.cornerman" %%% "colibri-jsdom" % colibriVersion,
-    )
+    ),
   )
 
 lazy val tests = project
@@ -108,35 +104,28 @@ lazy val tests = project
   .dependsOn(outwatchUtil, outwatchRepairDom)
   .settings(commonSettings)
   .settings(
-    publish/skip := true,
-
-    Test/requireJsDomEnv := true,
-    installJsdom/version := jsdomVersion,
+    publish / skip         := true,
+    Test / requireJsDomEnv := true,
+    installJsdom / version := jsdomVersion,
+    libraryDependencies ++= Seq(
+      "com.github.cornerman" %%% "colibri-reactive" % colibriVersion % Test,
+    ),
   )
 
 lazy val bench = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .settings(
-    publish/skip := true,
-
+    publish / skip                  := true,
     scalaJSUseMainModuleInitializer := true,
-
-    resolvers ++=
-      ("jitpack" at "https://jitpack.io") ::
-      Nil,
-
-    libraryDependencies ++=
-      "com.github.fdietze.bench" %%% "bench" % "5ffab44" ::
-      Nil,
-
-    Compile/scalaJSStage := FullOptStage,
-    scalacOptions ++= Seq ("-Xdisable-assertions"),
-
-    useYarn := true,
-
-    Compile/npmDependencies ++= Seq(
-      "jsdom" -> jsdomVersion
+    resolvers                       += "jitpack" at "https://jitpack.io",
+    libraryDependencies ++= Seq(
+      "com.github.fdietze.bench" %%% "bench" % "d411db1",
+    ),
+    Compile / scalaJSStage := FullOptStage,
+    useYarn                := true,
+    Compile / npmDependencies ++= Seq(
+      "jsdom" -> jsdomVersion,
     ),
   )
 
@@ -145,18 +134,21 @@ lazy val jsdocs = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .settings(
-    webpackBundlingMode := BundlingMode.LibraryOnly(),
+    webpackBundlingMode             := BundlingMode.LibraryOnly(),
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.1.0",
-      "com.github.cornerman" %%% "colibri-rx" % colibriVersion,
-      "com.github.cornerman" %%% "colibri-airstream" % colibriVersion,
-      "com.github.cornerman" %%% "colibri-zio" % colibriVersion,
-      "com.github.cornerman" %%% "colibri-fs2" % colibriVersion,
+      "org.scala-js"         %%% "scalajs-dom"          % "2.2.0",
+      "com.github.cornerman" %%% "colibri-airstream"    % colibriVersion,
+      "com.github.cornerman" %%% "colibri-zio"          % colibriVersion,
+      "com.github.cornerman" %%% "colibri-fs2"          % colibriVersion,
+      "io.github.cquiroz"    %%% "scala-java-time"      % "2.4.0-M1",
+      "io.github.cquiroz"    %%% "scala-java-time-tzdb" % "2.4.0-M1",
     ),
+    libraryDependencies ++= (if (isDotty.value) Nil
+                             else Seq("com.github.cornerman" %%% "colibri-rx" % colibriVersion)),
     Compile / npmDependencies ++= Seq(
-      "js-beautify" -> "1.14.0"
-    )
+      "js-beautify" -> "1.14.0",
+    ),
   )
 
 lazy val docs = project
@@ -164,23 +156,23 @@ lazy val docs = project
   .disablePlugins(TpolecatPlugin)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(
-    test/skip := true,
-    publish/skip := true,
-    moduleName := "outwatch-docs",
-    mdocJS := Some(jsdocs),
+    test / skip     := true,
+    publish / skip  := true,
+    moduleName      := "outwatch-docs",
+    mdocJS          := Some(jsdocs),
     mdocJSLibraries := (jsdocs / Compile / fullOptJS / webpack).value,
     mdocVariables := Map(
       /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
-      "VERSION" -> version.value,
-      "REPOURL" -> "https://github.com/OutWatch/outwatch/blob/master",
-      "js-mount-node" -> "docPreview"
+      "VERSION"       -> version.value,
+      "REPOURL"       -> "https://github.com/outwatch/outwatch/blob/master",
+      "js-mount-node" -> "docPreview",
     ),
   )
 
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "outwatch-root",
-    publish/skip := true,
+    name           := "outwatch-root",
+    publish / skip := true,
   )
   .aggregate(outwatch, outwatchSnabbdom, outwatchUtil, outwatchRepairDom, tests, bench)

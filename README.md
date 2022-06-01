@@ -1,24 +1,26 @@
 # Outwatch
-The Functional and Reactive Web-Frontend Library for ScalaJS
+The Functional and Reactive Web-Frontend Library for Scala.js
 
-[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org) [![Scala.js](http://www.scala-js.org/assets/badges/scalajs-1.0.0.svg)](http://scala-js.org) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Outwatch/Lobby)
+[![Typelevel incubator](https://img.shields.io/badge/typelevel-incubator-F51C2B.svg)](http://typelevel.org)
+[![Discord](https://img.shields.io/discord/632277896739946517.svg?label=&logo=discord&logoColor=ffffff&color=404244&labelColor=6A7EC2)](https://discord.gg/9V8FZTVZ9R)
+[![outwatch Scala version support](https://index.scala-lang.org/outwatch/outwatch/outwatch/latest-by-scala-version.svg?platform=sjs1)](https://index.scala-lang.org/outwatch/outwatch/outwatch)
 
 
 ```scala
 import outwatch._
 import outwatch.dsl._
 import colibri._
-import cats.effect.IO
+import cats.effect.{IO, IOApp}
 
-object Main {
-  def main(args: Array[String]): Unit = {
+object Main extends IOApp.Simple {
+  override def run = {
     val counter = Subject.behavior(0)
     val myComponent = div(
       button("+", onClick(counter.map(_ + 1)) --> counter),
       counter,
     )
 
-    Outwatch.renderReplace[IO]("#app", myComponent).unsafeRunSync()
+    Outwatch.renderReplace[IO]("#app", myComponent)
   }
 }
 ```
@@ -73,10 +75,11 @@ val outwatchVersion = "<latest outwatch version>"
 libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % outwatchVersion,
   // optional dependencies:
-  "com.github.cornerman" %%% "colibri-zio"       % "0.3.2", // ZIO
-  "com.github.cornerman" %%% "colibri-airstream" % "0.3.2", // Airstream
-  "com.github.cornerman" %%% "colibri-rx"        % "0.3.2", // Scala.rx
-  "com.github.cornerman" %%% "colibri-router"    % "0.3.2", // Url Router
+  "com.github.cornerman" %%% "colibri-zio"       % "0.5.0", // zio support
+  "com.github.cornerman" %%% "colibri-fs2"       % "0.5.0", // fs2 support
+  "com.github.cornerman" %%% "colibri-airstream" % "0.5.0", // sirstream support
+  "com.github.cornerman" %%% "colibri-rx"        % "0.5.0", // scala.rx support
+  "com.github.cornerman" %%% "colibri-router"    % "0.5.0", // Url Router support
 )
 
 ```

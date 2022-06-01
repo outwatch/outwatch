@@ -11,7 +11,10 @@ import colibri._
 
 @deprecated("Use colibri.jsdom.Storage instead", "")
 class Storage(storage: dom.Storage) {
-  private def handlerWithTransform[F[_]: Sync](key: String, transform: Observable[Option[String]] => Observable[Option[String]]): F[Subject[Option[String]]] = {
+  private def handlerWithTransform[F[_]: Sync](
+    key: String,
+    transform: Observable[Option[String]] => Observable[Option[String]],
+  ): F[Subject[Option[String]]] = {
 
     for {
       h <- Sync[F].delay(Subject.behavior(Option(storage.getItem(key))))
@@ -25,7 +28,7 @@ class Storage(storage: dom.Storage) {
       } { input =>
         input.doOnNext {
           case Some(data) => storage.setItem(key, data)
-          case None => storage.removeItem(key)
+          case None       => storage.removeItem(key)
         }
       }
     }
