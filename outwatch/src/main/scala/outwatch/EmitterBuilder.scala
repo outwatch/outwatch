@@ -71,10 +71,18 @@ trait EmitterBuilderExecution[+O, +R, +Exec <: EmitterBuilder.Execution] {
   @inline def foreachEffect[G[_]: RunEffect](action: O => G[Unit]): R = mapEffect(action).discard
   @inline def doEffect[G[_]: RunEffect](action: G[Unit]): R           = foreachEffect(_ => action)
 
-  @inline def foreachAsyncSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R = mapEffectSingleOrDrop(action).discard
-  @inline def doAsyncSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R           = foreachAsyncSingleOrDrop(_ => action)
   @inline def foreachFuture(action: O => Future[Unit]): R = mapFuture(action).discard
   @inline def doFuture(action: Future[Unit]): R           = foreachFuture(_ => action)
+
+  @deprecated("Use .foreachEffectSingleOrDrop(action) instead", "")
+  @inline def foreachAsyncSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R = foreachEffectSingleOrDrop(action)
+  @deprecated("Use .doEffectSingleOrDrop(action) instead", "")
+  @inline def doAsyncSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R = doEffectSingleOrDrop(action)
+
+  @inline def foreachEffectSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R =
+    mapEffectSingleOrDrop(action).discard
+  @inline def doEffectSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R =
+    foreachEffectSingleOrDrop(_ => action)
 
   @inline def via[F[_]: Sink, O2 >: O](sink: F[O2]): EmitterBuilderExecution[O, R, Exec] =
     transformSinkWithExec[O](Observer.combine(_, Observer.lift(sink)))
