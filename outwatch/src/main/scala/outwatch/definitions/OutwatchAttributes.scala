@@ -234,7 +234,7 @@ trait ManagedHelpers {
     val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
     managed(composite)
   }
-  @deprecated("use VModifier.managedDelay(subscription) instead", "1.0.0")
+  @deprecated("use VModifier.managedEval(subscription) instead", "1.0.0")
   @inline final def managedFunction[T: CanCancel](subscription: () => T): VModifier =
     VModifier.managedFunction(subscription)
   @deprecated("use VModifier.managedElement instead", "1.0.0")
