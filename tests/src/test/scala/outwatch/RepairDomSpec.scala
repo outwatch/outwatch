@@ -1,6 +1,6 @@
 package outwatch
 
-import org.scalajs.dom.{Element, document}
+import org.scalajs.dom.{document, Element}
 
 import scala.scalajs.js
 import outwatch.dsl._
@@ -13,7 +13,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
 
   private def attributeMap(elem: Element): Map[String, String] = {
     val attributes = elem.attributes
-    var attrs = Map.empty[String, String]
+    var attrs      = Map.empty[String, String]
     for (i <- 0 until attributes.length) {
       attrs += (attributes(i).name -> attributes(i).value)
     }
@@ -21,11 +21,11 @@ class RepairDomSpec extends JSDomAsyncSpec {
   }
 
   private def styleMap(elem: Element): Map[String, String] = {
-    val style = elem.style
+    val style  = elem.style
     var styles = Map.empty[String, String]
     for (i <- 0 until style.length) {
       val styleName = style.item(i)
-      val value = style.getPropertyValue(styleName)
+      val value     = style.getPropertyValue(styleName)
       styles += (styleName -> value)
     }
     styles
@@ -43,7 +43,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
     val proxy = toSnabbdom(vNode, RenderConfig.ignoreError)
 
     val originalNode = document.createElement(proxy.sel.get)
-    val fragileNode = document.createElement(proxy.sel.get)
+    val fragileNode  = document.createElement(proxy.sel.get)
     document.body.appendChild(originalNode)
     document.body.appendChild(fragileNode)
     patch(originalNode, proxy)
@@ -59,14 +59,13 @@ class RepairDomSpec extends JSDomAsyncSpec {
     datasetMap(fragileNode) shouldBe datasetMap(originalNode)
   }
 
-
   // nodes
   "RepairDom: Nodes" should "removed first node" in {
     testCase(
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
-      }
+      },
     )
   }
 
@@ -75,7 +74,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span(), code()),
       corruption = { elem =>
         elem.removeChild(elem.childNodes(1))
-      }
+      },
     )
   }
 
@@ -84,7 +83,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.removeChild(elem.lastChild)
-      }
+      },
     )
   }
 
@@ -93,7 +92,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.replaceChild(document.createElement("a"), elem.firstChild)
-      }
+      },
     )
   }
 
@@ -102,7 +101,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span(), code()),
       corruption = { elem =>
         elem.replaceChild(document.createElement("a"), elem.childNodes(1))
-      }
+      },
     )
   }
 
@@ -111,7 +110,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.replaceChild(document.createElement("a"), elem.lastChild)
-      }
+      },
     )
   }
 
@@ -120,7 +119,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.insertBefore(document.createElement("a"), elem.firstChild)
-      }
+      },
     )
   }
 
@@ -129,7 +128,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.insertBefore(document.createElement("a"), elem.lastChild)
-      }
+      },
     )
   }
   it should "appended node" in {
@@ -137,7 +136,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.appendChild(document.createElement("a"))
-      }
+      },
     )
   }
 
@@ -147,7 +146,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div("dev", span()),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
-      }
+      },
     )
   }
 
@@ -156,7 +155,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "spain", code()),
       corruption = { elem =>
         elem.removeChild(elem.childNodes(1))
-      }
+      },
     )
   }
 
@@ -165,7 +164,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "spain"),
       corruption = { elem =>
         elem.removeChild(elem.lastChild)
-      }
+      },
     )
   }
 
@@ -174,7 +173,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.replaceChild(document.createTextNode("aaaa"), elem.firstChild)
-      }
+      },
     )
   }
 
@@ -183,7 +182,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span(), code()),
       corruption = { elem =>
         elem.replaceChild(document.createTextNode("aaaa"), elem.childNodes(1))
-      }
+      },
     )
   }
 
@@ -192,7 +191,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.replaceChild(document.createTextNode("aaaa"), elem.lastChild)
-      }
+      },
     )
   }
 
@@ -201,7 +200,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div("boom", span()),
       corruption = { elem =>
         elem.replaceChild(document.createElement("a"), elem.firstChild)
-      }
+      },
     )
   }
 
@@ -210,7 +209,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "wurm", code()),
       corruption = { elem =>
         elem.replaceChild(document.createElement("a"), elem.childNodes(1))
-      }
+      },
     )
   }
 
@@ -219,7 +218,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "reigen"),
       corruption = { elem =>
         elem.replaceChild(document.createElement("a"), elem.lastChild)
-      }
+      },
     )
   }
 
@@ -228,7 +227,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div("boom", span()),
       corruption = { elem =>
         elem.replaceChild(document.createTextNode("a"), elem.firstChild)
-      }
+      },
     )
   }
 
@@ -237,7 +236,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "wurm", code()),
       corruption = { elem =>
         elem.replaceChild(document.createTextNode("a"), elem.childNodes(1))
-      }
+      },
     )
   }
 
@@ -246,7 +245,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "reigen"),
       corruption = { elem =>
         elem.replaceChild(document.createTextNode("a"), elem.lastChild)
-      }
+      },
     )
   }
 
@@ -255,7 +254,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div("boom", span()),
       corruption = { elem =>
         elem.firstChild.textContent = "calm"
-      }
+      },
     )
   }
 
@@ -264,7 +263,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "wurm", code()),
       corruption = { elem =>
         elem.childNodes(1).textContent = "calm"
-      }
+      },
     )
   }
 
@@ -273,17 +272,16 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), "reigen"),
       corruption = { elem =>
         elem.lastChild.textContent = "calm"
-      }
+      },
     )
   }
-
 
   it should "prepended text node" in {
     testCase(
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.insertBefore(document.createTextNode("a"), elem.firstChild)
-      }
+      },
     )
   }
 
@@ -292,7 +290,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.insertBefore(document.createTextNode("a"), elem.lastChild)
-      }
+      },
     )
   }
   it should "appended text node" in {
@@ -300,7 +298,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(), span()),
       corruption = { elem =>
         elem.appendChild(document.createTextNode("a"))
-      }
+      },
     )
   }
 
@@ -310,7 +308,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(idAttr := "ich"),
       corruption = { elem =>
         elem.removeAttribute("id")
-      }
+      },
     )
   }
 
@@ -319,7 +317,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(rows := 3),
       corruption = { elem =>
         elem.removeAttribute("rows")
-      }
+      },
     )
   }
 
@@ -328,7 +326,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(idAttr := "ich"),
       corruption = { elem =>
         elem.setAttribute("id", "wir")
-      }
+      },
     )
   }
 
@@ -337,7 +335,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(idAttr := "ich"),
       corruption = { elem =>
         elem.setAttribute("color", "tomato")
-      }
+      },
     )
   }
 
@@ -350,7 +348,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(data.idAttr := "ich"),
       corruption = { elem =>
         elem.dataset -= "id"
-      }
+      },
     )
   }
 
@@ -359,7 +357,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(data.rows := 3),
       corruption = { elem =>
         elem.dataset -= "rows"
-      }
+      },
     )
   }
 
@@ -368,7 +366,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(data.idAttr := "ich"),
       corruption = { elem =>
         elem.dataset("id") = "wir"
-      }
+      },
     )
   }
 
@@ -377,7 +375,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(data.idAttr := "ich"),
       corruption = { elem =>
         elem.dataset("color") = "tomato"
-      }
+      },
     )
   }
 
@@ -387,7 +385,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(margin := "3px"),
       corruption = { elem =>
         elem.style.removeProperty("margin")
-      }
+      },
     )
   }
 
@@ -396,7 +394,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(opacity := 0.5),
       corruption = { elem =>
         elem.style.removeProperty("opacity")
-      }
+      },
     )
   }
 
@@ -405,7 +403,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(margin := "3px"),
       corruption = { elem =>
         elem.style.setProperty("margin", "1px")
-      }
+      },
     )
   }
 
@@ -414,7 +412,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(padding := "7px"),
       corruption = { elem =>
         elem.style.setProperty("margin", "2px")
-      }
+      },
     )
   }
 
@@ -424,7 +422,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(VModifier.prop("href") := "/foo"),
       corruption = { elem =>
         elem.asInstanceOf[js.Dictionary[String]] -= "href"
-      }
+      },
     )
   }
 
@@ -433,7 +431,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(VModifier.prop("innerHTML") := "<b>bonjour</b>"),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
-      }
+      },
     )
   }
 
@@ -442,7 +440,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(span(VModifier.prop("innerHTML") := "<b>bonjour</b>")),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
-      }
+      },
     )
   }
 
@@ -451,7 +449,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(VModifier.prop("href") := "/foo"),
       corruption = { elem =>
         elem.asInstanceOf[js.Dictionary[String]]("href") = "bar"
-      }
+      },
     )
   }
 
@@ -460,10 +458,9 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(),
       corruption = { elem =>
         elem.asInstanceOf[js.Dictionary[String]] += ("href" -> "/foo")
-      }
+      },
     )
   }
-
 
   // transitive children
   "RepairDom: transitive children" should "removed node with transitive children" in {
@@ -471,7 +468,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(div(div(), span())),
       corruption = { elem =>
         elem.removeChild(elem.firstChild)
-      }
+      },
     )
   }
 
@@ -482,7 +479,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
         val child = document.createElement("a")
         child.appendChild(document.createElement("div"))
         elem.appendChild(child)
-      }
+      },
     )
   }
 
@@ -491,7 +488,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
       vNode = div(span(), code()),
       corruption = { elem =>
         elem.insertBefore(elem.firstChild, null)
-      }
+      },
     )
   }
 
@@ -508,7 +505,7 @@ class RepairDomSpec extends JSDomAsyncSpec {
     val proxy = toSnabbdom(vNode, RenderConfig.ignoreError)
 
     val originalNode = document.createElement(proxy.sel.get)
-    val fragileNode = document.createElement(proxy.sel.get)
+    val fragileNode  = document.createElement(proxy.sel.get)
     document.body.appendChild(originalNode)
     document.body.appendChild(fragileNode)
     patch(originalNode, proxy)
@@ -518,7 +515,9 @@ class RepairDomSpec extends JSDomAsyncSpec {
     RepairDom.repairNode(proxy)
 
     fragileNode.innerHTML shouldBe originalNode.innerHTML
-    propMap(fragileNode).filter{ case (key,_) => !Set("0", "1")(key)} shouldBe propMap(originalNode).filter{case (key,_) => !Set("0", "1")(key)} // filter out the weird option children in the propertymap. they are fine.
+    propMap(fragileNode).filter { case (key, _) => !Set("0", "1")(key) } shouldBe propMap(originalNode).filter {
+      case (key, _) => !Set("0", "1")(key)
+    } // filter out the weird option children in the propertymap. they are fine.
     styleMap(fragileNode) shouldBe styleMap(originalNode)
     attributeMap(fragileNode) shouldBe attributeMap(originalNode)
     datasetMap(fragileNode) shouldBe datasetMap(originalNode)

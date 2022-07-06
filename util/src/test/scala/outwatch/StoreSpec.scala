@@ -5,20 +5,19 @@ import outwatch.util._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-
 class StoreSpec extends AnyFlatSpec with Matchers {
 
   sealed trait CounterAction
 
   case object Initial extends CounterAction
-  case object Plus extends CounterAction
-  case object Minus extends CounterAction
+  case object Plus    extends CounterAction
+  case object Minus   extends CounterAction
 
   type Model = Int
 
-  val reduce: Reducer[CounterAction, Model] = Reducer { 
-    case (_, Initial) => ???
-    case (state, Plus) => state + 1
+  val reduce: Reducer[CounterAction, Model] = Reducer {
+    case (_, Initial)   => ???
+    case (state, Plus)  => state + 1
     case (state, Minus) => state - 1
   }
 
@@ -28,11 +27,11 @@ class StoreSpec extends AnyFlatSpec with Matchers {
     var a: Option[Model] = None
     var b: Option[Model] = None
 
-    store.unsafeForeach { case (action@_, state) =>
+    store.unsafeForeach { case (action @ _, state) =>
       a = Some(state)
     }
 
-    store.unsafeForeach { case (action@_, state) =>
+    store.unsafeForeach { case (action @ _, state) =>
       b = Some(state)
     }
 
@@ -47,11 +46,11 @@ class StoreSpec extends AnyFlatSpec with Matchers {
     var a: Option[Model] = None
     var b: Option[Model] = None
 
-    store.unsafeForeach { case (action@_, state) =>
+    store.unsafeForeach { case (action @ _, state) =>
       a = Some(state)
     }
 
-    store.unsafeForeach { case (action@_, state) =>
+    store.unsafeForeach { case (action @ _, state) =>
       b = Some(state)
     }
 
@@ -76,11 +75,11 @@ class StoreSpec extends AnyFlatSpec with Matchers {
     var a: Option[Model] = None
     var b: Option[Model] = None
 
-    store.unsafeForeach { case (action@_, state) =>
+    store.unsafeForeach { case (action @ _, state) =>
       a = Some(state)
     }
 
-    store.unsafeForeach { case (action@_, state) =>
+    store.unsafeForeach { case (action @ _, state) =>
       b = Some(state)
     }
 
