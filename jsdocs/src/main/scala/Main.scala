@@ -9,7 +9,7 @@ import scala.scalajs.js.annotation.JSImport
 object JSBeautify extends js.Object
 
 object Main {
-  def main(args:Array[String]) = {
+  def main(args: Array[String]) = {
     // entrypoint needed for mdoc, so that the facades
     // for snabbdom, jsBeautify don't get removed by dead code elimination.
     // It is never executed.
@@ -17,5 +17,3 @@ object Main {
     val _ = Outwatch.renderInto[IO]("#app", div())
   }
 }
-
-
