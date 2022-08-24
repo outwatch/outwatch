@@ -202,7 +202,15 @@ object VNode {
   private val emptyModifierArray            = js.Array[VModifier]()
   @inline def html(name: String): HtmlVNode = HtmlVNode(name, emptyModifierArray)
   @inline def svg(name: String): SvgVNode   = SvgVNode(name, emptyModifierArray)
-  @inline def eval(body: => VNode): VNode   = SyncEffectVNode(() => body)
+
+  @inline def raiseError[T](error: Throwable): VNode = dsl.div(VModifier.raiseError(error))
+
+  @inline def fromEither(modifier: Either[Throwable, VNode]): VNode    = modifier.fold(raiseError(_), identity)
+  @inline def evalEither(modifier: => Either[Throwable, VNode]): VNode = SyncEffectVNode(() => fromEither(modifier))
+
+  @inline def eval(body: => VNode): VNode = SyncEffectVNode(() => body)
+
+  @inline def effect[F[_]: RunSyncEffect](body: F[VNode]): VNode = evalEither(RunSyncEffect[F].unsafeRun(body))
 
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
     @inline def own(owner: VNode)(subscription: () => Cancelable): VNode =
