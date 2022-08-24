@@ -53,28 +53,37 @@ private[outwatch] object SnabbdomOps {
     } else newProxy(modifiers.proxies, js.undefined)
   }
 
+  def getBaseNode(node: VNode): BasicVNode = node match {
+    case n: BasicVNode       => n
+    case n: ThunkVNode       => getBaseNode(n.baseNode)
+    case n: ConditionalVNode => getBaseNode(n.baseNode)
+    case n: SyncEffectVNode  => getBaseNode(n.unsafeRun())
+  }
+
   def getNamespace(node: BasicVNode): js.UndefOr[String] = node match {
-    case _: SvgVNode => "http://www.w3.org/2000/svg": js.UndefOr[String]
-    case _           => js.undefined
+    case _: SvgVNode  => "http://www.w3.org/2000/svg": js.UndefOr[String]
+    case _: HtmlVNode => js.undefined
   }
 
   def toSnabbdom(node: VNode, config: RenderConfig): VNodeProxy = node match {
     case node: BasicVNode =>
       toRawSnabbdomProxy(node, config)
     case node: ConditionalVNode =>
+      val baseNode = getBaseNode(node.baseNode)
       thunk.conditional(
-        getNamespace(node.baseNode),
-        node.baseNode.nodeType,
+        getNamespace(baseNode),
+        baseNode.nodeType,
         node.key,
-        () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config),
+        () => toRawSnabbdomProxy(getBaseNode(baseNode(node.renderFn(), Key(node.key))), config),
         node.shouldRender,
       )
     case node: ThunkVNode =>
+      val baseNode = getBaseNode(node.baseNode)
       thunk(
-        getNamespace(node.baseNode),
-        node.baseNode.nodeType,
+        getNamespace(baseNode),
+        baseNode.nodeType,
         node.key,
-        () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config),
+        () => toRawSnabbdomProxy(getBaseNode(baseNode(node.renderFn(), Key(node.key))), config),
         node.arguments,
       )
     case node: SyncEffectVNode =>

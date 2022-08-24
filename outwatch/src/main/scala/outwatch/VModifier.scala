@@ -190,6 +190,13 @@ sealed trait VNode extends VModifier {
   def apply(args: VModifier*): VNode
   def append(args: VModifier*): VNode
   def prepend(args: VModifier*): VNode
+
+  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode =
+    ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
+  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode =
+    ConditionalVNode(this, key, shouldRender, () => renderFn)
+  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode =
+    thunkConditional(key)(false)(renderFn)
 }
 object VNode {
   private val emptyModifierArray            = js.Array[VModifier]()
@@ -210,45 +217,36 @@ object VNode {
 sealed trait BasicVNode extends VNode {
   def nodeType: String
   def modifiers: js.Array[VModifier]
-  def apply(args: VModifier*): BasicVNode
-  def append(args: VModifier*): BasicVNode
-  def prepend(args: VModifier*): BasicVNode
-  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode =
-    ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
-  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode =
-    ConditionalVNode(this, key, shouldRender, () => renderFn)
-  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode =
-    thunkConditional(key)(false)(renderFn)
 }
 @inline final case class ThunkVNode(
-  baseNode: BasicVNode,
+  baseNode: VNode,
   key: Key.Value,
   arguments: js.Array[Any],
   renderFn: () => VModifier,
 ) extends VNode {
-  @inline def apply(args: VModifier*): ThunkVNode   = append(args: _*)
-  @inline def append(args: VModifier*): ThunkVNode  = copy(baseNode = baseNode(args: _*))
-  @inline def prepend(args: VModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args: _*))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VModifier*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class ConditionalVNode(
-  baseNode: BasicVNode,
+  baseNode: VNode,
   key: Key.Value,
   shouldRender: Boolean,
   renderFn: () => VModifier,
 ) extends VNode {
-  @inline def apply(args: VModifier*): ConditionalVNode   = append(args: _*)
-  @inline def append(args: VModifier*): ConditionalVNode  = copy(baseNode = baseNode(args: _*))
-  @inline def prepend(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VModifier*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
-  @inline def apply(args: VModifier*): HtmlVNode   = append(args: _*)
-  @inline def append(args: VModifier*): HtmlVNode  = copy(modifiers = appendSeq(modifiers, args))
-  @inline def prepend(args: VModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(modifiers = appendSeq(modifiers, args))
+  @inline def prepend(args: VModifier*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
-  @inline def apply(args: VModifier*): SvgVNode   = append(args: _*)
-  @inline def append(args: VModifier*): SvgVNode  = copy(modifiers = appendSeq(modifiers, args))
-  @inline def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(modifiers = appendSeq(modifiers, args))
+  @inline def prepend(args: VModifier*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SyncEffectVNode(unsafeRun: () => VNode) extends VNode {
   @inline def apply(args: VModifier*): VNode   = append(args: _*)
