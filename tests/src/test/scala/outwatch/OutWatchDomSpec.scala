@@ -3870,7 +3870,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
-  "Rx component" should "work" in Owned {
+  "Rx component" should "work" in Owned(SyncIO {
 
     var liveCounter = 0
 
@@ -3907,5 +3907,5 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe "2. du"
       _ = liveCounter shouldBe 3
     } yield succeed
-  }.unsafeRunSync()
+  }).unsafeRunSync()
 }
