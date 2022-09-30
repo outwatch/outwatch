@@ -15,9 +15,8 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 sealed trait VModifier {
-  def apply(args: VModifier*): VModifier
-  def append(args: VModifier*): VModifier
-  def prepend(args: VModifier*): VModifier
+  @inline final def ++(other: VModifier): VModifier     = concat(other)
+  @inline final def concat(other: VModifier): VModifier = VModifier(this, other)
 }
 
 object VModifier {
@@ -132,13 +131,7 @@ object VModifier {
   @inline implicit def renderToVModifier[T: Render](value: T): VModifier = Render[T].render(value)
 }
 
-sealed trait DefaultVModifier extends VModifier {
-  def apply(args: VModifier*): VModifier   = append(args)
-  def append(args: VModifier*): VModifier  = VModifier(this, args)
-  def prepend(args: VModifier*): VModifier = VModifier(args, this)
-}
-
-sealed trait StaticVModifier extends DefaultVModifier
+sealed trait StaticVModifier extends VModifier
 
 final case class VNodeProxyNode(proxy: VNodeProxy) extends StaticVModifier
 
@@ -184,25 +177,40 @@ final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, 
 
 final case class NextVModifier(modifier: StaticVModifier) extends StaticVModifier
 
-case object EmptyModifier                                                        extends DefaultVModifier
-final case class CompositeModifier(modifiers: Iterable[VModifier])               extends DefaultVModifier
-final case class StreamModifier(subscription: Observer[VModifier] => Cancelable) extends DefaultVModifier
-final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]])  extends DefaultVModifier
-final case class CancelableModifier(subscription: () => Cancelable)              extends DefaultVModifier
-final case class SyncEffectModifier(unsafeRun: () => VModifier)                  extends DefaultVModifier
-final case class ErrorModifier(error: Throwable)                                 extends DefaultVModifier
-final case class StringVNode(text: String)                                       extends DefaultVModifier
+case object EmptyModifier                                                        extends VModifier
+final case class CompositeModifier(modifiers: Iterable[VModifier])               extends VModifier
+final case class StreamModifier(subscription: Observer[VModifier] => Cancelable) extends VModifier
+final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]])  extends VModifier
+final case class CancelableModifier(subscription: () => Cancelable)              extends VModifier
+final case class SyncEffectModifier(unsafeRun: () => VModifier)                  extends VModifier
+final case class ErrorModifier(error: Throwable)                                 extends VModifier
+final case class StringVNode(text: String)                                       extends VModifier
 
 sealed trait VNode extends VModifier {
   def apply(args: VModifier*): VNode
   def append(args: VModifier*): VNode
   def prepend(args: VModifier*): VNode
+
+  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode =
+    ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
+  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode =
+    ConditionalVNode(this, key, shouldRender, () => renderFn)
+  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode =
+    thunkConditional(key)(false)(renderFn)
 }
 object VNode {
   private val emptyModifierArray            = js.Array[VModifier]()
   @inline def html(name: String): HtmlVNode = HtmlVNode(name, emptyModifierArray)
   @inline def svg(name: String): SvgVNode   = SvgVNode(name, emptyModifierArray)
-  @inline def eval(body: => VNode): VNode   = SyncEffectVNode(() => body)
+
+  @inline def raiseError[T](error: Throwable): VNode = dsl.div(VModifier.raiseError(error))
+
+  @inline def fromEither(modifier: Either[Throwable, VNode]): VNode    = modifier.fold(raiseError(_), identity)
+  @inline def evalEither(modifier: => Either[Throwable, VNode]): VNode = SyncEffectVNode(() => fromEither(modifier))
+
+  @inline def eval(body: => VNode): VNode = SyncEffectVNode(() => body)
+
+  @inline def effect[F[_]: RunSyncEffect](body: F[VNode]): VNode = evalEither(RunSyncEffect[F].unsafeRun(body))
 
   implicit object subscriptionOwner extends SubscriptionOwner[VNode] {
     @inline def own(owner: VNode)(subscription: () => Cancelable): VNode =
@@ -217,45 +225,36 @@ object VNode {
 sealed trait BasicVNode extends VNode {
   def nodeType: String
   def modifiers: js.Array[VModifier]
-  def apply(args: VModifier*): BasicVNode
-  def append(args: VModifier*): BasicVNode
-  def prepend(args: VModifier*): BasicVNode
-  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode =
-    ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
-  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode =
-    ConditionalVNode(this, key, shouldRender, () => renderFn)
-  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode =
-    thunkConditional(key)(false)(renderFn)
 }
 @inline final case class ThunkVNode(
-  baseNode: BasicVNode,
+  baseNode: VNode,
   key: Key.Value,
   arguments: js.Array[Any],
   renderFn: () => VModifier,
 ) extends VNode {
-  @inline def apply(args: VModifier*): ThunkVNode   = append(args: _*)
-  @inline def append(args: VModifier*): ThunkVNode  = copy(baseNode = baseNode(args: _*))
-  @inline def prepend(args: VModifier*): ThunkVNode = copy(baseNode = baseNode.prepend(args: _*))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VModifier*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class ConditionalVNode(
-  baseNode: BasicVNode,
+  baseNode: VNode,
   key: Key.Value,
   shouldRender: Boolean,
   renderFn: () => VModifier,
 ) extends VNode {
-  @inline def apply(args: VModifier*): ConditionalVNode   = append(args: _*)
-  @inline def append(args: VModifier*): ConditionalVNode  = copy(baseNode = baseNode(args: _*))
-  @inline def prepend(args: VModifier*): ConditionalVNode = copy(baseNode = baseNode.prepend(args: _*))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(baseNode = baseNode(args: _*))
+  @inline def prepend(args: VModifier*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
-  @inline def apply(args: VModifier*): HtmlVNode   = append(args: _*)
-  @inline def append(args: VModifier*): HtmlVNode  = copy(modifiers = appendSeq(modifiers, args))
-  @inline def prepend(args: VModifier*): HtmlVNode = copy(modifiers = prependSeq(modifiers, args))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(modifiers = appendSeq(modifiers, args))
+  @inline def prepend(args: VModifier*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VModifier]) extends BasicVNode {
-  @inline def apply(args: VModifier*): SvgVNode   = append(args: _*)
-  @inline def append(args: VModifier*): SvgVNode  = copy(modifiers = appendSeq(modifiers, args))
-  @inline def prepend(args: VModifier*): SvgVNode = copy(modifiers = prependSeq(modifiers, args))
+  @inline def apply(args: VModifier*): VNode   = append(args: _*)
+  @inline def append(args: VModifier*): VNode  = copy(modifiers = appendSeq(modifiers, args))
+  @inline def prepend(args: VModifier*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SyncEffectVNode(unsafeRun: () => VNode) extends VNode {
   @inline def apply(args: VModifier*): VNode   = append(args: _*)

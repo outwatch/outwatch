@@ -2,7 +2,7 @@ package outwatch
 
 import cats.effect.IO
 import org.scalajs.dom.EventInit
-import org.scalajs.dom.{Event, document, html}
+import org.scalajs.dom.{document, html, Event}
 import outwatch.dsl._
 import colibri._
 import snabbdom._
@@ -11,34 +11,35 @@ import scala.scalajs.js
 
 class SnabbdomSpec extends JSDomAsyncSpec {
 
-  def newProxy(tagName: String, dataObject: DataObject, string: String, keyOption: js.UndefOr[String] = js.undefined) = new VNodeProxy {
-    sel = tagName
-    data = dataObject
-    text = string
-    key = keyOption
-  }
+  def newProxy(tagName: String, dataObject: DataObject, string: String, keyOption: js.UndefOr[String] = js.undefined) =
+    new VNodeProxy {
+      sel = tagName
+      data = dataObject
+      text = string
+      key = keyOption
+    }
 
   "The Snabbdom Facade" should "correctly patch the DOM" in {
 
     val message = "Hello World"
 
     for {
-       vNode <- IO(newProxy("span", new DataObject { attrs = js.Dictionary[Attr.Value]("id" -> "msg") }, message))
+      vNode <- IO(newProxy("span", new DataObject { attrs = js.Dictionary[Attr.Value]("id" -> "msg") }, message))
 
-        node <- IO {
+      node <- IO {
                 val node = document.createElement("div")
                 document.body.appendChild(node)
                 node
               }
 
-            _ <- IO(patch(node, vNode))
-          msg <- IO(document.getElementById("msg").innerHTML)
-            _ = msg shouldBe message
-       newMsg = "Hello Snabbdom!"
+      _       <- IO(patch(node, vNode))
+      msg     <- IO(document.getElementById("msg").innerHTML)
+      _        = msg shouldBe message
+      newMsg   = "Hello Snabbdom!"
       newNode <- IO(newProxy("span", new DataObject { attrs = js.Dictionary[Attr.Value]("id" -> "new") }, newMsg))
-            _ <- IO(patch(vNode, newNode))
-         nMsg <- IO(document.getElementById("new").innerHTML)
-            _ = nMsg shouldBe newMsg
+      _       <- IO(patch(vNode, newNode))
+      nMsg    <- IO(document.getElementById("new").innerHTML)
+      _        = nMsg shouldBe newMsg
 
     } yield succeed
 
@@ -49,52 +50,57 @@ class SnabbdomSpec extends JSDomAsyncSpec {
     def inputElement() = document.getElementById("input").asInstanceOf[html.Input]
 
     IO(Subject.behavior(1)).flatMap { clicks =>
-
       val nodes = clicks.map { i =>
         div(
           attributes.key := s"key-$i",
           span(onClick.as(if (i == 1) 2 else 1) --> clicks, s"This is number $i", idAttr := "btn"),
-          input(idAttr := "input")
+          input(idAttr                                                                   := "input"),
         )
       }
 
       for {
 
-               _ <- IO {
-                   val node = document.createElement("div")
-                   node.id = "app"
-                   document.body.appendChild(node)
-                   node
-                 }
+        _ <- IO {
+               val node = document.createElement("div")
+               node.id = "app"
+               document.body.appendChild(node)
+               node
+             }
 
-               _ <- Outwatch.renderInto[IO]("#app", div(nodes))
+        _ <- Outwatch.renderInto[IO]("#app", div(nodes))
 
         inputEvt <- IO {
-                    new Event("input", new EventInit {
-                      bubbles = false
-                      cancelable = true
-                    })
-                  }
+                      new Event(
+                        "input",
+                        new EventInit {
+                          bubbles = false
+                          cancelable = true
+                        },
+                      )
+                    }
 
         clickEvt <- IO {
-                    new Event("click", new EventInit {
-                      bubbles = true
-                      cancelable = true
-                    })
-                  }
+                      new Event(
+                        "click",
+                        new EventInit {
+                          bubbles = true
+                          cancelable = true
+                        },
+                      )
+                    }
 
-             btn <- IO(document.getElementById("btn"))
+        btn <- IO(document.getElementById("btn"))
 
-              _  <- IO {
-                    inputElement().value = "Something"
-                    inputElement().dispatchEvent(inputEvt)
-                    btn.dispatchEvent(clickEvt)
-                  }
+        _ <- IO {
+               inputElement().value = "Something"
+               inputElement().dispatchEvent(inputEvt)
+               btn.dispatchEvent(clickEvt)
+             }
 
-              _  <- IO.cede
+        _ <- IO.cede
 
-              ie <- IO(inputElement().value)
-               _ = ie shouldBe ""
+        ie <- IO(inputElement().value)
+        _   = ie shouldBe ""
 
       } yield succeed
 
@@ -106,24 +112,24 @@ class SnabbdomSpec extends JSDomAsyncSpec {
       IO(document.getElementById("content").innerHTML)
 
     for {
-      a <-IO(Subject.behavior(0))
-      b <-IO(Subject.behavior(100))
+      a <- IO(Subject.behavior(0))
+      b <- IO(Subject.behavior(100))
       vtree = div(
-              a.map { a =>
-                div(
-                  idAttr := "content",
-                  dsl.key := "bla",
-                  a,
-                  b.map { b => div(idAttr := "meh", b) }
-                )
-              }
-            )
-          _ <- Outwatch.renderInto[IO]("#app", vtree)
-          c1 <- getContent
-          _  <- a.onNextIO(1) *> IO.cede
-          c2 <- getContent
-          _  <- b.onNextIO(200) *> IO.cede
-          c3 <- getContent
+                a.map { a =>
+                  div(
+                    idAttr  := "content",
+                    dsl.key := "bla",
+                    a,
+                    b.map { b => div(idAttr := "meh", b) },
+                  )
+                },
+              )
+      _  <- Outwatch.renderInto[IO]("#app", vtree)
+      c1 <- getContent
+      _  <- a.onNextIO(1) *> IO.cede
+      c2 <- getContent
+      _  <- b.onNextIO(200) *> IO.cede
+      c3 <- getContent
     } yield {
       c1 shouldBe """0<div id="meh">100</div>"""
       c2 shouldBe """1<div id="meh">100</div>"""
@@ -134,21 +140,27 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
   it should "correctly handle boolean attributes" in {
 
-    val message    = "Hello World"
-    val attributes = js.Dictionary[Attr.Value]("id" -> "msg", "bool1" -> true, "bool0" -> false, "string1" -> "true", "string0" -> "false")
-    val expected   = s"""<span id="msg" bool1="" string1="true" string0="false">$message</span>"""
+    val message = "Hello World"
+    val attributes = js.Dictionary[Attr.Value](
+      "id"      -> "msg",
+      "bool1"   -> true,
+      "bool0"   -> false,
+      "string1" -> "true",
+      "string0" -> "false",
+    )
+    val expected = s"""<span id="msg" bool1="" string1="true" string0="false">$message</span>"""
 
     for {
 
       vNode <- IO(newProxy("span", new DataObject { attrs = attributes }, message))
-       node <- IO {
+      node <- IO {
                 val node = document.createElement("div")
                 document.body.appendChild(node)
                 node
               }
-          _ <- IO(patch(node, vNode))
-       html <- IO(document.getElementById("msg").outerHTML)
-          _ = html shouldBe expected
+      _    <- IO(patch(node, vNode))
+      html <- IO(document.getElementById("msg").outerHTML)
+      _     = html shouldBe expected
 
     } yield succeed
 
@@ -159,7 +171,12 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     val renderFn: String => VNodeProxy = { message =>
       renderFnCounter += 1
-      newProxy("span", new DataObject { key = "key"; attrs = js.Dictionary[Attr.Value]("id" -> "msg") }, message, keyOption = "key")
+      newProxy(
+        "span",
+        new DataObject { key = "key"; attrs = js.Dictionary[Attr.Value]("id" -> "msg") },
+        message,
+        keyOption = "key",
+      )
     }
 
     val message = "Hello World"
@@ -169,24 +186,21 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     renderFnCounter shouldBe 0
 
-
     val vNode1 = thunk(js.undefined, "span", "key", () => renderFn(message), js.Array(message))
-    val p1 = patch(node, vNode1)
+    val p1     = patch(node, vNode1)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
-
 
     val vNode2 = thunk(js.undefined, "span", "key", () => renderFn(message), js.Array(message))
-    val p2 = patch(p1, vNode2)
+    val p2     = patch(p1, vNode2)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
 
-
     val newMessage = "Hello Snabbdom!"
-    val vNode3 = thunk(js.undefined, "span", "key", () => renderFn(newMessage), js.Array(newMessage))
-    val p3 = patch(p2, vNode3)
+    val vNode3     = thunk(js.undefined, "span", "key", () => renderFn(newMessage), js.Array(newMessage))
+    val p3         = patch(p2, vNode3)
 
     p3 should not be null
     renderFnCounter shouldBe 2
@@ -198,7 +212,12 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     val renderFn: String => VNodeProxy = { message =>
       renderFnCounter += 1
-      newProxy("span", new DataObject { key = "key"; attrs = js.Dictionary[Attr.Value]("id" -> "msg") }, message, keyOption = "key")
+      newProxy(
+        "span",
+        new DataObject { key = "key"; attrs = js.Dictionary[Attr.Value]("id" -> "msg") },
+        message,
+        keyOption = "key",
+      )
     }
 
     val message = "Hello World"
@@ -208,24 +227,21 @@ class SnabbdomSpec extends JSDomAsyncSpec {
 
     renderFnCounter shouldBe 0
 
-
     val vNode1 = thunk.conditional(js.undefined, "span", "key", () => renderFn(message), shouldRender = true)
-    val p1 = patch(node, vNode1)
+    val p1     = patch(node, vNode1)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
-
 
     val vNode2 = thunk.conditional(js.undefined, "span", "key", () => renderFn(message), shouldRender = false)
-    val p2 = patch(p1, vNode2)
+    val p2     = patch(p1, vNode2)
 
     renderFnCounter shouldBe 1
     document.getElementById("msg").innerHTML shouldBe message
 
-
     val newMessage = "Hello Snabbdom!"
-    val vNode3 = thunk.conditional(js.undefined, "span", "key", () => renderFn(newMessage), shouldRender = true)
-    val p3 = patch(p2, vNode3)
+    val vNode3     = thunk.conditional(js.undefined, "span", "key", () => renderFn(newMessage), shouldRender = true)
+    val p3         = patch(p2, vNode3)
 
     p3 should not be null
     renderFnCounter shouldBe 2
