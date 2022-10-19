@@ -429,20 +429,25 @@ object EmitterBuilder {
       @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] =
         builder.map(_.target.asInstanceOf[dom.html.Input].valueAsNumber)
       @inline def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(_.target.asInstanceOf[dom.html.Input].checked)
-      @inline def asHtml: EmitterBuilder.Sync[dom.html.Element, R] = builder.map(_.target.asInstanceOf[dom.html.Element])
-      @inline def asSvg: EmitterBuilder.Sync[dom.svg.Element, R]   = builder.map(_.target.asInstanceOf[dom.svg.Element])
-      @inline def asElement: EmitterBuilder.Sync[dom.Element, R]   = builder.map(_.target.asInstanceOf[dom.Element])
+      @inline def asHtml: EmitterBuilder.Sync[dom.html.Element, R] =
+        builder.map(_.target.asInstanceOf[dom.html.Element])
+      @inline def asSvg: EmitterBuilder.Sync[dom.svg.Element, R] = builder.map(_.target.asInstanceOf[dom.svg.Element])
+      @inline def asElement: EmitterBuilder.Sync[dom.Element, R] = builder.map(_.target.asInstanceOf[dom.Element])
     }
   }
 
   @inline implicit class CurrentTargetOnEvent[O <: dom.Event, R](val builder: EmitterBuilder.Sync[O, R])
       extends AnyVal {
     @inline def value: EmitterBuilder.Sync[String, R] = builder.map(_.currentTarget.asInstanceOf[dom.html.Input].value)
-    @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] = builder.map(_.currentTarget.asInstanceOf[dom.html.Input].valueAsNumber)
-    @inline def checked: EmitterBuilder.Sync[Boolean, R] = builder.map(_.currentTarget.asInstanceOf[dom.html.Input].checked)
-    @inline def asHtml: EmitterBuilder.Sync[dom.html.Element, R] = builder.map(_.currentTarget.asInstanceOf[dom.html.Element])
-    @inline def asSvg: EmitterBuilder.Sync[dom.svg.Element, R]   = builder.map(_.currentTarget.asInstanceOf[dom.svg.Element])
-    @inline def asElement: EmitterBuilder.Sync[dom.Element, R]   = builder.map(_.currentTarget.asInstanceOf[dom.Element])
+    @inline def valueAsNumber: EmitterBuilder.Sync[Double, R] =
+      builder.map(_.currentTarget.asInstanceOf[dom.html.Input].valueAsNumber)
+    @inline def checked: EmitterBuilder.Sync[Boolean, R] =
+      builder.map(_.currentTarget.asInstanceOf[dom.html.Input].checked)
+    @inline def asHtml: EmitterBuilder.Sync[dom.html.Element, R] =
+      builder.map(_.currentTarget.asInstanceOf[dom.html.Element])
+    @inline def asSvg: EmitterBuilder.Sync[dom.svg.Element, R] =
+      builder.map(_.currentTarget.asInstanceOf[dom.svg.Element])
+    @inline def asElement: EmitterBuilder.Sync[dom.Element, R] = builder.map(_.currentTarget.asInstanceOf[dom.Element])
   }
 
   @inline implicit class TypedElements[O <: dom.Element, R](val builder: EmitterBuilder.Sync[O, R]) extends AnyVal {
