@@ -13,9 +13,20 @@ trait AttributeBuilder[-T, +A <: VModifier] extends Any {
   @deprecated("Use assign instead", "")
   final def assignOption(value: Option[T]): Option[A] = assign(value)
 
+  @deprecated("Use '.when(bool) := value' or '.when(boolObservable) := value' instead", "")
   final def toggle(value: T): AttributeBuilder[Boolean, VModifier] = AttributeBuilder.ofModifier { enabled =>
     if (enabled) assign(value) else VModifier.empty
   }
+
+  final def when(enabled: Boolean): AttributeBuilder[T, VModifier] =
+    AttributeBuilder.ofModifier { t =>
+      VModifier.ifTrue(enabled)(assign(t))
+    }
+
+  final def when[F[_]: Source](source: F[Boolean]): AttributeBuilder[T, VModifier] =
+    AttributeBuilder.ofModifier { t =>
+      Observable.lift(source).map(VModifier.ifTrue(_)(assign(t)))
+    }
 
   @inline final def :=(value: T): A                 = assign(value)
   @inline final def :=(value: Option[T]): Option[A] = assign(value)
