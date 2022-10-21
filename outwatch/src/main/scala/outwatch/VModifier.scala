@@ -111,8 +111,12 @@ object VModifier {
   @inline def composite(modifiers: Iterable[VModifier]): VModifier = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError[T](error: Throwable): VModifier           = ErrorModifier(error)
 
+  @deprecated("Use VModifier.when(condition)(...) instead", "")
   @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
-  @inline def ifNot(condition: Boolean): ModifierBooleanOps  = new ModifierBooleanOps(!condition)
+  @deprecated("Use VModifier.whenNot(condition)(...) instead", "")
+  @inline def ifNot(condition: Boolean): ModifierBooleanOps   = new ModifierBooleanOps(!condition)
+  @inline def when(condition: Boolean): ModifierBooleanOps    = new ModifierBooleanOps(condition)
+  @inline def whenNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
   implicit object monoid extends Monoid[VModifier] {
     @inline def empty: VModifier                               = VModifier.empty
