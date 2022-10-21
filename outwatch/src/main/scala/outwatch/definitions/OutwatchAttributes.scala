@@ -33,16 +33,16 @@ trait OutwatchAttributes {
     obs => f((o, p) => obs.unsafeOnNext((o.elm.toOption, p.elm.toOption)))
 
   /** Outwatch component life cycle hooks. */
-  final lazy val onDomMount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomMount: EmitterBuilder[dom.Element, VModifier] = EmitterBuilder(
     proxyElementEmitter(DomMountHook.apply),
   )
-  final lazy val onDomUnmount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomUnmount: EmitterBuilder[dom.Element, VModifier] = EmitterBuilder(
     proxyElementEmitter(DomUnmountHook.apply),
   )
-  final lazy val onDomPreUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomPreUpdate: EmitterBuilder[dom.Element, VModifier] = EmitterBuilder(
     proxyElementFirstEmitter(DomPreUpdateHook.apply),
   )
-  final lazy val onDomUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomUpdate: EmitterBuilder[dom.Element, VModifier] = EmitterBuilder(
     proxyElementFirstEmitter(DomUpdateHook.apply),
   )
 
@@ -51,16 +51,16 @@ trait OutwatchAttributes {
     * This hook is invoked once the DOM element for a vnode has been inserted into the document and the rest of the
     * patch cycle is done.
     */
-  final lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomInsert: EmitterBuilder[Element, VModifier] = EmitterBuilder(
     proxyElementEmitter(InsertHook.apply),
   )
 
   /** Lifecycle hook for component prepatch. */
-  final lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element], Option[dom.Element]), VModifier] =
+  final lazy val onSnabbdomPrePatch: EmitterBuilder[(Option[dom.Element], Option[dom.Element]), VModifier] =
     EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook.apply))
 
   /** Lifecycle hook for component updates. */
-  final lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element, dom.Element), VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomUpdate: EmitterBuilder[(dom.Element, dom.Element), VModifier] = EmitterBuilder(
     proxyElementPairEmitter(UpdateHook.apply),
   )
 
@@ -68,7 +68,7 @@ trait OutwatchAttributes {
     *
     * This hook is invoked every time a node has been patched against an older instance of itself.
     */
-  final lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element, dom.Element), VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomPostPatch: EmitterBuilder[(dom.Element, dom.Element), VModifier] = EmitterBuilder(
     proxyElementPairEmitter(PostPatchHook.apply),
   )
 
@@ -77,7 +77,7 @@ trait OutwatchAttributes {
     * This hook is invoked on a virtual node when its DOM element is removed from the DOM or if its parent is being
     * removed from the DOM.
     */
-  final lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomDestroy: EmitterBuilder[dom.Element, VModifier] = EmitterBuilder(
     proxyElementEmitter(DestroyHook.apply),
   )
 
