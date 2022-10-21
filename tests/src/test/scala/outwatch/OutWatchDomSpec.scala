@@ -3594,7 +3594,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   "Custom Emitter builder" should "work with events" in {
     import scala.concurrent.duration._
 
-    val clickableView: EmitterBuilder.Sync[Boolean, VModifier] = EmitterBuilder[Boolean, VModifier] { sink =>
+    val clickableView: EmitterBuilder[Boolean, VModifier] = EmitterBuilder[Boolean, VModifier] { sink =>
       VModifier(
         display.flex,
         minWidth := "0px",
@@ -3631,7 +3631,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "work with events as combined emitterbuidler" in {
     import scala.concurrent.duration._
 
-    val clickableView: EmitterBuilder.Sync[Boolean, VModifier] = EmitterBuilder[Boolean, VModifier] { sink =>
+    val clickableView: EmitterBuilder[Boolean, VModifier] = EmitterBuilder[Boolean, VModifier] { sink =>
       VModifier(
         display.flex,
         minWidth := "0px",
