@@ -112,9 +112,9 @@ object VModifier {
   @inline def raiseError[T](error: Throwable): VModifier           = ErrorModifier(error)
 
   @deprecated("Use VModifier.when(condition)(...) instead", "")
-  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
+  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = when(condition)
   @deprecated("Use VModifier.whenNot(condition)(...) instead", "")
-  @inline def ifNot(condition: Boolean): ModifierBooleanOps   = new ModifierBooleanOps(!condition)
+  @inline def ifNot(condition: Boolean): ModifierBooleanOps   = whenNot(condition)
   @inline def when(condition: Boolean): ModifierBooleanOps    = new ModifierBooleanOps(condition)
   @inline def whenNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
