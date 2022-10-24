@@ -7,14 +7,13 @@ import com.raquo.domtypes.jsdom.defs.eventProps
 import com.raquo.domtypes.jsdom.defs.tags
 import org.scalajs.dom
 import outwatch._
-import outwatch.helpers._
 import colibri.Observable
 import colibri.jsdom.EventObservable
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _]     = AttributeBuilder[T, Attr]
-  type Attribute[T]                 = AttributeBuilder[T, Attr]
-  type Property[T, _]               = PropBuilder[T]
+  type ReflectedAttribute[T, _]     = AttrBuilder[T, Attr]
+  type Attribute[T]                 = AttrBuilder[T, Attr]
+  type Property[T, _]               = AttrBuilder[T, Prop]
   type EventEmitter[E <: dom.Event] = EmitterBuilder[E, VModifier]
   type HtmlTag[T]                   = HtmlVNode
   type SvgTag[T]                    = SvgVNode
@@ -73,33 +72,42 @@ trait HtmlAttrs
     with builders.ReflectedHtmlAttrBuilder[BuilderTypes.ReflectedAttribute]
     with builders.PropBuilder[BuilderTypes.Property] {
 
-  override protected final def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
-    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
+  override protected final def htmlAttr[V](
+    key: String,
+    codec: codecs.Codec[V, String],
+  ): AttrBuilder.ToBasicAttr[V] =
+    new AttrBuilder.ToBasicAttr(key, CodecBuilder.encodeAttribute(codec))
 
   override protected final def reflectedAttr[V, DomPropV](
     attrKey: String,
     propKey: String,
     attrCodec: codecs.Codec[V, String],
     propCodec: codecs.Codec[V, DomPropV],
-  ): BasicAttrBuilder[V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+  ): AttrBuilder.ToBasicAttr[V] =
+    new AttrBuilder.ToBasicAttr(attrKey, CodecBuilder.encodeAttribute(attrCodec))
   // or: new PropertyBuilder(propKey, propCodec.encode)
 
-  override protected final def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
-    new PropBuilder(key, codec.encode)
+  override protected final def prop[V, DomV](
+    key: String,
+    codec: codecs.Codec[V, DomV],
+  ): AttrBuilder.ToProp[V] =
+    new AttrBuilder.ToProp(key, codec.encode)
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override final lazy val className: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
-    "class",
-    identity,
-    (v1, v2) => s"$v1 $v2",
-  )
+  override final lazy val className: AttrBuilder.ToAccumAttr[String] =
+    new AttrBuilder.ToAccumAttr[String](
+      "class",
+      identity,
+      (v1, v2) => s"$v1 $v2",
+    )
 
   // super.styleAttr.accum(";") would have been nicer, but we can't do super.styleAttr on a lazy val
-  override final lazy val styleAttr: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
-    "style",
-    identity,
-    (v1, v2) => s"$v1;$v2",
-  )
+  override final lazy val styleAttr: AttrBuilder.ToAccumAttr[String] =
+    new AttrBuilder.ToAccumAttr[String](
+      "style",
+      identity,
+      (v1, v2) => s"$v1;$v2",
+    )
 }
 
 // Svg Attrs
@@ -112,8 +120,8 @@ trait SvgAttrs
     key: String,
     codec: codecs.Codec[V, String],
     namespace: Option[String],
-  ): BasicAttrBuilder[V] =
-    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
+  ): AttrBuilder.ToBasicAttr[V] =
+    new AttrBuilder.ToBasicAttr(key, CodecBuilder.encodeAttribute(codec))
 }
 
 // Events

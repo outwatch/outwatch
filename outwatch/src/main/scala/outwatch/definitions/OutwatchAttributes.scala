@@ -3,7 +3,6 @@ package outwatch.definitions
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import outwatch._
-import outwatch.helpers._
 import snabbdom.VNodeProxy
 import colibri.{Cancelable, Observer, Source}
 import com.raquo.domtypes.jsdom.defs.tags._
@@ -182,22 +181,23 @@ trait SvgAttributeDeprecations { self: SvgAttrs =>
 }
 
 trait AttributeHelpers { self: Attributes =>
-  final val innerHTML: PropBuilder[UnsafeHTML] = VModifier.prop[UnsafeHTML]("innerHTML", _.html)
+  final val innerHTML: AttrBuilder.ToProp[UnsafeHTML] = VModifier.prop[UnsafeHTML]("innerHTML", _.html)
 
   @inline final def `class` = className
 
   @inline final def `for` = forId
 
-  @inline final def data = new DynamicAttrBuilder[Any]("data")
-  @inline final def aria = new DynamicAttrBuilder[Any]("aria")
+  @inline final def data = new AttrBuilder.ToDynamicAttr[Any]("data")
+  @inline final def aria = new AttrBuilder.ToDynamicAttr[Any]("aria")
 
   @deprecated("use VModifier.attr instead", "0.11.0")
   @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString: Attr.Value) =
-    new BasicAttrBuilder[T](key, convert)
+    new AttrBuilder.ToBasicAttr[T](key, convert)
   @deprecated("use VModifier.prop instead", "0.11.0")
-  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
+  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) =
+    new AttrBuilder.ToProp[T](key, convert)
   @deprecated("use VModifier.style instead", "0.11.0")
-  @inline final def style[T](key: String, dummy: Unit = ()) = new BasicStyleBuilder[T](key)
+  @inline final def style[T](key: String, dummy: Unit = ()) = new AttrBuilder.ToBasicStyle[T](key)
 
   @deprecated("use EmitterBuilder.fromSource instead", "0.11.0")
   @inline final def emitter[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VModifier] =
