@@ -28,7 +28,7 @@ trait AttrBuilder[-T, +A] extends Any {
 }
 
 object AttrBuilder {
-  @inline def apply[T, A <: VModifier](create: T => A): AttrBuilder[T, A] = new AttrBuilder[T, A] {
+  @inline def apply[T, A](create: T => A): AttrBuilder[T, A] = new AttrBuilder[T, A] {
     def assign(value: T): A = create(value)
   }
 
