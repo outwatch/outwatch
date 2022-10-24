@@ -1,16 +1,15 @@
 package outwatch
 
-import outwatch.helpers.{BasicAttrBuilder, BasicStyleBuilder, ModifierBooleanOps, PropBuilder}
 import outwatch.helpers.NativeHelpers._
 import snabbdom.{DataObject, VNodeProxy}
-
 import colibri._
 import colibri.effect._
 import cats.Monoid
 import cats.syntax.functor._
 import cats.effect.Sync
-
 import org.scalajs.dom
+import outwatch.helpers.ModifierBooleanOps
+
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -32,9 +31,10 @@ object VModifier {
   @inline def apply(modifier: VModifier, modifier2: VModifier, modifier3: VModifier): VModifier =
     CompositeModifier(js.Array(modifier, modifier2, modifier3))
   @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString: Attr.Value) =
-    new BasicAttrBuilder[T](key, convert)
-  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
-  @inline final def style[T](key: String)                                        = new BasicStyleBuilder[T](key)
+    new AttrBuilder.ToBasicAttr[T](key, convert)
+  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) =
+    new AttrBuilder.ToProp[T](key, convert)
+  @inline final def style[T](key: String) = new AttrBuilder.ToBasicStyle[T](key)
 
   def managed[F[_]: Sync: RunEffect, T: CanCancel](subscription: F[T]): VModifier = VModifier(
     subscription.map[VModifier](cancelable => CancelableModifier(() => Cancelable.lift(cancelable))),

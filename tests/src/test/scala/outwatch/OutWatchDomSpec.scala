@@ -595,8 +595,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "construct VTrees with boolean attributes" in {
 
-    def boolBuilder(name: String)   = new BasicAttrBuilder[Boolean](name, identity)
-    def stringBuilder(name: String) = new BasicAttrBuilder[Boolean](name, _.toString)
+    def boolBuilder(name: String)   = new AttrBuilder.ToBasicAttr[Boolean](name, identity)
+    def stringBuilder(name: String) = new AttrBuilder.ToBasicAttr[Boolean](name, _.toString)
 
     val vtree = div(
       boolBuilder("a"),

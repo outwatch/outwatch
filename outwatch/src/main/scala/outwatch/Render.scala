@@ -1,7 +1,5 @@
 package outwatch
 
-import outwatch.helpers.AttributeBuilder
-
 import colibri._
 import colibri.effect._
 import cats.data.{NonEmptyChain, NonEmptyList, NonEmptySeq, NonEmptyVector}
@@ -202,9 +200,9 @@ object Render extends RenderLowPrio {
     @inline def render(source: F[VModifier]) = sourceToModifier(source)
   }
 
-  @inline implicit def AttributeBuilderRender: Render[AttributeBuilder[Boolean, VModifier]] = new AttributeBuilderRender
-  @inline private final class AttributeBuilderRender extends Render[AttributeBuilder[Boolean, VModifier]] {
-    @inline def render(builder: AttributeBuilder[Boolean, VModifier]) = builder := true
+  @inline implicit def AttrBuilderRender: Render[AttrBuilder[Boolean, VModifier]] = new AttrBuilderRender
+  @inline private final class AttrBuilderRender extends Render[AttrBuilder[Boolean, VModifier]] {
+    @inline def render(builder: AttrBuilder[Boolean, VModifier]) = builder := true
   }
 
   @inline implicit def EmitterBuilderRender: Render[EmitterBuilder[VModifier, VModifier]] = new EmitterBuilderRender
