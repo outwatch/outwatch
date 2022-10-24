@@ -4,17 +4,13 @@ import colibri.{Observable, Source}
 
 import scala.language.dynamics
 
-trait AttrBuilder[-T, +A <: VModifier] extends Any {
+trait AttrBuilder[-T, +A] extends Any {
   def assign(value: T): A
 
   final def assign(value: Option[T]): Option[A] = value.map(assign)
 
   @deprecated("Use assign instead", "")
   final def assignOption(value: Option[T]): Option[A] = assign(value)
-
-  final def toggle(value: T): AttrBuilder[Boolean, VModifier] = AttrBuilder.ofModifier { enabled =>
-    if (enabled) assign(value) else VModifier.empty
-  }
 
   @inline final def :=(value: T): A                 = assign(value)
   @inline final def :=(value: Option[T]): Option[A] = assign(value)
@@ -100,6 +96,13 @@ object AttrBuilder {
   @inline final class ToAccumStyle[T](val name: String, reducer: (String, String) => String)
       extends AttrBuilder[T, AccumStyle] {
     def assign(value: T): AccumStyle = AccumStyle(name, value.toString, reducer)
+  }
+
+  implicit class VModifierOps[T](private val self: AttrBuilder[T, VModifier]) extends AnyVal {
+    @deprecated("Use observable operators instead", "")
+    def toggle(value: T): AttrBuilder[Boolean, VModifier] = AttrBuilder.ofModifier { enabled =>
+      if (enabled) self.assign(value) else VModifier.empty
+    }
   }
 }
 
