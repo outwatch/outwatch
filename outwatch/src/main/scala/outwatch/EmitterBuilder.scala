@@ -1,7 +1,7 @@
 package outwatch
 
 import cats.{Bifunctor, Functor, Monoid}
-import cats.effect.{Sync, SyncIO}
+import cats.effect.{Sync, SyncIO, IO}
 import colibri._
 import colibri.effect._
 
@@ -68,15 +68,44 @@ trait EmitterBuilder[+O, +R] {
   @inline def foreachFuture(action: O => Future[Unit]): R = mapFuture(action).discard
   @inline def doFuture(action: Future[Unit]): R           = foreachFuture(_ => action)
 
-  @deprecated("Use .foreachEffectSingleOrDrop(action) instead", "")
-  @inline def foreachAsyncSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R = foreachEffectSingleOrDrop(action)
-  @deprecated("Use .doEffectSingleOrDrop(action) instead", "")
-  @inline def doAsyncSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R = doEffectSingleOrDrop(action)
+  @deprecated("Use .foreachSingleEffect(action) instead", "")
+  @inline def foreachAsyncSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R = foreachSingleEffect(action)
+  @deprecated("Use .doSingleEffect(action) instead", "")
+  @inline def doAsyncSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R = doSingleEffect(action)
+  @deprecated("Use .foreachSingleEffect(action) instead", "")
+  @inline def foreachEffectSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R = foreachSingleEffect(action)
+  @deprecated("Use .doSingleEffect(action) instead", "")
+  @inline def doEffectSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R = doSingleEffect(action)
 
-  @inline def foreachEffectSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R =
-    mapEffectSingleOrDrop(action).discard
-  @inline def doEffectSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R =
-    foreachEffectSingleOrDrop(_ => action)
+  @inline def foreachSingleEffect[G[_]: RunEffect](action: O => G[Unit]): R =
+    singleMapEffect(action).discard
+  @inline def doSingleEffect[G[_]: RunEffect](action: G[Unit]): R =
+    foreachSingleEffect(_ => action)
+
+  @inline def foreachSingleFuture(action: O => Future[Unit]): R =
+    singleMapFuture(action).discard
+  @inline def doSingleFuture(action: Future[Unit]): R =
+    foreachSingleFuture(_ => action)
+
+  @inline def foreachSwitchEffect[G[_]: RunEffect](action: O => G[Unit]): R =
+    switchMapEffect(action).discard
+  @inline def doSwitchEffect[G[_]: RunEffect](action: G[Unit]): R =
+    foreachSwitchEffect(_ => action)
+
+  @inline def foreachSwitchFuture(action: O => Future[Unit]): R =
+    switchMapFuture(action).discard
+  @inline def doSwitchFuture(action: Future[Unit]): R =
+    foreachSwitchFuture(_ => action)
+
+  @inline def foreachParEffect[G[_]: RunEffect](action: O => G[Unit]): R =
+    parMapEffect(action).discard
+  @inline def doParEffect[G[_]: RunEffect](action: G[Unit]): R =
+    foreachParEffect(_ => action)
+
+  @inline def foreachParFuture(action: O => Future[Unit]): R =
+    parMapFuture(action).discard
+  @inline def doParFuture(action: Future[Unit]): R =
+    foreachParFuture(_ => action)
 
   @inline def via[F[_]: Sink, O2 >: O](sink: F[O2]): EmitterBuilder[O, R] =
     transformSink[O](Observer.combine(_, Observer.lift(sink)))
@@ -133,18 +162,48 @@ trait EmitterBuilder[+O, +R] {
   @inline final def withFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
     mapFuture(x => value.map(x -> _)(ExecutionContext.parasitic))
 
-  @deprecated("Use .asEffectSingleOrDrop(value) instead", "")
-  @inline final def useAsyncSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
-    asEffectSingleOrDrop(value)
-  @inline final def asEffectSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
-    mapEffectSingleOrDrop(_ => value)
+  @deprecated("Use .asSingleEffect(value) instead", "")
+  @inline final def useAsyncSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asSingleEffect(value)
+  @deprecated("Use .asSingleEffect(value) instead", "")
+  @inline final def asEffectSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asSingleEffect(value)
+  @deprecated("Use .withSingleEffect(value) instead", "")
   @inline final def withEffectSingleOrDrop[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
-    mapEffectSingleOrDrop(x => Functor[G].map(value)(x -> _))
+    withSingleEffect(value)
 
-  @deprecated("Use .asFutureSingleOrDrop(value) instead", "")
-  @inline final def useFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] = asFutureSingleOrDrop(value)
-  @inline final def asFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] =
-    mapFutureSingleOrDrop(_ => value)
+  @inline final def asSingleEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+    singleMapEffect(_ => value)
+  @inline final def withSingleEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
+    singleMapEffect(x => Functor[G].map(value)(x -> _))
+
+  @deprecated("Use .asSingleFuture(value) instead", "")
+  @inline final def useFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] = asSingleFuture(value)
+  @deprecated("Use .asSingleFuture(value) instead", "")
+  @inline final def asFutureSingleOrDrop[T](value: => Future[T]): EmitterBuilder[T, R] = asSingleFuture(value)
+
+  @inline final def asSingleFuture[T](value: => Future[T]): EmitterBuilder[T, R] =
+    singleMapFuture(_ => value)
+  @inline final def withSingleFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
+    withSingleEffect(IO.fromFuture(IO(value)))
+
+  @inline final def asSwitchEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+    switchMapEffect(_ => value)
+  @inline final def withSwitchEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
+    switchMapEffect(x => Functor[G].map(value)(x -> _))
+
+  @inline final def asSwitchFuture[T](value: => Future[T]): EmitterBuilder[T, R] =
+    switchMapFuture(_ => value)
+  @inline final def withSwitchFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
+    withSwitchEffect(IO.fromFuture(IO(value)))
+
+  @inline final def asParEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+    parMapEffect(_ => value)
+  @inline final def withParEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
+    parMapEffect(x => Functor[G].map(value)(x -> _))
+
+  @inline final def asParFuture[T](value: => Future[T]): EmitterBuilder[T, R] =
+    parMapFuture(_ => value)
+  @inline final def withParFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
+    withParEffect(IO.fromFuture(IO(value)))
 
   @inline final def apply[G[_]: Source, T](source: G[T]): EmitterBuilder[T, R] = asLatest(source)
 
@@ -209,13 +268,31 @@ trait EmitterBuilder[+O, +R] {
 
   def mapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] = transform[T](source => source.mapFuture(f))
 
-  def mapFutureSingleOrDrop[T](f: O => Future[T]): EmitterBuilder[T, R] =
-    transform[T](source => source.mapFutureSingleOrDrop(f))
+  @deprecated("Use .singleMapFuture(f) instead", "")
+  def mapFutureSingleOrDrop[T](f: O => Future[T]): EmitterBuilder[T, R] = singleMapFuture(f)
 
-  @deprecated("Use .mapEffectSingleOrDrop(f) instead", "")
-  def mapAsyncSingleOrDrop[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = mapEffectSingleOrDrop(f)
-  def mapEffectSingleOrDrop[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] =
-    transform[T](source => source.mapEffectSingleOrDrop(f))
+  def singleMapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] =
+    transform[T](source => source.singleMapFuture(f))
+
+  @deprecated("Use .singleMapEffect(f) instead", "")
+  def mapAsyncSingleOrDrop[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = singleMapEffect(f)
+  @deprecated("Use .singleMapEffect(f) instead", "")
+  def mapEffectSingleOrDrop[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] = singleMapEffect(f)
+
+  def singleMapEffect[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] =
+    transform[T](source => source.singleMapEffect(f))
+
+  def switchMapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] =
+    transform[T](source => source.switchMapFuture(f))
+
+  def switchMapEffect[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] =
+    transform[T](source => source.switchMapEffect(f))
+
+  def parMapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] =
+    transform[T](source => source.parMapFuture(f))
+
+  def parMapEffect[G[_]: RunEffect, T](f: O => G[T]): EmitterBuilder[T, R] =
+    transform[T](source => source.parMapEffect(f))
 
   @deprecated("Use .mapEffect(f) instead", "")
   def mapSync[G[_]: RunSyncEffect, T](f: O => G[T]): EmitterBuilder[T, R] =
