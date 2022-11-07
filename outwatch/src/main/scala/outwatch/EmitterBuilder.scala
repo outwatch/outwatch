@@ -134,9 +134,8 @@ trait EmitterBuilder[+O, +R] {
     mapFuture(x => value.map(x -> _)(ExecutionContext.parasitic))
 
   @deprecated("Use .asEffectSingleOrDrop(value) instead", "")
-  @inline final def useAsyncSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = asEffectSingleOrDrop(
-    value,
-  )
+  @inline final def useAsyncSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+    asEffectSingleOrDrop(value)
   @inline final def asEffectSingleOrDrop[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
     mapEffectSingleOrDrop(_ => value)
   @inline final def withEffectSingleOrDrop[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
