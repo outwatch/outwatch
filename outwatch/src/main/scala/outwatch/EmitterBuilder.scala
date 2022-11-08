@@ -1,7 +1,7 @@
 package outwatch
 
 import cats.{Bifunctor, Functor, Monoid}
-import cats.effect.{Sync, SyncIO, IO}
+import cats.effect.{IO, Sync, SyncIO}
 import colibri._
 import colibri.effect._
 
