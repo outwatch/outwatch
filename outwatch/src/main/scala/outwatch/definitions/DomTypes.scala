@@ -11,12 +11,12 @@ import colibri.Observable
 import colibri.jsdom.EventObservable
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _]     = AttrBuilder[T, Attr]
-  type Attribute[T]                 = AttrBuilder[T, Attr]
-  type Property[T, _]               = AttrBuilder[T, Prop]
+  type ReflectedAttribute[T, _]     = AttrBuilder[T, VModifier]
+  type Attribute[T]                 = AttrBuilder[T, VModifier]
+  type Property[T, _]               = AttrBuilder[T, VModifier]
   type EventEmitter[E <: dom.Event] = EmitterBuilder[E, VModifier]
-  type HtmlTag[T]                   = HtmlVNode
-  type SvgTag[T]                    = SvgVNode
+  type HtmlTag[T]                   = VNode
+  type SvgTag[T]                    = VNode
 }
 
 private object CodecBuilder {
@@ -38,9 +38,9 @@ private[outwatch] trait TagBuilder
     with builders.SvgTagBuilder[BuilderTypes.SvgTag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   // TODO: add element type to VTree for typed interface
-  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode =
+  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VNode =
     VNode.html(tagName)
-  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode =
+  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VNode =
     VNode.svg(tagName)
 }
 
