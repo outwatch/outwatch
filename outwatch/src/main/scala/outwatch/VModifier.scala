@@ -195,17 +195,17 @@ sealed trait VNode extends VModifier {
   def append(args: VModifier*): VNode
   def prepend(args: VModifier*): VNode
 
-  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): ThunkVNode =
+  @inline final def thunk(key: Key.Value)(arguments: Any*)(renderFn: => VModifier): VNode =
     ThunkVNode(this, key, arguments.toJSArray, () => renderFn)
-  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): ConditionalVNode =
+  @inline final def thunkConditional(key: Key.Value)(shouldRender: Boolean)(renderFn: => VModifier): VNode =
     ConditionalVNode(this, key, shouldRender, () => renderFn)
-  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): ConditionalVNode =
+  @inline final def thunkStatic(key: Key.Value)(renderFn: => VModifier): VNode =
     thunkConditional(key)(false)(renderFn)
 }
 object VNode {
-  private val emptyModifierArray            = js.Array[VModifier]()
-  @inline def html(name: String): HtmlVNode = HtmlVNode(name, emptyModifierArray)
-  @inline def svg(name: String): SvgVNode   = SvgVNode(name, emptyModifierArray)
+  private val emptyModifierArray        = js.Array[VModifier]()
+  @inline def html(name: String): VNode = HtmlVNode(name, emptyModifierArray)
+  @inline def svg(name: String): VNode  = SvgVNode(name, emptyModifierArray)
 
   @inline def raiseError[T](error: Throwable): VNode = dsl.div(VModifier.raiseError(error))
 

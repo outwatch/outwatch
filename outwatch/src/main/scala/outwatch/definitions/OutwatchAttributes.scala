@@ -209,10 +209,10 @@ trait AttributeHelpers { self: Attributes =>
 
 trait TagHelpers {
   @deprecated("use VNode.html instead", "0.11.0")
-  @inline final def htmlTag(name: String): HtmlVNode = VNode.html(name)
+  @inline final def htmlTag(name: String): VNode = VNode.html(name)
 
   @deprecated("use VNode.svg instead", "0.11.0")
-  @inline final def svgTag(name: String): SvgVNode = VNode.svg(name)
+  @inline final def svgTag(name: String): VNode = VNode.svg(name)
 }
 
 trait ManagedHelpers {
