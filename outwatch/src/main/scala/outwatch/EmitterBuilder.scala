@@ -66,7 +66,7 @@ trait EmitterBuilder[+O, +R] {
   @inline def doEffect[G[_]: RunEffect](action: G[Unit]): R           = foreachEffect(_ => action)
 
   @inline def foreachFuture(action: O => Future[Unit]): R = mapFuture(action).discard
-  @inline def doFuture(action: Future[Unit]): R           = foreachFuture(_ => action)
+  @inline def doFuture(action: => Future[Unit]): R           = foreachFuture(_ => action)
 
   @deprecated("Use .foreachSingleEffect(action) instead", "")
   @inline def foreachAsyncSingleOrDrop[G[_]: RunEffect](action: O => G[Unit]): R = foreachSingleEffect(action)
@@ -84,7 +84,7 @@ trait EmitterBuilder[+O, +R] {
 
   @inline def foreachSingleFuture(action: O => Future[Unit]): R =
     singleMapFuture(action).discard
-  @inline def doSingleFuture(action: Future[Unit]): R =
+  @inline def doSingleFuture(action: => Future[Unit]): R =
     foreachSingleFuture(_ => action)
 
   @inline def foreachSwitchEffect[G[_]: RunEffect](action: O => G[Unit]): R =
@@ -94,7 +94,7 @@ trait EmitterBuilder[+O, +R] {
 
   @inline def foreachSwitchFuture(action: O => Future[Unit]): R =
     switchMapFuture(action).discard
-  @inline def doSwitchFuture(action: Future[Unit]): R =
+  @inline def doSwitchFuture(action: => Future[Unit]): R =
     foreachSwitchFuture(_ => action)
 
   @inline def foreachParEffect[G[_]: RunEffect](action: O => G[Unit]): R =
