@@ -386,12 +386,22 @@ object EmitterBuilder {
     Emitter(eventType, e => sink.unsafeOnNext(e.asInstanceOf[E]))
   }
 
+  @deprecated("Use EmitterBuilder.merge instead", "0.11.0")
   @inline def combine[T, R: SubscriptionOwner: SyncEmbed: Monoid](
     builders: EmitterBuilder[T, R]*,
-  ): EmitterBuilder[T, R] = combineSeq(builders)
+  ): EmitterBuilder[T, R] = mergeIterable(builders)
 
+  @deprecated("Use EmitterBuilder.mergeIterable instead", "0.11.0")
   def combineSeq[T, R: SubscriptionOwner: SyncEmbed: Monoid](
     builders: Seq[EmitterBuilder[T, R]],
+  ): EmitterBuilder[T, R] = mergeIterable(builders)
+
+  @inline def merge[T, R: SubscriptionOwner: SyncEmbed: Monoid](
+    builders: EmitterBuilder[T, R]*,
+  ): EmitterBuilder[T, R] = mergeIterable(builders)
+
+  def mergeIterable[T, R: SubscriptionOwner: SyncEmbed: Monoid](
+    builders: Iterable[EmitterBuilder[T, R]],
   ): EmitterBuilder[T, R] = new Custom[T, R](sink => Monoid[R].combineAll(builders.map(_.forwardTo(sink))))
 
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")
@@ -406,7 +416,7 @@ object EmitterBuilder {
       def combine(
         x: EmitterBuilder[T, R],
         y: EmitterBuilder[T, R],
-      ): EmitterBuilder[T, R] = EmitterBuilder.combine(x, y)
+      ): EmitterBuilder[T, R] = EmitterBuilder.merge(x, y)
     }
 
   implicit def functor[R]: Functor[EmitterBuilder[*, R]] = new Functor[EmitterBuilder[*, R]] {
@@ -456,6 +466,9 @@ object EmitterBuilder {
     @deprecated("Use asLatestEmitter(emitter) instead", "")
     @inline def useLatestEmitter[T](emitter: EmitterBuilder[T, R]): EmitterBuilder[T, SyncIO[R]] =
       asLatestEmitter(emitter)
+
+    @inline def merge[T >: O](emitter: EmitterBuilder[T, R]): EmitterBuilder[T, R] =
+      EmitterBuilder.merge(builder, emitter)
   }
 
   @inline implicit class EventActions[O <: dom.Event, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
