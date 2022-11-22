@@ -3908,4 +3908,86 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = liveCounter shouldBe 3
     } yield succeed
   }).unsafeRunSync()
+
+  "Nested rx component" should "work" in Owned(SyncIO {
+    case class Modal(content: String, size: Option[Int])
+
+    val modal: Var[Modal]  = Var(Modal("hallo", None))
+
+    val content  = modal.map(_.content)
+
+    val size = modal.map(_.size match {
+      case Some(w) => VModifier(w)
+      case None    => VModifier.empty
+    })
+
+    val node = div(
+      idAttr := "test",
+      content.map(str => div(str, size))
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe """<div>hallo</div>"""
+
+      _  = modal.set(Modal("hallo", Some(1)))
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe """<div>hallo1</div>"""
+
+      _  = modal.set(Modal("huhu", None))
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe """<div>huhu</div>"""
+    } yield succeed
+  }).unsafeRunSync()
+
+  it should "work complex" in {
+    case class Modal(content: String, size: Option[Int])
+
+    val currentModal: Var[Option[Modal]]  = Var(None)
+
+    val node = Owned(div(
+      idAttr := "test",
+      currentModal.sequence.map {
+        _.map { modal =>
+          val content  = modal.map(_.content)
+
+          val size = modal.map(_.size match {
+            case Some(w) => VModifier(width := s"${w}px")
+            // case None    => VModifier("was")
+            case None    => VModifier.empty
+          })
+
+          content.map(str => div(str, size))
+        }
+      },
+    ))
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe ""
+
+      _  = currentModal.set(Some(Modal("hallo", None)))
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe """<div>hallo</div>"""
+
+      _  = currentModal.set(Some(Modal("hallo", Some((1)))))
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe """<div style="width: 1px;">hallo</div>"""
+
+      _  = currentModal.set(Some(Modal("hallo2", None)))
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe """<div style="">hallo2</div>"""
+    } yield succeed
+  }
 }
