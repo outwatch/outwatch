@@ -3909,63 +3909,67 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }).unsafeRunSync()
 
-  "Nested rx component" should "work" in Owned(SyncIO {
-    case class Modal(content: String, size: Option[Int])
+  "Nested rx component" should "work" in {
+    case class Modal(val content: String, val size: Option[Int])
+    Owned(SyncIO {
 
-    val modal: Var[Modal]  = Var(Modal("hallo", None))
+      val modal: Var[Modal] = Var(Modal("hallo", None))
 
-    val content  = modal.map(_.content)
+      val content = modal.map(_.content)
 
-    val size = modal.map(_.size match {
-      case Some(w) => VModifier(w)
-      case None    => VModifier.empty
-    })
+      val size = modal.map(_.size match {
+        case Some(w) => VModifier(w)
+        case None    => VModifier.empty
+      })
 
-    val node = div(
-      idAttr := "test",
-      content.map(str => div(str, size))
-    )
+      val node = div(
+        idAttr := "test",
+        content.map(str => div(str, size)),
+      )
 
-    for {
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      for {
+        _ <- Outwatch.renderInto[IO]("#app", node)
 
-      element <- IO(document.getElementById("test"))
+        element <- IO(document.getElementById("test"))
 
-      _ = element.innerHTML shouldBe """<div>hallo</div>"""
+        _ = element.innerHTML shouldBe """<div>hallo</div>"""
 
-      _  = modal.set(Modal("hallo", Some(1)))
-      _ <- IO.cede
+        _  = modal.set(Modal("hallo", Some(1)))
+        _ <- IO.cede
 
-      _ = element.innerHTML shouldBe """<div>hallo1</div>"""
+        _ = element.innerHTML shouldBe """<div>hallo1</div>"""
 
-      _  = modal.set(Modal("huhu", None))
-      _ <- IO.cede
+        _  = modal.set(Modal("huhu", None))
+        _ <- IO.cede
 
-      _ = element.innerHTML shouldBe """<div>huhu</div>"""
-    } yield succeed
-  }).unsafeRunSync()
+        _ = element.innerHTML shouldBe """<div>huhu</div>"""
+      } yield succeed
+    }).unsafeRunSync()
+  }
 
   it should "work complex" in {
     case class Modal(content: String, size: Option[Int])
 
-    val currentModal: Var[Option[Modal]]  = Var(None)
+    val currentModal: Var[Option[Modal]] = Var(None)
 
-    val node = Owned(div(
-      idAttr := "test",
-      currentModal.sequence.map {
-        _.map { modal =>
-          val content  = modal.map(_.content)
+    val node = Owned(
+      div(
+        idAttr := "test",
+        currentModal.sequence.map {
+          _.map { modal =>
+            val content = modal.map(_.content)
 
-          val size = modal.map(_.size match {
-            case Some(w) => VModifier(width := s"${w}px")
-            // case None    => VModifier("was")
-            case None    => VModifier.empty
-          })
+            val size = modal.map(_.size match {
+              case Some(w) => VModifier(width := s"${w}px")
+              // case None    => VModifier("was")
+              case None => VModifier.empty
+            })
 
-          content.map(str => div(str, size))
-        }
-      },
-    ))
+            content.map(str => div(str, size))
+          }
+        },
+      ),
+    )
 
     for {
       _ <- Outwatch.renderInto[IO]("#app", node)
@@ -3979,7 +3983,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
       _ = element.innerHTML shouldBe """<div>hallo</div>"""
 
-      _  = currentModal.set(Some(Modal("hallo", Some((1)))))
+      _  = currentModal.set(Some(Modal("hallo", Some(1))))
       _ <- IO.cede
 
       _ = element.innerHTML shouldBe """<div style="width: 1px;">hallo</div>"""

@@ -118,7 +118,8 @@ object VModifier {
   @inline def when(condition: Boolean): ModifierBooleanOps    = new ModifierBooleanOps(condition)
   @inline def whenNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
-  @inline def toggle(condition: Boolean)(ifTrue: => VModifier, ifFalse: => VModifier = VModifier.empty): VModifier = if (condition) ifTrue else ifFalse
+  @inline def toggle(condition: Boolean)(ifTrue: => VModifier, ifFalse: => VModifier = VModifier.empty): VModifier =
+    if (condition) ifTrue else ifFalse
 
   implicit object monoid extends Monoid[VModifier] {
     @inline def empty: VModifier                               = VModifier.empty
