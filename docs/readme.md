@@ -509,7 +509,7 @@ import scala.concurrent.duration._
 
 val duration = 1.second
 val durationMillis = duration.toMillis.toInt
-val zioDuration = zio.duration.Duration.fromScala(1.second)
+val zioDuration = zio.Duration.fromScala(1.second)
 
 val component = {
   div(
@@ -527,7 +527,7 @@ val component = {
     ),
     div(
       "Stream (zio): ",
-      zio.stream.Stream.tick(zioDuration).as(1).scan[Int](0)(_ + _),
+      zio.stream.ZStream.tick(zioDuration).as(1).scan[Int](0)(_ + _),
     )
   )
 }
@@ -621,7 +621,7 @@ import cats.effect.IO
 // import cats.effect.unsafe.Runtime.default
 
 import colibri.ext.zio._
-import zio.Task
+import zio.ZIO
 // import zio.Runtime.default
 
 div(
@@ -629,7 +629,7 @@ div(
     // doSomething
     "result from IO"
   },
-  Task {
+  ZIO.attempt {
     // doSomething
     "result from ZIO"
   }

@@ -8,17 +8,38 @@ private[outwatch] final class MutableNestedArray[T] {
 
   // not safe if T = MutableNestedArray.
   @annotation.nowarn("msg=exhaustive")
-  def foreach(f: T => Unit): Unit = array.foreach(a =>
-    (a: Any) match {
-      case nested: MutableNestedArray[T @unchecked] => nested.foreach(f)
-      case t: T @unchecked                          => f(t)
-    },
-  )
+  def foreach(f: T => Unit): Unit = {
+    var i = 0
+    while (i < array.length) {
+      val a = array(i)
+      (a: Any) match {
+        case nested: MutableNestedArray[T @unchecked] => nested.foreach(f)
+        case t: T @unchecked                          => f(t)
+      }
+
+      i += 1
+    }
+  }
 
   def forall(condition: T => Boolean): Boolean = !exists(t => !condition(t))
+
+  @annotation.nowarn("msg=exhaustive")
   def exists(condition: T => Boolean): Boolean = {
-    foreach { t => if (condition(t)) return true }
-    return false
+    var i = 0
+    while (i < array.length) {
+      val t = array(i)
+
+      val result = (t: Any) match {
+        case nested: MutableNestedArray[T @unchecked] => nested.exists(condition)
+        case t: T @unchecked                          => condition(t)
+      }
+
+      if (result) return true
+
+      i += 1
+    }
+
+    false
   }
 
   @inline def push(value: T | MutableNestedArray[T]): Unit = { array.push(value); () }

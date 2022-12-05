@@ -7,17 +7,16 @@ import com.raquo.domtypes.jsdom.defs.eventProps
 import com.raquo.domtypes.jsdom.defs.tags
 import org.scalajs.dom
 import outwatch._
-import outwatch.helpers._
 import colibri.Observable
 import colibri.jsdom.EventObservable
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _]     = AttributeBuilder[T, Attr]
-  type Attribute[T]                 = AttributeBuilder[T, Attr]
-  type Property[T, _]               = PropBuilder[T]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VModifier]
-  type HtmlTag[T]                   = HtmlVNode
-  type SvgTag[T]                    = SvgVNode
+  type ReflectedAttribute[T, _]     = AttrBuilder[T, VModifier]
+  type Attribute[T]                 = AttrBuilder[T, VModifier]
+  type Property[T, _]               = AttrBuilder[T, VModifier]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder[E, VModifier]
+  type HtmlTag[T]                   = VNode
+  type SvgTag[T]                    = VNode
 }
 
 private object CodecBuilder {
@@ -39,9 +38,9 @@ private[outwatch] trait TagBuilder
     with builders.SvgTagBuilder[BuilderTypes.SvgTag, dom.svg.Element] {
   // we can ignore information about void tags here, because snabbdom handles this automatically for us based on the tagname.
   // TODO: add element type to VTree for typed interface
-  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): HtmlVNode =
+  @inline protected override def htmlTag[Ref <: dom.html.Element](tagName: String, void: Boolean): VNode =
     VNode.html(tagName)
-  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): SvgVNode =
+  @inline protected override def svgTag[Ref <: dom.svg.Element](tagName: String, void: Boolean): VNode =
     VNode.svg(tagName)
 }
 
@@ -73,33 +72,42 @@ trait HtmlAttrs
     with builders.ReflectedHtmlAttrBuilder[BuilderTypes.ReflectedAttribute]
     with builders.PropBuilder[BuilderTypes.Property] {
 
-  override protected final def htmlAttr[V](key: String, codec: codecs.Codec[V, String]): BasicAttrBuilder[V] =
-    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
+  override protected final def htmlAttr[V](
+    key: String,
+    codec: codecs.Codec[V, String],
+  ): AttrBuilder.ToBasicAttr[V] =
+    new AttrBuilder.ToBasicAttr(key, CodecBuilder.encodeAttribute(codec))
 
   override protected final def reflectedAttr[V, DomPropV](
     attrKey: String,
     propKey: String,
     attrCodec: codecs.Codec[V, String],
     propCodec: codecs.Codec[V, DomPropV],
-  ): BasicAttrBuilder[V] = new BasicAttrBuilder(attrKey, CodecBuilder.encodeAttribute(attrCodec))
+  ): AttrBuilder.ToBasicAttr[V] =
+    new AttrBuilder.ToBasicAttr(attrKey, CodecBuilder.encodeAttribute(attrCodec))
   // or: new PropertyBuilder(propKey, propCodec.encode)
 
-  override protected final def prop[V, DomV](key: String, codec: codecs.Codec[V, DomV]): PropBuilder[V] =
-    new PropBuilder(key, codec.encode)
+  override protected final def prop[V, DomV](
+    key: String,
+    codec: codecs.Codec[V, DomV],
+  ): AttrBuilder.ToProp[V] =
+    new AttrBuilder.ToProp(key, codec.encode)
 
   // super.className.accum(" ") would have been nicer, but we can't do super.className on a lazy val
-  override final lazy val className: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
-    "class",
-    identity,
-    (v1, v2) => s"$v1 $v2",
-  )
+  override final lazy val className: AttrBuilder.ToAccumAttr[String] =
+    new AttrBuilder.ToAccumAttr[String](
+      "class",
+      identity,
+      (v1, v2) => s"$v1 $v2",
+    )
 
   // super.styleAttr.accum(";") would have been nicer, but we can't do super.styleAttr on a lazy val
-  override final lazy val styleAttr: AccumAttrBuilder[String] = new AccumAttrBuilder[String](
-    "style",
-    identity,
-    (v1, v2) => s"$v1;$v2",
-  )
+  override final lazy val styleAttr: AttrBuilder.ToAccumAttr[String] =
+    new AttrBuilder.ToAccumAttr[String](
+      "style",
+      identity,
+      (v1, v2) => s"$v1;$v2",
+    )
 }
 
 // Svg Attrs
@@ -112,8 +120,8 @@ trait SvgAttrs
     key: String,
     codec: codecs.Codec[V, String],
     namespace: Option[String],
-  ): BasicAttrBuilder[V] =
-    new BasicAttrBuilder(key, CodecBuilder.encodeAttribute(codec))
+  ): AttrBuilder.ToBasicAttr[V] =
+    new AttrBuilder.ToBasicAttr(key, CodecBuilder.encodeAttribute(codec))
 }
 
 // Events
