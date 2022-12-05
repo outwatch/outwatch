@@ -35,8 +35,7 @@ import scala.concurrent.duration.FiniteDuration
 // from the emitterbuilder.
 //
 
-trait EmitterBuilder[+O, +R] {
-
+trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline def forwardTo[F[_]: Sink, O2 >: O](sink: F[O2]): R
 
   @inline def transform[T](f: Observable[O] => Observable[T]): EmitterBuilder[T, R]
@@ -51,6 +50,8 @@ trait EmitterBuilder[+O, +R] {
   @deprecated("Use .doAction(action) instead", "")
   @inline final def foreach(action: => Unit): R  = doAction(action)
   @inline final def doAction(action: => Unit): R = foreach(_ => action)
+
+  @inline final def assign(action: O => Unit): R = foreach(action)
 
   @deprecated("Use .foreachEffect(action) instead", "")
   @inline final def foreachSync[G[_]: RunSyncEffect](action: O => G[Unit]): R = mapSync(action).discard
