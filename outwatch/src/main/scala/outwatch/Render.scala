@@ -17,6 +17,12 @@ trait Render[-T] {
 trait RenderLowPrio1 {
   import RenderOps._
 
+  @inline implicit def ShowRenderAs[T: Show]: Render[T] = new ShowRenderAsClass[T]
+
+  @inline private class ShowRenderAsClass[T: Show] extends Render[T] {
+    @inline def render(value: T): VModifier = StringVNode(Show[T].show(value))
+  }
+
   @inline implicit def UndefinedModifierAs[T: Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
   @inline private class UndefinedRenderAsClass[T: Render] extends Render[js.UndefOr[T]] {
     @inline def render(value: js.UndefOr[T]) = undefinedToModifierRender(value)
@@ -43,11 +49,6 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
 
 trait RenderLowPrio extends RenderLowPrio0 {
   import RenderOps._
-
-  @inline implicit def ShowRenderAs[T: Show]: Render[T] = new ShowRenderAsClass[T]
-  @inline private class ShowRenderAsClass[T: Show] extends Render[T] {
-    @inline def render(value: T): VModifier = StringVNode(Show[T].show(value))
-  }
 
   @inline implicit def JsArrayModifierAs[T: Render]: Render[js.Array[T]] = new JsArrayRenderAsClass[T]
   @inline private class JsArrayRenderAsClass[T: Render] extends Render[js.Array[T]] {
