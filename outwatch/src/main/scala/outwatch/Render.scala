@@ -1,5 +1,6 @@
 package outwatch
 
+import cats.Show
 import colibri._
 import colibri.effect._
 import cats.data.{NonEmptyChain, NonEmptyList, NonEmptySeq, NonEmptyVector}
@@ -42,6 +43,11 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
 
 trait RenderLowPrio extends RenderLowPrio0 {
   import RenderOps._
+
+  @inline implicit def ShowRenderAs[T: Show]: Render[T] = new ShowRenderAsClass[T]
+  @inline private class ShowRenderAsClass[T: Show] extends Render[T] {
+    @inline def render(value: T): VModifier = StringVNode(Show[T].show(value))
+  }
 
   @inline implicit def JsArrayModifierAs[T: Render]: Render[js.Array[T]] = new JsArrayRenderAsClass[T]
   @inline private class JsArrayRenderAsClass[T: Render] extends Render[js.Array[T]] {
