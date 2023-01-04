@@ -1,10 +1,10 @@
 package outwatch
 
-import cats.Monoid
+import cats.{Monoid, Show}
 import cats.implicits._
 import cats.effect.{IO, SyncIO}
 import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.{document, html, Element, Event}
+import org.scalajs.dom.{Element, Event, document, html}
 import outwatch.helpers._
 import outwatch.dsl._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
@@ -3992,6 +3992,27 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ <- IO.cede
 
       _ = element.innerHTML shouldBe """<div style="">hallo2</div>"""
+    } yield succeed
+  }
+
+  it should "render types that have a `Render` and a `Show` implementation using `Render`" in {
+    case class Foo(bar: String)
+    object Foo {
+      implicit val renderFoo: Render[Foo] = (foo: Foo) => span(foo.bar)
+      implicit val showFoo: Show[Foo] = (foo: Foo) => foo.bar
+    }
+
+    val node = div(
+      idAttr := "test",
+      Foo("foo"),
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe """<span>foo</span>"""
     } yield succeed
   }
 }
