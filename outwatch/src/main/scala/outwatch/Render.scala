@@ -31,11 +31,11 @@ trait RenderLowPrio1 {
   implicit object UndefinedModifier extends Render[js.UndefOr[VMod]] {
     @inline def render(value: js.UndefOr[VMod]): VMod = value.getOrElse(VMod.empty)
   }
-  
+
   implicit object ObservableUnitRender extends Render[Observable[Unit]] {
     @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
   }
-  
+
   @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
   @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
     @inline def render(source: F[Unit]): VMod = VMod.managedSubscribe(source)
