@@ -35,6 +35,11 @@ trait RenderLowPrio1 {
   implicit object ObservableUnitRender extends Render[Observable[Unit]] {
     @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
   }
+  
+  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
+  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
+    @inline def render(source: F[Unit]): VModifier = VModifier.managedSubscribe(source)
+  }
 }
 
 trait RenderLowPrio0 extends RenderLowPrio1 {
@@ -121,11 +126,6 @@ trait RenderLowPrio extends RenderLowPrio0 {
   @inline implicit def SourceRenderAs[F[_]: Source, T: Render]: Render[F[T]] = new SourceRenderAsClass[F, T]
   @inline private class SourceRenderAsClass[F[_]: Source, T: Render] extends Render[F[T]] {
     @inline def render(source: F[T]): VMod = sourceToModifierRender(source)
-  }
-
-  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
-  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
-    @inline def render(source: F[Unit]): VModifier = VModifier.managedSubscribe(source)
   }
 }
 
