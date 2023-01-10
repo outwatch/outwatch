@@ -1,10 +1,10 @@
 package outwatch
 
-import cats.Monoid
+import cats.{Monoid, Show}
 import cats.implicits._
 import cats.effect.{IO, SyncIO}
 import org.scalajs.dom.window.localStorage
-import org.scalajs.dom.{document, html, Element, Event}
+import org.scalajs.dom.{Element, Event, document, html}
 import outwatch.helpers._
 import outwatch.dsl._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
@@ -72,7 +72,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       PostPatchHook((_, _) => ()),
     )
 
-    val propertiesArr = new MutableNestedArray[StaticVModifier]
+    val propertiesArr = new MutableNestedArray[StaticVMod]
     properties.foreach(propertiesArr.push(_))
     val seps = SeparatedModifiers.from(propertiesArr)
     import seps._
@@ -87,7 +87,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     keyOption.isEmpty shouldBe true
   }
 
-  "VModifiers" should "be separated correctly" in {
+  "VMods" should "be separated correctly" in {
     val modifiers = Seq(
       BasicAttr("class", "red"),
       EmptyModifier,
@@ -95,14 +95,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       new StringVNode("Test"),
       div(),
       CompositeModifier(
-        Seq[VModifier](
+        Seq[VMod](
           div(),
           attributes.`class` := "blue",
           attributes.onClick.as(1) doAction {},
           attributes.hidden <-- Observable(false),
         ),
       ),
-      VModifier(Observable.empty),
+      VMod(Observable.empty),
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
@@ -123,14 +123,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       new StringVNode("Test"),
       div(),
       CompositeModifier(
-        Seq[VModifier](
+        Seq[VMod](
           div(),
           attributes.`class` := "blue",
           attributes.onClick.as(1) doAction {},
           attributes.hidden <-- nonEmptyObservable(false),
         ),
       ),
-      VModifier(nonEmptyObservable),
+      VMod(nonEmptyObservable),
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
@@ -144,13 +144,13 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "be separated correctly with children" in {
-    val modifiers: Seq[VModifier] = Seq(
+    val modifiers: Seq[VMod] = Seq(
       BasicAttr("class", "red"),
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
-      VModifier(Observable.empty),
-      VModifier(nonEmptyObservable),
+      VMod(Observable.empty),
+      VMod(nonEmptyObservable),
       Emitter("keyup", _ => ()),
       StringVNode("text"),
       div(),
@@ -166,14 +166,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "be separated correctly with string children" in {
-    val modifiers: Seq[VModifier] = Seq(
+    val modifiers: Seq[VMod] = Seq(
       BasicAttr("class", "red"),
       EmptyModifier,
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
       Emitter("keyup", _ => ()),
-      VModifier(Observable.empty),
-      VModifier(nonEmptyObservable),
+      VMod(Observable.empty),
+      VMod(nonEmptyObservable),
       StringVNode("text"),
       StringVNode("text2"),
     )
@@ -196,9 +196,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       Emitter("click", _ => ()),
       Emitter("input", _ => ()),
       UpdateHook((_, _) => ()),
-      VModifier(Observable.empty),
-      VModifier(nonEmptyObservable),
-      VModifier(nonEmptyObservable),
+      VMod(Observable.empty),
+      VMod(nonEmptyObservable),
+      VMod(nonEmptyObservable),
       Emitter("keyup", _ => ()),
       InsertHook(_ => ()),
       PrePatchHook((_, _) => ()),
@@ -239,23 +239,23 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val vtree = div(
       IO {
         list += "child1"
-        VModifier(Observable(div()))
+        VMod(Observable(div()))
       },
       IO {
         list += "child2"
-        VModifier(Observable.empty)
+        VMod(Observable.empty)
       },
       IO {
         list += "child3"
-        VModifier(nonEmptyObservable(div()))
+        VMod(nonEmptyObservable(div()))
       },
       IO {
         list += "children1"
-        VModifier(nonEmptyObservable)
+        VMod(nonEmptyObservable)
       },
       IO {
         list += "children2"
-        VModifier(nonEmptyObservable)
+        VMod(nonEmptyObservable)
       },
       div(
         IO {
@@ -325,7 +325,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "not provide unique key for child nodes if stream is present" in {
     val mods = Seq(
-      VModifier(nonEmptyObservable),
+      VMod(nonEmptyObservable),
       div(idAttr := "1"),
       div(idAttr := "2"),
       div(),
@@ -356,7 +356,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "keep existing key for child nodes" in {
     val mods = Seq(
       Key(1234),
-      VModifier(nonEmptyObservable),
+      VMod(nonEmptyObservable),
       div()(Key(5678)),
     )
 
@@ -502,7 +502,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "be replaced if they contain changeables (SyncIO)" in {
 
-    def page(num: Int): VModifier = for {
+    def page(num: Int): VMod = for {
       pageNum <- SyncIO(Subject.behavior(num))
     } yield div(
       idAttr := "page",
@@ -538,7 +538,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "be replaced if they contain changeables (IO)" in {
 
-    def page(num: Int): VModifier = for {
+    def page(num: Int): VMod = for {
       pageNum <- IO(Subject.behavior(num))
     } yield div(
       idAttr := "page",
@@ -585,7 +585,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "construct VTrees with optional children properly" in {
-    val vtree = div(cls := "red", idAttr := "msg", Option(span("Hello")), Option.empty[VModifier])
+    val vtree = div(cls := "red", idAttr := "msg", Option(span("Hello")), Option.empty[VMod])
 
     val snabbdomNode = SnabbdomOps.toSnabbdom(vtree, RenderConfig.ignoreError)
     snabbdomNode._id = js.undefined
@@ -983,7 +983,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val messages      = Subject.publish[String]()
     val otherMessages = Subject.publish[String]()
-    val vNode         = div(VModifier.style("color") <-- messages)(VModifier.style("color") <-- otherMessages)
+    val vNode         = div(VMod.style("color") <-- messages)(VMod.style("color") <-- otherMessages)
 
     val node = {
       val node = document.createElement("div")
@@ -1216,8 +1216,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   "Modifier stream" should "work for modifier" in {
 
-    val myHandler = Subject.behavior[VModifier](Seq(cls := "hans", b("stark")))
-    val node      = div(idAttr := "strings", div(VModifier(myHandler)))
+    val myHandler = Subject.behavior[VMod](Seq(cls := "hans", b("stark")))
+    val node      = div(idAttr := "strings", div(VMod(myHandler)))
 
     for {
       _      <- Outwatch.renderInto[IO]("#app", node)
@@ -1230,7 +1230,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for multiple mods" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
     val node      = div(idAttr := "strings", div(myHandler, "bla"))
 
     for {
@@ -1242,7 +1242,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ <- myHandler.onNextIO(cls := "hans") *> IO.cede
       _  = element.innerHTML shouldBe """<div class="hans">bla</div>"""
 
-      innerHandler = Subject.replayLatest[VModifier]()
+      innerHandler = Subject.replayLatest[VMod]()
 
       _ <- myHandler.onNextIO(
              div(
@@ -1281,7 +1281,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested stream modifier" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
     val node      = div(idAttr := "strings", div(myHandler))
 
     for {
@@ -1289,29 +1289,29 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       element = document.getElementById("strings")
       _       = element.innerHTML shouldBe "<div></div>"
 
-      innerHandler = Subject.replayLatest[VModifier]()
+      innerHandler = Subject.replayLatest[VMod]()
 
       _ <- myHandler.onNextIO(innerHandler) *> IO.cede
       _  = element.innerHTML shouldBe """<div></div>"""
 
-      _ <- innerHandler.onNextIO(VModifier(cls := "hans", "1")) *> IO.cede
+      _ <- innerHandler.onNextIO(VMod(cls := "hans", "1")) *> IO.cede
       _  = element.innerHTML shouldBe """<div class="hans">1</div>"""
 
-      innerHandler2 = Subject.replayLatest[VModifier]()
+      innerHandler2 = Subject.replayLatest[VMod]()
 
       _ <- myHandler.onNextIO(innerHandler2) *> IO.cede
       _  = element.innerHTML shouldBe """<div></div>"""
 
-      _ <- myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ <- myHandler.onNextIO(CompositeModifier(VMod(innerHandler2) :: Nil)) *> IO.cede
       _  = element.innerHTML shouldBe """<div></div>"""
 
-      _ <- myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ <- myHandler.onNextIO(CompositeModifier(VMod(innerHandler2) :: Nil)) *> IO.cede
       _  = element.innerHTML shouldBe """<div></div>"""
 
-      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VMod(innerHandler2) :: Nil)) *> IO.cede
       _  = element.innerHTML shouldBe """<div>pete</div>"""
 
-      _ <- innerHandler2.onNextIO(VModifier(idAttr := "dieter", "r")) *> IO.cede
+      _ <- innerHandler2.onNextIO(VMod(idAttr := "dieter", "r")) *> IO.cede
       _  = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
 
       _ <- innerHandler.onNextIO(b("me?")) *> IO.cede
@@ -1326,12 +1326,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     var numPatches = 0
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
     val node: VNode = div(
       idAttr := "strings",
       div(
         onSnabbdomPrePatch doAction { numPatches += 1 },
-        myHandler.prepend(VModifier("initial")),
+        myHandler.prepend(VMod("initial")),
       ),
     )
 
@@ -1342,7 +1342,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _       = element.innerHTML shouldBe "<div>initial</div>"
       _       = numPatches shouldBe 0
 
-      innerHandler = Subject.replayLatest[VModifier]()
+      innerHandler = Subject.replayLatest[VMod]()
 
       _ <- myHandler.onNextIO(innerHandler.prepend(BasicAttr("initial", "2"))) *> IO.cede
       _  = element.innerHTML shouldBe """<div initial="2"></div>"""
@@ -1352,21 +1352,21 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = element.innerHTML shouldBe """<div attr="3"></div>"""
       _  = numPatches shouldBe 2
 
-      innerHandler2 = Subject.replayLatest[VModifier]()
-      _            <- myHandler.onNextIO(innerHandler2.prepend(VModifier("initial3"))) *> IO.cede
+      innerHandler2 = Subject.replayLatest[VMod]()
+      _            <- myHandler.onNextIO(innerHandler2.prepend(VMod("initial3"))) *> IO.cede
       _             = element.innerHTML shouldBe """<div>initial3</div>"""
       _             = numPatches shouldBe 3
 
       _ <-
-        myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2.prepend(VModifier("initial4"))) :: Nil)) *> IO.cede
+        myHandler.onNextIO(CompositeModifier(VMod(innerHandler2.prepend(VMod("initial4"))) :: Nil)) *> IO.cede
       _ = element.innerHTML shouldBe """<div>initial4</div>"""
       _ = numPatches shouldBe 4
 
-      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VMod(innerHandler2) :: Nil)) *> IO.cede
       _  = element.innerHTML shouldBe """<div>pete</div>"""
       _  = numPatches shouldBe 5
 
-      _ <- innerHandler2.onNextIO(VModifier(idAttr := "dieter", "r")) *> IO.cede
+      _ <- innerHandler2.onNextIO(VMod(idAttr := "dieter", "r")) *> IO.cede
       _  = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
       _  = numPatches shouldBe 6
 
@@ -1408,7 +1408,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     var numPatches = 0
 
-    val myHandler = Subject.behavior[VModifier]("initial")
+    val myHandler = Subject.behavior[VMod]("initial")
     val node = div(
       idAttr := "strings",
       div(
@@ -1424,7 +1424,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _       = element.innerHTML shouldBe "<div>initial</div>"
       _       = numPatches shouldBe 0
 
-      innerHandler = Subject.replayLatest[VModifier]()
+      innerHandler = Subject.replayLatest[VMod]()
       _           <- myHandler.onNextIO(innerHandler.startWith(BasicAttr("initial", "2") :: Nil)) *> IO.cede
       _            = element.innerHTML shouldBe """<div initial="2"></div>"""
       _            = numPatches shouldBe 1
@@ -1433,21 +1433,21 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = element.innerHTML shouldBe """<div attr="3"></div>"""
       _  = numPatches shouldBe 2
 
-      innerHandler2 = Subject.replayLatest[VModifier]()
-      _            <- myHandler.onNextIO(innerHandler2.startWith(VModifier("initial3") :: Nil)) *> IO.cede
+      innerHandler2 = Subject.replayLatest[VMod]()
+      _            <- myHandler.onNextIO(innerHandler2.startWith(VMod("initial3") :: Nil)) *> IO.cede
       _             = element.innerHTML shouldBe """<div>initial3</div>"""
       _             = numPatches shouldBe 3
 
       _ <-
-        myHandler.onNextIO(CompositeModifier(VModifier(innerHandler2.prepend(VModifier("initial4"))) :: Nil)) *> IO.cede
+        myHandler.onNextIO(CompositeModifier(VMod(innerHandler2.prepend(VMod("initial4"))) :: Nil)) *> IO.cede
       _ = element.innerHTML shouldBe """<div>initial4</div>"""
       _ = numPatches shouldBe 4
 
-      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VModifier(innerHandler2) :: Nil)) *> IO.cede
+      _ <- myHandler.onNextIO(CompositeModifier(StringVNode("pete") :: VMod(innerHandler2) :: Nil)) *> IO.cede
       _  = element.innerHTML shouldBe """<div>pete</div>"""
       _  = numPatches shouldBe 5
 
-      _ <- innerHandler2.onNextIO(VModifier(idAttr := "dieter", "r")) *> IO.cede
+      _ <- innerHandler2.onNextIO(VMod(idAttr := "dieter", "r")) *> IO.cede
       _  = element.innerHTML shouldBe """<div id="dieter">peter</div>"""
       _  = numPatches shouldBe 6
 
@@ -1463,17 +1463,17 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for stream modifier and streaming default value (subscriptions are canceled properly)" in {
 
-    val myHandler    = Subject.replayLatest[VModifier]()
-    val innerHandler = Subject.replayLatest[VModifier]()
+    val myHandler    = Subject.replayLatest[VMod]()
+    val innerHandler = Subject.replayLatest[VMod]()
 
-    val outerTriggers = new scala.collection.mutable.ArrayBuffer[VModifier]
-    val innerTriggers = new scala.collection.mutable.ArrayBuffer[VModifier]
+    val outerTriggers = new scala.collection.mutable.ArrayBuffer[VMod]
+    val innerTriggers = new scala.collection.mutable.ArrayBuffer[VMod]
 
     val node = div(
       idAttr := "strings",
       div(
         myHandler.map { x => outerTriggers += x; x }
-          .prepend(VModifier(innerHandler.map { x => innerTriggers += x; x }.prepend(VModifier("initial")))),
+          .prepend(VMod(innerHandler.map { x => innerTriggers += x; x }.prepend(VMod("initial")))),
       ),
     )
 
@@ -1485,12 +1485,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _       = outerTriggers.size shouldBe 0
       _       = innerTriggers.size shouldBe 0
 
-      _ <- innerHandler.onNextIO(VModifier("hi!")) *> IO.cede
+      _ <- innerHandler.onNextIO(VMod("hi!")) *> IO.cede
       _  = element.innerHTML shouldBe """<div>hi!</div>"""
       _  = outerTriggers.size shouldBe 0
       _  = innerTriggers.size shouldBe 1
 
-      _ <- myHandler.onNextIO(VModifier("test")) *> IO.cede
+      _ <- myHandler.onNextIO(VMod("test")) *> IO.cede
       _  = element.innerHTML shouldBe """<div>test</div>"""
       _  = outerTriggers.size shouldBe 1
       _  = innerTriggers.size shouldBe 1
@@ -1500,12 +1500,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = outerTriggers.size shouldBe 2
       _  = innerTriggers.size shouldBe 1
 
-      _ <- innerHandler.onNextIO(VModifier("me?")) *> IO.cede
+      _ <- innerHandler.onNextIO(VMod("me?")) *> IO.cede
       _  = element.innerHTML shouldBe """<div initial="2"></div>"""
       _  = outerTriggers.size shouldBe 2
       _  = innerTriggers.size shouldBe 1
 
-      _ <- myHandler.onNextIO(innerHandler.map { x => innerTriggers += x; x }.prepend(VModifier.empty)) *> IO.cede
+      _ <- myHandler.onNextIO(innerHandler.map { x => innerTriggers += x; x }.prepend(VMod.empty)) *> IO.cede
       _  = element.innerHTML shouldBe """<div>me?</div>"""
       _  = outerTriggers.size shouldBe 3
       _  = innerTriggers.size shouldBe 2
@@ -1515,14 +1515,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = outerTriggers.size shouldBe 3
       _  = innerTriggers.size shouldBe 3
 
-      innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VModifier]
-      innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VModifier]
+      innerTriggers2 = new scala.collection.mutable.ArrayBuffer[VMod]
+      innerTriggers3 = new scala.collection.mutable.ArrayBuffer[VMod]
 
-      innerHandler2 = Subject.replayLatest[VModifier]()
-      innerHandler3 = Subject.replayLatest[VModifier]()
+      innerHandler2 = Subject.replayLatest[VMod]()
+      innerHandler3 = Subject.replayLatest[VMod]()
 
-      _ <- innerHandler.onNextIO(innerHandler2.map { x => innerTriggers2 += x; x }.prepend(VModifier(innerHandler3.map {
-             x => innerTriggers3 += x; x
+      _ <- innerHandler.onNextIO(innerHandler2.map { x => innerTriggers2 += x; x }.prepend(VMod(innerHandler3.map { x =>
+             innerTriggers3 += x; x
            }))) *> IO.cede
       _ = element.innerHTML shouldBe """<div></div>"""
       _ = outerTriggers.size shouldBe 3
@@ -1530,7 +1530,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = innerTriggers2.size shouldBe 0
       _ = innerTriggers3.size shouldBe 0
 
-      _ <- innerHandler2.onNextIO(VModifier("2")) *> IO.cede
+      _ <- innerHandler2.onNextIO(VMod("2")) *> IO.cede
       _  = element.innerHTML shouldBe """<div>2</div>"""
       _  = outerTriggers.size shouldBe 3
       _  = innerTriggers.size shouldBe 4
@@ -1544,28 +1544,28 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = innerTriggers2.size shouldBe 1
       _  = innerTriggers3.size shouldBe 0
 
-      _ <- innerHandler2.onNextIO(VModifier("me?")) *> IO.cede
+      _ <- innerHandler2.onNextIO(VMod("me?")) *> IO.cede
       _  = element.innerHTML shouldBe """<div></div>"""
       _  = outerTriggers.size shouldBe 3
       _  = innerTriggers.size shouldBe 5
       _  = innerTriggers2.size shouldBe 1
       _  = innerTriggers3.size shouldBe 0
 
-      _ <- innerHandler3.onNextIO(VModifier("me?")) *> IO.cede
+      _ <- innerHandler3.onNextIO(VMod("me?")) *> IO.cede
       _  = element.innerHTML shouldBe """<div></div>"""
       _  = outerTriggers.size shouldBe 3
       _  = innerTriggers.size shouldBe 5
       _  = innerTriggers2.size shouldBe 1
       _  = innerTriggers3.size shouldBe 0
 
-      _ <- myHandler.onNextIO(VModifier("go away")) *> IO.cede
+      _ <- myHandler.onNextIO(VMod("go away")) *> IO.cede
       _  = element.innerHTML shouldBe """<div>go away</div>"""
       _  = outerTriggers.size shouldBe 4
       _  = innerTriggers.size shouldBe 5
       _  = innerTriggers2.size shouldBe 1
       _  = innerTriggers3.size shouldBe 0
 
-      _ <- innerHandler.onNextIO(VModifier("me?")) *> IO.cede
+      _ <- innerHandler.onNextIO(VMod("me?")) *> IO.cede
       _  = element.innerHTML shouldBe """<div>go away</div>"""
       _  = outerTriggers.size shouldBe 4
       _  = innerTriggers.size shouldBe 5
@@ -1576,10 +1576,10 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "be able to render basic handler" in {
-    val counter: VModifier = button(
+    val counter: VMod = button(
       idAttr := "click",
       IO(Subject.behavior(0)).map { handler =>
-        VModifier(onClick(handler.map(_ + 1)) --> handler, handler)
+        VMod(onClick(handler.map(_ + 1)) --> handler, handler)
       },
     )
 
@@ -1600,10 +1600,10 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "be able to render basic handler with scan" in {
-    val counter: VModifier = button(
+    val counter: VMod = button(
       idAttr := "click",
       IO(Subject.replayLatest[Int]()).map { handler =>
-        VModifier(onClick.asScan0(0)(_ + 1) --> handler, handler)
+        VMod(onClick.asScan0(0)(_ + 1) --> handler, handler)
       },
     )
 
@@ -1624,9 +1624,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "to render basic handler with scan directly from EmitterBuilder" in {
-    val counter: VModifier = button(
+    val counter: VMod = button(
       idAttr := "click",
-      onClick.asScan0(0)(_ + 1).handled(VModifier(_)),
+      onClick.asScan0(0)(_ + 1).handled(VMod(_)),
     )
 
     val vtree = div(counter)
@@ -1665,7 +1665,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       handler.map(i =>
-        if (i == 0) VModifier.empty
+        if (i == 0) VMod.empty
         else
           div(
             i,
@@ -1681,7 +1681,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         onSnabbdomDestroy.doAction { uninsertedHeinz += 1 },
       ),
       handler2.map(i =>
-        if (i == 0) VModifier.empty
+        if (i == 0) VMod.empty
         else
           div(
             i,
@@ -1842,7 +1842,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "work for nested observables with seq modifiers " in {
 
     val innerHandler = Subject.behavior("b")
-    val outerHandler = Subject.behavior(Seq[VModifier]("a", data.test := "v", innerHandler))
+    val outerHandler = Subject.behavior(Seq[VMod]("a", data.test := "v", innerHandler))
 
     val node = div(
       idAttr := "strings",
@@ -1858,14 +1858,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ <- innerHandler.onNextIO("c") *> IO.cede
       _  = element.outerHTML shouldBe """<div id="strings" data-test="v">ac</div>"""
 
-      _ <- outerHandler.onNextIO(Seq[VModifier]("meh")) *> IO.cede
+      _ <- outerHandler.onNextIO(Seq[VMod]("meh")) *> IO.cede
       _  = element.outerHTML shouldBe """<div id="strings">meh</div>"""
     } yield succeed
   }
 
   it should "work for nested observables with seq modifiers and attribute stream" in {
     val innerHandler = Subject.replayLatest[String]()
-    val outerHandler = Subject.behavior(Seq[VModifier]("a", data.test := "v", href <-- innerHandler))
+    val outerHandler = Subject.behavior(Seq[VMod]("a", data.test := "v", href <-- innerHandler))
 
     val node = div(
       idAttr := "strings",
@@ -1884,14 +1884,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ <- innerHandler.onNextIO("d") *> IO.cede
       _  = element.outerHTML shouldBe """<div id="strings" data-test="v" href="d">a</div>"""
 
-      _ <- outerHandler.onNextIO(Seq[VModifier]("meh")) *> IO.cede
+      _ <- outerHandler.onNextIO(Seq[VMod]("meh")) *> IO.cede
       _  = element.outerHTML shouldBe """<div id="strings">meh</div>"""
     } yield succeed
   }
 
   it should "work for double nested stream modifier" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
 
     val node = div(idAttr := "strings", div(myHandler))
 
@@ -1901,14 +1901,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       element = document.getElementById("strings")
       _       = element.innerHTML shouldBe "<div></div>"
 
-      _ <- myHandler.onNextIO(nonEmptyObservable[VModifier](nonEmptyObservable[VModifier](cls := "hans"))) *> IO.cede
+      _ <- myHandler.onNextIO(nonEmptyObservable[VMod](nonEmptyObservable[VMod](cls := "hans"))) *> IO.cede
       _  = element.innerHTML shouldBe """<div class="hans"></div>"""
     } yield succeed
   }
 
   it should "work for triple nested stream modifier" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
 
     val node = div(idAttr := "strings", div(myHandler))
 
@@ -1919,7 +1919,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _       = element.innerHTML shouldBe "<div></div>"
 
       _ <- myHandler.onNextIO(
-             nonEmptyObservable[VModifier](nonEmptyObservable[VModifier](nonEmptyObservable(cls := "hans"))),
+             nonEmptyObservable[VMod](nonEmptyObservable[VMod](nonEmptyObservable(cls := "hans"))),
            ) *> IO.cede
       _ = element.innerHTML shouldBe """<div class="hans"></div>"""
     } yield succeed
@@ -1927,7 +1927,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for multiple nested stream modifier" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
 
     val node = div(idAttr := "strings", div(myHandler))
 
@@ -1938,7 +1938,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _       = element.innerHTML shouldBe "<div></div>"
 
       _ <- myHandler.onNextIO(
-             nonEmptyObservable[VModifier](VModifier(nonEmptyObservable[VModifier]("a"), nonEmptyObservable(span("b")))),
+             nonEmptyObservable[VMod](VMod(nonEmptyObservable[VMod]("a"), nonEmptyObservable(span("b")))),
            ) *> IO.cede
       _ = element.innerHTML shouldBe """<div>a<span>b</span></div>"""
     } yield succeed
@@ -1946,7 +1946,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested attribute stream receiver" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
 
     val node = div(idAttr := "strings", div(myHandler))
 
@@ -1963,7 +1963,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "work for nested emitter" in {
 
-    val myHandler = Subject.replayLatest[VModifier]()
+    val myHandler = Subject.replayLatest[VMod]()
 
     val node = div(idAttr := "strings", div(idAttr := "click", myHandler))
 
@@ -1985,7 +1985,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ <- IO(sendEvent(document.getElementById("click"), "click")) *> IO.cede
       _  = clickCounter shouldBe 2
 
-      _ <- myHandler.onNextIO(VModifier.empty) *> IO.cede
+      _ <- myHandler.onNextIO(VMod.empty) *> IO.cede
       _  = element.innerHTML shouldBe """<div id="click"></div>"""
 
       _ <- IO(sendEvent(document.getElementById("click"), "click")) *> IO.cede
@@ -2003,7 +2003,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       div(
         cls := "first",
         myClasses.map { cls := _ },
-        Seq[VModifier](
+        Seq[VMod](
           cls <-- myClasses2,
         ),
       ),
@@ -2320,7 +2320,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = incCounter shouldBe 2
       _  = mapCounter shouldBe 2
 
-      _ <- modHandler.onNextIO(VModifier.empty) *> IO.cede
+      _ <- modHandler.onNextIO(VMod.empty) *> IO.cede
       _  = incCounter shouldBe 2
       _  = mapCounter shouldBe 2
 
@@ -2364,7 +2364,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         },
       )
 
-    val handler = Subject.behavior[VModifier](innerNode)
+    val handler = Subject.behavior[VMod](innerNode)
     val node = div(
       idAttr := "strings",
       handler,
@@ -2408,7 +2408,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _  = bCounter shouldBe 2
       _  = lastValue shouldBe "ahja"
 
-      _ <- handler.onNextIO(VModifier.empty) *> IO.cede
+      _ <- handler.onNextIO(VMod.empty) *> IO.cede
 
       _ <- aEvent.onNextIO("hmm?") *> IO.cede
       _  = aCounter shouldBe 3
@@ -2436,7 +2436,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       myString.map { myString =>
         b(idAttr := "bla").thunk("component")(myString) {
           renderFnCounter += 1
-          VModifier(
+          VMod(
             cls := "b",
             myString,
             onDomMount.doAction { mountCount += 1 },
@@ -2514,8 +2514,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       idAttr := "strings",
       myString.map { myString =>
         b(idAttr := "bla").thunk("component")(new Wrap(myString)) {
-          renderFnCounter    += 1
-          Seq[VModifier](cls := "b", myString)
+          renderFnCounter += 1
+          Seq[VMod](cls   := "b", myString)
         }
       },
       b("something else"),
@@ -2609,7 +2609,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       myThunk.map { i =>
         b.thunk("component")(i) {
           renderFnCounter += 1
-          VModifier(
+          VMod(
             i,
             myString.map { str =>
               if (str.isEmpty) span("nope")
@@ -2731,7 +2731,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             renderFnCounter += 1
             myString.map { str =>
               div(
-                if (str.isEmpty) div("empty") else p.thunk("inner")(str)(VModifier(str, myInner)),
+                if (str.isEmpty) div("empty") else p.thunk("inner")(str)(VMod(str, myInner)),
                 myInnerOther,
               )
             }
@@ -2948,11 +2948,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams (switchMap)" in {
-    val myString: Subject[String]        = Subject.replayLatest[String]()
-    val myId: Subject[String]            = Subject.replayLatest[String]()
-    val myInner: Subject[String]         = Subject.replayLatest[String]()
-    val myOther: Subject[VModifier]      = Subject.replayLatest[VModifier]()
-    val thunkContent: Subject[VModifier] = Subject.replayLatest[VModifier]()
+    val myString: Subject[String]   = Subject.replayLatest[String]()
+    val myId: Subject[String]       = Subject.replayLatest[String]()
+    val myInner: Subject[String]    = Subject.replayLatest[String]()
+    val myOther: Subject[VMod]      = Subject.replayLatest[VMod]()
+    val thunkContent: Subject[VMod] = Subject.replayLatest[VMod]()
 
     var renderFnCounter = 0
     var mounts          = List.empty[Int]
@@ -2963,7 +2963,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     def mountHooks = {
       val c = counter
       counter += 1
-      VModifier(
+      VMod(
         onDomMount.doAction { mounts :+= c },
         onDomPreUpdate.doAction { preupdates :+= c },
         onDomUpdate.doAction { updates :+= c },
@@ -2973,13 +2973,13 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VMod("empty", mountHooks)))
         else
           myInner
             .map[VNode](s => div(s, mountHooks))
             .prepend(b(idAttr <-- myId).thunk("component")(myString) {
               renderFnCounter += 1
-              VModifier(cls   := "b", myString, mountHooks, thunkContent)
+              VMod(cls        := "b", myString, mountHooks, thunkContent)
             })
       },
       myOther,
@@ -3122,11 +3122,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams (switchMap 2)" in {
-    val myString: Subject[String]        = Subject.replayLatest[String]()
-    val myId: Subject[String]            = Subject.replayLatest[String]()
-    val myInner: Subject[String]         = Subject.replayLatest[String]()
-    val myOther: Subject[VModifier]      = Subject.replayLatest[VModifier]()
-    val thunkContent: Subject[VModifier] = Subject.replayLatest[VModifier]()
+    val myString: Subject[String]   = Subject.replayLatest[String]()
+    val myId: Subject[String]       = Subject.replayLatest[String]()
+    val myInner: Subject[String]    = Subject.replayLatest[String]()
+    val myOther: Subject[VMod]      = Subject.replayLatest[VMod]()
+    val thunkContent: Subject[VMod] = Subject.replayLatest[VMod]()
 
     var renderFnCounter = 0
     var mounts          = List.empty[Int]
@@ -3137,7 +3137,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     def mountHooks = {
       val c = counter
       counter += 1
-      VModifier(
+      VMod(
         onDomMount.doAction { mounts :+= c },
         onDomPreUpdate.doAction { preupdates :+= c },
         onDomUpdate.doAction { updates :+= c },
@@ -3147,13 +3147,13 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.switchMap { myString =>
-        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") nonEmptyObservable(b.thunk("component")(myString)(VMod("empty", mountHooks)))
         else
           myInner
             .map[VNode](s => div(s, mountHooks))
             .prepend(b(idAttr <-- myId).thunk("component")(myString) {
               renderFnCounter += 1
-              VModifier(cls   := "b", myString, mountHooks, thunkContent)
+              VMod(cls        := "b", myString, mountHooks, thunkContent)
             })
       },
       myOther,
@@ -3296,11 +3296,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams" in {
-    val myString: Subject[String]        = Subject.replayLatest[String]()
-    val myId: Subject[String]            = Subject.replayLatest[String]()
-    val myInner: Subject[String]         = Subject.replayLatest[String]()
-    val myOther: Subject[VModifier]      = Subject.replayLatest[VModifier]()
-    val thunkContent: Subject[VModifier] = Subject.replayLatest[VModifier]()
+    val myString: Subject[String]   = Subject.replayLatest[String]()
+    val myId: Subject[String]       = Subject.replayLatest[String]()
+    val myInner: Subject[String]    = Subject.replayLatest[String]()
+    val myOther: Subject[VMod]      = Subject.replayLatest[VMod]()
+    val thunkContent: Subject[VMod] = Subject.replayLatest[VMod]()
 
     var renderFnCounter = 0
     var mounts          = List.empty[Int]
@@ -3311,7 +3311,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     def mountHooks = {
       val c = counter
       counter += 1
-      VModifier(
+      VMod(
         onDomMount.doAction { mounts :+= c },
         onDomPreUpdate.doAction { preupdates :+= c },
         onDomUpdate.doAction { updates :+= c },
@@ -3321,14 +3321,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       myString.map { myString =>
-        if (myString == "empty") VModifier(b.thunk("component")(myString)(VModifier("empty", mountHooks)))
+        if (myString == "empty") VMod(b.thunk("component")(myString)(VMod("empty", mountHooks)))
         else
-          VModifier(
+          VMod(
             myInner
               .map[VNode](s => div(s, mountHooks))
               .prepend(b(idAttr <-- myId).thunk("component")(myString) {
                 renderFnCounter += 1
-                VModifier(cls   := "b", myString, mountHooks, thunkContent)
+                VMod(cls        := "b", myString, mountHooks, thunkContent)
               }),
           )
       },
@@ -3594,8 +3594,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   "Custom Emitter builder" should "work with events" in {
     import scala.concurrent.duration._
 
-    val clickableView: EmitterBuilder[Boolean, VModifier] = EmitterBuilder[Boolean, VModifier] { sink =>
-      VModifier(
+    val clickableView: EmitterBuilder[Boolean, VMod] = EmitterBuilder[Boolean, VMod] { sink =>
+      VMod(
         display.flex,
         minWidth := "0px",
         onMouseDown.as(true) --> sink,
@@ -3631,11 +3631,11 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "work with events as combined emitterbuidler" in {
     import scala.concurrent.duration._
 
-    val clickableView: EmitterBuilder[Boolean, VModifier] = EmitterBuilder[Boolean, VModifier] { sink =>
-      VModifier(
+    val clickableView: EmitterBuilder[Boolean, VMod] = EmitterBuilder[Boolean, VMod] { sink =>
+      VMod(
         display.flex,
         minWidth := "0px",
-        Monoid[EmitterBuilder[Boolean, VModifier]].combine(onMouseDown.as(true), onMouseUp.as(false)) --> sink,
+        Monoid[EmitterBuilder[Boolean, VMod]].combine(onMouseDown.as(true), onMouseUp.as(false)) --> sink,
       )
     }
 
@@ -3879,7 +3879,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val modifier = Rx {
       liveCounter += 1
-      VModifier(s"${variable1()}. ${variable2()}")
+      VMod(s"${variable1()}. ${variable2()}")
     }
 
     val node = div(
@@ -3918,8 +3918,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       val content = modal.map(_.content)
 
       val size = modal.map(_.size match {
-        case Some(w) => VModifier(w)
-        case None    => VModifier.empty
+        case Some(w) => VMod(w)
+        case None    => VMod.empty
       })
 
       val node = div(
@@ -3960,9 +3960,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             val content = modal.map(_.content)
 
             val size = modal.map(_.size match {
-              case Some(w) => VModifier(width := s"${w}px")
-              // case None    => VModifier("was")
-              case None => VModifier.empty
+              case Some(w) => VMod(width := s"${w}px")
+              // case None    => VMod("was")
+              case None => VMod.empty
             })
 
             content.map(str => div(str, size))
@@ -3992,6 +3992,27 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ <- IO.cede
 
       _ = element.innerHTML shouldBe """<div style="">hallo2</div>"""
+    } yield succeed
+  }
+
+  it should "render types that have a `Render` and a `Show` implementation using `Render`" in {
+    case class Foo(bar: String)
+    object Foo {
+      implicit val renderFoo: Render[Foo] = (foo: Foo) => span(foo.bar)
+      implicit val showFoo: Show[Foo] = (foo: Foo) => foo.bar
+    }
+
+    val node = div(
+      idAttr := "test",
+      Foo("foo"),
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe """<span>foo</span>"""
     } yield succeed
   }
 }

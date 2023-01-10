@@ -11,10 +11,10 @@ import colibri.Observable
 import colibri.jsdom.EventObservable
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _]     = AttrBuilder[T, VModifier]
-  type Attribute[T]                 = AttrBuilder[T, VModifier]
-  type Property[T, _]               = AttrBuilder[T, VModifier]
-  type EventEmitter[E <: dom.Event] = EmitterBuilder[E, VModifier]
+  type ReflectedAttribute[T, _]     = AttrBuilder[T, VMod]
+  type Attribute[T]                 = AttrBuilder[T, VMod]
+  type Property[T, _]               = AttrBuilder[T, VMod]
+  type EventEmitter[E <: dom.Event] = EmitterBuilder[E, VMod]
   type HtmlTag[T]                   = VNode
   type SvgTag[T]                    = VNode
 }

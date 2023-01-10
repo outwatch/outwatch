@@ -1,12 +1,19 @@
 import com.raquo.domtypes.generic.keys
 
 package object outwatch extends definitions.ManagedHelpers {
-  @deprecated("Use VModifier instead", "")
-  type VDomModifier = VModifier
-  @deprecated("Use VModifier instead", "")
-  val VDomModifier = VModifier
-  @deprecated("Use StaticVModifier instead", "")
-  type StaticVDomModifier = StaticVModifier
+  @deprecated("Use VMod instead", "")
+  type VDomModifier = VMod
+  @deprecated("Use VMod instead", "")
+  val VDomModifier = VMod
+  @deprecated("Use StaticVMod instead", "")
+  type StaticVDomModifier = StaticVMod
+
+  @deprecated("Use VMod instead", "")
+  type VModifier = VMod
+  @deprecated("Use VMod instead", "")
+  val VModifier = VMod
+  @deprecated("Use StaticVMod instead", "")
+  type StaticVModifier = StaticVMod
 
   @deprecated("Use Outwatch instead", "")
   val OutWatch = Outwatch

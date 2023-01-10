@@ -120,11 +120,11 @@ private[outwatch] object SnabbdomOps {
       // in unsafeSubscribe and unsafeUnsubscribe callbacks. We unsafeSubscribe and unsafeUnsubscribe
       // based in dom events.
 
-      var proxy: VNodeProxy                                        = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]]     = js.undefined
-      var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
-      var isActive: Boolean                                        = true
-      var isMounted: Boolean                                       = false
+      var proxy: VNodeProxy                                   = null
+      var nextModifiers: js.UndefOr[js.Array[StaticVMod]]     = js.undefined
+      var _prependModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined
+      var isActive: Boolean                                   = true
+      var isMounted: Boolean                                  = false
 
       val asyncCancelable = Cancelable.variable()
 
@@ -172,7 +172,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      _prependModifiers = js.Array[StaticVModifier](
+      _prependModifiers = js.Array[StaticVMod](
         InsertHook { p =>
           VNodeProxy.copyInto(p, proxy)
           isMounted = true
@@ -222,7 +222,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      val prependModifiers = js.Array[StaticVModifier](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
+      val prependModifiers = js.Array[StaticVMod](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
 
       // create the proxy from the modifiers
       val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)
