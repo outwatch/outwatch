@@ -38,7 +38,7 @@ trait RenderLowPrio1 {
   
   @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
   @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
-    @inline def render(source: F[Unit]): VModifier = VModifier.managedSubscribe(source)
+    @inline def render(source: F[Unit]): VMod = VMod.managedSubscribe(source)
   }
 }
 
