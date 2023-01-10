@@ -20,7 +20,7 @@ trait RenderLowPrio1 {
   @inline implicit def ShowRenderAs[T: Show]: Render[T] = new ShowRenderAsClass[T]
 
   @inline private class ShowRenderAsClass[T: Show] extends Render[T] {
-    @inline def render(value: T): VModifier = StringVNode(Show[T].show(value))
+    @inline def render(value: T): VMod = StringVNode(Show[T].show(value))
   }
 
   @inline implicit def UndefinedModifierAs[T: Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
