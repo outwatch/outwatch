@@ -32,7 +32,7 @@ object AttrBuilder {
     def assign(value: T): A = create(value)
   }
 
-  @inline def ofModifier[T](create: T => VModifier): AttrBuilder[T, VModifier] = apply[T, VModifier](create)
+  @inline def ofModifier[T](create: T => VMod): AttrBuilder[T, VMod] = apply[T, VMod](create)
 
   @inline def ofNode[T](create: T => VNode): AttrBuilder[T, VNode] = apply[T, VNode](create)
 
@@ -98,10 +98,10 @@ object AttrBuilder {
     def assign(value: T): AccumStyle = AccumStyle(name, value.toString, reducer)
   }
 
-  implicit class VModifierOps[T](private val self: AttrBuilder[T, VModifier]) extends AnyVal {
+  implicit class VModOps[T](private val self: AttrBuilder[T, VMod]) extends AnyVal {
     @deprecated("Use observable operators instead", "")
-    def toggle(value: T): AttrBuilder[Boolean, VModifier] = AttrBuilder.ofModifier { enabled =>
-      if (enabled) self.assign(value) else VModifier.empty
+    def toggle(value: T): AttrBuilder[Boolean, VMod] = AttrBuilder.ofModifier { enabled =>
+      if (enabled) self.assign(value) else VMod.empty
     }
   }
 }
