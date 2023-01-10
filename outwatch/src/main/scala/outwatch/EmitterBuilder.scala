@@ -23,13 +23,13 @@ import scala.concurrent.duration.FiniteDuration
 
 // We keep the same result, the registration for the click event, but map the emitted
 // click events to integers. You can also map the result type:
-// onClick.mapResult(emitter => VModifier(emitter, ???)): EmitterBuilder[Int, VModifier]
+// onClick.mapResult(emitter => VMod(emitter, ???)): EmitterBuilder[Int, VMod]
 //
-// Now you have conbined the emitter with another VModifier, so the combined modifier
+// Now you have conbined the emitter with another VMod, so the combined modifier
 // will later be rendered instead of only the emitter. Then you can describe the action
 // that should be done when an event triggers:
 //
-// onClick.map(_ => 1).doAction(doSomething(_)): VModifier
+// onClick.map(_ => 1).doAction(doSomething(_)): VMod
 //
 // The EmitterBuilder result must be a SubscriptionOwner to handle the subscription
 // from the emitterbuilder.
@@ -376,14 +376,14 @@ object EmitterBuilder {
   ): EmitterBuilder[E, R] = new Stream[E, R](Observable.lift(source), Monoid[R].empty)
 
   // shortcuts for modifiers with less type ascriptions
-  @inline def empty: EmitterBuilder[Nothing, VModifier] = emptyOf[VModifier]
-  @inline def ofModifier[E](create: Observer[E] => VModifier): EmitterBuilder[E, VModifier] =
-    apply[E, VModifier](create)
+  @inline def empty: EmitterBuilder[Nothing, VMod] = emptyOf[VMod]
+  @inline def ofModifier[E](create: Observer[E] => VMod): EmitterBuilder[E, VMod] =
+    apply[E, VMod](create)
   @inline def ofNode[E](create: Observer[E] => VNode): EmitterBuilder[E, VNode] = apply[E, VNode](create)
-  @inline def fromSource[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VModifier] =
-    fromSourceOf[F, E, VModifier](source)
+  @inline def fromSource[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VMod] =
+    fromSourceOf[F, E, VMod](source)
 
-  def fromEvent[E <: dom.Event](eventType: String): EmitterBuilder[E, VModifier] = apply[E, VModifier] { sink =>
+  def fromEvent[E <: dom.Event](eventType: String): EmitterBuilder[E, VMod] = apply[E, VMod] { sink =>
     Emitter(eventType, e => sink.unsafeOnNext(e.asInstanceOf[E]))
   }
 
@@ -406,7 +406,7 @@ object EmitterBuilder {
   ): EmitterBuilder[T, R] = new Custom[T, R](sink => Monoid[R].combineAll(builders.map(_.forwardTo(sink))))
 
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")
-  @inline def apply[E <: dom.Event](eventType: String): EmitterBuilder[E, VModifier] = fromEvent[E](eventType)
+  @inline def apply[E <: dom.Event](eventType: String): EmitterBuilder[E, VMod] = fromEvent[E](eventType)
   @deprecated("Use EmitterBuilder[E, O] instead", "0.11.0")
   @inline def custom[E, R: SubscriptionOwner: SyncEmbed](create: Observer[E] => R): EmitterBuilder[E, R] =
     apply[E, R](create)
@@ -449,10 +449,10 @@ object EmitterBuilder {
       }
   }
 
-  @inline implicit final class VModifierEventOperations(
-    val builder: EmitterBuilder[VModifier, VModifier],
+  @inline implicit final class VModEventOperations(
+    val builder: EmitterBuilder[VMod, VMod],
   ) extends AnyVal {
-    @inline def render: VModifier = builder.handled(VModifier(_))
+    @inline def render: VMod = builder.handled(VMod(_))
   }
 
   @inline implicit class EmitterOperations[O, R: Monoid: SubscriptionOwner: SyncEmbed](

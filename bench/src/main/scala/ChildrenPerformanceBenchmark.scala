@@ -139,7 +139,7 @@ object ChildrenPerformance {
       handler.map { i =>
         (0 to i).map { j =>
           input.thunk("handler")(j)(
-            VModifier(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3),
+            VMod(tpe := "text", dsl.defaultValue := j.toString, styleAttr := "background:black;", handler3),
           )
         }
       //        input(tpe := "text", dsl.defaultValue := i.toString, styleAttr := "background:black;")
@@ -147,7 +147,7 @@ object ChildrenPerformance {
       handler2.map { i =>
         (0 to i).map { j =>
           div.thunk("handler2")(j)(
-            VModifier(
+            VMod(
               div("hans", cls := j.toString, onClick doAction (), handler3),
               p(p),
               handler3,

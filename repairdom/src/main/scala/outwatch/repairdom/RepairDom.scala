@@ -20,7 +20,7 @@ object RepairDom {
     elem.asInstanceOf[js.Dynamic].__dirty.asInstanceOf[js.UndefOr[Int]] == js.defined(1)
   }
 
-  val patchHook: outwatch.VModifier = {
+  val patchHook: outwatch.VMod = {
     new outwatch.PrePatchHook((beforeProxy, _) => if (beforeProxy.elm.exists(isDirty)) repairNode(beforeProxy))
   }
 
