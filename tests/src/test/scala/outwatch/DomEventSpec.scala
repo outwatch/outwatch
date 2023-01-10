@@ -566,7 +566,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "correctly be compiled with currentTarget" in {
 
     IO(Subject.replayLatest[String]()).flatMap { stringHandler =>
-      def modifier: VModifier = onDrag.value --> stringHandler
+      def modifier: VMod = onDrag.value --> stringHandler
 
       IO(Subject.replayLatest[String]()).flatMap { _ =>
         for {

@@ -3,7 +3,6 @@ package outwatch.definitions
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import outwatch._
-import outwatch.helpers._
 import snabbdom.VNodeProxy
 import colibri.{Cancelable, Observer, Source}
 import com.raquo.domtypes.jsdom.defs.tags._
@@ -16,33 +15,33 @@ import scala.scalajs.js
 trait OutwatchAttributes {
 
   private final def proxyElementEmitter(
-    f: js.Function1[VNodeProxy, Unit] => VModifier,
-  ): Observer[dom.Element] => VModifier =
+    f: js.Function1[VNodeProxy, Unit] => VMod,
+  ): Observer[dom.Element] => VMod =
     obs => f(p => p.elm.foreach(obs.unsafeOnNext(_)))
   private final def proxyElementFirstEmitter(
-    f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VModifier,
-  ): Observer[dom.Element] => VModifier =
+    f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VMod,
+  ): Observer[dom.Element] => VMod =
     obs => f((o, _) => o.elm.foreach(obs.unsafeOnNext(_)))
   private final def proxyElementPairEmitter(
-    f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VModifier,
-  ): Observer[(dom.Element, dom.Element)] => VModifier =
+    f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VMod,
+  ): Observer[(dom.Element, dom.Element)] => VMod =
     obs => f((o, p) => o.elm.foreach(oe => p.elm.foreach(pe => obs.unsafeOnNext((oe, pe)))))
   private final def proxyElementPairOptionEmitter(
-    f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VModifier,
-  ): Observer[(Option[dom.Element], Option[dom.Element])] => VModifier =
+    f: js.Function2[VNodeProxy, VNodeProxy, Unit] => VMod,
+  ): Observer[(Option[dom.Element], Option[dom.Element])] => VMod =
     obs => f((o, p) => obs.unsafeOnNext((o.elm.toOption, p.elm.toOption)))
 
   /** Outwatch component life cycle hooks. */
-  final lazy val onDomMount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomMount: EmitterBuilder[dom.Element, VMod] = EmitterBuilder(
     proxyElementEmitter(DomMountHook.apply),
   )
-  final lazy val onDomUnmount: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomUnmount: EmitterBuilder[dom.Element, VMod] = EmitterBuilder(
     proxyElementEmitter(DomUnmountHook.apply),
   )
-  final lazy val onDomPreUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomPreUpdate: EmitterBuilder[dom.Element, VMod] = EmitterBuilder(
     proxyElementFirstEmitter(DomPreUpdateHook.apply),
   )
-  final lazy val onDomUpdate: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onDomUpdate: EmitterBuilder[dom.Element, VMod] = EmitterBuilder(
     proxyElementFirstEmitter(DomUpdateHook.apply),
   )
 
@@ -51,16 +50,16 @@ trait OutwatchAttributes {
     * This hook is invoked once the DOM element for a vnode has been inserted into the document and the rest of the
     * patch cycle is done.
     */
-  final lazy val onSnabbdomInsert: EmitterBuilder.Sync[Element, VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomInsert: EmitterBuilder[Element, VMod] = EmitterBuilder(
     proxyElementEmitter(InsertHook.apply),
   )
 
   /** Lifecycle hook for component prepatch. */
-  final lazy val onSnabbdomPrePatch: EmitterBuilder.Sync[(Option[dom.Element], Option[dom.Element]), VModifier] =
+  final lazy val onSnabbdomPrePatch: EmitterBuilder[(Option[dom.Element], Option[dom.Element]), VMod] =
     EmitterBuilder(proxyElementPairOptionEmitter(PrePatchHook.apply))
 
   /** Lifecycle hook for component updates. */
-  final lazy val onSnabbdomUpdate: EmitterBuilder.Sync[(dom.Element, dom.Element), VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomUpdate: EmitterBuilder[(dom.Element, dom.Element), VMod] = EmitterBuilder(
     proxyElementPairEmitter(UpdateHook.apply),
   )
 
@@ -68,7 +67,7 @@ trait OutwatchAttributes {
     *
     * This hook is invoked every time a node has been patched against an older instance of itself.
     */
-  final lazy val onSnabbdomPostPatch: EmitterBuilder.Sync[(dom.Element, dom.Element), VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomPostPatch: EmitterBuilder[(dom.Element, dom.Element), VMod] = EmitterBuilder(
     proxyElementPairEmitter(PostPatchHook.apply),
   )
 
@@ -77,7 +76,7 @@ trait OutwatchAttributes {
     * This hook is invoked on a virtual node when its DOM element is removed from the DOM or if its parent is being
     * removed from the DOM.
     */
-  final lazy val onSnabbdomDestroy: EmitterBuilder.Sync[dom.Element, VModifier] = EmitterBuilder(
+  final lazy val onSnabbdomDestroy: EmitterBuilder[dom.Element, VMod] = EmitterBuilder(
     proxyElementEmitter(DestroyHook.apply),
   )
 
@@ -182,25 +181,26 @@ trait SvgAttributeDeprecations { self: SvgAttrs =>
 }
 
 trait AttributeHelpers { self: Attributes =>
-  final val innerHTML: PropBuilder[UnsafeHTML] = VModifier.prop[UnsafeHTML]("innerHTML", _.html)
+  final val innerHTML: AttrBuilder.ToProp[UnsafeHTML] = VMod.prop[UnsafeHTML]("innerHTML", _.html)
 
   @inline final def `class` = className
 
   @inline final def `for` = forId
 
-  @inline final def data = new DynamicAttrBuilder[Any]("data")
-  @inline final def aria = new DynamicAttrBuilder[Any]("aria")
+  @inline final def data = new AttrBuilder.ToDynamicAttr[Any]("data")
+  @inline final def aria = new AttrBuilder.ToDynamicAttr[Any]("aria")
 
-  @deprecated("use VModifier.attr instead", "0.11.0")
+  @deprecated("use VMod.attr instead", "0.11.0")
   @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString: Attr.Value) =
-    new BasicAttrBuilder[T](key, convert)
-  @deprecated("use VModifier.prop instead", "0.11.0")
-  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) = new PropBuilder[T](key, convert)
-  @deprecated("use VModifier.style instead", "0.11.0")
-  @inline final def style[T](key: String, dummy: Unit = ()) = new BasicStyleBuilder[T](key)
+    new AttrBuilder.ToBasicAttr[T](key, convert)
+  @deprecated("use VMod.prop instead", "0.11.0")
+  @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) =
+    new AttrBuilder.ToProp[T](key, convert)
+  @deprecated("use VMod.style instead", "0.11.0")
+  @inline final def style[T](key: String, dummy: Unit = ()) = new AttrBuilder.ToBasicStyle[T](key)
 
   @deprecated("use EmitterBuilder.fromSource instead", "0.11.0")
-  @inline final def emitter[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VModifier] =
+  @inline final def emitter[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VMod] =
     EmitterBuilder.fromSource(source)
 
   @deprecated("use colibri.Cancelable instead", "0.11.0")
@@ -209,10 +209,10 @@ trait AttributeHelpers { self: Attributes =>
 
 trait TagHelpers {
   @deprecated("use VNode.html instead", "0.11.0")
-  @inline final def htmlTag(name: String): HtmlVNode = VNode.html(name)
+  @inline final def htmlTag(name: String): VNode = VNode.html(name)
 
   @deprecated("use VNode.svg instead", "0.11.0")
-  @inline final def svgTag(name: String): SvgVNode = VNode.svg(name)
+  @inline final def svgTag(name: String): VNode = VNode.svg(name)
 }
 
 trait ManagedHelpers {
@@ -222,21 +222,21 @@ trait ManagedHelpers {
   import cats.effect.Sync
   import cats.implicits._
 
-  @deprecated("use VModifier.managed(subscription) instead", "1.0.0")
-  @inline final def managed[F[_]: Sync: RunEffect, T: CanCancel](subscription: F[T]): VModifier =
-    VModifier.managed(subscription)
-  @deprecated("use VModifier.managed(sub1), VModifier.managed(sub2), ... instead", "1.0.0")
+  @deprecated("use VMod.managed(subscription) instead", "1.0.0")
+  @inline final def managed[F[_]: Sync: RunEffect, T: CanCancel](subscription: F[T]): VMod =
+    VMod.managed(subscription)
+  @deprecated("use VMod.managed(sub1), VMod.managed(sub2), ... instead", "1.0.0")
   final def managed[F[_]: Sync: RunEffect: Applicative, T: CanCancel: Monoid](
     sub1: F[T],
     sub2: F[T],
     subscriptions: F[T]*,
-  ): VModifier = {
+  ): VMod = {
     val composite = (sub1 :: sub2 :: subscriptions.toList).sequence.map[T](subs => Monoid[T].combineAll(subs))
     managed(composite)
   }
-  @deprecated("use VModifier.managedEval(subscription) instead", "1.0.0")
-  @inline final def managedFunction[T: CanCancel](subscription: () => T): VModifier =
-    VModifier.managedFunction(subscription)
-  @deprecated("use VModifier.managedElement instead", "1.0.0")
-  final val managedElement = VModifier.managedElement
+  @deprecated("use VMod.managedEval(subscription) instead", "1.0.0")
+  @inline final def managedFunction[T: CanCancel](subscription: () => T): VMod =
+    VMod.managedFunction(subscription)
+  @deprecated("use VMod.managedElement instead", "1.0.0")
+  final val managedElement = VMod.managedElement
 }

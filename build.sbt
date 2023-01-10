@@ -36,13 +36,13 @@ inThisBuild(
 )
 
 val jsdomVersion   = "13.2.0"
-val colibriVersion = "0.7.1"
+val colibriVersion = "0.7.8"
 
 val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
 lazy val commonSettings = Seq(
   useYarn := true,
   libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.14" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.15" % Test,
   ),
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 
@@ -93,7 +93,7 @@ lazy val outwatch = project
   .settings(
     name := "outwatch",
     libraryDependencies ++= Seq(
-      "com.raquo"            %%% "domtypes"      % "0.15.1",
+      "com.raquo"            %%% "domtypes"      % "0.15.3",
       "com.github.cornerman" %%% "colibri"       % colibriVersion,
       "com.github.cornerman" %%% "colibri-jsdom" % colibriVersion,
     ),

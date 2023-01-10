@@ -16,7 +16,7 @@ class ImplicitsSpec extends AnyFlatSpec with Matchers {
 
     val node = observableApplied.syncLatestSyncIO.unsafeRunSync()
 
-    node.toList.flatMap(_.asInstanceOf[BasicVNode].modifiers.toList) shouldBe List(VModifier("hallo"), cls := "nee")
+    node.toList.flatMap(_.asInstanceOf[BasicVNode].modifiers.toList) shouldBe List(VMod("hallo"), cls := "nee")
   }
 
   it should "apply on VNode nested" in {
@@ -26,6 +26,6 @@ class ImplicitsSpec extends AnyFlatSpec with Matchers {
 
     val node = observableApplied.syncLatestSyncIO.unsafeRunSync().flatten
 
-    node.toList.flatMap(_.asInstanceOf[BasicVNode].modifiers.toList) shouldBe List(VModifier("hallo"), cls := "nee")
+    node.toList.flatMap(_.asInstanceOf[BasicVNode].modifiers.toList) shouldBe List(VMod("hallo"), cls := "nee")
   }
 }

@@ -120,18 +120,15 @@ private[outwatch] object SnabbdomOps {
       // in unsafeSubscribe and unsafeUnsubscribe callbacks. We unsafeSubscribe and unsafeUnsubscribe
       // based in dom events.
 
-      var proxy: VNodeProxy                                        = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]]     = js.undefined
-      var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
-      var isActive: Boolean                                        = false
-
-      var patchIsRunning = false
+      var proxy: VNodeProxy                                   = null
+      var nextModifiers: js.UndefOr[js.Array[StaticVMod]]     = js.undefined
+      var _prependModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined
+      var isActive: Boolean                                   = true
+      var isMounted: Boolean                                  = false
 
       val asyncCancelable = Cancelable.variable()
 
-      def doPatch(): Unit = {
-        patchIsRunning = true
-
+      def doPatch(): Unit = if (isMounted) {
         // update the current proxy with the new state
         val separatedModifiers = SeparatedModifiers.from(
           nativeModifiers.modifiers,
@@ -146,8 +143,7 @@ private[outwatch] object SnabbdomOps {
         // call the snabbdom patch method to update the dom
         OutwatchTracing.patchSubject.unsafeOnNext(newProxy)
         patch(proxy, newProxy)
-
-        patchIsRunning = false
+        ()
       }
 
       def cancelAsyncPatch(): Unit = {
@@ -163,37 +159,35 @@ private[outwatch] object SnabbdomOps {
         }
       }
 
-      def start(): Unit = {
+      def start(): Unit = if (!isActive) {
+        isActive = true
         cancelAsyncPatch()
         nativeModifiers.subscribables.foreach(_.unsafeSubscribe())
       }
 
-      def stop(): Unit = {
+      def stop(): Unit = if (isActive) {
+        isActive = false
         cancelAsyncPatch()
         nativeModifiers.subscribables.foreach(_.unsafeUnsubscribe())
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      _prependModifiers = js.Array[StaticVModifier](
+      _prependModifiers = js.Array[StaticVMod](
         InsertHook { p =>
           VNodeProxy.copyInto(p, proxy)
-          isActive = true
+          isMounted = true
           start()
         },
         PostPatchHook { (o, p) =>
           VNodeProxy.copyInto(p, proxy)
           proxy._update.foreach(_(proxy))
           if (!NativeModifiers.equalsVNodeIds(o._id, p._id)) {
-            isActive = true
+            isMounted = true
             start()
-          } else if (isActive) {
-            start()
-          } else {
-            stop()
           }
         },
         DomUnmountHook { _ =>
-          isActive = false
+          isMounted = false
           stop()
         },
       )
@@ -228,7 +222,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      val prependModifiers = js.Array[StaticVModifier](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
+      val prependModifiers = js.Array[StaticVMod](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
 
       // create the proxy from the modifiers
       val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)
