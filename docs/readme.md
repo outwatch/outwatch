@@ -6,9 +6,15 @@ We hope you enjoy this documentation. If you find something that can be improved
 ## Getting started
 
 ### Start with a template
-For a quick start, install `java`, `sbt`, `nodejs` and `yarn` and use the following g8 template:
-```bash
-sbt new outwatch/seed.g8
+For a quick start, install `java`, `sbt`, `nodejs`, `yarn` and `github-cli` (optionally) and use the following github template:
+
+```shell
+# create new repo on github based on this template
+gh repo create my-first-outwatch-project --template outwatch/example --public --clone
+
+# if you want to just get the template locally without creating a github repo:
+git clone --depth 1 https://github.com/outwatch/example my-first-outwatch-project
+
 ```
 
 In your newly created project folder, run:
