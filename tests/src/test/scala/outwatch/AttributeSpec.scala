@@ -293,7 +293,7 @@ class AttributeSpec extends JSDomSpec {
       button(
         onClick := { _ =>
           triggered += 1
-        }
+        },
       ),
       RenderConfig.ignoreError,
     )
