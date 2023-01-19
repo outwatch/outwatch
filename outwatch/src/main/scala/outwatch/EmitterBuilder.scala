@@ -529,7 +529,7 @@ object EmitterBuilder {
     sourceEmitter: EmitterBuilder[O, R],
     latestEmitter: EmitterBuilder[T, R],
   ): EmitterBuilder[(O, T), SyncIO[R]] =
-    new Custom[(O, T), SyncIO[R]]({ sink =>
+    new Custom[(O, T), SyncIO[R]] { sink =>
       import scala.scalajs.js
 
       SyncIO {
@@ -548,7 +548,7 @@ object EmitterBuilder {
           ),
         )
       }
-    })
+    }
 
   @noinline private def forwardToInTransform[F[_]: Sink, I, O, O2 >: O, R: SubscriptionOwner: SyncEmbed](
     base: EmitterBuilder[I, R],
