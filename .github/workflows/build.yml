@@ -38,7 +38,7 @@ jobs:
         run: sbt \
           ++${{matrix.scalaVersion}} \
           compile Test/compile \
-          coverage test coverageReport \
+          ${{ startsWith(matrix.scalaVersion, '2.13.') && 'coverage test coverageReport' || 'test' }} \
           scalafmtCheck scalafmtSbtCheck \
           docs/mdoc bench/compile
 
