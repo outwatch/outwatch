@@ -35,7 +35,19 @@ jobs:
           key: ${{ runner.os }}-scala-target-${{ github.sha }}
 
       - name: Test
-        run: sbt ++${{matrix.scalaVersion}} compile Test/compile scalafmtCheck scalafmtSbtCheck test docs/mdoc bench/compile
+        run: sbt \
+          ++${{matrix.scalaVersion}} \
+          compile Test/compile \
+          ${{ startsWith(matrix.scalaVersion, '2.13.') && 'coverage test coverageReport' || 'test' }} \
+          scalafmtCheck scalafmtSbtCheck \
+          docs/mdoc bench/compile
+
+      - uses: codecov/codecov-action@v3
+        if: startsWith(matrix.scalaVersion, '2.13.')
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
