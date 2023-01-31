@@ -6,9 +6,15 @@ We hope you enjoy this documentation. If you find something that can be improved
 ## Getting started
 
 ### Start with a template
-For a quick start, install `java`, `sbt`, `nodejs` and `yarn` and use the following g8 template:
-```bash
-sbt new outwatch/seed.g8
+For a quick start, install `java`, `sbt`, `nodejs`, `yarn` and `github-cli` (optionally) and use the following github template:
+
+```shell
+# create new repo on github based on this template
+gh repo create my-first-outwatch-project --template outwatch/example --public --clone
+
+# if you want to just get the template locally without creating a github repo:
+git clone --depth 1 https://github.com/outwatch/example my-first-outwatch-project
+
 ```
 
 In your newly created project folder, run:
@@ -509,7 +515,7 @@ import scala.concurrent.duration._
 
 val duration = 1.second
 val durationMillis = duration.toMillis.toInt
-val zioDuration = zio.duration.Duration.fromScala(1.second)
+val zioDuration = zio.Duration.fromScala(1.second)
 
 val component = {
   div(
@@ -527,7 +533,7 @@ val component = {
     ),
     div(
       "Stream (zio): ",
-      zio.stream.Stream.tick(zioDuration).as(1).scan[Int](0)(_ + _),
+      zio.stream.ZStream.tick(zioDuration).as(1).scan[Int](0)(_ + _),
     )
   )
 }
@@ -621,7 +627,7 @@ import cats.effect.IO
 // import cats.effect.unsafe.Runtime.default
 
 import colibri.ext.zio._
-import zio.Task
+import zio.ZIO
 // import zio.Runtime.default
 
 div(
@@ -629,7 +635,7 @@ div(
     // doSomething
     "result from IO"
   },
-  Task {
+  ZIO.attempt {
     // doSomething
     "result from ZIO"
   }
