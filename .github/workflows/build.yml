@@ -42,6 +42,12 @@ jobs:
           scalafmtCheck scalafmtSbtCheck \
           docs/mdoc bench/compile
 
+      - uses: codecov/codecov-action@v3
+        if: startsWith(matrix.scalaVersion, '2.13.')
+        with:
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
+
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
       #   uses: mxschmitt/action-tmate@v3
