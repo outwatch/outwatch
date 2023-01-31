@@ -284,4 +284,20 @@ class AttributeSpec extends JSDomSpec {
       "d"    -> "M 100 100 L 300 100 L 200 300 z",
     )
   }
+
+  "emitterbuilder" should "should work as attribute function" in {
+    import outwatch.dsl.svg._
+
+    var triggered = 0
+    val node = SnabbdomOps.toSnabbdom(
+      button(
+        onClick := { _ =>
+          triggered += 1
+        },
+      ),
+      RenderConfig.ignoreError,
+    )
+
+    node.data.get.on.get.isEmpty shouldBe false
+  }
 }

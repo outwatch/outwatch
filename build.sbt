@@ -4,7 +4,7 @@ inThisBuild(
   Seq(
     organization       := "io.github.outwatch",
     scalaVersion       := crossScalaVersions.value.last,
-    crossScalaVersions := Seq("2.13.10", "3.2.0"),
+    crossScalaVersions := Seq("2.13.10", "3.2.1"),
     licenses           += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
     homepage           := Some(url("https://outwatch.github.io/")),
     scmInfo := Some(
@@ -53,15 +53,6 @@ lazy val commonSettings = Seq(
                              )),
 )
 
-lazy val outwatchUtil = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatch)
-  .in(file("util"))
-  .settings(commonSettings)
-  .settings(
-    name := "outwatch-util",
-  )
-
 lazy val outwatchRepairDom = project
   .in(file("repairdom"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -101,7 +92,7 @@ lazy val outwatch = project
 
 lazy val tests = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(outwatchUtil, outwatchRepairDom)
+  .dependsOn(outwatchRepairDom)
   .settings(commonSettings)
   .settings(
     publish / skip         := true,
@@ -175,4 +166,4 @@ lazy val root = project
     name           := "outwatch-root",
     publish / skip := true,
   )
-  .aggregate(outwatch, outwatchSnabbdom, outwatchUtil, outwatchRepairDom, tests, bench)
+  .aggregate(outwatch, outwatchSnabbdom, outwatchRepairDom, tests, bench)
