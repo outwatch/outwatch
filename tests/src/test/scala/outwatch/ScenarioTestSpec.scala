@@ -6,7 +6,6 @@ import org.scalatest.Assertion
 import outwatch.dsl._
 import org.scalajs.dom.EventInit
 import colibri._
-import outwatch.util._
 import cats.implicits._
 
 class ScenarioTestSpec extends JSDomAsyncSpec {
