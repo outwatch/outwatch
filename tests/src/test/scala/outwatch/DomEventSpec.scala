@@ -5,7 +5,6 @@ import org.scalajs.dom.{html, _}
 import outwatch.dsl._
 import org.scalajs.dom.EventInit
 import colibri._
-import outwatch.util.LocalStorage
 
 import scala.scalajs.js
 
@@ -566,7 +565,7 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "correctly be compiled with currentTarget" in {
 
     IO(Subject.replayLatest[String]()).flatMap { stringHandler =>
-      def modifier: VModifier = onDrag.value --> stringHandler
+      def modifier: VMod = onDrag.value --> stringHandler
 
       IO(Subject.replayLatest[String]()).flatMap { _ =>
         for {
@@ -597,68 +596,6 @@ class DomEventSpec extends JSDomAsyncSpec {
     Outwatch.renderInto[IO]("#app", node).map(_ => document.getElementById("strings").innerHTML shouldBe "ab")
   }
 
-  "LocalStorage" should "have handler with proper events" in {
-    var option: Option[Option[String]] = None
-
-    LocalStorage.handler[IO]("hans").map { handler =>
-      handler.unsafeForeach { o => option = Some(o) }
-
-      option shouldBe Some(None)
-
-      handler.unsafeOnNext(Some("gisela"))
-      option shouldBe Some(Some("gisela"))
-
-      handler.unsafeOnNext(None)
-      option shouldBe Some(None)
-
-    }
-  }
-
-  it should "have handlerWithEventsOnly with proper events" in {
-    var option: Option[Option[String]] = None
-
-    LocalStorage.handlerWithEventsOnly[IO]("hans").map { handler =>
-      handler.unsafeForeach { o => option = Some(o) }
-
-      option shouldBe Some(None)
-
-      handler.unsafeOnNext(Some("gisela"))
-      option shouldBe Some(None)
-
-      handler.unsafeOnNext(None)
-      option shouldBe Some(None)
-
-    }
-  }
-
-  it should "have handlerWithEventsOnly with initial value" in {
-    import org.scalajs.dom.window.localStorage
-    localStorage.setItem("hans", "wurst")
-
-    var option: Option[Option[String]] = None
-
-    LocalStorage.handlerWithEventsOnly[IO]("hans").map { handler =>
-      handler.unsafeForeach { o => option = Some(o) }
-      option shouldBe Some(Some("wurst"))
-    }
-  }
-
-  it should "have handlerWithoutEvents with proper events" in {
-    var option: Option[Option[String]] = None
-
-    LocalStorage.handlerWithoutEvents[IO]("hans").map { handler =>
-      handler.unsafeForeach { o => option = Some(o) }
-
-      option shouldBe Some(None)
-
-      handler.unsafeOnNext(Some("gisela"))
-      option shouldBe Some(Some("gisela"))
-
-      handler.unsafeOnNext(None)
-      option shouldBe Some(None)
-
-    }
-  }
 
   "Emitterbuilder" should "preventDefault (compile only)" in {
 
