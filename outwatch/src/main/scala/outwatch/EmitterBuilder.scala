@@ -116,7 +116,9 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
 
   @inline final def tap(f: O => Unit): EmitterBuilder[O, R] = transformSink(_.tap(f))
 
-  @inline final def tapEffect[F[_]: RunEffect: Functor](f: O => F[Unit]): EmitterBuilder[O, R] = transform(_.tapEffect(f))
+  @inline final def tapEffect[F[_]: RunEffect: Functor](f: O => F[Unit]): EmitterBuilder[O, R] = transform(
+    _.tapEffect(f),
+  )
 
   @inline final def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = transformSink(
     _.contracollect(f),
