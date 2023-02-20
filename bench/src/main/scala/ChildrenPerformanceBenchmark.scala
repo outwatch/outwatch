@@ -1,15 +1,25 @@
 package outwatch
 
 import cats.effect.SyncIO
-
 import outwatch._
 import outwatch.dsl._
 import colibri._
-
 import org.scalajs.dom.document
+
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import bench._
+
+import scala.annotation.nowarn
+
+@nowarn("msg=dead code")
+@js.native
+@JSGlobal
+object global extends js.Object {
+  var window: js.Any    = js.native
+  var document: js.Any  = js.native
+  var navigator: js.Any = js.native
+}
 
 @js.native
 @JSImport("jsdom", "JSDOM")
@@ -51,10 +61,9 @@ object ChildrenPerformance {
 
     val jdom = new JsDom("").asInstanceOf[js.Dynamic]
 
-    import js.Dynamic.{global => g}
-    g.global.window = jdom.window
-    g.global.document = jdom.window.document
-    g.global.navigator = js.Dynamic.literal(userAgent = "node.js");
+    global.window = jdom.window
+    global.document = jdom.window.document
+    global.navigator = js.Dynamic.literal(userAgent = "node.js");
     ()
   }
 
