@@ -139,6 +139,8 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def as[T](value: T): EmitterBuilder[T, R]        = map(_ => value)
   @inline final def asEval[T](value: => T): EmitterBuilder[T, R] = map(_ => value)
 
+  @inline final def void: EmitterBuilder[Unit, R] = as(())
+
   @deprecated("Use .as(value) instead", "")
   @inline final def use[T](value: T): EmitterBuilder[T, R] = as(value)
   @deprecated("Use .asEval(value) instead", "")
