@@ -39,6 +39,7 @@ private[outwatch] final class SeparatedModifiers {
 private[outwatch] object SeparatedModifiers {
   def from(
     modifiers: MutableNestedArray[StaticVMod],
+    config: RenderConfig,
     prependModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined,
     appendModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined,
   ): SeparatedModifiers = {
@@ -100,7 +101,11 @@ private[outwatch] object SeparatedModifiers {
         attr.fold {
           attrs(a.title) = a.value
         } { (attr: Attr.Value) =>
-          attrs(a.title) = a.accum(attr, a.value)
+          if (config.accumAttrHook.isDefined) {
+            attrs(a.title) = config.accumAttrHook.get(a, attr)
+          } else {
+            attrs(a.title) = a.accum(attr, a.value)
+          }
         }
         ()
       case p: Prop =>
