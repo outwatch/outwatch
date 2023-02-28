@@ -39,6 +39,25 @@ val jsdomVersion   = "13.2.0"
 val colibriVersion = "0.7.8"
 
 val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
+
+def seleniumJSEnv(jsEnv: String) = {
+  val options = jsEnv match {
+    case "chrome" =>
+      val options = new org.openqa.selenium.chrome.ChromeOptions()
+      options.setHeadless(true)
+      options
+    case "firefox" =>
+      val options = new org.openqa.selenium.firefox.FirefoxOptions()
+      options.setHeadless(true)
+      options
+  }
+
+  new org.scalajs.jsenv.selenium.SeleniumJSEnv(options)
+}
+
+lazy val useJSEnv = settingKey[String]("Browser for running Scala.js tests")
+Global / useJSEnv := "chrome"
+
 lazy val commonSettings = Seq(
   useYarn := true,
   libraryDependencies ++= Seq(
@@ -101,6 +120,7 @@ lazy val tests = project
     libraryDependencies ++= Seq(
       "com.github.cornerman" %%% "colibri-reactive" % colibriVersion % Test,
     ),
+    Test / jsEnv := seleniumJSEnv(useJSEnv.value),
   )
 
 lazy val bench = project
@@ -118,6 +138,9 @@ lazy val bench = project
     Compile / npmDependencies ++= Seq(
       "jsdom" -> jsdomVersion,
     ),
+    Test / jsEnv := seleniumJSEnv(useJSEnv.value),
+    Test / requireJsDomEnv := true,
+    installJsdom/version := jsdomVersion,
   )
 
 lazy val jsdocs = project
@@ -125,7 +148,7 @@ lazy val jsdocs = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(outwatch)
   .settings(
-    webpackBundlingMode             := BundlingMode.LibraryOnly(),
+    /* webpackBundlingMode             := BundlingMode.LibraryOnly(), */
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
       "org.scala-js"         %%% "scalajs-dom"          % "2.3.0",
@@ -154,9 +177,10 @@ lazy val docs = project
     mdocJSLibraries := (jsdocs / Compile / fullOptJS / webpack).value,
     mdocVariables := Map(
       /* TODO: "SCALAJSVERSION" -> scalaJSVersions.current, */
-      "VERSION"       -> version.value,
-      "REPOURL"       -> "https://github.com/outwatch/outwatch/blob/master",
-      "js-mount-node" -> "docPreview",
+      "VERSION"         -> version.value,
+      "VERSION_COLIBRI" -> colibriVersion,
+      "REPOURL"         -> "https://github.com/outwatch/outwatch/blob/master",
+      "js-mount-node"   -> "docPreview",
     ),
   )
 
