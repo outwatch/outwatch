@@ -10,6 +10,7 @@ jobs:
     strategy:
       matrix:
         scalaVersion: ["2.13.10", "3.2.1"]
+        browser: ["chrome", "firefox"]
     runs-on: ubuntu-20.04
     env:
       JAVA_OPTS: -Xms4096M -Xmx4096M -Xss6M
@@ -41,6 +42,7 @@ jobs:
       - name: Test
         run: sbt \
           ++${{matrix.scalaVersion}} \
+          set Global / useJSEnv := "${{ matrix.browser }}" \
           compile Test/compile \
           ${{ startsWith(matrix.scalaVersion, '2.13.') && 'coverage test coverageReport' || 'test' }} \
           scalafmtCheck scalafmtSbtCheck \
