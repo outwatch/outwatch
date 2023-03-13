@@ -20,6 +20,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: coursier/cache-action@v6
       - uses: olafurpg/setup-scala@v12
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
 
       - uses: actions/cache@v2
         name: Cache scalajs-bundler node_modules
@@ -75,6 +79,10 @@ jobs:
           java-version: 8
       - name: Cache SBT
         uses: coursier/cache-action@v6
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
 
       - uses: actions/cache@v2
         name: Cache node_modules
