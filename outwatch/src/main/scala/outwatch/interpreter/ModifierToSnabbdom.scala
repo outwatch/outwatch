@@ -2,7 +2,7 @@ package outwatch.interpreter
 
 import org.scalajs.dom
 import outwatch._
-import outwatch.helpers.MutableNestedArray
+import outwatch.helpers.{MutableNestedArray, OutwatchTracing}
 import outwatch.helpers.NativeHelpers._
 import colibri._
 import snabbdom.{DataObject, Hooks, VNodeProxy}
@@ -331,7 +331,9 @@ private[outwatch] object NativeModifiers {
         case m: SyncEffectModifier  => append(subscribables, modifiers, m.unsafeRun(), inStream)
         case m: ChildCommandsModifier =>
           append(subscribables, modifiers, ChildCommand.stream(m.commands, config), inStream)
-        case m: ErrorModifier => append(subscribables, modifiers, config.errorModifier(m.error), inStream)
+        case m: ErrorModifier =>
+          OutwatchTracing.errorSubject.unsafeOnNext(m.error)
+          append(subscribables, modifiers, config.errorModifier(m.error), inStream)
       }
     }
 
