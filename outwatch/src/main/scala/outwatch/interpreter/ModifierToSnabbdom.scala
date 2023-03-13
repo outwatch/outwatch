@@ -101,11 +101,7 @@ private[outwatch] object SeparatedModifiers {
         attr.fold {
           attrs(a.title) = a.value
         } { (attr: Attr.Value) =>
-          if (config.accumAttrHook.isDefined) {
-            attrs(a.title) = config.accumAttrHook.get(a, attr)
-          } else {
-            attrs(a.title) = a.accum(attr, a.value)
-          }
+          attrs(a.title) = config.accumAttrHook(a, attr)
         }
         ()
       case p: Prop =>

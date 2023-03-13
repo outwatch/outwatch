@@ -8,7 +8,7 @@ import outwatch.interpreter.SnabbdomOps
 
 case class RenderConfig(
   errorModifier: Throwable => VMod,
-  accumAttrHook: Option[(AccumAttr, Attr.Value) => Attr.Value] = None,
+  accumAttrHook: (AccumAttr, Attr.Value) => Attr.Value = (a, attr) => a.accum(attr, a.value),
 )
 object RenderConfig {
   import dsl._
