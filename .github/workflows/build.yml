@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        scalaVersion: ["2.13.10", "3.2.0"]
+        scalaVersion: ["2.13.10", "3.2.1"]
     runs-on: ubuntu-20.04
     env:
       JAVA_OPTS: -Xms4096M -Xmx4096M -Xss6M
@@ -20,6 +20,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: coursier/cache-action@v6
       - uses: olafurpg/setup-scala@v12
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
 
       - uses: actions/cache@v2
         name: Cache scalajs-bundler node_modules
@@ -35,7 +39,19 @@ jobs:
           key: ${{ runner.os }}-scala-target-${{ github.sha }}
 
       - name: Test
-        run: sbt ++${{matrix.scalaVersion}} compile Test/compile scalafmtCheck scalafmtSbtCheck test docs/mdoc bench/compile
+        run: sbt \
+          ++${{matrix.scalaVersion}} \
+          compile Test/compile \
+          ${{ startsWith(matrix.scalaVersion, '2.13.') && 'coverage test coverageReport' || 'test' }} \
+          scalafmtCheck scalafmtSbtCheck \
+          docs/mdoc bench/compile
+
+      - uses: codecov/codecov-action@v3
+        if: startsWith(matrix.scalaVersion, '2.13.')
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
 
       # - name: Debug over SSH (tmate)
       #   # if: ${{ failure() }}
@@ -63,6 +79,10 @@ jobs:
           java-version: 8
       - name: Cache SBT
         uses: coursier/cache-action@v6
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
 
       - uses: actions/cache@v2
         name: Cache node_modules
