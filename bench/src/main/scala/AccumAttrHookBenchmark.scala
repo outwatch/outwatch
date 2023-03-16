@@ -55,7 +55,7 @@ object AccumAttrHookBenchmark {
             ),
             RenderConfig(
               _ => VMod.empty,
-              Some((attr, other) => if (attr.title == "class") s"${attr.value}  $other" else s"${attr.value} $other"),
+              (attr, other) => if (attr.title == "class") s"${attr.value}  $other" else s"${attr.value} $other",
             ),
           )
         },
