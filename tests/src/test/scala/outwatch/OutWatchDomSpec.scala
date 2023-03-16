@@ -74,7 +74,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val propertiesArr = new MutableNestedArray[StaticVMod]
     properties.foreach(propertiesArr.push(_))
-    val seps = SeparatedModifiers.from(propertiesArr)
+    val seps = SeparatedModifiers.from(propertiesArr, RenderConfig.default)
     import seps._
 
     initHook.isDefined shouldBe true
@@ -106,7 +106,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 1
@@ -134,7 +134,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 1
@@ -156,7 +156,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       div(),
     )
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 3
@@ -179,7 +179,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 3
@@ -207,7 +207,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.keys.toList shouldBe List("click", "input", "keyup")
@@ -303,7 +303,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     proxies.get.length shouldBe 4
@@ -333,7 +333,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     proxies.get.length shouldBe 4
@@ -361,7 +361,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     proxies.get.length shouldBe 1

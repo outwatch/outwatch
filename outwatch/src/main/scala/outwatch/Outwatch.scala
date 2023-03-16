@@ -3,7 +3,6 @@ package outwatch
 import cats.effect.Sync
 import cats.implicits._
 import org.scalajs.dom
-import org.scalajs.dom._
 import outwatch.interpreter.SnabbdomOps
 
 case class RenderConfig(
@@ -55,14 +54,14 @@ object Outwatch {
   def renderInto[F[_]: Sync](querySelector: String, vNode: VNode): F[Unit] =
     renderInto(querySelector, vNode, RenderConfig.default)
   def renderInto[F[_]: Sync](querySelector: String, vNode: VNode, config: RenderConfig): F[Unit] = for {
-    elem <- Sync[F].delay(document.querySelector(querySelector))
+    elem <- Sync[F].delay(dom.document.querySelector(querySelector))
     _    <- renderInto(elem, vNode, config)
   } yield ()
 
   def renderReplace[F[_]: Sync](querySelector: String, vNode: VNode): F[Unit] =
     renderReplace(querySelector, vNode, RenderConfig.default)
   def renderReplace[F[_]: Sync](querySelector: String, vNode: VNode, config: RenderConfig): F[Unit] = for {
-    elem <- Sync[F].delay(document.querySelector(querySelector))
+    elem <- Sync[F].delay(dom.document.querySelector(querySelector))
     _    <- renderReplace(elem, vNode, config)
   } yield ()
 }
