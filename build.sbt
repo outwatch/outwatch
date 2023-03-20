@@ -84,7 +84,7 @@ lazy val outwatch = project
   .settings(
     name := "outwatch",
     libraryDependencies ++= Seq(
-      "com.raquo"            %%% "domtypes"      % "0.15.3",
+      "com.raquo"            %%% "domtypes"      % "17.0.0",
       "com.github.cornerman" %%% "colibri"       % colibriVersion,
       "com.github.cornerman" %%% "colibri-jsdom" % colibriVersion,
     ),
