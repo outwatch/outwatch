@@ -42,7 +42,7 @@ val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists
 lazy val commonSettings = Seq(
   useYarn := true,
   libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.15" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.16" % Test,
   ),
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 
