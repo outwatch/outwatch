@@ -25,14 +25,14 @@ import scala.concurrent.duration.FiniteDuration
 // click events to integers. You can also map the result type:
 // onClick.mapResult(emitter => VMod(emitter, ???)): EmitterBuilder[Int, VMod]
 //
-// Now you have conbined the emitter with another VMod, so the combined modifier
+// Now you have combined the emitter with another VMod, so the combined modifier
 // will later be rendered instead of only the emitter. Then you can describe the action
 // that should be done when an event triggers:
 //
 // onClick.map(_ => 1).doAction(doSomething(_)): VMod
 //
 // The EmitterBuilder result must be a SubscriptionOwner to handle the subscription
-// from the emitterbuilder.
+// from the EmitterBuilder.
 //
 
 trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
