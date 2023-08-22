@@ -1,8 +1,8 @@
 package outwatch
 
-import cats.Show
 import colibri._
 import colibri.effect._
+import cats.Show
 import cats.data.{Chain, NonEmptyChain, NonEmptyList, NonEmptySeq, NonEmptyVector}
 import cats.effect.{IO, Resource, Sync, SyncIO}
 
@@ -16,12 +16,6 @@ trait Render[-T] {
 
 trait RenderLowPrio1 {
   import RenderOps._
-
-  @inline implicit def ShowRenderAs[T: Show]: Render[T] = new ShowRenderAsClass[T]
-
-  @inline private class ShowRenderAsClass[T: Show] extends Render[T] {
-    @inline def render(value: T): VMod = StringVNode(Show[T].show(value))
-  }
 
   @inline implicit def UndefinedModifierAs[T: Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
   @inline private class UndefinedRenderAsClass[T: Render] extends Render[js.UndefOr[T]] {
@@ -127,6 +121,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
 
 object Render extends RenderLowPrio {
   @inline def apply[T](implicit render: Render[T]): Render[T] = render
+
+  @inline def show[T: Show]: Render[T] = new ShowRender[T]
+  @inline private class ShowRender[T: Show] extends Render[T] {
+    @inline def render(value: T): VMod = StringVNode(Show[T].show(value))
+  }
 
   import RenderOps._
 
