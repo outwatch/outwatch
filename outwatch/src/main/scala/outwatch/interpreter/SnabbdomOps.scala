@@ -114,7 +114,7 @@ private[outwatch] object SnabbdomOps {
 
     if (nativeModifiers.subscribables.forall(_.isEmpty())) {
       // if no dynamic/subscribable content, then just create a simple proxy
-      createProxy(SeparatedModifiers.from(nativeModifiers.modifiers), node.nodeType, vNodeId, vNodeNS)
+      createProxy(SeparatedModifiers.from(nativeModifiers.modifiers, config), node.nodeType, vNodeId, vNodeNS)
     } else if (nativeModifiers.hasStream) {
       // if there is streamable content, we update the initial proxy with
       // in unsafeSubscribe and unsafeUnsubscribe callbacks. We unsafeSubscribe and unsafeUnsubscribe
@@ -132,6 +132,7 @@ private[outwatch] object SnabbdomOps {
         // update the current proxy with the new state
         val separatedModifiers = SeparatedModifiers.from(
           nativeModifiers.modifiers,
+          config,
           prependModifiers = _prependModifiers,
           appendModifiers = nextModifiers,
         )
@@ -194,7 +195,8 @@ private[outwatch] object SnabbdomOps {
 
       // create initial proxy, we want to apply the initial state of the
       // receivers to the node
-      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers)
+      val separatedModifiers =
+        SeparatedModifiers.from(nativeModifiers.modifiers, config, prependModifiers = _prependModifiers)
       nextModifiers = separatedModifiers.nextModifiers
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
@@ -225,7 +227,8 @@ private[outwatch] object SnabbdomOps {
       val prependModifiers = js.Array[StaticVMod](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
 
       // create the proxy from the modifiers
-      val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)
+      val separatedModifiers =
+        SeparatedModifiers.from(nativeModifiers.modifiers, config, prependModifiers = prependModifiers)
       createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
     }
   }
