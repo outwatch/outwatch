@@ -25,15 +25,6 @@ trait RenderLowPrio1 {
   implicit object UndefinedModifier extends Render[js.UndefOr[VMod]] {
     @inline def render(value: js.UndefOr[VMod]): VMod = value.getOrElse(VMod.empty)
   }
-
-  implicit object ObservableUnitRender extends Render[Observable[Unit]] {
-    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
-  }
-
-  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
-  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
-    @inline def render(source: F[Unit]): VMod = VMod.managedSubscribe(source)
-  }
 }
 
 trait RenderLowPrio0 extends RenderLowPrio1 {
@@ -222,6 +213,15 @@ object Render extends RenderLowPrio {
   @inline implicit def SourceRender[F[_]: Source]: Render[F[VMod]] = new SourceRenderClass[F]
   @inline private class SourceRenderClass[F[_]: Source] extends Render[F[VMod]] {
     @inline def render(source: F[VMod]) = sourceToModifier(source)
+  }
+
+  implicit object ObservableUnitRender extends Render[Observable[Unit]] {
+    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
+  }
+
+  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
+  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
+    @inline def render(source: F[Unit]): VMod = VMod.managedSubscribe(source)
   }
 
   @inline implicit def AttrBuilderRender: Render[AttrBuilder[Boolean, VMod]] = new AttrBuilderRender
