@@ -39,6 +39,28 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
   @inline private class EffectRenderAsClass[F[_]: RunEffect, T: Render] extends Render[F[T]] {
     @inline def render(effect: F[T]) = effectToModifierRender(effect)
   }
+
+  implicit object SyncIOUnitRender extends Render[SyncIO[Unit]] {
+    @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit object IOUnitRender extends Render[IO[Unit]] {
+    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  @inline implicit def EffectUnitRender[F[_]: RunEffect]: Render[F[Unit]] = new EffectUnitRenderClass[F]
+  @inline private class EffectUnitRenderClass[F[_]: RunEffect] extends Render[F[Unit]] {
+    @inline def render(source: F[Unit]) = VMod.managedSubscribe(Observable.fromEffect(source))
+  }
+
+  implicit object ObservableUnitRender extends Render[Observable[Unit]] {
+    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
+  }
+
+  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
+  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
+    @inline def render(source: F[Unit]) = VMod.managedSubscribe(source)
+  }
 }
 
 trait RenderLowPrio extends RenderLowPrio0 {
@@ -90,6 +112,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
     @inline def render(value: Option[T]): VMod = optionToModifierRender(value)
   }
 
+  @inline implicit def SyncEffectRender[F[_]: RunSyncEffect]: Render[F[VMod]] = new SyncEffectRenderClass[F]
+  @inline private class SyncEffectRenderClass[F[_]: RunSyncEffect] extends Render[F[VMod]] {
+    @inline def render(effect: F[VMod]) = syncToModifier(effect)
+  }
+
   @inline implicit def SyncEffectRenderAs[F[_]: RunSyncEffect, T: Render]: Render[F[T]] =
     new SyncEffectRenderAsClass[F, T]
   @inline private class SyncEffectRenderAsClass[F[_]: RunSyncEffect, T: Render] extends Render[F[T]] {
@@ -111,6 +138,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
   @inline implicit def FutureRenderAs[T: Render]: Render[Future[T]] = new FutureRenderAsClass[T]
   @inline private class FutureRenderAsClass[T: Render] extends Render[Future[T]] {
     @inline def render(future: Future[T]) = futureToModifierRender(future)
+  }
+
+  @inline implicit def SourceRender[F[_]: Source]: Render[F[VMod]] = new SourceRenderClass[F]
+  @inline private class SourceRenderClass[F[_]: Source] extends Render[F[VMod]] {
+    @inline def render(source: F[VMod]) = sourceToModifier(source)
   }
 
   @inline implicit def SourceRenderAs[F[_]: Source, T: Render]: Render[F[T]] = new SourceRenderAsClass[F, T]
@@ -193,13 +225,8 @@ object Render extends RenderLowPrio {
     @inline def render(future: SyncIO[VMod]) = syncToModifier(future)
   }
 
-  @inline implicit def SyncEffectRender[F[_]: RunSyncEffect]: Render[F[VMod]] = new SyncEffectRenderClass[F]
-  @inline private class SyncEffectRenderClass[F[_]: RunSyncEffect] extends Render[F[VMod]] {
-    @inline def render(effect: F[VMod]) = syncToModifier(effect)
-  }
-
   implicit object IORender extends Render[IO[VMod]] {
-    @inline def render(future: IO[VMod]) = effectToModifier(future)
+    @inline def render(effect: IO[VMod]) = effectToModifier(effect)
   }
 
   implicit object FutureRender extends Render[Future[VMod]] {
@@ -208,20 +235,6 @@ object Render extends RenderLowPrio {
 
   implicit object ObservableRender extends Render[Observable[VMod]] {
     @inline def render(source: Observable[VMod]) = sourceToModifier(source)
-  }
-
-  @inline implicit def SourceRender[F[_]: Source]: Render[F[VMod]] = new SourceRenderClass[F]
-  @inline private class SourceRenderClass[F[_]: Source] extends Render[F[VMod]] {
-    @inline def render(source: F[VMod]) = sourceToModifier(source)
-  }
-
-  implicit object ObservableUnitRender extends Render[Observable[Unit]] {
-    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
-  }
-
-  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
-  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
-    @inline def render(source: F[Unit]): VMod = VMod.managedSubscribe(source)
   }
 
   @inline implicit def AttrBuilderRender: Render[AttrBuilder[Boolean, VMod]] = new AttrBuilderRender
