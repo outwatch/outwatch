@@ -3960,4 +3960,54 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe """<span>foo</span>"""
     } yield succeed
   }
+
+  "Component" should "render unit observables and effects" in {
+    import scala.concurrent.duration._
+
+    case class MyObservable[T](observable: Observable[T])
+    object MyObservable {
+      implicit object source extends Source[MyObservable] {
+        def unsafeSubscribe[A](source: MyObservable[A])(sink: Observer[A]): Cancelable =
+          source.observable.unsafeSubscribe(sink)
+      }
+    }
+
+    var obsCounter = 0
+    val obs = Observable.unit.tapSubscribe { () =>
+      obsCounter += 1
+      Cancelable { () =>
+        obsCounter -= 1
+      }
+    }
+
+    val subject = Subject.behavior[Boolean](true)
+
+    val node = div(
+      idAttr := "test",
+      subject.map {
+        case true =>
+          VMod(
+            "hallo",
+            obs,
+            MyObservable(obs),
+            obs.headIO,
+          )
+        case false =>
+          VMod.empty
+      },
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe "hallo"
+
+      _ <- subject.onNextIO(false)
+      _ <- IO.sleep(1.seconds)
+
+      _ = element.innerHTML shouldBe ""
+    } yield succeed
+  }
 }
