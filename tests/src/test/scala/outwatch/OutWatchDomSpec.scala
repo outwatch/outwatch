@@ -3676,6 +3676,46 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
+  it should "configure modifier with different RenderConfig" in {
+
+    val outerRenderConfig = RenderConfig(
+      error => div(s"outer: $error")
+    )
+
+    val innerRenderConfig = RenderConfig(
+      error => div(s"inner: $error")
+    )
+
+    case class MyException(value: String) extends Throwable {
+      override def toString() = value
+    }
+
+    val innerException = MyException("inner")
+    val outerException = MyException("outer")
+
+    val node = div(
+      idAttr := "strings",
+      VMod.raiseError(outerException),
+      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig)
+    )
+
+    var errors = List.empty[Throwable]
+    val cancelable = OutwatchTracing.error.unsafeForeach { throwable =>
+      errors = throwable :: errors
+    }
+
+    for {
+      _      <- Outwatch.renderInto[IO]("#app", node, outerRenderConfig)
+      element = document.getElementById("strings")
+
+      _ = errors shouldBe List(outerException, innerException).reverse
+
+      _ = element.innerHTML shouldBe """<div>outer: outer</div><div>inner: inner</div>"""
+
+      _ = cancelable.unsafeCancel()
+    } yield succeed
+  }
+
   "Events while patching" should "fire for the correct dom node" in {
 
     val otherDiv       = Subject.replayLatest[VNode]()
