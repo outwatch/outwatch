@@ -4,7 +4,7 @@ inThisBuild(
   Seq(
     organization       := "io.github.outwatch",
     scalaVersion       := crossScalaVersions.value.last,
-    crossScalaVersions := Seq("2.13.10", "3.2.2"),
+    crossScalaVersions := Seq("2.13.12", "3.3.1"),
     licenses           += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
     homepage           := Some(url("https://outwatch.github.io/")),
     scmInfo := Some(
@@ -69,7 +69,7 @@ lazy val outwatchSnabbdom = project
   .settings(
     name := "outwatch-snabbdom",
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.6.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.7.0",
     ),
     Compile / npmDependencies ++= Seq(
       "snabbdom" -> "github:outwatch/snabbdom.git#semver:0.7.5",
@@ -128,7 +128,7 @@ lazy val jsdocs = project
     webpackBundlingMode             := BundlingMode.LibraryOnly(),
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
-      "org.scala-js"         %%% "scalajs-dom"          % "2.6.0",
+      "org.scala-js"         %%% "scalajs-dom"          % "2.7.0",
       "com.github.cornerman" %%% "colibri-airstream"    % colibriVersion,
       "com.github.cornerman" %%% "colibri-zio"          % colibriVersion,
       "com.github.cornerman" %%% "colibri-fs2"          % colibriVersion,
