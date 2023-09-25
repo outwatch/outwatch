@@ -3,7 +3,6 @@ package outwatch
 import cats.{Monoid, Show}
 import cats.implicits._
 import cats.effect.{IO, SyncIO}
-import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element, Event}
 import outwatch.helpers._
 import outwatch.dsl._
@@ -3962,8 +3961,6 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   "Component" should "render unit observables and effects" in {
-    import scala.concurrent.duration._
-
     case class MyObservable[T](observable: Observable[T])
     object MyObservable {
       implicit object source extends Source[MyObservable] {
