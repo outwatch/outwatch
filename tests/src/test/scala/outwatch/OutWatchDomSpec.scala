@@ -3,7 +3,6 @@ package outwatch
 import cats.{Monoid, Show}
 import cats.implicits._
 import cats.effect.{IO, SyncIO}
-import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element, Event}
 import outwatch.helpers._
 import outwatch.dsl._
@@ -3676,6 +3675,46 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
+  it should "configure modifier with different RenderConfig" in {
+
+    val outerRenderConfig = RenderConfig(
+      error => div(s"outer: $error")
+    )
+
+    val innerRenderConfig = RenderConfig(
+      error => div(s"inner: $error")
+    )
+
+    case class MyException(value: String) extends Throwable {
+      override def toString() = value
+    }
+
+    val innerException = MyException("inner")
+    val outerException = MyException("outer")
+
+    val node = div(
+      idAttr := "strings",
+      VMod.raiseError(outerException),
+      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig)
+    )
+
+    var errors = List.empty[Throwable]
+    val cancelable = OutwatchTracing.error.unsafeForeach { throwable =>
+      errors = throwable :: errors
+    }
+
+    for {
+      _      <- Outwatch.renderInto[IO]("#app", node, outerRenderConfig)
+      element = document.getElementById("strings")
+
+      _ = errors shouldBe List(outerException, innerException).reverse
+
+      _ = element.innerHTML shouldBe """<div>outer: outer</div><div>inner: inner</div>"""
+
+      _ = cancelable.unsafeCancel()
+    } yield succeed
+  }
+
   "Events while patching" should "fire for the correct dom node" in {
 
     val otherDiv       = Subject.replayLatest[VNode]()
@@ -3962,8 +4001,6 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   "Component" should "render unit observables and effects" in {
-    import scala.concurrent.duration._
-
     case class MyObservable[T](observable: Observable[T])
     object MyObservable {
       implicit object source extends Source[MyObservable] {
@@ -3972,11 +4009,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       }
     }
 
-    var obsCounter = 0
+    var obsSubscribes   = 0
+    var obsUnsubscribes = 0
     val obs = Observable.unit.tapSubscribe { () =>
-      obsCounter += 1
+      obsSubscribes += 1
       Cancelable { () =>
-        obsCounter -= 1
+        obsUnsubscribes += 1
       }
     }
 
@@ -3999,15 +4037,22 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     for {
       _ <- Outwatch.renderInto[IO]("#app", node)
+      _ <- IO.cede
 
       element <- IO(document.getElementById("test"))
 
       _ = element.innerHTML shouldBe "hallo"
 
+      _ = obsSubscribes shouldBe 3
+      _ = obsUnsubscribes shouldBe 1
+
       _ <- subject.onNextIO(false)
-      _ <- IO.sleep(1.seconds)
+      _ <- IO.cede
 
       _ = element.innerHTML shouldBe ""
+
+      _ = obsSubscribes shouldBe 3
+      _ = obsUnsubscribes shouldBe 3
     } yield succeed
   }
 }
