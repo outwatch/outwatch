@@ -1,5 +1,8 @@
 package outwatch
 
+import colibri.{Cancelable, Observable}
+import cats.effect.{unsafe, IO}
+
 import colibri._
 import colibri.effect._
 import cats.Show
@@ -25,6 +28,22 @@ trait RenderLowPrio1 {
   implicit object UndefinedModifier extends Render[js.UndefOr[VMod]] {
     @inline def render(value: js.UndefOr[VMod]): VMod = value.getOrElse(VMod.empty)
   }
+
+  implicit object SyncIOUnitRender extends Render[SyncIO[Unit]] {
+    @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit object IOUnitRender extends Render[IO[Unit]] {
+    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit object SyncIORender extends Render[SyncIO[VMod]] {
+    @inline def render(future: SyncIO[VMod]) = syncToModifier(future)
+  }
+
+  implicit object IORender extends Render[IO[VMod]] {
+    @inline def render(effect: IO[VMod]) = effectToModifier(effect)
+  }
 }
 
 trait RenderLowPrio0 extends RenderLowPrio1 {
@@ -40,11 +59,9 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
     @inline def render(effect: F[T]) = effectToModifierRender(effect)
   }
 
-  implicit object SyncIOUnitRender extends Render[SyncIO[Unit]] {
-    @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
-  }
-
-  implicit object IOUnitRender extends Render[IO[Unit]] {
+  @inline implicit def IOUnitRenderIORuntime(implicit ioRuntime: unsafe.IORuntime): Render[IO[Unit]] =
+    new IOUnitRenderIORuntimeClass
+  @inline private class IOUnitRenderIORuntimeClass(implicit ioRuntime: unsafe.IORuntime) extends Render[IO[Unit]] {
     @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
   }
 
@@ -221,11 +238,9 @@ object Render extends RenderLowPrio {
     @inline def render(value: Boolean): VMod = StringVNode(value.toString)
   }
 
-  implicit object SyncIORender extends Render[SyncIO[VMod]] {
-    @inline def render(future: SyncIO[VMod]) = syncToModifier(future)
-  }
-
-  implicit object IORender extends Render[IO[VMod]] {
+  @inline implicit def IORenderIORuntime(implicit ioRuntime: unsafe.IORuntime): Render[IO[VMod]] =
+    new IORenderIORuntimeClass
+  @inline private class IORenderIORuntimeClass(implicit ioRuntime: unsafe.IORuntime) extends Render[IO[VMod]] {
     @inline def render(effect: IO[VMod]) = effectToModifier(effect)
   }
 

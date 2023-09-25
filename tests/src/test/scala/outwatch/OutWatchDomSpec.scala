@@ -3972,11 +3972,12 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       }
     }
 
-    var obsCounter = 0
+    var obsSubscribes   = 0
+    var obsUnsubscribes = 0
     val obs = Observable.unit.tapSubscribe { () =>
-      obsCounter += 1
+      obsSubscribes += 1
       Cancelable { () =>
-        obsCounter -= 1
+        obsUnsubscribes += 1
       }
     }
 
@@ -3999,15 +4000,22 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     for {
       _ <- Outwatch.renderInto[IO]("#app", node)
+      _ <- IO.cede
 
       element <- IO(document.getElementById("test"))
 
       _ = element.innerHTML shouldBe "hallo"
 
+      _ = obsSubscribes shouldBe 3
+      _ = obsUnsubscribes shouldBe 1
+
       _ <- subject.onNextIO(false)
-      _ <- IO.sleep(1.seconds)
+      _ <- IO.cede
 
       _ = element.innerHTML shouldBe ""
+
+      _ = obsSubscribes shouldBe 3
+      _ = obsUnsubscribes shouldBe 3
     } yield succeed
   }
 }
