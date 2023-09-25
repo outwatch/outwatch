@@ -111,6 +111,11 @@ object VMod {
   @inline def composite(modifiers: Iterable[VMod]): VMod = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError[T](error: Throwable): VMod      = ErrorModifier(error)
 
+  @inline def catchError[T](modifier: VMod)(recover: Throwable => VMod): VMod =
+    configured(modifier)(_.copy(errorModifier = recover))
+  @inline def configured[T](modifier: VMod)(configure: RenderConfig => RenderConfig): VMod =
+    ConfiguredModifier(modifier, configure)
+
   @deprecated("Use VMod.when(condition)(...) instead", "")
   @inline def ifTrue(condition: Boolean): ModifierBooleanOps = when(condition)
   @deprecated("Use VMod.whenNot(condition)(...) instead", "")
@@ -192,6 +197,8 @@ final case class CancelableModifier(subscription: () => Cancelable)             
 final case class SyncEffectModifier(unsafeRun: () => VMod)                      extends VMod
 final case class ErrorModifier(error: Throwable)                                extends VMod
 final case class StringVNode(text: String)                                      extends VMod
+
+final case class ConfiguredModifier(modifier: VMod, configure: RenderConfig => RenderConfig) extends VMod
 
 sealed trait VNode extends VMod {
   def apply(args: VMod*): VNode
