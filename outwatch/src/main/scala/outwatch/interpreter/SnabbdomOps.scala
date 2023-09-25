@@ -143,8 +143,7 @@ private[outwatch] object SnabbdomOps {
 
         // call the snabbdom patch method to update the dom
         OutwatchTracing.patchSubject.unsafeOnNext(newProxy)
-        patch(proxy, newProxy)
-        ()
+        patch(proxy, newProxy): Unit
       }
 
       def cancelAsyncPatch(): Unit = {

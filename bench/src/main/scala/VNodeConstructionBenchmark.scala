@@ -11,8 +11,7 @@ object VNodeConstructionBenchmark {
   def main(@annotation.unused args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
-    bench.util.runComparison(vnodes, List(1), 60.seconds)
-    ()
+    bench.util.runComparison(vnodes, List(1), 60.seconds): Unit
   }
 
   val vnodes = Comparison(

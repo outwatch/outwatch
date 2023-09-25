@@ -96,7 +96,7 @@ object RepairDom {
             proxyStyles
               .raw(name)
               .fold[Unit] {
-                elem.style.removeProperty(name); ()
+                elem.style.removeProperty(name): Unit
               } { value =>
                 elem.style.setProperty(name, value.asInstanceOf[String])
               }
@@ -153,7 +153,7 @@ object RepairDom {
 
     def removeAllDomChildren(parentNode: Element) = {
       while (parentNode.firstChild != null) {
-        parentNode.removeChild(parentNode.firstChild)
+        parentNode.removeChild(parentNode.firstChild): Unit
       }
     }
 
@@ -180,7 +180,7 @@ object RepairDom {
       var i                = childProxies.length
       val domChildrenCount = parentNode.childNodes.length
       while (i < domChildrenCount) {
-        parentNode.removeChild(parentNode.childNodes(i))
+        parentNode.removeChild(parentNode.childNodes(i)): Unit
         i += 1
       }
     }
