@@ -20,15 +20,6 @@ trait Render[-T] {
 trait RenderLowPrio1 {
   import RenderOps._
 
-  @inline implicit def UndefinedModifierAs[T: Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
-  @inline private class UndefinedRenderAsClass[T: Render] extends Render[js.UndefOr[T]] {
-    @inline def render(value: js.UndefOr[T]) = undefinedToModifierRender(value)
-  }
-
-  implicit object UndefinedModifier extends Render[js.UndefOr[VMod]] {
-    @inline def render(value: js.UndefOr[VMod]): VMod = value.getOrElse(VMod.empty)
-  }
-
   implicit object SyncIOUnitRender extends Render[SyncIO[Unit]] {
     @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
   }
