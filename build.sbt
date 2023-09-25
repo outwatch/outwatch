@@ -4,7 +4,7 @@ inThisBuild(
   Seq(
     organization       := "io.github.outwatch",
     scalaVersion       := crossScalaVersions.value.last,
-    crossScalaVersions := Seq("2.13.10", "3.3.1"),
+    crossScalaVersions := Seq("2.13.12", "3.3.1"),
     licenses           += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
     homepage           := Some(url("https://outwatch.github.io/")),
     scmInfo := Some(
