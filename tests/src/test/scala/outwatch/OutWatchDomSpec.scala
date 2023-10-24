@@ -3677,13 +3677,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "configure modifier with different RenderConfig" in {
 
-    val outerRenderConfig = RenderConfig(
-      error => div(s"outer: $error")
-    )
+    val outerRenderConfig = RenderConfig(error => div(s"outer: $error"))
 
-    val innerRenderConfig = RenderConfig(
-      error => div(s"inner: $error")
-    )
+    val innerRenderConfig = RenderConfig(error => div(s"inner: $error"))
 
     case class MyException(value: String) extends Throwable {
       override def toString() = value
@@ -3695,7 +3691,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       VMod.raiseError(outerException),
-      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig)
+      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig),
     )
 
     var errors = List.empty[Throwable]
