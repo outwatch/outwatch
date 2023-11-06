@@ -279,9 +279,9 @@ If you want to use something not available in Scala Dom Types, you can use custo
 
 ```scala mdoc:js
 VNode.html("app")(
-  VModifier.style("user-select") := "none",
-  VModifier.attr("everything") := "possible",
-  VModifier.prop("it") := "is"
+  VMod.style("user-select") := "none",
+  VMod.attr("everything") := "possible",
+  VMod.prop("it") := "is"
 ).showHTMLForDoc(docPreview)
 ```
 
@@ -290,8 +290,8 @@ There also exists `VNode.svg(tagName)`.
 You can also define the accumulation behavior of custom attributes:
 ```scala mdoc:js
 div(
-  VModifier.attr("everything").accum("-") := "is",
-  VModifier.attr("everything").accum("-") := "possible",
+  VMod.attr("everything").accum("-") := "is",
+  VMod.attr("everything").accum("-") := "possible",
 ).showHTMLForDoc(docPreview)
 ```
 
@@ -339,38 +339,38 @@ val component = {
 Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
-### VNode and VModifier
-The important types we are using in the examples above are `VNode` and `VModifier`. `VNode` represents a node in the virtual dom, while and `VModifier` represents atrributes and styles and children of a node.
+### VNode and VMod
+The important types we are using in the examples above are `VNode` and `VMod`. `VNode` represents a node in the virtual dom, while and `VMod` represents atrributes and styles and children of a node.
 
 ```scala mdoc:js:compile-only
 val vnode: VNode = div()
-val modifiers: List[VModifier] = List("Hello", idAttr := "main", color := "tomato", vnode)
+val modifiers: List[VMod] = List("Hello", idAttr := "main", color := "tomato", vnode)
 ```
 
-Every `VNode` contains a sequence of `VModifier`. And a `VNode` is a `VModifier` itself.
+Every `VNode` contains a sequence of `VMod`. And a `VNode` is a `VMod` itself.
 
 
 
 ### Grouping Modifiers
-To make a set of modifiers reusable you can group them to become one `VModifier`.
+To make a set of modifiers reusable you can group them to become one `VMod`.
 
 ```scala mdoc:js
-val bigFont = VModifier(fontSize := "40px", fontWeight.bold)
+val bigFont = VMod(fontSize := "40px", fontWeight.bold)
 div("Argh!", bigFont).showHTMLForDoc(docPreview)
 ```
 
 If you want to reuse `bigFont`, but want to overwrite one of its properties, simply append the overwriting modifier. Here the latter `fontSize` will overwrite the one from `bigFont`:
 ```scala mdoc:js
-val bigFont = VModifier(fontSize := "40px", fontWeight.bold)
-val bigFont2 = VModifier(bigFont, fontSize := "99px")
+val bigFont = VMod(fontSize := "40px", fontWeight.bold)
+val bigFont2 = VMod(bigFont, fontSize := "99px")
 div("Argh!", bigFont2).showHTMLForDoc(docPreview)
 ```
 
-You can also use a `Seq[VModifier]` directly instead of using `VModifier.apply`.
+You can also use a `Seq[VMod]` directly instead of using `VMod.apply`.
 
 
 ### Components
-Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VModifier`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
+Outwatch does not have the concept of a component itself. You can just pass `VNode`s and `VMod`s around and build your own abstractions using functions. When we are talking about components in this documentation, we are usually referring to a `VNode` or a function returning a `VNode`.
 
 ```scala mdoc:js
 def fancyHeadLine(content: String) = h1(borderBottom := "1px dashed tomato", content)
@@ -414,7 +414,7 @@ div(
 ).showHTMLForDoc(docPreview)
 ```
 
-Source Code: [VModifier.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VModifier.scala#L110)
+Source Code: [VMod.scala](@REPOURL@/outwatch/src/main/scala/outwatch/VMod.scala#L110)
 
 
 ### Example: Flexbox
@@ -466,7 +466,7 @@ case class Person(name: String, age: Int)
 // Type class instance for `Render`:
 object Person {
   implicit object PersonRender extends Render[Person] {
-    def render(person: Person): VModifier = div(
+    def render(person: Person): VMod = div(
       border := "2px dotted coral",
       padding := "10px",
       marginBottom := "5px",
@@ -564,7 +564,7 @@ Outwatch.renderInto[SyncIO](docPreview, component).unsafeRunSync()
 ```
 
 ### Reactive Modifiers and VNodes
-You can stream any `VModifier` and therefore whole components, attributes, styles, sets of modifiers, and so on:
+You can stream any `VMod` and therefore whole components, attributes, styles, sets of modifiers, and so on:
 
 ```scala mdoc:js
 import colibri.Observable
@@ -659,7 +659,7 @@ div(
 Alternatively you can do the following to achieve the same effect:
 ```scala mdoc:js:compile-only
 div(
-  VModifier.eval {
+  VMod.eval {
     // doSomething
     "result"
   }
@@ -740,8 +740,8 @@ If you ever need to manually subscribe to a stream, you can let Outwatch manage 
 import cats.effect.SyncIO
 
 div(
-  VModifier.managed(myObservable.subscribeF[IO](???)), // this subscription is now bound to the lifetime of the outer div element
-  VModifier.managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
+  VMod.managed(myObservable.subscribeF[IO](???)), // this subscription is now bound to the lifetime of the outer div element
+  VMod.managedSubscribe(myObservable.tapEffect(x => ???).void) // this subscription is now bound to the lifetime of the outer div element
 )
 ```
 
@@ -954,12 +954,12 @@ div(
 )
 ```
 
-Outwatch has a higher-level API to work with these kinds of callbacks, called `VModifier.managedElement`, which can be used like this:
+Outwatch has a higher-level API to work with these kinds of callbacks, called `VMod.managedElement`, which can be used like this:
 ```scala mdoc:js:compile-only
 import colibri.Cancelable
 
 div(
-  VModifier.managedElement { element => // the element into which this node is mounted
+  VMod.managedElement { element => // the element into which this node is mounted
     ??? // do something with the dom element
     Cancelable(() => ???) // cleanup when the dom element is unmounted
   }
@@ -997,8 +997,8 @@ onDomMount.asHtml.foreach{ (elem: html.Element) => ??? }
 onDomMount.asSvg.foreach{ (elem: svg.Element) => ??? }
 onClick.asHtml.foreach{ (elem: html.Element) => ??? }
 onClick.asSvg.foreach{ (elem: svg.Element) => ??? }
-VModifier.managedElement.asHtml { (elem: html.Element) => ???; Cancelable(() => ???) }
-VModifier.managedElement.asSvg { (elem: svg.Element) => ???; Cancelable(() => ???) }
+VMod.managedElement.asHtml { (elem: html.Element) => ???; Cancelable(() => ???) }
+VMod.managedElement.asSvg { (elem: svg.Element) => ???; Cancelable(() => ???) }
 ```
 
 ### Custom EmitterBuilders
@@ -1038,14 +1038,14 @@ Furthermore, you can configure whether Outwatch should render errors to the dom 
 ```scala mdoc:js
 import cats.effect.SyncIO
 
-val component = div("broken?", SyncIO.raiseError[VModifier](new Exception("I am broken")))
+val component = div("broken?", SyncIO.raiseError[VMod](new Exception("I am broken")))
 Outwatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.showError).unsafeRunSync()
 ```
 
 ```scala mdoc:js
 import cats.effect.SyncIO
 
-val component = div("broken?", SyncIO.raiseError[VModifier](new Exception("I am broken")))
+val component = div("broken?", SyncIO.raiseError[VMod](new Exception("I am broken")))
 Outwatch.renderInto[SyncIO](docPreview, component, config = RenderConfig.ignoreError).unsafeRunSync()
 ```
 
