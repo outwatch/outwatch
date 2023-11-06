@@ -36,7 +36,12 @@ inThisBuild(
 )
 
 val jsdomVersion   = "13.2.0"
-val colibriVersion = "0.7.8"
+val colibriVersion = "0.7.8+98-29351ce7-SNAPSHOT"
+
+ThisBuild / resolvers ++= Seq(
+  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+  "Sonatype OSS Snapshots S01" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
+)
 
 val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
 lazy val commonSettings = Seq(
