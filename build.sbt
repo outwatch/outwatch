@@ -36,7 +36,7 @@ inThisBuild(
 )
 
 val jsdomVersion   = "13.2.0"
-val colibriVersion = "0.7.8+98-29351ce7-SNAPSHOT"
+val colibriVersion = "0.7.8+100-e8454a49-SNAPSHOT"
 
 ThisBuild / resolvers ++= Seq(
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
