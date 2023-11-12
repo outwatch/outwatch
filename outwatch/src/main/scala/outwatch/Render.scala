@@ -1,10 +1,10 @@
 package outwatch
 
-import cats.Show
 import colibri._
 import colibri.effect._
-import cats.data.{NonEmptyChain, NonEmptyList, NonEmptySeq, NonEmptyVector}
-import cats.effect.{IO, Resource, Sync, SyncIO}
+import cats.Show
+import cats.data.{Chain, NonEmptyChain, NonEmptyList, NonEmptySeq, NonEmptyVector}
+import cats.effect.{unsafe, IO, Resource, Sync, SyncIO}
 
 import scala.scalajs.js
 import scala.concurrent.Future
@@ -17,25 +17,6 @@ trait Render[-T] {
 trait RenderLowPrio1 {
   import RenderOps._
 
-  @inline implicit def ShowRenderAs[T: Show]: Render[T] = new ShowRenderAsClass[T]
-
-  @inline private class ShowRenderAsClass[T: Show] extends Render[T] {
-    @inline def render(value: T): VMod = StringVNode(Show[T].show(value))
-  }
-
-  @inline implicit def UndefinedModifierAs[T: Render]: Render[js.UndefOr[T]] = new UndefinedRenderAsClass[T]
-  @inline private class UndefinedRenderAsClass[T: Render] extends Render[js.UndefOr[T]] {
-    @inline def render(value: js.UndefOr[T]) = undefinedToModifierRender(value)
-  }
-
-  implicit object UndefinedModifier extends Render[js.UndefOr[VMod]] {
-    @inline def render(value: js.UndefOr[VMod]): VMod = value.getOrElse(VMod.empty)
-  }
-}
-
-trait RenderLowPrio0 extends RenderLowPrio1 {
-  import RenderOps._
-
   @inline implicit def EffectRender[F[_]: RunEffect]: Render[F[VMod]] = new EffectRenderClass[F]
   @inline private class EffectRenderClass[F[_]: RunEffect] extends Render[F[VMod]] {
     @inline def render(effect: F[VMod]) = effectToModifier(effect)
@@ -45,10 +26,46 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
   @inline private class EffectRenderAsClass[F[_]: RunEffect, T: Render] extends Render[F[T]] {
     @inline def render(effect: F[T]) = effectToModifierRender(effect)
   }
+
+  @inline implicit def EffectUnitRender[F[_]: RunEffect]: Render[F[Unit]] = new EffectUnitRenderClass[F]
+  @inline private class EffectUnitRenderClass[F[_]: RunEffect] extends Render[F[Unit]] {
+    @inline def render(source: F[Unit]) = VMod.managedSubscribe(Observable.fromEffect(source))
+  }
+
+  @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
+  @inline private class SourceUnitRenderClass[F[_]: Source] extends Render[F[Unit]] {
+    @inline def render(source: F[Unit]) = VMod.managedSubscribe(source)
+  }
+}
+
+trait RenderLowPrio0 extends RenderLowPrio1 {
+  import RenderOps._
+
+  implicit val SyncIOUnitRender: Render[SyncIO[Unit]] = new Render[SyncIO[Unit]] {
+    @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit val IOUnitRender: Render[IO[Unit]] = new Render[IO[Unit]] {
+    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit val IORender: Render[IO[VMod]] = new Render[IO[VMod]] {
+    @inline def render(effect: IO[VMod]) = effectToModifier(effect)
+  }
+
+  implicit val ObservableUnitRender: Render[Observable[Unit]] = new Render[Observable[Unit]] {
+    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
+  }
 }
 
 trait RenderLowPrio extends RenderLowPrio0 {
   import RenderOps._
+
+  @inline implicit def IOUnitRenderIORuntime(implicit ioRuntime: unsafe.IORuntime): Render[IO[Unit]] =
+    new IOUnitRenderIORuntimeClass
+  @inline private class IOUnitRenderIORuntimeClass(implicit ioRuntime: unsafe.IORuntime) extends Render[IO[Unit]] {
+    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
 
   @inline implicit def JsArrayModifierAs[T: Render]: Render[js.Array[T]] = new JsArrayRenderAsClass[T]
   @inline private class JsArrayRenderAsClass[T: Render] extends Render[js.Array[T]] {
@@ -63,6 +80,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
   @inline implicit def SeqModifierAs[T: Render]: Render[Seq[T]] = new SeqRenderAsClass[T]
   @inline private class SeqRenderAsClass[T: Render] extends Render[Seq[T]] {
     @inline def render(value: Seq[T]): VMod = iterableToModifierRender(value)
+  }
+
+  @inline implicit def ChainModifierAs[T: Render]: Render[Chain[T]] = new ChainRenderAsClass[T]
+  @inline private class ChainRenderAsClass[T: Render] extends Render[Chain[T]] {
+    @inline def render(value: Chain[T]) = iterableToModifierRender(value.toList)
   }
 
   @inline implicit def NonEmptyListModifierAs[T: Render]: Render[NonEmptyList[T]] = new NonEmptyListRenderAsClass[T]
@@ -91,6 +113,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
     @inline def render(value: Option[T]): VMod = optionToModifierRender(value)
   }
 
+  @inline implicit def SyncEffectRender[F[_]: RunSyncEffect]: Render[F[VMod]] = new SyncEffectRenderClass[F]
+  @inline private class SyncEffectRenderClass[F[_]: RunSyncEffect] extends Render[F[VMod]] {
+    @inline def render(effect: F[VMod]) = syncToModifier(effect)
+  }
+
   @inline implicit def SyncEffectRenderAs[F[_]: RunSyncEffect, T: Render]: Render[F[T]] =
     new SyncEffectRenderAsClass[F, T]
   @inline private class SyncEffectRenderAsClass[F[_]: RunSyncEffect, T: Render] extends Render[F[T]] {
@@ -114,6 +141,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
     @inline def render(future: Future[T]) = futureToModifierRender(future)
   }
 
+  @inline implicit def SourceRender[F[_]: Source]: Render[F[VMod]] = new SourceRenderClass[F]
+  @inline private class SourceRenderClass[F[_]: Source] extends Render[F[VMod]] {
+    @inline def render(source: F[VMod]) = sourceToModifier(source)
+  }
+
   @inline implicit def SourceRenderAs[F[_]: Source, T: Render]: Render[F[T]] = new SourceRenderAsClass[F, T]
   @inline private class SourceRenderAsClass[F[_]: Source, T: Render] extends Render[F[T]] {
     @inline def render(source: F[T]): VMod = sourceToModifierRender(source)
@@ -122,6 +154,11 @@ trait RenderLowPrio extends RenderLowPrio0 {
 
 object Render extends RenderLowPrio {
   @inline def apply[T](implicit render: Render[T]): Render[T] = render
+
+  @inline def show[T: Show]: Render[T] = new ShowRender[T]
+  @inline private class ShowRender[T: Show] extends Render[T] {
+    @inline def render(value: T): VMod = StringVNode(Show[T].show(value))
+  }
 
   import RenderOps._
 
@@ -135,6 +172,10 @@ object Render extends RenderLowPrio {
 
   implicit object SeqModifier extends Render[Seq[VMod]] {
     @inline def render(value: Seq[VMod]): VMod = CompositeModifier(value)
+  }
+
+  implicit object ChainModifier extends Render[Chain[VMod]] {
+    @inline def render(value: Chain[VMod]): VMod = CompositeModifier(value.toList)
   }
 
   implicit object NonEmptyListModifier extends Render[NonEmptyList[VMod]] {
@@ -185,13 +226,10 @@ object Render extends RenderLowPrio {
     @inline def render(future: SyncIO[VMod]) = syncToModifier(future)
   }
 
-  @inline implicit def SyncEffectRender[F[_]: RunSyncEffect]: Render[F[VMod]] = new SyncEffectRenderClass[F]
-  @inline private class SyncEffectRenderClass[F[_]: RunSyncEffect] extends Render[F[VMod]] {
-    @inline def render(effect: F[VMod]) = syncToModifier(effect)
-  }
-
-  implicit object IORender extends Render[IO[VMod]] {
-    @inline def render(future: IO[VMod]) = effectToModifier(future)
+  @inline implicit def IORenderIORuntime(implicit ioRuntime: unsafe.IORuntime): Render[IO[VMod]] =
+    new IORenderIORuntimeClass
+  @inline private class IORenderIORuntimeClass(implicit ioRuntime: unsafe.IORuntime) extends Render[IO[VMod]] {
+    @inline def render(effect: IO[VMod]) = effectToModifier(effect)
   }
 
   implicit object FutureRender extends Render[Future[VMod]] {
@@ -200,11 +238,6 @@ object Render extends RenderLowPrio {
 
   implicit object ObservableRender extends Render[Observable[VMod]] {
     @inline def render(source: Observable[VMod]) = sourceToModifier(source)
-  }
-
-  @inline implicit def SourceRender[F[_]: Source]: Render[F[VMod]] = new SourceRenderClass[F]
-  @inline private class SourceRenderClass[F[_]: Source] extends Render[F[VMod]] {
-    @inline def render(source: F[VMod]) = sourceToModifier(source)
   }
 
   @inline implicit def AttrBuilderRender: Render[AttrBuilder[Boolean, VMod]] = new AttrBuilderRender

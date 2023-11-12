@@ -596,7 +596,6 @@ class DomEventSpec extends JSDomAsyncSpec {
     Outwatch.renderInto[IO]("#app", node).map(_ => document.getElementById("strings").innerHTML shouldBe "ab")
   }
 
-
   "Emitterbuilder" should "preventDefault (compile only)" in {
 
     val node = div(

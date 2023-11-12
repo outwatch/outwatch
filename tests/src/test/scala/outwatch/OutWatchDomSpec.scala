@@ -3,7 +3,6 @@ package outwatch
 import cats.{Monoid, Show}
 import cats.implicits._
 import cats.effect.{IO, SyncIO}
-import org.scalajs.dom.window.localStorage
 import org.scalajs.dom.{document, html, Element, Event}
 import outwatch.helpers._
 import outwatch.dsl._
@@ -74,7 +73,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val propertiesArr = new MutableNestedArray[StaticVMod]
     properties.foreach(propertiesArr.push(_))
-    val seps = SeparatedModifiers.from(propertiesArr)
+    val seps = SeparatedModifiers.from(propertiesArr, RenderConfig.default)
     import seps._
 
     initHook.isDefined shouldBe true
@@ -106,7 +105,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 1
@@ -134,7 +133,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 1
@@ -156,7 +155,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       div(),
     )
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 3
@@ -179,7 +178,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.values.size shouldBe 3
@@ -207,7 +206,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(modifiers, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     emitters.get.keys.toList shouldBe List("click", "input", "keyup")
@@ -303,7 +302,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     proxies.get.length shouldBe 4
@@ -333,7 +332,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     proxies.get.length shouldBe 4
@@ -361,7 +360,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     )
 
     val streamable = NativeModifiers.from(mods, RenderConfig.ignoreError)
-    val seps       = SeparatedModifiers.from(streamable.modifiers)
+    val seps       = SeparatedModifiers.from(streamable.modifiers, RenderConfig.ignoreError)
     import seps._
 
     proxies.get.length shouldBe 1
@@ -3676,6 +3675,42 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
+  it should "configure modifier with different RenderConfig" in {
+
+    val outerRenderConfig = RenderConfig(error => div(s"outer: $error"))
+
+    val innerRenderConfig = RenderConfig(error => div(s"inner: $error"))
+
+    case class MyException(value: String) extends Throwable {
+      override def toString() = value
+    }
+
+    val innerException = MyException("inner")
+    val outerException = MyException("outer")
+
+    val node = div(
+      idAttr := "strings",
+      VMod.raiseError(outerException),
+      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig),
+    )
+
+    var errors = List.empty[Throwable]
+    val cancelable = OutwatchTracing.error.unsafeForeach { throwable =>
+      errors = throwable :: errors
+    }
+
+    for {
+      _      <- Outwatch.renderInto[IO]("#app", node, outerRenderConfig)
+      element = document.getElementById("strings")
+
+      _ = errors shouldBe List(outerException, innerException).reverse
+
+      _ = element.innerHTML shouldBe """<div>outer: outer</div><div>inner: inner</div>"""
+
+      _ = cancelable.unsafeCancel()
+    } yield succeed
+  }
+
   "Events while patching" should "fire for the correct dom node" in {
 
     val otherDiv       = Subject.replayLatest[VNode]()
@@ -3958,6 +3993,62 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       element <- IO(document.getElementById("test"))
 
       _ = element.innerHTML shouldBe """<span>foo</span>"""
+    } yield succeed
+  }
+
+  "Component" should "render unit observables and effects" in {
+    case class MyObservable[T](observable: Observable[T])
+    object MyObservable {
+      implicit object source extends Source[MyObservable] {
+        def unsafeSubscribe[A](source: MyObservable[A])(sink: Observer[A]): Cancelable =
+          source.observable.unsafeSubscribe(sink)
+      }
+    }
+
+    var obsSubscribes   = 0
+    var obsUnsubscribes = 0
+    val obs = Observable.unit.tapSubscribe { () =>
+      obsSubscribes += 1
+      Cancelable { () =>
+        obsUnsubscribes += 1
+      }
+    }
+
+    val subject = Subject.behavior[Boolean](true)
+
+    val node = div(
+      idAttr := "test",
+      subject.map {
+        case true =>
+          VMod(
+            "hallo",
+            obs,
+            MyObservable(obs),
+            obs.headIO,
+          )
+        case false =>
+          VMod.empty
+      },
+    )
+
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
+      _ <- IO.cede
+
+      element <- IO(document.getElementById("test"))
+
+      _ = element.innerHTML shouldBe "hallo"
+
+      _ = obsSubscribes shouldBe 3
+      _ = obsUnsubscribes shouldBe 1
+
+      _ <- subject.onNextIO(false)
+      _ <- IO.cede
+
+      _ = element.innerHTML shouldBe ""
+
+      _ = obsSubscribes shouldBe 3
+      _ = obsUnsubscribes shouldBe 3
     } yield succeed
   }
 }
