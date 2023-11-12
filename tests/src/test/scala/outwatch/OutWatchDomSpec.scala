@@ -3850,7 +3850,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
-  "Rx component" should "work" in Owned(SyncIO {
+  "Rx component" should "work" in {
 
     var liveCounter = 0
 
@@ -3887,11 +3887,10 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe "2. du"
       _ = liveCounter shouldBe 3
     } yield succeed
-  }).unsafeRunSync()
+  }
 
   "Nested rx component" should "work" in {
     case class Modal(val content: String, val size: Option[Int])
-    Owned(SyncIO {
 
       val modal: Var[Modal] = Var(Modal("hallo", None))
 
@@ -3924,7 +3923,6 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
         _ = element.innerHTML shouldBe """<div>huhu</div>"""
       } yield succeed
-    }).unsafeRunSync()
   }
 
   it should "work complex" in {
@@ -3932,7 +3930,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val currentModal: Var[Option[Modal]] = Var(None)
 
-    val node = Owned(
+    val node = 
       div(
         idAttr := "test",
         currentModal.sequence.map {
@@ -3948,8 +3946,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             content.map(str => div(str, size))
           }
         },
-      ),
-    )
+      )
 
     for {
       _ <- Outwatch.renderInto[IO]("#app", node)
