@@ -20,7 +20,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: coursier/cache-action@v6
       - uses: olafurpg/setup-scala@v12
-      
+
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
@@ -105,3 +105,10 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+
+      - name: Create a GitHub release
+        if: ${{ github.ref_type == 'tag' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
