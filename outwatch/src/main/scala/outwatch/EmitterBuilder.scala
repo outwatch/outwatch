@@ -558,7 +558,7 @@ object EmitterBuilder {
     sink: F[O2],
   ): R = SyncEmbed[R].delay {
     val connectable = Observer.lift(sink).redirect(transformF)
-    SubscriptionOwner[R].own(base.forwardTo(connectable.value))(connectable.connect)
+    SubscriptionOwner[R].own(base.forwardTo(connectable.value))(connectable.unsafeConnect)
   }
 }
 
