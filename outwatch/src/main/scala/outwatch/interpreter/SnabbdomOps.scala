@@ -134,8 +134,8 @@ private[outwatch] object SnabbdomOps {
       // based in dom events.
 
       var proxy: VNodeProxy                                        = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]]     = js.undefined
-      var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
+      var nextModifiers: js.UndefOr[js.Array[StaticVMod]]     = js.undefined
+      var _prependModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined
       var lastTimeout: js.UndefOr[Int]                             = js.undefined
       var isActive: Boolean                                        = false
 
@@ -196,7 +196,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      _prependModifiers = js.Array[StaticVModifier](
+      _prependModifiers = js.Array[StaticVMod](
         InsertHook { p =>
           VNodeProxy.copyInto(p, proxy)
           isActive = true
@@ -250,7 +250,7 @@ private[outwatch] object SnabbdomOps {
       }
 
       // hooks for subscribing and unsubscribing the streamable content
-      val prependModifiers = js.Array[StaticVModifier](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
+      val prependModifiers = js.Array[StaticVMod](DomMountHook(_ => start()), DomUnmountHook(_ => stop()))
 
       // create the proxy from the modifiers
       val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = prependModifiers)

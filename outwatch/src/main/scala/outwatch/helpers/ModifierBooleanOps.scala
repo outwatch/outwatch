@@ -2,40 +2,40 @@ package outwatch.helpers
 
 import outwatch._
 
-@inline class VModifierBooleanOps(val condition: Boolean) extends AnyVal {
-  @inline def apply[T](m: => VModifierM[T]): VModifierM[T] = if (condition) m else VModifierM.empty
-  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T]): VModifierM[T] =
-    if (condition) VModifierM[T](m, m2) else VModifierM.empty
-  @inline def apply[T](m: => VModifierM[T], m2: => VModifierM[T], m3: => VModifierM[T]): VModifierM[T] =
-    if (condition) VModifierM[T](m, m2, m3) else VModifierM.empty
+@inline class VModBooleanOps(val condition: Boolean) extends AnyVal {
+  @inline def apply[T](m: => VModM[T]): VModM[T] = if (condition) m else VModM.empty
+  @inline def apply[T](m: => VModM[T], m2: => VModM[T]): VModM[T] =
+    if (condition) VModM[T](m, m2) else VModM.empty
+  @inline def apply[T](m: => VModM[T], m2: => VModM[T], m3: => VModM[T]): VModM[T] =
+    if (condition) VModM[T](m, m2, m3) else VModM.empty
   @inline def apply[T](
-    m: => VModifierM[T],
-    m2: => VModifierM[T],
-    m3: => VModifierM[T],
-    m4: => VModifierM[T],
-  ): VModifierM[T] = if (condition) VModifierM[T](m, m2, m3, m4) else VModifierM.empty
+    m: => VModM[T],
+    m2: => VModM[T],
+    m3: => VModM[T],
+    m4: => VModM[T],
+  ): VModM[T] = if (condition) VModM[T](m, m2, m3, m4) else VModM.empty
   @inline def apply[T](
-    m: => VModifierM[T],
-    m2: => VModifierM[T],
-    m3: => VModifierM[T],
-    m4: => VModifierM[T],
-    m5: => VModifierM[T],
-  ): VModifierM[T] = if (condition) VModifierM[T](m, m2, m3, m4, m5) else VModifierM.empty
+    m: => VModM[T],
+    m2: => VModM[T],
+    m3: => VModM[T],
+    m4: => VModM[T],
+    m5: => VModM[T],
+  ): VModM[T] = if (condition) VModM[T](m, m2, m3, m4, m5) else VModM.empty
   @inline def apply[T](
-    m: => VModifierM[T],
-    m2: => VModifierM[T],
-    m3: => VModifierM[T],
-    m4: => VModifierM[T],
-    m5: => VModifierM[T],
-    m6: => VModifierM[T],
-  ): VModifierM[T] = if (condition) VModifierM[T](m, m2, m3, m4, m5, m6) else VModifierM.empty
+    m: => VModM[T],
+    m2: => VModM[T],
+    m3: => VModM[T],
+    m4: => VModM[T],
+    m5: => VModM[T],
+    m6: => VModM[T],
+  ): VModM[T] = if (condition) VModM[T](m, m2, m3, m4, m5, m6) else VModM.empty
   @inline def apply[T](
-    m: => VModifierM[T],
-    m2: => VModifierM[T],
-    m3: => VModifierM[T],
-    m4: => VModifierM[T],
-    m5: => VModifierM[T],
-    m6: => VModifierM[T],
-    m7: => VModifierM[T],
-  ): VModifierM[T] = if (condition) VModifierM[T](m, m2, m3, m4, m5, m6, m7) else VModifierM.empty
+    m: => VModM[T],
+    m2: => VModM[T],
+    m3: => VModM[T],
+    m4: => VModM[T],
+    m5: => VModM[T],
+    m6: => VModM[T],
+    m7: => VModM[T],
+  ): VModM[T] = if (condition) VModM[T](m, m2, m3, m4, m5, m6, m7) else VModM.empty
 }

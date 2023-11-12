@@ -37,8 +37,8 @@ class AttributeSpec extends JSDomSpec {
 
     val node = SnabbdomOps.toSnabbdom(
       input(
-        VModifier.attr("id").accum(",") := "foo1",
-        VModifier.attr("id").accum(",") := "foo2",
+        VMod.attr("id").accum(",") := "foo1",
+        VMod.attr("id").accum(",") := "foo2",
       ),
       RenderConfig.ignoreError,
     )
@@ -101,12 +101,12 @@ class AttributeSpec extends JSDomSpec {
   "attr/prop/style" should "correctly render type" in {
     val node = SnabbdomOps.toSnabbdom(
       VNode.html("input")(
-        VModifier.attr("foo")                                       := "foo",
-        VModifier.attr[Boolean]("boo", identity)                    := true,
-        VModifier.attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
-        VModifier.prop("bar")                                       := "bar",
-        VModifier.prop("num")                                       := 12,
-        VModifier.style("baz")                                      := "baz",
+        VMod.attr("foo")                                       := "foo",
+        VMod.attr[Boolean]("boo", identity)                    := true,
+        VMod.attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
+        VMod.prop("bar")                                       := "bar",
+        VMod.prop("num")                                       := 12,
+        VMod.style("baz")                                      := "baz",
         contentEditable                                             := false,
         unselectable                                                := false,
         disabled                                                    := false,
@@ -167,10 +167,10 @@ class AttributeSpec extends JSDomSpec {
   it should "correctly merge styles written with style" in {
     val node = SnabbdomOps.toSnabbdom(
       input(
-        VModifier.style("color") := "red",
+        VMod.style("color") := "red",
         fontSize                 := "5px",
       )(
-        VModifier.style("color") := "blue",
+        VMod.style("color") := "blue",
         border                   := "1px solid black",
       ),
       RenderConfig.ignoreError,

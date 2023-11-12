@@ -4,8 +4,8 @@ import outwatch.helpers.BasicStyleBuilder
 package object outwatch extends definitions.ManagedHelpers {
   type EmitterBuilder[+O, +R] = EmitterBuilderExecution[O, R, EmitterBuilderExecution.Execution]
 
-  type VModifier = VModifierM[Any]
-  val VModifier = VModifierM
+  type VMod = VModM[Any]
+  val VMod = VModM
   type VNode = VNodeM[Any]
   val VNode = VNodeM
   type BasicNamespaceVNode[N <: VNodeNamespace] = BasicNamespaceVNodeM[N, Any]
@@ -18,12 +18,19 @@ package object outwatch extends definitions.ManagedHelpers {
   type AccessEnvVNode                           = AccessEnvVNodeM[Any]
   type ThunkVNode                               = ThunkVNodeM[Any]
 
-  @deprecated("Use VModifier instead", "")
-  type VDomModifier = VModifier
-  @deprecated("Use VModifier instead", "")
-  val VDomModifier = VModifier
-  @deprecated("Use StaticVModifier instead", "")
-  type StaticVDomModifier = StaticVModifier
+  @deprecated("Use VMod instead", "")
+  type VDomModifier = VMod
+  @deprecated("Use VMod instead", "")
+  val VDomModifier = VMod
+  @deprecated("Use StaticVMod instead", "")
+  type StaticVDomModifier = StaticVMod
+
+  @deprecated("Use VMod instead", "")
+  type VModifier = VMod
+  @deprecated("Use VMod instead", "")
+  val VModifier = VMod
+  @deprecated("Use StaticVMod instead", "")
+  type StaticVModifier = StaticVMod
 
   @deprecated("Use Outwatch instead", "")
   val OutWatch = Outwatch

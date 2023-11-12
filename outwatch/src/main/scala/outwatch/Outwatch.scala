@@ -7,7 +7,7 @@ import org.scalajs.dom._
 import outwatch.interpreter.SnabbdomOps
 
 case class RenderConfig(
-  errorModifier: Throwable => VModifier,
+  errorModifier: Throwable => VMod,
 )
 object RenderConfig {
   import dsl._
@@ -21,7 +21,7 @@ object RenderConfig {
     div(backgroundColor := "#FDF2F5", color := "#D70022", padding := "5px", display.inlineBlock, s"ERROR: $error"),
   )
 
-  def ignoreError = RenderConfig(_ => VModifier.empty)
+  def ignoreError = RenderConfig(_ => VMod.empty)
 }
 
 object Outwatch {

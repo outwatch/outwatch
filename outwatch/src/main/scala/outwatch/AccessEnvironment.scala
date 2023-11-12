@@ -10,10 +10,10 @@ trait AccessEnvironment[T[-_]] {
 object AccessEnvironment {
   @inline def apply[T[-_]](implicit env: AccessEnvironment[T]): AccessEnvironment[T] = env
 
-  implicit object modifier extends AccessEnvironment[VModifierM] {
-    @inline def access[Env](f: Env => VModifierM[Any]): VModifierM[Env]               = VModifierM.access(f)
-    @inline def provide[Env](t: VModifierM[Env])(env: Env): VModifierM[Any]           = t.provide(env)
-    @inline def provideSome[Env, R](t: VModifierM[Env])(map: R => Env): VModifierM[R] = t.provideSome(map)
+  implicit object modifier extends AccessEnvironment[VModM] {
+    @inline def access[Env](f: Env => VModM[Any]): VModM[Env]               = VModM.access(f)
+    @inline def provide[Env](t: VModM[Env])(env: Env): VModM[Any]           = t.provide(env)
+    @inline def provideSome[Env, R](t: VModM[Env])(map: R => Env): VModM[R] = t.provideSome(map)
   }
   implicit object vnode extends AccessEnvironment[VNodeM] {
     @inline def access[Env](f: Env => VNodeM[Any]): VNodeM[Env]               = VNodeM.access(f)

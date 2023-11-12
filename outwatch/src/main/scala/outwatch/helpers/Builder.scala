@@ -38,9 +38,9 @@ object AttributeBuilder {
     @inline def assign(value: T): A = create(value)
   }
 
-  @inline def ofModifier[T](create: T => VModifier): AttributeBuilder[T, VModifier]                   = ofModifierM[Any, T](create)
+  @inline def ofModifier[T](create: T => VMod): AttributeBuilder[T, VMod]                   = ofModifierM[Any, T](create)
   @inline def ofVNode[T](create: T => VNode): AttributeBuilder[T, VNode]                              = ofVNodeM[Any, T](create)
-  @inline def ofModifierM[Env, T](create: T => VModifierM[Env]): AttributeBuilder[T, VModifierM[Env]] = apply(create)
+  @inline def ofModifierM[Env, T](create: T => VModM[Env]): AttributeBuilder[T, VModM[Env]] = apply(create)
   @inline def ofVNodeM[Env, T](create: T => VNodeM[Env]): AttributeBuilder[T, VNodeM[Env]]            = apply(create)
 
   @inline def access[Env] = new PartiallyAppliedAccess[Env]

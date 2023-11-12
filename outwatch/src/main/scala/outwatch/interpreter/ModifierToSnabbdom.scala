@@ -9,18 +9,18 @@ import snabbdom.{DataObject, Hooks, VNodeProxy}
 
 import scala.scalajs.js
 
-// This file is about interpreting VModifiers for building snabbdom virtual nodes.
+// This file is about interpreting VMods for building snabbdom virtual nodes.
 // We want to convert a div(modifiers) into a VNodeProxy that we can use for patching
 // with snabbdom.
 //
 // This code is really performance cirtical, because every patch call is preceeded by
-// interpreting all VModifiers involed. This code is written in a mutable fashion
+// interpreting all VMods involed. This code is written in a mutable fashion
 // using native js types to reduce overhead.
 
 // This represents the structured definition of a VNodeProxy (like snabbdom expects it).
 private[outwatch] class SeparatedModifiers {
   var hasOnlyTextChildren                                                = true
-  var nextModifiers: js.UndefOr[js.Array[StaticVModifier]]               = js.undefined
+  var nextModifiers: js.UndefOr[js.Array[StaticVMod]]               = js.undefined
   var proxies: js.UndefOr[js.Array[VNodeProxy]]                          = js.undefined
   var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]]             = js.undefined
   var props: js.UndefOr[js.Dictionary[DataObject.PropValue]]             = js.undefined
@@ -38,15 +38,15 @@ private[outwatch] class SeparatedModifiers {
 
 private[outwatch] object SeparatedModifiers {
   def from(
-    modifiers: MutableNestedArray[StaticVModifier],
-    prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined,
-    appendModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined,
+    modifiers: MutableNestedArray[StaticVMod],
+    prependModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined,
+    appendModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined,
   ): SeparatedModifiers = {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
 
     @inline def assureProxies()       = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
-    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVModifier])(nextModifiers = _)
+    @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVMod])(nextModifiers = _)
     @inline def assureEmitters() =
       emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
     @inline def assureAttrs()  = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
@@ -82,7 +82,7 @@ private[outwatch] object SeparatedModifiers {
       }
     }: Hooks.HookPairFn
 
-    def append(mod: StaticVModifier): Unit = mod match {
+    def append(mod: StaticVMod): Unit = mod match {
       case VNodeProxyNode(proxy) =>
         hasOnlyTextChildren = hasOnlyTextChildren && proxy.data.isEmpty && proxy.text.isDefined
         val proxies = assureProxies()
@@ -188,7 +188,7 @@ private[outwatch] object SeparatedModifiers {
       case h: DestroyHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
         ()
-      case n: NextVModifier =>
+      case n: NextVMod =>
         val nextModifiers = assureNextModifiers()
         nextModifiers += n.modifier
         ()
@@ -202,15 +202,15 @@ private[outwatch] object SeparatedModifiers {
   }
 }
 
-// Each VNode or each streamed CompositeVModifier contains static and
-// potentially dynamic content (i.e. streams). The contained VModifiers
-// within this VNode or this CompositeVModifier need to be transformed into
-// a list of static VModifiers (non-dynamic like attributes, vnode proxies,
+// Each VNode or each streamed CompositeVMod contains static and
+// potentially dynamic content (i.e. streams). The contained VMods
+// within this VNode or this CompositeVMod need to be transformed into
+// a list of static VMods (non-dynamic like attributes, vnode proxies,
 // ... that can directly be rendered) and a combined observable of all dynamic
 // content (like StreamModifier).
 //
 // The NativeModifier class represents exactly that: the static and dynamic
-// part of a list of VModifiers. The static part is an array of all
+// part of a list of VMods. The static part is an array of all
 // modifiers that are to-be-rendered at the current point in time. The dynamic
 // part is an observable that changes the previously mentioned array to reflect
 // the new state.
@@ -227,7 +227,7 @@ private[outwatch] object SeparatedModifiers {
 //    - dynamic changes: collections of callbacks that fill the array of active modifiers
 
 private[outwatch] class NativeModifiers(
-  val modifiers: MutableNestedArray[StaticVModifier],
+  val modifiers: MutableNestedArray[StaticVMod],
   val subscribables: MutableNestedArray[Subscribable],
   val hasStream: Boolean,
 )
@@ -257,23 +257,23 @@ private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
 
 private[outwatch] object NativeModifiers {
   def from(
-    appendModifiers: js.Array[_ <: VModifier],
+    appendModifiers: js.Array[_ <: VMod],
     config: RenderConfig,
     sink: Observer[Unit] = Observer.empty,
   ): NativeModifiers = {
-    val allModifiers     = new MutableNestedArray[StaticVModifier]()
+    val allModifiers     = new MutableNestedArray[StaticVMod]()
     val allSubscribables = new MutableNestedArray[Subscribable]()
     var hasStream        = false
 
     def append[R](
       subscribables: MutableNestedArray[Subscribable],
-      modifiers: MutableNestedArray[StaticVModifier],
-      modifier: VModifierM[R],
+      modifiers: MutableNestedArray[StaticVMod],
+      modifier: VModM[R],
       env: R,
       inStream: Boolean,
     ): Unit = {
 
-      @inline def appendStatic(mod: StaticVModifier): Unit = {
+      @inline def appendStatic(mod: StaticVMod): Unit = {
         modifiers.push(mod)
         ()
       }
@@ -281,10 +281,10 @@ private[outwatch] object NativeModifiers {
       @inline def appendStream(mod: StreamModifier[R]): Unit = {
         hasStream = true
 
-        val streamedModifiers     = new MutableNestedArray[StaticVModifier]()
+        val streamedModifiers     = new MutableNestedArray[StaticVMod]()
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
-        def handleModifier(modifier: VModifierM[R]) = {
+        def handleModifier(modifier: VModM[R]) = {
           streamedSubscribables.foreach(_.unsafeUnsubscribe())
           streamedSubscribables.clear()
           streamedModifiers.clear()
@@ -294,7 +294,7 @@ private[outwatch] object NativeModifiers {
         subscribables.push(
           new Subscribable(() =>
             mod.subscription(
-              Observer.create[VModifierM[R]](
+              Observer.create[VModM[R]](
                 { modifier =>
                   handleModifier(modifier)
                   sink.unsafeOnNext(())
@@ -317,7 +317,7 @@ private[outwatch] object NativeModifiers {
         case EmptyModifier            => ()
         case c: CompositeModifier[R]  => c.modifiers.foreach(append(subscribables, modifiers, _, env, inStream))
         case h: DomHook if inStream   => mirrorStreamedDomHook(h).foreach(appendStatic)
-        case mod: StaticVModifier     => appendStatic(mod)
+        case mod: StaticVMod     => appendStatic(mod)
         case child: VNodeM[R]         => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child.provide(env), config)))
         case child: StringVNode       => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier[R]     => appendStream(m)
@@ -339,7 +339,7 @@ private[outwatch] object NativeModifiers {
   // if a dom mount hook is streamed, we want to emulate an intuitive interface as if they were static.
   // This means we need to translate the next update to a mount event and an unmount event for the previously
   // streamed hooks. the first update event needs to be ignored to emulate static update events.
-  private def mirrorStreamedDomHook(h: DomHook): js.Array[StaticVModifier] = h match {
+  private def mirrorStreamedDomHook(h: DomHook): js.Array[StaticVMod] = h match {
     case h: DomMountHook =>
       // trigger once for the next update event and always for each mount event.
       // if we are streamed in with an insert event, then ignore all update events.
@@ -396,7 +396,7 @@ private[outwatch] object NativeModifiers {
           if (triggered && equalsVNodeIds(o._id, p._id)) isOpen = false
           triggered = true
         },
-        NextVModifier(UpdateHook { (o, p) =>
+        NextVMod(UpdateHook { (o, p) =>
           if (isOpen && equalsVNodeIds(o._id, p._id)) h.trigger(p)
           isOpen = true
         }),

@@ -22,13 +22,13 @@ import scala.concurrent.duration.FiniteDuration
 
 // We keep the same result, the registration for the click event, but map the emitted
 // click events to integers. You can also map the result type:
-// onClick.mapResult(emitter => VModifier(emitter, ???)): EmitterBuilder[Int, VModifier]
+// onClick.mapResult(emitter => VMod(emitter, ???)): EmitterBuilder[Int, VMod]
 //
-// Now you have conbined the emitter with another VModifier, so the combined modifier
+// Now you have conbined the emitter with another VMod, so the combined modifier
 // will later be rendered instead of only the emitter. Then you can describe the action
 // that should be done when an event triggers:
 //
-// onClick.map(_ => 1).doAction(doSomething(_)): VModifier
+// onClick.map(_ => 1).doAction(doSomething(_)): VMod
 //
 // The EmitterBuilder result must be a SubscriptionOwner to handle the subscription
 // from the emitterbuilder.
@@ -213,14 +213,14 @@ object EmitterBuilderExecution {
   sealed trait Execution
   sealed trait SyncExecution extends Execution
 
-  @inline final object Empty extends EmitterBuilderExecution[Nothing, VModifier, Nothing] {
+  @inline final object Empty extends EmitterBuilderExecution[Nothing, VMod, Nothing] {
     @inline private[outwatch] def transformSinkWithExec[T](
       f: Observer[T] => Observer[Nothing],
-    ): EmitterBuilderExecution[T, VModifier, Nothing] = this
+    ): EmitterBuilderExecution[T, VMod, Nothing] = this
     @inline private[outwatch] def transformWithExec[T](
       f: Observable[Nothing] => Observable[T],
-    ): EmitterBuilderExecution[T, VModifier, Nothing] = this
-    @inline def forwardTo[F[_]: Sink](sink: F[_ >: Nothing]): VModifier = VModifier.empty
+    ): EmitterBuilderExecution[T, VMod, Nothing] = this
+    @inline def forwardTo[F[_]: Sink](sink: F[_ >: Nothing]): VMod = VMod.empty
   }
 
   @inline final class Stream[+O, +R: SubscriptionOwner](source: Observable[O], result: R)
@@ -296,16 +296,16 @@ object EmitterBuilderExecution {
       AccessEnvironment[R].access(env => base(env).forwardTo(sink))
   }
 
-  @inline implicit def monoid[T, Exec <: Execution]: Monoid[EmitterBuilderExecution[T, VModifier, Exec]] =
+  @inline implicit def monoid[T, Exec <: Execution]: Monoid[EmitterBuilderExecution[T, VMod, Exec]] =
     new EmitterBuilderMonoid[T, Exec]
   @inline final class EmitterBuilderMonoid[T, Exec <: Execution]
-      extends Monoid[EmitterBuilderExecution[T, VModifier, Exec]] {
-    @inline def empty: EmitterBuilderExecution[T, VModifier, Exec] = EmitterBuilder.empty
+      extends Monoid[EmitterBuilderExecution[T, VMod, Exec]] {
+    @inline def empty: EmitterBuilderExecution[T, VMod, Exec] = EmitterBuilder.empty
     @inline def combine(
-      x: EmitterBuilderExecution[T, VModifier, Exec],
-      y: EmitterBuilderExecution[T, VModifier, Exec],
-    ): EmitterBuilderExecution[T, VModifier, Exec] = EmitterBuilder.combine(x, y)
-    // @inline override def combineAll(x: Iterable[EmitterBuilderExecution[T, VModifier, Exec]]): EmitterBuilderExecution[T, VModifier, Exec] = EmitterBuilder.combineAll(x)
+      x: EmitterBuilderExecution[T, VMod, Exec],
+      y: EmitterBuilderExecution[T, VMod, Exec],
+    ): EmitterBuilderExecution[T, VMod, Exec] = EmitterBuilder.combine(x, y)
+    // @inline override def combineAll(x: Iterable[EmitterBuilderExecution[T, VMod, Exec]]): EmitterBuilderExecution[T, VMod, Exec] = EmitterBuilder.combineAll(x)
   }
 
   @inline implicit def functor[R, Exec <: Execution]: Functor[EmitterBuilderExecution[*, R, Exec]] =
@@ -315,30 +315,30 @@ object EmitterBuilderExecution {
       fa.map(f)
   }
 
-  @inline implicit final class VModifierOperations[Env, O, Exec <: Execution](
-    val builder: EmitterBuilderExecution[O, VModifierM[Env], Exec],
+  @inline implicit final class VModOperations[Env, O, Exec <: Execution](
+    val builder: EmitterBuilderExecution[O, VModM[Env], Exec],
   ) extends AnyVal {
-    @inline def handled[R](f: Observable[O] => VModifierM[R]): SyncIO[VModifierM[Env with R]] = handledF[SyncIO, R](f)
-    @inline def handledF[F[_]: SyncCats, R](f: Observable[O] => VModifierM[R]): F[VModifierM[Env with R]] =
-      handledWithF[F, Env with R]((r, o) => VModifierM(r, f(o)))
-    @inline def handledWith[R](f: (VModifierM[Env], Observable[O]) => VModifierM[R]): SyncIO[VModifierM[R]] =
+    @inline def handled[R](f: Observable[O] => VModM[R]): SyncIO[VModM[Env with R]] = handledF[SyncIO, R](f)
+    @inline def handledF[F[_]: SyncCats, R](f: Observable[O] => VModM[R]): F[VModM[Env with R]] =
+      handledWithF[F, Env with R]((r, o) => VModM(r, f(o)))
+    @inline def handledWith[R](f: (VModM[Env], Observable[O]) => VModM[R]): SyncIO[VModM[R]] =
       handledWithF[SyncIO, R](f)
     @inline def handledWithF[F[_]: SyncCats, R](
-      f: (VModifierM[Env], Observable[O]) => VModifierM[R],
-    ): F[VModifierM[R]] = Functor[F].map(SyncCats[F].delay(Subject.replayLatest[O]())) { handler =>
+      f: (VModM[Env], Observable[O]) => VModM[R],
+    ): F[VModM[R]] = Functor[F].map(SyncCats[F].delay(Subject.replayLatest[O]())) { handler =>
       f(builder.forwardTo(handler), handler)
     }
 
     @deprecated("Use asLatestEmitter(emitter) instead", "")
     @inline def useLatestEmitter[T](
-      emitter: EmitterBuilder[T, VModifierM[Env]],
-    ): EmitterBuilderExecution[T, VModifierM[Env], Exec] = asLatestEmitter(emitter)
+      emitter: EmitterBuilder[T, VModM[Env]],
+    ): EmitterBuilderExecution[T, VModM[Env], Exec] = asLatestEmitter(emitter)
     @inline def withLatestEmitter[T](
-      emitter: EmitterBuilder[T, VModifierM[Env]],
-    ): EmitterBuilderExecution[(O, T), VModifierM[Env], Exec] = combineWithLatestEmitter(builder, emitter)
+      emitter: EmitterBuilder[T, VModM[Env]],
+    ): EmitterBuilderExecution[(O, T), VModM[Env], Exec] = combineWithLatestEmitter(builder, emitter)
     @inline def asLatestEmitter[T](
-      emitter: EmitterBuilder[T, VModifierM[Env]],
-    ): EmitterBuilderExecution[T, VModifierM[Env], Exec] = withLatestEmitter(emitter).map(_._2)
+      emitter: EmitterBuilder[T, VModM[Env]],
+    ): EmitterBuilderExecution[T, VModM[Env], Exec] = withLatestEmitter(emitter).map(_._2)
   }
 
   @inline implicit final class AccessEnvironmentOperations[Env, O, R[-_], Exec <: Execution](
@@ -402,13 +402,13 @@ object EmitterBuilderExecution {
   }
 
   @noinline private def combineWithLatestEmitter[Env, O, T, Exec <: Execution](
-    sourceEmitter: EmitterBuilderExecution[O, VModifierM[Env], Exec],
-    latestEmitter: EmitterBuilder[T, VModifierM[Env]],
-  ): EmitterBuilderExecution[(O, T), VModifierM[Env], Exec] =
-    new Custom[(O, T), VModifierM[Env], Exec]({ sink =>
-      VModifierM.delay {
+    sourceEmitter: EmitterBuilderExecution[O, VModM[Env], Exec],
+    latestEmitter: EmitterBuilder[T, VModM[Env]],
+  ): EmitterBuilderExecution[(O, T), VModM[Env], Exec] =
+    new Custom[(O, T), VModM[Env], Exec]({ sink =>
+      VModM.delay {
         var lastValue: Option[T] = None
-        VModifierM(
+        VModM(
           latestEmitter.forwardTo(Observer.create[T](v => lastValue = Some(v), sink.unsafeOnError)),
           sourceEmitter.forwardTo(
             Observer.create[O](
@@ -433,10 +433,10 @@ object EmitterBuilderExecution {
     SubscriptionOwner[R].own(base.forwardTo(connectable.value))(connectable.connect)
   }
 
-  @inline implicit final class VModifierEventOperations[Exec <: Execution](
-    val builder: EmitterBuilderExecution[VModifier, VModifier, Exec],
+  @inline implicit final class VModEventOperations[Exec <: Execution](
+    val builder: EmitterBuilderExecution[VMod, VMod, Exec],
   ) extends AnyVal {
-    @inline def render: VModifier = builder.handled(VModifier(_))
+    @inline def render: VMod = builder.handled(VMod(_))
   }
 }
 
@@ -445,24 +445,24 @@ object EmitterBuilder {
 
   type Sync[+O, +R] = EmitterBuilderExecution[O, R, SyncExecution]
 
-  @inline final def empty: EmitterBuilderExecution[Nothing, VModifier, Nothing] = Empty
-  @inline final def fromSource[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VModifier] =
-    fromSourceOf[F, E, VModifier](source)
+  @inline final def empty: EmitterBuilderExecution[Nothing, VMod, Nothing] = Empty
+  @inline final def fromSource[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VMod] =
+    fromSourceOf[F, E, VMod](source)
   @inline def fromSourceOf[F[_]: Source, E, R: SubscriptionOwner: Monoid](source: F[E]): EmitterBuilder[E, R] =
     new Stream[E, R](Observable.lift(source), Monoid[R].empty)
 
-  final def fromEvent[E <: dom.Event](eventType: String): EmitterBuilder.Sync[E, VModifier] =
-    EmitterBuilder[E, VModifier] { sink =>
+  final def fromEvent[E <: dom.Event](eventType: String): EmitterBuilder.Sync[E, VMod] =
+    EmitterBuilder[E, VMod] { sink =>
       Emitter(eventType, e => sink.unsafeOnNext(e.asInstanceOf[E]))
     }
 
   @inline def apply[E, R: SubscriptionOwner](create: Observer[E] => R): EmitterBuilder.Sync[E, R] =
     new Custom[E, R, SyncExecution](sink => create(sink))
-  @inline def ofModifier[E](create: Observer[E] => VModifier): EmitterBuilder.Sync[E, VModifier] =
+  @inline def ofModifier[E](create: Observer[E] => VMod): EmitterBuilder.Sync[E, VMod] =
     ofModifierM[Any, E](create)
   @inline def ofVNode[E](create: Observer[E] => VNode): EmitterBuilder.Sync[E, VNode] = ofVNodeM[Any, E](create)
-  @inline def ofModifierM[Env, E](create: Observer[E] => VModifierM[Env]): EmitterBuilder.Sync[E, VModifierM[Env]] =
-    apply[E, VModifierM[Env]](create)
+  @inline def ofModifierM[Env, E](create: Observer[E] => VModM[Env]): EmitterBuilder.Sync[E, VModM[Env]] =
+    apply[E, VModM[Env]](create)
   @inline def ofVNodeM[Env, E](create: Observer[E] => VNodeM[Env]): EmitterBuilder.Sync[E, VNodeM[Env]] =
     apply[E, VNodeM[Env]](create)
 
@@ -476,7 +476,7 @@ object EmitterBuilder {
   )
 
   @deprecated("Use EmitterBuilder.fromEvent[E] instead", "0.11.0")
-  @inline def apply[E <: dom.Event](eventType: String): EmitterBuilder.Sync[E, VModifier] = fromEvent[E](eventType)
+  @inline def apply[E <: dom.Event](eventType: String): EmitterBuilder.Sync[E, VMod] = fromEvent[E](eventType)
   @deprecated("Use EmitterBuilder[E, O] instead", "0.11.0")
   @inline def custom[E, R: SubscriptionOwner](create: Observer[E] => R): EmitterBuilder.Sync[E, R] = apply(create)
   @deprecated("Use EmitterBuilder.ofVNode[E] instead", "1.0.0")
