@@ -19,47 +19,59 @@ import scala.scalajs.js
 
 // This represents the structured definition of a VNodeProxy (like snabbdom expects it).
 private[outwatch] class SeparatedModifiers {
-  var hasOnlyTextChildren = true
-  var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
-  var proxies: js.UndefOr[js.Array[VNodeProxy]] = js.undefined
-  var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]] = js.undefined
-  var props: js.UndefOr[js.Dictionary[DataObject.PropValue]] = js.undefined
-  var styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]] = js.undefined
+  var hasOnlyTextChildren                                                = true
+  var nextModifiers: js.UndefOr[js.Array[StaticVModifier]]               = js.undefined
+  var proxies: js.UndefOr[js.Array[VNodeProxy]]                          = js.undefined
+  var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]]             = js.undefined
+  var props: js.UndefOr[js.Dictionary[DataObject.PropValue]]             = js.undefined
+  var styles: js.UndefOr[js.Dictionary[DataObject.StyleValue]]           = js.undefined
   var emitters: js.UndefOr[js.Dictionary[js.Function1[dom.Event, Unit]]] = js.undefined
-  var keyOption: js.UndefOr[Key.Value] = js.undefined
-  var initHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var insertHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var prePatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var updateHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var postPatchHook: js.UndefOr[Hooks.HookPairFn] = js.undefined
-  var destroyHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
-  var domUnmountHook: js.UndefOr[Hooks.HookSingleFn] = js.undefined
+  var keyOption: js.UndefOr[Key.Value]                                   = js.undefined
+  var initHook: js.UndefOr[Hooks.HookSingleFn]                           = js.undefined
+  var insertHook: js.UndefOr[Hooks.HookSingleFn]                         = js.undefined
+  var prePatchHook: js.UndefOr[Hooks.HookPairFn]                         = js.undefined
+  var updateHook: js.UndefOr[Hooks.HookPairFn]                           = js.undefined
+  var postPatchHook: js.UndefOr[Hooks.HookPairFn]                        = js.undefined
+  var destroyHook: js.UndefOr[Hooks.HookSingleFn]                        = js.undefined
+  var domUnmountHook: js.UndefOr[Hooks.HookSingleFn]                     = js.undefined
 }
 
 private[outwatch] object SeparatedModifiers {
-  def from(modifiers: MutableNestedArray[StaticVModifier], prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined, appendModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined): SeparatedModifiers = {
+  def from(
+    modifiers: MutableNestedArray[StaticVModifier],
+    prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined,
+    appendModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined,
+  ): SeparatedModifiers = {
     val separatedModifiers = new SeparatedModifiers
     import separatedModifiers._
 
-    @inline def assureProxies() = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
+    @inline def assureProxies()       = proxies getOrElse assign(new js.Array[VNodeProxy])(proxies = _)
     @inline def assureNextModifiers() = nextModifiers getOrElse assign(new js.Array[StaticVModifier])(nextModifiers = _)
-    @inline def assureEmitters() = emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
-    @inline def assureAttrs() = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
-    @inline def assureProps() = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
+    @inline def assureEmitters() =
+      emitters getOrElse assign(js.Dictionary[js.Function1[dom.Event, Unit]]())(emitters = _)
+    @inline def assureAttrs()  = attrs getOrElse assign(js.Dictionary[DataObject.AttrValue]())(attrs = _)
+    @inline def assureProps()  = props getOrElse assign(js.Dictionary[DataObject.PropValue]())(props = _)
     @inline def assureStyles() = styles getOrElse assign(js.Dictionary[DataObject.StyleValue]())(styles = _)
     @inline def setSpecialStyle(styleName: String)(title: String, value: String): Unit = {
       val styles = assureStyles()
-      styles.raw(styleName).fold {
-        styles(styleName) = js.Dictionary[String](title -> value): DataObject.StyleValue
-      } { style =>
-        style.asInstanceOf[js.Dictionary[String]](title) = value
-      }
+      styles
+        .raw(styleName)
+        .fold {
+          styles(styleName) = js.Dictionary[String](title -> value): DataObject.StyleValue
+        } { style =>
+          style.asInstanceOf[js.Dictionary[String]](title) = value
+        }
     }
-    @inline def createHooksSingle[T](current: js.UndefOr[js.Function1[T, Unit]], hook: js.Function1[T, Unit]): js.Function1[T, Unit] =
+    @inline def createHooksSingle[T](
+      current: js.UndefOr[js.Function1[T, Unit]],
+      hook: js.Function1[T, Unit],
+    ): js.Function1[T, Unit] =
       current.fold(hook)(current => { p => current(p); hook(p) })
-    @inline def createHooksPair[T](current: js.UndefOr[js.Function2[T, T, Unit]], hook: js.Function2[T, T, Unit]): js.Function2[T, T, Unit] =
-      current.fold(hook)(current => { (o,p) => current(o, p); hook(o, p) })
-
+    @inline def createHooksPair[T](
+      current: js.UndefOr[js.Function2[T, T, Unit]],
+      hook: js.Function2[T, T, Unit],
+    ): js.Function2[T, T, Unit] =
+      current.fold(hook)(current => { (o, p) => current(o, p); hook(o, p) })
 
     // append unmount hook for when patching a different proxy out of the dom.
     // the proxies will then have different OutwatchStates and we then need to
@@ -76,20 +88,20 @@ private[outwatch] object SeparatedModifiers {
         val proxies = assureProxies()
         proxies += proxy
         ()
-      case a : BasicAttr =>
+      case a: BasicAttr =>
         val attrs = assureAttrs()
         attrs(a.title) = a.value
         ()
-      case a : AccumAttr =>
+      case a: AccumAttr =>
         val attrs = assureAttrs()
-        val attr = attrs.raw(a.title)
+        val attr  = attrs.raw(a.title)
         attr.fold {
           attrs(a.title) = a.value
         } { attr =>
           attrs(a.title) = a.accum(attr, a.value)
         }
         ()
-      case p : Prop =>
+      case p: Prop =>
         val props = assureProps()
         props(p.title) = p.value
         ()
@@ -108,7 +120,7 @@ private[outwatch] object SeparatedModifiers {
         ()
       case a: AccumStyle =>
         val styles = assureStyles()
-        val style = styles.raw(a.title)
+        val style  = styles.raw(a.title)
         style.fold {
           styles(a.title) = a.value
         } { style =>
@@ -120,34 +132,43 @@ private[outwatch] object SeparatedModifiers {
         ()
       case e: Emitter =>
         val emitters = assureEmitters()
-        val emitter = emitters.raw(e.eventType)
+        val emitter  = emitters.raw(e.eventType)
         emitters(e.eventType) = createHooksSingle(emitter, e.trigger)
         ()
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
-        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
-          if (!NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
-            h.trigger(proxy)
-          }
-        })
+        postPatchHook = createHooksPair[VNodeProxy](
+          postPatchHook,
+          { (oldproxy, proxy) =>
+            if (!NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
+              h.trigger(proxy)
+            }
+          },
+        )
         ()
       case h: DomUnmountHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
         domUnmountHook = createHooksSingle(domUnmountHook, h.trigger)
         ()
       case h: DomUpdateHook =>
-        postPatchHook = createHooksPair[VNodeProxy](postPatchHook, { (oldproxy, proxy) =>
-          if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
-            h.trigger(proxy, proxy)
-          }
-        })
+        postPatchHook = createHooksPair[VNodeProxy](
+          postPatchHook,
+          { (oldproxy, proxy) =>
+            if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
+              h.trigger(proxy, proxy)
+            }
+          },
+        )
         ()
       case h: DomPreUpdateHook =>
-        prePatchHook = createHooksPair[VNodeProxy](prePatchHook, { (oldproxy, proxy) =>
-          if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
-            h.trigger(oldproxy, proxy)
-          }
-        })
+        prePatchHook = createHooksPair[VNodeProxy](
+          prePatchHook,
+          { (oldproxy, proxy) =>
+            if (NativeModifiers.equalsVNodeIds(oldproxy._id, proxy._id)) {
+              h.trigger(oldproxy, proxy)
+            }
+          },
+        )
         ()
       case h: InitHook =>
         initHook = createHooksSingle(initHook, h.trigger)
@@ -208,7 +229,7 @@ private[outwatch] object SeparatedModifiers {
 private[outwatch] class NativeModifiers(
   val modifiers: MutableNestedArray[StaticVModifier],
   val subscribables: MutableNestedArray[Subscribable],
-  val hasStream: Boolean
+  val hasStream: Boolean,
 )
 
 private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
@@ -235,12 +256,22 @@ private[outwatch] class Subscribable(newCancelable: () => Cancelable) {
 }
 
 private[outwatch] object NativeModifiers {
-  def from(appendModifiers: js.Array[_ <: VModifier], config: RenderConfig, sink: Observer[Unit] = Observer.empty): NativeModifiers = {
-    val allModifiers = new MutableNestedArray[StaticVModifier]()
+  def from(
+    appendModifiers: js.Array[_ <: VModifier],
+    config: RenderConfig,
+    sink: Observer[Unit] = Observer.empty,
+  ): NativeModifiers = {
+    val allModifiers     = new MutableNestedArray[StaticVModifier]()
     val allSubscribables = new MutableNestedArray[Subscribable]()
-    var hasStream = false
+    var hasStream        = false
 
-    def append[R](subscribables: MutableNestedArray[Subscribable], modifiers: MutableNestedArray[StaticVModifier], modifier: VModifierM[R], env: R, inStream: Boolean): Unit = {
+    def append[R](
+      subscribables: MutableNestedArray[Subscribable],
+      modifiers: MutableNestedArray[StaticVModifier],
+      modifier: VModifierM[R],
+      env: R,
+      inStream: Boolean,
+    ): Unit = {
 
       @inline def appendStatic(mod: StaticVModifier): Unit = {
         modifiers.push(mod)
@@ -250,7 +281,7 @@ private[outwatch] object NativeModifiers {
       @inline def appendStream(mod: StreamModifier[R]): Unit = {
         hasStream = true
 
-        val streamedModifiers = new MutableNestedArray[StaticVModifier]()
+        val streamedModifiers     = new MutableNestedArray[StaticVModifier]()
         val streamedSubscribables = new MutableNestedArray[Subscribable]()
 
         def handleModifier(modifier: VModifierM[R]) = {
@@ -260,37 +291,42 @@ private[outwatch] object NativeModifiers {
           append(streamedSubscribables, streamedModifiers, modifier, env, inStream = true)
         }
 
-        subscribables.push(new Subscribable(() =>
-          mod.subscription(Observer.create[VModifierM[R]](
-            { modifier =>
-              handleModifier(modifier)
-              sink.unsafeOnNext(())
-            },
-            { error =>
-              handleModifier(config.errorModifier(error))
-              sink.unsafeOnNext(())
-              sink.unsafeOnError(error)
-            }
-          ))
-        ))
+        subscribables.push(
+          new Subscribable(() =>
+            mod.subscription(
+              Observer.create[VModifierM[R]](
+                { modifier =>
+                  handleModifier(modifier)
+                  sink.unsafeOnNext(())
+                },
+                { error =>
+                  handleModifier(config.errorModifier(error))
+                  sink.unsafeOnNext(())
+                  sink.unsafeOnError(error)
+                },
+              ),
+            ),
+          ),
+        )
 
         modifiers.push(streamedModifiers)
         subscribables.push(streamedSubscribables)
       }
 
       modifier match {
-        case EmptyModifier => ()
-        case c: CompositeModifier[R] => c.modifiers.foreach(append(subscribables, modifiers, _, env, inStream))
-        case h: DomHook if inStream => mirrorStreamedDomHook(h).foreach(appendStatic)
-        case mod: StaticVModifier => appendStatic(mod)
-        case child: VNodeM[R] => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child.provide(env), config)))
-        case child: StringVNode  => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
-        case m: StreamModifier[R] => appendStream(m)
-        case s: CancelableModifier => subscribables.push(new Subscribable(s.subscription))
+        case EmptyModifier            => ()
+        case c: CompositeModifier[R]  => c.modifiers.foreach(append(subscribables, modifiers, _, env, inStream))
+        case h: DomHook if inStream   => mirrorStreamedDomHook(h).foreach(appendStatic)
+        case mod: StaticVModifier     => appendStatic(mod)
+        case child: VNodeM[R]         => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child.provide(env), config)))
+        case child: StringVNode       => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
+        case m: StreamModifier[R]     => appendStream(m)
+        case s: CancelableModifier    => subscribables.push(new Subscribable(s.subscription))
         case m: SyncEffectModifier[R] => append(subscribables, modifiers, m.unsafeRun(), env, inStream)
-        case m: AccessEnvModifier[R] => append(subscribables, modifiers, m.modifier(env), env, inStream)
-        case m: ChildCommandsModifier => append(subscribables, modifiers, ChildCommand.stream(m.commands, config), env, inStream)
-        case m: ErrorModifier => append(subscribables, modifiers, config.errorModifier(m.error), env, inStream)
+        case m: AccessEnvModifier[R]  => append(subscribables, modifiers, m.modifier(env), env, inStream)
+        case m: ChildCommandsModifier =>
+          append(subscribables, modifiers, ChildCommand.stream(m.commands, config), env, inStream)
+        case m: ErrorModifier          => append(subscribables, modifiers, config.errorModifier(m.error), env, inStream)
         case m: ProvidedEnvModifier[_] => append(subscribables, modifiers, m.modifier, m.env, inStream)
       }
     }
@@ -316,7 +352,8 @@ private[outwatch] object NativeModifiers {
         PostPatchHook { (o, p) =>
           if (!triggered || !equalsVNodeIds(o._id, p._id)) h.trigger(p)
           triggered = true
-        })
+        },
+      )
     case h: DomPreUpdateHook =>
       // ignore the next pre-update event, we are streamed into the node with this update
       // trigger on all succeeding pre-update events. if we are streamed in with an insert
@@ -329,7 +366,7 @@ private[outwatch] object NativeModifiers {
         PrePatchHook { (o, p) =>
           if (triggered && equalsVNodeIds(o._id, p._id)) h.trigger(o, p)
           triggered = true
-        }
+        },
       )
     case h: DomUpdateHook =>
       // ignore the next update event, we are streamed into the node with this update
@@ -343,7 +380,7 @@ private[outwatch] object NativeModifiers {
         PostPatchHook { (o, p) =>
           if (triggered && equalsVNodeIds(o._id, p._id)) h.trigger(o, p)
           triggered = true
-        }
+        },
       )
     case h: DomUnmountHook =>
       // we call the unmount hook, whenever this hook is freshly superseded by a new modifier
@@ -351,7 +388,7 @@ private[outwatch] object NativeModifiers {
       // present in the node. if not, we are unmounted and call the hook. We additionally
       // react to the normal unmount event.
       var triggered = false
-      var isOpen = true
+      var isOpen    = true
       js.Array(
         h,
         InsertHook { _ => triggered = true },
@@ -362,7 +399,7 @@ private[outwatch] object NativeModifiers {
         NextVModifier(UpdateHook { (o, p) =>
           if (isOpen && equalsVNodeIds(o._id, p._id)) h.trigger(p)
           isOpen = true
-        })
+        }),
       )
   }
 
@@ -374,7 +411,6 @@ private[outwatch] object NativeModifiers {
 
 private object StyleKey {
   @inline def delayed = "delayed"
-  @inline def remove = "remove"
+  @inline def remove  = "remove"
   @inline def destroy = "destroy"
 }
-

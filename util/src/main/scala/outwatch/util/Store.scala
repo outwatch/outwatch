@@ -14,7 +14,8 @@ object Store {
    * AnyVal still generates code in this code for creating an CreatePartiallyApplied instance.
    */
   @inline final class CreatePartiallyApplied[F[_]] {
-    @inline def apply[A, M](initialAction: A, initialState: M, reducer: Reducer[A, M])(implicit F: Sync[F]) = create[F, A, M](initialAction, initialState, reducer)
+    @inline def apply[A, M](initialAction: A, initialState: M, reducer: Reducer[A, M])(implicit F: Sync[F]) =
+      create[F, A, M](initialAction, initialState, reducer)
   }
 
   def create[F[_]] = new CreatePartiallyApplied[F]
@@ -22,7 +23,7 @@ object Store {
   def create[F[_], A, M](
     initialAction: A,
     initialState: M,
-    reducer: Reducer[A, M]
+    reducer: Reducer[A, M],
   )(implicit F: Sync[F]): F[ProSubject[A, (A, M)]] = F.delay {
     val subject = Subject.publish[A]()
 
@@ -39,8 +40,9 @@ object Store {
     subject.transformSubjectSource(source =>
       source
         .scan[(A, M)](initialAction -> initialState)(fold)
-        .behavior(initialAction -> initialState).refCount
-        .withDefaultSubscription(Observer.empty)
+        .behavior(initialAction -> initialState)
+        .refCount
+        .withDefaultSubscription(Observer.empty),
     )
   }
 }

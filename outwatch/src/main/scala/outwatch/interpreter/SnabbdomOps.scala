@@ -32,7 +32,12 @@ private[outwatch] object SnabbdomOps {
       ns = vNodeNS
     }
 
-  private def createProxy(modifiers: SeparatedModifiers, nodeType: String, vNodeId: js.UndefOr[Int], vNodeNS: js.UndefOr[String]): VNodeProxy = {
+  private def createProxy(
+    modifiers: SeparatedModifiers,
+    nodeType: String,
+    vNodeId: js.UndefOr[Int],
+    vNodeNS: js.UndefOr[String],
+  ): VNodeProxy = {
     val dataObject = createDataObject(modifiers, vNodeNS)
 
     @inline def newProxy(childProxies: js.UndefOr[js.Array[VNodeProxy]], string: js.UndefOr[String]) = new VNodeProxy {
@@ -54,7 +59,7 @@ private[outwatch] object SnabbdomOps {
 
   private def getNamespace(node: VNodeNamespace): js.UndefOr[String] = node match {
     case VNodeNamespace.Html => js.undefined
-    case VNodeNamespace.Svg => "http://www.w3.org/2000/svg"
+    case VNodeNamespace.Svg  => "http://www.w3.org/2000/svg"
   }
 
   def toSnabbdom(node: VNode, config: RenderConfig): VNodeProxy = node match {
@@ -65,37 +70,55 @@ private[outwatch] object SnabbdomOps {
     case node: ThunkVNode =>
       node.condition match {
         case VNodeThunkCondition.Check(shouldRender) =>
-          thunk.conditional(getNamespace(node.baseNode.namespace), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), shouldRender)
+          thunk.conditional(
+            getNamespace(node.baseNode.namespace),
+            node.baseNode.nodeType,
+            node.key,
+            () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config),
+            shouldRender,
+          )
         case VNodeThunkCondition.Compare(arguments) =>
-          thunk(getNamespace(node.baseNode.namespace), node.baseNode.nodeType, node.key, () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config), arguments)
+          thunk(
+            getNamespace(node.baseNode.namespace),
+            node.baseNode.nodeType,
+            node.key,
+            () => toRawSnabbdomProxy(node.baseNode(node.renderFn(), Key(node.key)), config),
+            arguments,
+          )
       }
   }
 
   private val newNodeId: () => Int = {
     var vNodeIdCounter = 0
     () => {
-    vNodeIdCounter += 1
-    vNodeIdCounter
+      vNodeIdCounter += 1
+      vNodeIdCounter
     }
-   }
+  }
 
-   type SetImmediate = js.Function1[js.Function0[Unit], Int]
-   type ClearImmediate = js.Function1[Int, Unit]
-   private val (setImmediateRef, clearImmediateRef): (SetImmediate, ClearImmediate) = {
-     if (js.typeOf(js.Dynamic.global.setImmediate) != "undefined")
-        (js.Dynamic.global.setImmediate.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearImmediate.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
-      else
-        (js.Dynamic.global.setTimeout.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate], js.Dynamic.global.clearTimeout.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate])
-    }
+  type SetImmediate   = js.Function1[js.Function0[Unit], Int]
+  type ClearImmediate = js.Function1[Int, Unit]
+  private val (setImmediateRef, clearImmediateRef): (SetImmediate, ClearImmediate) = {
+    if (js.typeOf(js.Dynamic.global.setImmediate) != "undefined")
+      (
+        js.Dynamic.global.setImmediate.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate],
+        js.Dynamic.global.clearImmediate.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate],
+      )
+    else
+      (
+        js.Dynamic.global.setTimeout.bind(NativeHelpers.globalObject).asInstanceOf[SetImmediate],
+        js.Dynamic.global.clearTimeout.bind(NativeHelpers.globalObject).asInstanceOf[ClearImmediate],
+      )
+  }
 
-    // we are mutating the initial proxy with VNodeProxy.copyInto, because parents of this node have a reference to this proxy.
-    // if we are changing the content of this proxy via a stream, the parent will not see this change.
-    // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
-    // renders its children again. But it would not have the correct state of this proxy. Therefore,
-    // we mutate the initial proxy and thereby mutate the proxy the parent knows.
-   private def toRawSnabbdomProxy(node: BasicVNode, config: RenderConfig): VNodeProxy = {
+  // we are mutating the initial proxy with VNodeProxy.copyInto, because parents of this node have a reference to this proxy.
+  // if we are changing the content of this proxy via a stream, the parent will not see this change.
+  // if now the parent is rerendered because a sibiling of the parent triggers an update, the parent
+  // renders its children again. But it would not have the correct state of this proxy. Therefore,
+  // we mutate the initial proxy and thereby mutate the proxy the parent knows.
+  private def toRawSnabbdomProxy(node: BasicVNode, config: RenderConfig): VNodeProxy = {
 
-    val vNodeNS = getNamespace(node.namespace)
+    val vNodeNS      = getNamespace(node.namespace)
     val vNodeId: Int = newNodeId()
 
     val observer = new StatefulObserver[Unit]
@@ -110,14 +133,14 @@ private[outwatch] object SnabbdomOps {
       // in unsafeSubscribe and unsafeUnsubscribe callbacks. We unsafeSubscribe and unsafeUnsubscribe
       // based in dom events.
 
-      var proxy: VNodeProxy = null
-      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
+      var proxy: VNodeProxy                                        = null
+      var nextModifiers: js.UndefOr[js.Array[StaticVModifier]]     = js.undefined
       var _prependModifiers: js.UndefOr[js.Array[StaticVModifier]] = js.undefined
-      var lastTimeout: js.UndefOr[Int] = js.undefined
-      var isActive: Boolean = false
+      var lastTimeout: js.UndefOr[Int]                             = js.undefined
+      var isActive: Boolean                                        = false
 
       var patchIsRunning = false
-      var patchIsNeeded = false
+      var patchIsNeeded  = false
 
       @tailrec
       def doPatch(): Unit = {
@@ -125,7 +148,11 @@ private[outwatch] object SnabbdomOps {
         patchIsNeeded = false
 
         // update the current proxy with the new state
-        val separatedModifiers = SeparatedModifiers.from(nativeModifiers.modifiers, prependModifiers = _prependModifiers, appendModifiers = nextModifiers)
+        val separatedModifiers = SeparatedModifiers.from(
+          nativeModifiers.modifiers,
+          prependModifiers = _prependModifiers,
+          appendModifiers = nextModifiers,
+        )
         nextModifiers = separatedModifiers.nextModifiers
         val newProxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
         newProxy._update = proxy._update
@@ -190,7 +217,7 @@ private[outwatch] object SnabbdomOps {
         DomUnmountHook { _ =>
           isActive = false
           stop()
-        }
+        },
       )
 
       // create initial proxy, we want to apply the initial state of the
@@ -200,10 +227,12 @@ private[outwatch] object SnabbdomOps {
       proxy = createProxy(separatedModifiers, node.nodeType, vNodeId, vNodeNS)
 
       // set the patch observer so on subscribable updates we get a patch call
-      observer.set(Observer.create[Unit](
-        _ => invokeDoPatch(async = asyncPatchEnabled),
-        OutwatchTracing.errorSubject.unsafeOnNext
-      ))
+      observer.set(
+        Observer.create[Unit](
+          _ => invokeDoPatch(async = asyncPatchEnabled),
+          OutwatchTracing.errorSubject.unsafeOnNext,
+        ),
+      )
 
       proxy
     } else {

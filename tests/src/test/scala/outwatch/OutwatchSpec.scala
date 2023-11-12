@@ -1,8 +1,8 @@
 package outwatch
 
-import cats.effect.{IO, unsafe}
+import cats.effect.{unsafe, IO}
 import org.scalajs.dom.EventInit
-import org.scalajs.dom.{Event, document, window}
+import org.scalajs.dom.{document, window, Event}
 import org.scalatest.{BeforeAndAfterEach, _}
 import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
 import org.scalatest.matchers.should.Matchers
@@ -25,10 +25,13 @@ trait LocalStorageMock {
     if (key == null) window.localStorage.clear()
     else window.localStorage.setItem(key, newValue)
 
-    val event = new Event("storage", new EventInit {
-      bubbles = true
-      cancelable = false
-    })
+    val event = new Event(
+      "storage",
+      new EventInit {
+        bubbles = true
+        cancelable = false
+      },
+    )
     event.asInstanceOf[js.Dynamic].key = key
     event.asInstanceOf[js.Dynamic].newValue = newValue
     event.asInstanceOf[js.Dynamic].oldValue = oldValue
@@ -54,7 +57,7 @@ trait OutwatchSpec extends Matchers with BeforeAndAfterEach with EasySubscribe w
 
 }
 
-abstract class JSDomSpec extends AnyFlatSpec with OutwatchSpec
+abstract class JSDomSpec      extends AnyFlatSpec with OutwatchSpec
 abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
   // This deadlocks somehow
   // implicit private val ioRuntime: unsafe.IORuntime = unsafe.IORuntime.global
@@ -70,7 +73,7 @@ abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
     blocking = executionContext,
     config = unsafe.IORuntimeConfig(),
     scheduler = unsafe.IORuntime.defaultScheduler,
-    shutdown = () => ()
+    shutdown = () => (),
   )
 
   implicit def ioAssertionToFutureAssertion(io: IO[Assertion]): Future[Assertion] = io.unsafeToFuture()

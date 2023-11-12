@@ -14,28 +14,28 @@ class DomEventSpec extends JSDomAsyncSpec {
   "EventStreams" should "emit and receive events correctly" in {
 
     val vtree = IO(Subject.replayLatest[MouseEvent]()).map { handler =>
-
       val buttonDisabled = handler.map(_ => true).startWith(Seq(false))
 
-      div(idAttr := "click", onClick --> handler,
-        button(idAttr := "btn", disabled <-- buttonDisabled)
-      )
+      div(idAttr := "click", onClick --> handler, button(idAttr := "btn", disabled <-- buttonDisabled))
     }
 
     for {
       vtree <- vtree
-          _ <- Outwatch.renderInto[IO]("#app", vtree)
-       hasD <- IO(document.getElementById("btn").hasAttribute("disabled"))
-          _ <- IO(hasD shouldBe false)
+      _     <- Outwatch.renderInto[IO]("#app", vtree)
+      hasD  <- IO(document.getElementById("btn").hasAttribute("disabled"))
+      _     <- IO(hasD shouldBe false)
       event <- IO {
-                 new Event("click", new EventInit {
-                  bubbles = true
-                  cancelable = false
-                })
-              }
-          _ <- IO(document.getElementById("click").dispatchEvent(event))
-          d <- IO(document.getElementById("btn").getAttribute("disabled"))
-          _ <- IO(d shouldBe "")
+                 new Event(
+                   "click",
+                   new EventInit {
+                     bubbles = true
+                     cancelable = false
+                   },
+                 )
+               }
+      _ <- IO(document.getElementById("click").dispatchEvent(event))
+      d <- IO(document.getElementById("btn").getAttribute("disabled"))
+      _ <- IO(d shouldBe "")
     } yield succeed
   }
 
@@ -44,26 +44,27 @@ class DomEventSpec extends JSDomAsyncSpec {
     val message = "ad"
 
     val vtree = IO(Subject.replayLatest[String]()).map { handler =>
-      div(idAttr := "click", onClick.as(message) --> handler,
-        span(idAttr := "child", handler)
-      )
+      div(idAttr := "click", onClick.as(message) --> handler, span(idAttr := "child", handler))
     }
 
     for {
       vtree <- vtree
-      _ <- Outwatch.renderInto[IO]("#app", vtree)
+      _     <- Outwatch.renderInto[IO]("#app", vtree)
     } yield {
       document.getElementById("child").innerHTML shouldBe ""
 
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val event = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       document.getElementById("click").dispatchEvent(event)
 
       document.getElementById("child").innerHTML shouldBe message
 
-      //dispatch another event
+      // dispatch another event
       document.getElementById("click").dispatchEvent(event)
 
       document.getElementById("child").innerHTML shouldBe message
@@ -74,16 +75,13 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "be converted to a generic stream emitter correctly" in {
 
     IO(Subject.replayLatest[String]()).flatMap { messages =>
-
       val vtree = IO(Subject.replayLatest[String]()).map { stream =>
-        div(idAttr := "click", onClick.asLatest(messages) --> stream,
-          span(idAttr := "child", stream)
-        )
+        div(idAttr := "click", onClick.asLatest(messages) --> stream, span(idAttr := "child", stream))
       }
 
       for {
         vtree <- vtree
-        _ <- Outwatch.renderInto[IO]("#app", vtree)
+        _     <- Outwatch.renderInto[IO]("#app", vtree)
       } yield {
 
         document.getElementById("child").innerHTML shouldBe ""
@@ -91,15 +89,18 @@ class DomEventSpec extends JSDomAsyncSpec {
         val firstMessage = "First"
         messages.unsafeOnNext(firstMessage)
 
-        val event = new Event("click", new EventInit {
-          bubbles = true
-          cancelable = false
-        })
+        val event = new Event(
+          "click",
+          new EventInit {
+            bubbles = true
+            cancelable = false
+          },
+        )
         document.getElementById("click").dispatchEvent(event)
 
         document.getElementById("child").innerHTML shouldBe firstMessage
 
-        //dispatch another event
+        // dispatch another event
         document.getElementById("click").dispatchEvent(event)
 
         document.getElementById("child").innerHTML shouldBe firstMessage
@@ -121,8 +122,7 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val vtree = input(idAttr := "input", attributes.value <-- values)
 
-    Outwatch.renderInto[IO]("#app", vtree).map {_ =>
-
+    Outwatch.renderInto[IO]("#app", vtree).map { _ =>
       val patched = document.getElementById("input").asInstanceOf[html.Input]
 
       patched.value shouldBe ""
@@ -149,7 +149,6 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val vtree = input(idAttr := "input", attributes.defaultValue <-- defaultValues)
     Outwatch.renderInto[IO]("#app", vtree).map { _ =>
-
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
 
@@ -171,7 +170,6 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val vtree = input(idAttr := "input", attributes.value <-- values)
     Outwatch.renderInto[IO]("#app", vtree).map { _ =>
-
       val patched = document.getElementById("input").asInstanceOf[html.Input]
       patched.value shouldBe ""
 
@@ -191,13 +189,11 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val state = Subject.publish[Seq[VNode]]()
 
-
     val vtree = div(
-      ul(idAttr := "list", state)
+      ul(idAttr := "list", state),
     )
 
     Outwatch.renderInto[IO]("#app", vtree).map { _ =>
-
       val list = document.getElementById("list")
 
       list.childElementCount shouldBe 0
@@ -241,20 +237,23 @@ class DomEventSpec extends JSDomAsyncSpec {
       IO(Subject.replayLatest[String]()).map { second =>
         div(
           button(idAttr := "click", onClick.as(messages._1) --> first, onClick.as(messages._2) --> second),
-          span(idAttr := "first", first),
-          span(idAttr := "second", second)
+          span(idAttr   := "first", first),
+          span(idAttr   := "second", second),
         )
       }
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val event = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       document.getElementById("click").dispatchEvent(event)
 
       document.getElementById("first").innerHTML shouldBe messages._1
@@ -271,19 +270,22 @@ class DomEventSpec extends JSDomAsyncSpec {
     val node = IO(Subject.replayLatest[(MouseEvent, Int)]()).map { stream =>
       div(
         button(idAttr := "click", onClick.map(toTuple) --> stream),
-        span(idAttr := "num", stream.map(_._2))
+        span(idAttr   := "num", stream.map(_._2)),
       )
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val event = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       document.getElementById("click").dispatchEvent(event)
 
       document.getElementById("num").innerHTML shouldBe number.toString
@@ -298,24 +300,26 @@ class DomEventSpec extends JSDomAsyncSpec {
     val transformer = (e: Observable[MouseEvent]) => e.mergeMap(_ => numbers)
 
     val node = IO(Subject.replayLatest[Int]()).map { stream =>
-
       val state = stream.scan(List.empty[Int])((l, s) => l :+ s)
 
       div(
         button(idAttr := "click", onClick.transform(transformer) --> stream),
-        span(idAttr := "num", state.map(nums => nums.map(num => span(num.toString))))
+        span(idAttr   := "num", state.map(nums => nums.map(num => span(num.toString)))),
       )
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val event = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       document.getElementById("click").dispatchEvent(event)
 
       document.getElementById("num").innerHTML shouldBe "<span>1</span><span>2</span>"
@@ -325,24 +329,27 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "be able to be transformed from strings" in {
 
-    val number = 42
+    val number       = 42
     val onInputValue = onInput.value
     val node = IO(Subject.replayLatest[Int]()).map { stream =>
       div(
         input(idAttr := "input", onInputValue.as(number) --> stream),
-        span(idAttr := "num", stream)
+        span(idAttr  := "num", stream),
       )
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
-      val inputEvt = new Event("input", new EventInit {
-        bubbles = false
-        cancelable = true
-      })
+      val inputEvt = new Event(
+        "input",
+        new EventInit {
+          bubbles = false
+          cancelable = true
+        },
+      )
       document.getElementById("input").dispatchEvent(inputEvt)
 
       document.getElementById("num").innerHTML shouldBe number.toString
@@ -352,29 +359,32 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   it should "handler can trigger side-effecting functions" in {
     var triggeredEventFunction = 0
-    var triggeredIntFunction = 0
-    var triggeredFunction = 0
-    var triggeredFunction2 = 0
+    var triggeredIntFunction   = 0
+    var triggeredFunction      = 0
+    var triggeredFunction2     = 0
 
     val stream = Subject.publish[String]()
     val node = {
       div(
-        button(idAttr := "button",
+        button(
+          idAttr := "button",
           onClick foreach (_ => triggeredEventFunction += 1),
           onClick.as(1) foreach (triggeredIntFunction += _),
-          onClick doAction  { triggeredFunction += 1 },
+          onClick doAction { triggeredFunction += 1 },
           onSnabbdomUpdate doAction { triggeredFunction2 += 1 },
-          stream
-        )
+          stream,
+        ),
       )
     }
 
-    Outwatch.renderInto[IO]("#app", node).map {_ =>
-
-      val inputEvt = new Event("click", new EventInit {
-        bubbles = false
-        cancelable = true
-      })
+    Outwatch.renderInto[IO]("#app", node).map { _ =>
+      val inputEvt = new Event(
+        "click",
+        new EventInit {
+          bubbles = false
+          cancelable = true
+        },
+      )
       document.getElementById("button").dispatchEvent(inputEvt)
       stream.unsafeOnNext("woop")
       triggeredEventFunction shouldBe 1
@@ -395,36 +405,39 @@ class DomEventSpec extends JSDomAsyncSpec {
   it should "correctly be transformed from latest in observable" in {
 
     val node = IO(Subject.replayLatest[String]()).flatMap { submit =>
-
       val state = submit.scan(List.empty[String])((l, s) => l :+ s)
 
       IO(Subject.replayLatest[String]()).map { stream =>
         div(
-          input(idAttr := "input", tpe := "text", onInput.value --> stream),
+          input(idAttr  := "input", tpe := "text", onInput.value --> stream),
           button(idAttr := "submit", onClick.asLatest(stream) --> submit),
-          ul(idAttr := "items",
-            state.map(items => items.map(it => li(it)))
-          )
+          ul(idAttr     := "items", state.map(items => items.map(it => li(it)))),
         )
       }
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
       val inputElement = document.getElementById("input").asInstanceOf[html.Input]
       val submitButton = document.getElementById("submit")
 
-      val inputEvt = new Event("input", new EventInit {
-        bubbles = false
-        cancelable = true
-      })
-      val clickEvt = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = true
-      })
+      val inputEvt = new Event(
+        "input",
+        new EventInit {
+          bubbles = false
+          cancelable = true
+        },
+      )
+      val clickEvt = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = true
+        },
+      )
       inputElement.value = "item 1"
       inputElement.dispatchEvent(inputEvt)
 
@@ -445,27 +458,30 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val node = IO(Subject.replayLatest[Boolean]()).map { checkValue =>
       div(
-        input(idAttr := "checkbox", `type` := "Checkbox", checked <-- checkValue),
+        input(idAttr  := "checkbox", `type` := "Checkbox", checked <-- checkValue),
         button(idAttr := "on_button", onClick.as(true) --> checkValue, "On"),
-        button(idAttr := "off_button", onClick.as(false) --> checkValue, "Off")
+        button(idAttr := "off_button", onClick.as(false) --> checkValue, "Off"),
       )
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
 
-      val checkbox = document.getElementById("checkbox").asInstanceOf[html.Input]
-      val onButton = document.getElementById("on_button")
+      val checkbox  = document.getElementById("checkbox").asInstanceOf[html.Input]
+      val onButton  = document.getElementById("on_button")
       val offButton = document.getElementById("off_button")
 
       checkbox.checked shouldBe false
 
-      val clickEvt = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = true
-      })
+      val clickEvt = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = true
+        },
+      )
       onButton.dispatchEvent(clickEvt)
 
       checkbox.checked shouldBe true
@@ -487,11 +503,13 @@ class DomEventSpec extends JSDomAsyncSpec {
     val node = div(button(idAttr := "input", tpe := "checkbox"))
 
     Outwatch.renderInto[IO]("#app", node).map { _ =>
-
-      val inputEvt = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val inputEvt = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       document.getElementById("input").dispatchEvent(inputEvt)
 
       winClicked shouldBe true
@@ -504,41 +522,37 @@ class DomEventSpec extends JSDomAsyncSpec {
   "EmitterOps" should "correctly work on events" in {
 
     val node = IO(Subject.replayLatest[String]()).flatMap { _ =>
-
       for {
-        stringStream <- IO(Subject.replayLatest[String]())
-        doubleStream <- IO(Subject.replayLatest[Double]())
-        boolStream <- IO(Subject.replayLatest[Boolean]())
-        htmlElementStream <- IO(Subject.replayLatest[html.Element]())
+        stringStream          <- IO(Subject.replayLatest[String]())
+        doubleStream          <- IO(Subject.replayLatest[Double]())
+        boolStream            <- IO(Subject.replayLatest[Boolean]())
+        htmlElementStream     <- IO(Subject.replayLatest[html.Element]())
         svgElementTupleStream <- IO(Subject.replayLatest[(org.scalajs.dom.svg.Element, org.scalajs.dom.svg.Element)]())
         elem = div(
-          input(
-            idAttr := "input", tpe := "text",
+                 input(
+                   idAttr := "input",
+                   tpe    := "text",
+                   onSearch.target.value --> stringStream,
+                   onSearch.target.valueAsNumber --> doubleStream,
+                   onSearch.target.checked --> boolStream,
+                   onClick.target.value --> stringStream,
 
-            onSearch.target.value --> stringStream,
-            onSearch.target.valueAsNumber --> doubleStream,
-            onSearch.target.checked --> boolStream,
-
-            onClick.target.value --> stringStream,
-
-            // uses currentTarget and assumes html.Input type by default
-            onClick.value --> stringStream,
-            onClick.valueAsNumber --> doubleStream,
-            onChange.checked --> boolStream,
-
-            onClick.filter(_ => true).value --> stringStream,
-
-            onSnabbdomInsert.asHtml --> htmlElementStream,
-            onSnabbdomUpdate.asSvg --> svgElementTupleStream
-          ),
-          ul(idAttr := "items")
-        )
+                   // uses currentTarget and assumes html.Input type by default
+                   onClick.value --> stringStream,
+                   onClick.valueAsNumber --> doubleStream,
+                   onChange.checked --> boolStream,
+                   onClick.filter(_ => true).value --> stringStream,
+                   onSnabbdomInsert.asHtml --> htmlElementStream,
+                   onSnabbdomUpdate.asSvg --> svgElementTupleStream,
+                 ),
+                 ul(idAttr := "items"),
+               )
       } yield elem
     }
 
     for {
       node <- node
-      _ <- Outwatch.renderInto[IO]("#app", node)
+      _    <- Outwatch.renderInto[IO]("#app", node)
     } yield {
       document.getElementById("input") should not be null
     }
@@ -550,20 +564,20 @@ class DomEventSpec extends JSDomAsyncSpec {
       def modifier: VModifier = onDrag.value --> stringHandler
 
       IO(Subject.replayLatest[String]()).flatMap { _ =>
-
-      for {
-        stream <- IO(Subject.replayLatest[String]())
-        eventStream <- IO(Subject.replayLatest[MouseEvent]())
-        elem = div(
-          input(
-            idAttr := "input", tpe := "text",
-            onSearch.target.value --> stream,
-            onClick.value --> stream,
-
-            modifier
-          ),
-          ul(idAttr := "items"))
-        _ <- Outwatch.renderInto[IO]("#app", elem)
+        for {
+          stream      <- IO(Subject.replayLatest[String]())
+          eventStream <- IO(Subject.replayLatest[MouseEvent]())
+          elem = div(
+                   input(
+                     idAttr := "input",
+                     tpe    := "text",
+                     onSearch.target.value --> stream,
+                     onClick.value --> stream,
+                     modifier,
+                   ),
+                   ul(idAttr := "items"),
+                 )
+          _ <- Outwatch.renderInto[IO]("#app", elem)
         } yield {
           document.getElementById("input") should not be null
         }
@@ -573,37 +587,32 @@ class DomEventSpec extends JSDomAsyncSpec {
 
   "Children stream" should "work for string sequences" in {
     val myStrings: Observable[Seq[String]] = Observable(Seq("a", "b"))
-    val node = div(idAttr := "strings",
-      myStrings
-    )
+    val node                               = div(idAttr := "strings", myStrings)
 
-    Outwatch.renderInto[IO]("#app", node).map( _ =>
-      document.getElementById("strings").innerHTML shouldBe "ab"
-    )
+    Outwatch.renderInto[IO]("#app", node).map(_ => document.getElementById("strings").innerHTML shouldBe "ab")
   }
 
   "LocalStorage" should "have handler with proper events" in {
     var option: Option[Option[String]] = None
 
     LocalStorage.handler[IO]("hans").map { handler =>
+      handler.unsafeForeach { o => option = Some(o) }
 
-    handler.unsafeForeach { o => option = Some(o) }
+      option shouldBe Some(None)
 
-    option shouldBe Some(None)
+      handler.unsafeOnNext(Some("gisela"))
+      option shouldBe Some(Some("gisela"))
 
-    handler.unsafeOnNext(Some("gisela"))
-    option shouldBe Some(Some("gisela"))
+      handler.unsafeOnNext(None)
+      option shouldBe Some(None)
 
-    handler.unsafeOnNext(None)
-    option shouldBe Some(None)
-
-  }
+    }
   }
 
   it should "have handlerWithEventsOnly with proper events" in {
     var option: Option[Option[String]] = None
 
-    LocalStorage.handlerWithEventsOnly[IO]("hans").map {handler =>
+    LocalStorage.handlerWithEventsOnly[IO]("hans").map { handler =>
       handler.unsafeForeach { o => option = Some(o) }
 
       option shouldBe Some(None)
@@ -624,7 +633,6 @@ class DomEventSpec extends JSDomAsyncSpec {
     var option: Option[Option[String]] = None
 
     LocalStorage.handlerWithEventsOnly[IO]("hans").map { handler =>
-
       handler.unsafeForeach { o => option = Some(o) }
       option shouldBe Some(Some("wurst"))
     }
@@ -634,18 +642,17 @@ class DomEventSpec extends JSDomAsyncSpec {
     var option: Option[Option[String]] = None
 
     LocalStorage.handlerWithoutEvents[IO]("hans").map { handler =>
+      handler.unsafeForeach { o => option = Some(o) }
 
-    handler.unsafeForeach { o => option = Some(o) }
+      option shouldBe Some(None)
 
-    option shouldBe Some(None)
+      handler.unsafeOnNext(Some("gisela"))
+      option shouldBe Some(Some("gisela"))
 
-    handler.unsafeOnNext(Some("gisela"))
-    option shouldBe Some(Some("gisela"))
+      handler.unsafeOnNext(None)
+      option shouldBe Some(None)
 
-    handler.unsafeOnNext(None)
-    option shouldBe Some(None)
-
-  }
+    }
   }
 
   "Emitterbuilder" should "preventDefault (compile only)" in {
@@ -653,18 +660,21 @@ class DomEventSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "click",
       onClick.filter(_ => true).preventDefault.map(_ => 4).discard,
-      onClick.preventDefault.map(_ => 3).discard
+      onClick.preventDefault.map(_ => 3).discard,
     )
 
     val test = for {
       _ <- Outwatch.renderInto[IO]("#app", node)
       _ <- IO {
-            val event = new Event("click", new EventInit {
-              bubbles = true
-              cancelable = false
-            })
-            document.getElementById("click").dispatchEvent(event)
-          }
+             val event = new Event(
+               "click",
+               new EventInit {
+                 bubbles = true
+                 cancelable = false
+               },
+             )
+             document.getElementById("click").dispatchEvent(event)
+           }
     } yield {
       succeed
     }
@@ -674,23 +684,25 @@ class DomEventSpec extends JSDomAsyncSpec {
   }
 
   it should "stopPropagation" in {
-    var triggeredFirst = false
+    var triggeredFirst  = false
     var triggeredSecond = false
 
     val node = div(
-      onClick doAction {triggeredSecond = true},
+      onClick doAction { triggeredSecond = true },
       div(
         idAttr := "click",
-        onClick.map(x => x).stopPropagation doAction {triggeredFirst = true}
-      )
+        onClick.map(x => x).stopPropagation doAction { triggeredFirst = true },
+      ),
     )
 
     Outwatch.renderInto[IO]("#app", node).map { _ =>
-
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val event = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       document.getElementById("click").dispatchEvent(event)
 
       triggeredFirst shouldBe true
@@ -704,12 +716,14 @@ class DomEventSpec extends JSDomAsyncSpec {
       clicked += 1
     }
 
-
     def newEvent() = {
-      new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
     }
 
     clicked shouldBe 0
@@ -735,10 +749,13 @@ class DomEventSpec extends JSDomAsyncSpec {
     }
 
     def newEvent(token: String) = {
-      val event = new Event("click", new EventInit {
-        bubbles = true
-        cancelable = false
-      })
+      val event = new Event(
+        "click",
+        new EventInit {
+          bubbles = true
+          cancelable = false
+        },
+      )
       event.asInstanceOf[js.Dynamic].stopPropagation = { () =>
         event.asInstanceOf[js.Dynamic].testtoken = token
         ()

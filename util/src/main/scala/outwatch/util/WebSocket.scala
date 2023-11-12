@@ -7,26 +7,25 @@ import org.scalajs.dom.{Event, MessageEvent}
 
 @deprecated("Use org.scalajs.dom.WebSocket directly instead", "")
 object WebSocket {
-  implicit def toObserver(socket: WebSocket): IO[Observer[String]] = socket.observer
+  implicit def toObserver(socket: WebSocket): IO[Observer[String]]       = socket.observer
   implicit def toObservable(socket: WebSocket): Observable[MessageEvent] = socket.observable
 }
 
-final case class WebSocket private(url: String) {
+final case class WebSocket private (url: String) {
   val ws = new org.scalajs.dom.WebSocket(url)
 
-  lazy val observable:Observable[MessageEvent] = Observable.create[MessageEvent](observer => {
+  lazy val observable: Observable[MessageEvent] = Observable.create[MessageEvent](observer => {
     ws.onmessage = (e: MessageEvent) => observer.unsafeOnNext(e)
     ws.onerror = (e: Event) => observer.unsafeOnError(new Exception(s"Error in WebSocket: $e"))
     Cancelable(() => ws.close())
   })
 
-  lazy val observer:IO[Observer[String]] = {
+  lazy val observer: IO[Observer[String]] = {
     IO {
       new Observer[String] {
-        override def unsafeOnNext(elem: String): Unit = ws.send(elem)
+        override def unsafeOnNext(elem: String): Unit   = ws.send(elem)
         override def unsafeOnError(ex: Throwable): Unit = OutwatchTracing.errorSubject.unsafeOnNext(ex)
       }
     }
   }
 }
-

@@ -20,31 +20,47 @@ private[outwatch] object NativeHelpers {
   }
 
   implicit class RichElement(val elem: Element) extends AnyVal {
-    @inline def style: CSSStyleDeclaration = elem.asInstanceOf[js.Dynamic].style.asInstanceOf[CSSStyleDeclaration] // HTMLElement already has .style, but SVGElement doesn't
-    @inline def dataset: js.Dictionary[String] = elem.asInstanceOf[js.Dynamic].dataset.asInstanceOf[js.Dictionary[String]] //TODO: https://github.com/scala-js/scala-js-dom/pull/337
+    @inline def style: CSSStyleDeclaration = elem
+      .asInstanceOf[js.Dynamic]
+      .style
+      .asInstanceOf[CSSStyleDeclaration] // HTMLElement already has .style, but SVGElement doesn't
+    @inline def dataset: js.Dictionary[String] = elem
+      .asInstanceOf[js.Dynamic]
+      .dataset
+      .asInstanceOf[js.Dictionary[String]] // TODO: https://github.com/scala-js/scala-js-dom/pull/337
   }
 
   @inline def assign[T](value: T)(f: T => Unit): T = { f(value); value }
 
-  @noinline def appendSeq[F[-_], T, T2](source: js.Array[_ <: F[T]], other: collection.Seq[F[T2]]): js.Array[_ <: F[T with T2]] = if (other.isEmpty) source else other match {
-    case wrappedOther: js.WrappedArray[F[T2]] =>
-      if (source.isEmpty) wrappedOther else source.concat(wrappedOther)
-    case _ =>
-      val arr = new js.Array[F[T with T2]]()
-      source.foreach(arr.push(_))
-      other.foreach(arr.push(_))
-      arr
-  }
+  @noinline def appendSeq[F[-_], T, T2](
+    source: js.Array[_ <: F[T]],
+    other: collection.Seq[F[T2]],
+  ): js.Array[_ <: F[T with T2]] = if (other.isEmpty) source
+  else
+    other match {
+      case wrappedOther: js.WrappedArray[F[T2]] =>
+        if (source.isEmpty) wrappedOther else source.concat(wrappedOther)
+      case _ =>
+        val arr = new js.Array[F[T with T2]]()
+        source.foreach(arr.push(_))
+        other.foreach(arr.push(_))
+        arr
+    }
 
-  @noinline def prependSeq[F[-_], T, T2](source: js.Array[_ <: F[T]], other: collection.Seq[F[T2]]): js.Array[_ <: F[T with T2]] = if (other.isEmpty) source else other match {
-    case wrappedOther: js.WrappedArray[F[T2]] =>
-      if (source.isEmpty) wrappedOther else wrappedOther.concat(source)
-    case _ =>
-      val arr = new js.Array[F[T with T2]]()
-      other.foreach(arr.push(_))
-      source.foreach(arr.push(_))
-      arr
-  }
+  @noinline def prependSeq[F[-_], T, T2](
+    source: js.Array[_ <: F[T]],
+    other: collection.Seq[F[T2]],
+  ): js.Array[_ <: F[T with T2]] = if (other.isEmpty) source
+  else
+    other match {
+      case wrappedOther: js.WrappedArray[F[T2]] =>
+        if (source.isEmpty) wrappedOther else wrappedOther.concat(source)
+      case _ =>
+        val arr = new js.Array[F[T with T2]]()
+        other.foreach(arr.push(_))
+        source.foreach(arr.push(_))
+        arr
+    }
 
   // See: https://www.scala-js.org/doc/interoperability/global-scope.html#dynamically-lookup-a-global-variable-given-its-name
   lazy val globalObject: js.Dynamic = {

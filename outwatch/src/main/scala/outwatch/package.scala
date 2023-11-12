@@ -9,14 +9,14 @@ package object outwatch extends definitions.ManagedHelpers {
   type VNode = VNodeM[Any]
   val VNode = VNodeM
   type BasicNamespaceVNode[N <: VNodeNamespace] = BasicNamespaceVNodeM[N, Any]
-  type BasicVNodeM[-Env] = BasicNamespaceVNodeM[_ <: VNodeNamespace, Env]
-  type BasicVNode = BasicVNodeM[Any]
-  type HtmlVNodeM[-Env] = BasicNamespaceVNodeM[VNodeNamespace.Html.type, Env]
-  type SvgVNodeM[-Env] = BasicNamespaceVNodeM[VNodeNamespace.Svg.type, Env]
-  type HtmlVNode = HtmlVNodeM[Any]
-  type SvgVNode = SvgVNodeM[Any]
-  type AccessEnvVNode = AccessEnvVNodeM[Any]
-  type ThunkVNode = ThunkVNodeM[Any]
+  type BasicVNodeM[-Env]                        = BasicNamespaceVNodeM[_ <: VNodeNamespace, Env]
+  type BasicVNode                               = BasicVNodeM[Any]
+  type HtmlVNodeM[-Env]                         = BasicNamespaceVNodeM[VNodeNamespace.Html.type, Env]
+  type SvgVNodeM[-Env]                          = BasicNamespaceVNodeM[VNodeNamespace.Svg.type, Env]
+  type HtmlVNode                                = HtmlVNodeM[Any]
+  type SvgVNode                                 = SvgVNodeM[Any]
+  type AccessEnvVNode                           = AccessEnvVNodeM[Any]
+  type ThunkVNode                               = ThunkVNodeM[Any]
 
   @deprecated("Use VModifier instead", "")
   type VDomModifier = VModifier
@@ -28,6 +28,7 @@ package object outwatch extends definitions.ManagedHelpers {
   @deprecated("Use Outwatch instead", "")
   val OutWatch = Outwatch
 
-  //TODO: invent typeclass CanBuildStyle[F[_]]
-  @inline implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] = new BasicStyleBuilder[T](style.name)
+  // TODO: invent typeclass CanBuildStyle[F[_]]
+  @inline implicit def StyleIsBuilder[T](style: keys.Style[T]): BasicStyleBuilder[T] =
+    new BasicStyleBuilder[T](style.name)
 }
