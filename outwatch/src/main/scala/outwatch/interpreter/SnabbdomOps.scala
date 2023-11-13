@@ -133,11 +133,11 @@ private[outwatch] object SnabbdomOps {
       // in unsafeSubscribe and unsafeUnsubscribe callbacks. We unsafeSubscribe and unsafeUnsubscribe
       // based in dom events.
 
-      var proxy: VNodeProxy                                        = null
+      var proxy: VNodeProxy                                   = null
       var nextModifiers: js.UndefOr[js.Array[StaticVMod]]     = js.undefined
       var _prependModifiers: js.UndefOr[js.Array[StaticVMod]] = js.undefined
-      var lastTimeout: js.UndefOr[Int]                             = js.undefined
-      var isActive: Boolean                                        = false
+      var lastTimeout: js.UndefOr[Int]                        = js.undefined
+      var isActive: Boolean                                   = false
 
       var patchIsRunning = false
       var patchIsNeeded  = false

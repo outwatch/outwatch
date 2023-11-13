@@ -125,23 +125,23 @@ object VModM {
   @inline def delayEither[Env, T: Render[Env, *]](modifier: => Either[Throwable, T]): VModM[Env] =
     SyncEffectModifier(() => fromEither(modifier))
   @inline def delay[Env](modifier: => VModM[Env]): VModM[Env] = accessM[Env](_ => modifier)
-  @inline def raiseError[T](error: Throwable): VMod                = ErrorModifier(error)
+  @inline def raiseError[T](error: Throwable): VMod           = ErrorModifier(error)
 
   @inline def access[Env](modifier: Env => VMod): VModM[Env] = AccessEnvModifier[Env](modifier)
-  @inline def accessM[Env]                                             = new PartiallyAppliedAccessM[Env]
+  @inline def accessM[Env]                                   = new PartiallyAppliedAccessM[Env]
   @inline class PartiallyAppliedAccessM[Env] {
     @inline def apply[R](modifier: Env => VModM[R]): VModM[Env with R] =
       access(env => modifier(env).provide(env))
   }
 
   implicit object monoidk extends MonoidK[VModM] {
-    @inline def empty[Env]: VModM[Env]                                            = VModM.empty
+    @inline def empty[Env]: VModM[Env]                                  = VModM.empty
     @inline def combineK[Env](x: VModM[Env], y: VModM[Env]): VModM[Env] = VModM[Env](x, y)
   }
 
   @inline implicit def monoid[Env]: Monoid[VModM[Env]] = new VModMonoid[Env]
   @inline class VModMonoid[Env] extends Monoid[VModM[Env]] {
-    @inline def empty: VModM[Env]                                           = VModM.empty
+    @inline def empty: VModM[Env]                                 = VModM.empty
     @inline def combine(x: VModM[Env], y: VModM[Env]): VModM[Env] = VModM[Env](x, y)
     // @inline override def combineAll(x: Iterable[VModM[Env]]): VModM[Env] = VModM.composite[Env](x)
   }
@@ -163,8 +163,8 @@ object VModM {
 sealed trait DefaultModifier[-Env] extends VModM[Env] {
   final def append[R](args: VModM[R]*): VModM[Env with R]  = VModM(this, VModM.composite(args))
   final def prepend[R](args: VModM[R]*): VModM[Env with R] = VModM(VModM.composite(args), this)
-  final def provide(env: Env): VMod                             = ProvidedEnvModifier(this, env)
-  final def provideSome[R](map: R => Env): VModM[R]             = AccessEnvModifier[R](env => provide(map(env)))
+  final def provide(env: Env): VMod                        = ProvidedEnvModifier(this, env)
+  final def provideSome[R](map: R => Env): VModM[R]        = AccessEnvModifier[R](env => provide(map(env)))
 }
 
 sealed trait StaticVMod extends DefaultModifier[Any]
@@ -213,17 +213,16 @@ final case class DomPreUpdateHook(trigger: js.Function2[VNodeProxy, VNodeProxy, 
 
 final case class NextVMod(modifier: StaticVMod) extends StaticVMod
 
-case object EmptyModifier                                                       extends DefaultModifier[Any]
-final case class ErrorModifier(error: Throwable)                                extends DefaultModifier[Any]
-final case class CancelableModifier(subscription: () => Cancelable)             extends DefaultModifier[Any]
-final case class StringVNode(text: String)                                      extends DefaultModifier[Any]
-final case class ProvidedEnvModifier[Env](modifier: VModM[Env], env: Env)  extends DefaultModifier[Any]
-final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]]) extends DefaultModifier[Any]
-final case class AccessEnvModifier[-Env](modifier: Env => VMod)            extends DefaultModifier[Env]
-final case class CompositeModifier[-Env](modifiers: Iterable[VModM[Env]])  extends DefaultModifier[Env]
-final case class SyncEffectModifier[-Env](unsafeRun: () => VModM[Env])     extends DefaultModifier[Env]
-final case class StreamModifier[-Env](subscription: Observer[VModM[Env]] => Cancelable)
-    extends DefaultModifier[Env]
+case object EmptyModifier                                                               extends DefaultModifier[Any]
+final case class ErrorModifier(error: Throwable)                                        extends DefaultModifier[Any]
+final case class CancelableModifier(subscription: () => Cancelable)                     extends DefaultModifier[Any]
+final case class StringVNode(text: String)                                              extends DefaultModifier[Any]
+final case class ProvidedEnvModifier[Env](modifier: VModM[Env], env: Env)               extends DefaultModifier[Any]
+final case class ChildCommandsModifier(commands: Observable[Seq[ChildCommand]])         extends DefaultModifier[Any]
+final case class AccessEnvModifier[-Env](modifier: Env => VMod)                         extends DefaultModifier[Env]
+final case class CompositeModifier[-Env](modifiers: Iterable[VModM[Env]])               extends DefaultModifier[Env]
+final case class SyncEffectModifier[-Env](unsafeRun: () => VModM[Env])                  extends DefaultModifier[Env]
+final case class StreamModifier[-Env](subscription: Observer[VModM[Env]] => Cancelable) extends DefaultModifier[Env]
 
 sealed trait VNodeM[-Env] extends VModM[Env] {
   def apply[R](args: VModM[R]*): VNodeM[Env with R]

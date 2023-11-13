@@ -20,7 +20,7 @@ import scala.scalajs.js
 // This represents the structured definition of a VNodeProxy (like snabbdom expects it).
 private[outwatch] class SeparatedModifiers {
   var hasOnlyTextChildren                                                = true
-  var nextModifiers: js.UndefOr[js.Array[StaticVMod]]               = js.undefined
+  var nextModifiers: js.UndefOr[js.Array[StaticVMod]]                    = js.undefined
   var proxies: js.UndefOr[js.Array[VNodeProxy]]                          = js.undefined
   var attrs: js.UndefOr[js.Dictionary[DataObject.AttrValue]]             = js.undefined
   var props: js.UndefOr[js.Dictionary[DataObject.PropValue]]             = js.undefined
@@ -317,7 +317,7 @@ private[outwatch] object NativeModifiers {
         case EmptyModifier            => ()
         case c: CompositeModifier[R]  => c.modifiers.foreach(append(subscribables, modifiers, _, env, inStream))
         case h: DomHook if inStream   => mirrorStreamedDomHook(h).foreach(appendStatic)
-        case mod: StaticVMod     => appendStatic(mod)
+        case mod: StaticVMod          => appendStatic(mod)
         case child: VNodeM[R]         => appendStatic(VNodeProxyNode(SnabbdomOps.toSnabbdom(child.provide(env), config)))
         case child: StringVNode       => appendStatic(VNodeProxyNode(VNodeProxy.fromString(child.text)))
         case m: StreamModifier[R]     => appendStream(m)

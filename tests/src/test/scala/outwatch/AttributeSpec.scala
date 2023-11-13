@@ -107,9 +107,9 @@ class AttributeSpec extends JSDomSpec {
         VMod.prop("bar")                                       := "bar",
         VMod.prop("num")                                       := 12,
         VMod.style("baz")                                      := "baz",
-        contentEditable                                             := false,
-        unselectable                                                := false,
-        disabled                                                    := false,
+        contentEditable                                        := false,
+        unselectable                                           := false,
+        disabled                                               := false,
       ),
       RenderConfig.ignoreError,
     )
@@ -168,10 +168,10 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(
       input(
         VMod.style("color") := "red",
-        fontSize                 := "5px",
+        fontSize            := "5px",
       )(
         VMod.style("color") := "blue",
-        border                   := "1px solid black",
+        border              := "1px solid black",
       ),
       RenderConfig.ignoreError,
     )

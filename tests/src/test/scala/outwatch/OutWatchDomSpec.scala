@@ -2439,8 +2439,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       idAttr := "strings",
       myString.map { myString =>
         b(idAttr := "bla").thunk("component")(new Wrap(myString)) {
-          renderFnCounter    += 1
-          Seq[VMod](cls := "b", myString)
+          renderFnCounter += 1
+          Seq[VMod](cls   := "b", myString)
         }
       },
       b("something else"),
@@ -2865,9 +2865,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams (switchMap)" in {
-    val myString: Subject[String]        = Subject.replayLatest[String]()
-    val myId: Subject[String]            = Subject.replayLatest[String]()
-    val myInner: Subject[String]         = Subject.replayLatest[String]()
+    val myString: Subject[String]   = Subject.replayLatest[String]()
+    val myId: Subject[String]       = Subject.replayLatest[String]()
+    val myInner: Subject[String]    = Subject.replayLatest[String]()
     val myOther: Subject[VMod]      = Subject.replayLatest[VMod]()
     val thunkContent: Subject[VMod] = Subject.replayLatest[VMod]()
 
@@ -2896,7 +2896,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             .map[VNode](s => div(s, mountHooks))
             .prepend(b(idAttr <-- myId).thunk("component")(myString) {
               renderFnCounter += 1
-              VMod(cls   := "b", myString, mountHooks, thunkContent)
+              VMod(cls        := "b", myString, mountHooks, thunkContent)
             })
       },
       myOther,
@@ -3036,9 +3036,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams (flatMap)" in {
-    val myString: Subject[String]        = Subject.replayLatest[String]()
-    val myId: Subject[String]            = Subject.replayLatest[String]()
-    val myInner: Subject[String]         = Subject.replayLatest[String]()
+    val myString: Subject[String]   = Subject.replayLatest[String]()
+    val myId: Subject[String]       = Subject.replayLatest[String]()
+    val myInner: Subject[String]    = Subject.replayLatest[String]()
     val myOther: Subject[VMod]      = Subject.replayLatest[VMod]()
     val thunkContent: Subject[VMod] = Subject.replayLatest[VMod]()
 
@@ -3067,7 +3067,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             .map[VNode](s => div(s, mountHooks))
             .prepend(b(idAttr <-- myId).thunk("component")(myString) {
               renderFnCounter += 1
-              VMod(cls   := "b", myString, mountHooks, thunkContent)
+              VMod(cls        := "b", myString, mountHooks, thunkContent)
             })
       },
       myOther,
@@ -3207,9 +3207,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   }
 
   it should "work with streams" in {
-    val myString: Subject[String]        = Subject.replayLatest[String]()
-    val myId: Subject[String]            = Subject.replayLatest[String]()
-    val myInner: Subject[String]         = Subject.replayLatest[String]()
+    val myString: Subject[String]   = Subject.replayLatest[String]()
+    val myId: Subject[String]       = Subject.replayLatest[String]()
+    val myInner: Subject[String]    = Subject.replayLatest[String]()
     val myOther: Subject[VMod]      = Subject.replayLatest[VMod]()
     val thunkContent: Subject[VMod] = Subject.replayLatest[VMod]()
 
@@ -3239,7 +3239,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
               .map[VNode](s => div(s, mountHooks))
               .prepend(b(idAttr <-- myId).thunk("component")(myString) {
                 renderFnCounter += 1
-                VMod(cls   := "b", myString, mountHooks, thunkContent)
+                VMod(cls        := "b", myString, mountHooks, thunkContent)
               }),
           )
       },
