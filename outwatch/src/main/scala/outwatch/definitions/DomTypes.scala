@@ -12,9 +12,9 @@ import colibri.Observable
 import colibri.jsdom.EventObservable
 
 private[outwatch] object BuilderTypes {
-  type ReflectedAttribute[T, _]     = AttributeBuilder[T, VMod]
-  type Attribute[T]                 = AttributeBuilder[T, VMod]
-  type Property[T, _]               = AttributeBuilder[T, VMod]
+  type ReflectedAttribute[T, _]     = AttrBuilder[T, VMod]
+  type Attribute[T]                 = AttrBuilder[T, VMod]
+  type Property[T, _]               = AttrBuilder[T, VMod]
   type EventEmitter[E <: dom.Event] = EmitterBuilder.Sync[E, VMod]
   type HtmlTag[T]                   = HtmlVNode
   type SvgTag[T]                    = SvgVNode

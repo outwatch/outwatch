@@ -1,6 +1,6 @@
 package outwatch
 
-import outwatch.helpers.AttributeBuilder
+import outwatch.helpers.AttrBuilder
 
 import colibri._
 import colibri.effect._
@@ -217,10 +217,10 @@ object Render extends RenderLowPrio {
     @inline def render(builder: EmitterBuilder[VMod, VMod]) = builder.render
   }
 
-  @inline implicit def AttributeBuilderRender: Render[Any, AttributeBuilder[Boolean, VMod]] =
-    new AttributeBuilderRender
-  @inline private final class AttributeBuilderRender extends Render[Any, AttributeBuilder[Boolean, VMod]] {
-    @inline def render(builder: AttributeBuilder[Boolean, VMod]) = builder := true
+  @inline implicit def AttrBuilderRender: Render[Any, AttrBuilder[Boolean, VMod]] =
+    new AttrBuilderRender
+  @inline private final class AttrBuilderRender extends Render[Any, AttrBuilder[Boolean, VMod]] {
+    @inline def render(builder: AttrBuilder[Boolean, VMod]) = builder := true
   }
 
   @inline implicit def ChildCommandSourceRender[F[_]: Source]: Render[Any, F[ChildCommand]] =
