@@ -149,7 +149,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @deprecated("Use .asEval(value) instead", "")
   @inline final def mapTo[T](value: => T): EmitterBuilder[T, R] = asEval(value)
   @deprecated("Use .as(value) instead", "")
-  @inline final def apply[T](value: T): EmitterBuilder[T, R] = use(value)
+  @inline final def apply[T](value: T): EmitterBuilder[T, R] = as(value)
   @deprecated("Use .mapFuture(f) instead", "")
   @inline final def concatMapFuture[T](f: O => Future[T]): EmitterBuilder[T, R] = mapFuture(f)
   @deprecated("Use .mapEffect(f) instead", "")
