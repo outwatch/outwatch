@@ -534,12 +534,10 @@ object EmitterBuilder {
     latestEmitter: EmitterBuilder[T, R],
   ): EmitterBuilder[(O, T), SyncIO[R]] =
     new Custom[(O, T), SyncIO[R]]({ sink =>
-      import scala.scalajs.js
-
       SyncIO {
-        var lastValue: js.UndefOr[T] = js.undefined
+        var lastValue: Option[T] = None
         Monoid[R].combine(
-          latestEmitter.forwardTo(Observer.create[T](lastValue = _, sink.unsafeOnError)),
+          latestEmitter.forwardTo(Observer.create[T](v => lastValue = Some(v), sink.unsafeOnError)),
           sourceEmitter.forwardTo(
             Observer.create[O](
               { o =>
