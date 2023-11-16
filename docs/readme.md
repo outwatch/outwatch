@@ -465,7 +465,7 @@ case class Person(name: String, age: Int)
 
 // Type class instance for `Render`:
 object Person {
-  implicit object PersonRender extends Render[Person] {
+  implicit object PersonRender extends Render[Any, Person] {
     def render(person: Person): VMod = div(
       border := "2px dotted coral",
       padding := "10px",
