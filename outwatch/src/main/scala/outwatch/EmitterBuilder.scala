@@ -44,7 +44,9 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def -->(sink: Observer[O]): R                                                     = forwardTo(sink)
   @inline final def -->[F[_]: Sink, O2 >: O](sink: F[O2], @annotation.nowarn dummy: Unit = ()): R = forwardTo(sink)
 
+  @deprecated("Use .done instead", "")
   @inline final def discard: R = forwardTo(Observer.empty)
+  @inline final def done: R    = forwardTo(Observer.empty)
 
   @inline final def foreach(action: O => Unit): R = forwardTo(Observer.create(action))
   @deprecated("Use .doAction(action) instead", "")
@@ -54,7 +56,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def assign(action: O => Unit): R = foreach(action)
 
   @deprecated("Use .foreachEffect(action) instead", "")
-  @inline final def foreachSync[G[_]: RunSyncEffect](action: O => G[Unit]): R = mapSync(action).discard
+  @inline final def foreachSync[G[_]: RunSyncEffect](action: O => G[Unit]): R = mapSync(action).done
   @deprecated("Use .doEffect(action) instead", "")
   @inline final def doSync[G[_]: RunSyncEffect](action: G[Unit]): R = foreachSync(_ => action)
 
@@ -63,10 +65,10 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @deprecated("Use .doEffect(action) instead", "")
   @inline def doAsync[G[_]: RunEffect](action: G[Unit]): R = doEffect(action)
 
-  @inline def foreachEffect[G[_]: RunEffect](action: O => G[Unit]): R = mapEffect(action).discard
+  @inline def foreachEffect[G[_]: RunEffect](action: O => G[Unit]): R = mapEffect(action).done
   @inline def doEffect[G[_]: RunEffect](action: G[Unit]): R           = foreachEffect(_ => action)
 
-  @inline def foreachFuture(action: O => Future[Unit]): R = mapFuture(action).discard
+  @inline def foreachFuture(action: O => Future[Unit]): R = mapFuture(action).done
   @inline def doFuture(action: => Future[Unit]): R        = foreachFuture(_ => action)
 
   @deprecated("Use .foreachSingleEffect(action) instead", "")
@@ -79,38 +81,38 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline def doEffectSingleOrDrop[G[_]: RunEffect](action: G[Unit]): R = doSingleEffect(action)
 
   @inline def foreachSingleEffect[G[_]: RunEffect](action: O => G[Unit]): R =
-    singleMapEffect(action).discard
+    singleMapEffect(action).done
   @inline def doSingleEffect[G[_]: RunEffect](action: G[Unit]): R =
     foreachSingleEffect(_ => action)
 
   @inline def foreachSingleFuture(action: O => Future[Unit]): R =
-    singleMapFuture(action).discard
+    singleMapFuture(action).done
   @inline def doSingleFuture(action: => Future[Unit]): R =
     foreachSingleFuture(_ => action)
 
   @inline def foreachSwitchEffect[G[_]: RunEffect](action: O => G[Unit]): R =
-    switchMapEffect(action).discard
+    switchMapEffect(action).done
   @inline def doSwitchEffect[G[_]: RunEffect](action: G[Unit]): R =
     foreachSwitchEffect(_ => action)
 
   @inline def foreachSwitchFuture(action: O => Future[Unit]): R =
-    switchMapFuture(action).discard
+    switchMapFuture(action).done
   @inline def doSwitchFuture(action: => Future[Unit]): R =
     foreachSwitchFuture(_ => action)
 
   @inline def foreachParEffect[G[_]: RunEffect](action: O => G[Unit]): R =
-    parMapEffect(action).discard
+    parMapEffect(action).done
   @inline def doParEffect[G[_]: RunEffect](action: G[Unit]): R =
     foreachParEffect(_ => action)
 
   @inline def foreachParFuture(action: O => Future[Unit]): R =
-    parMapFuture(action).discard
+    parMapFuture(action).done
   @inline def doParFuture(action: Future[Unit]): R =
     foreachParFuture(_ => action)
 
   @inline def via[F[_]: Sink, O2 >: O](sink: F[O2]): EmitterBuilder[O, R] =
     transformSink[O](Observer.combine(_, Observer.lift(sink)))
-  @inline def dispatchWith(dispatcher: EventDispatcher[O]): R = transform(dispatcher.dispatch).discard
+  @inline def dispatchWith(dispatcher: EventDispatcher[O]): R = transform(dispatcher.dispatch).done
 
   @inline final def map[T](f: O => T): EmitterBuilder[T, R] = transformSink(_.contramap(f))
 
