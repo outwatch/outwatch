@@ -36,7 +36,7 @@ inThisBuild(
 )
 
 val jsdomVersion   = "13.2.0"
-val colibriVersion = "0.8.0"
+val colibriVersion = "0.8.1"
 
 val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
 lazy val commonSettings = Seq(
