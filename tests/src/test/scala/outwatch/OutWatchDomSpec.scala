@@ -2447,8 +2447,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       override def equals(other: Any) = {
         equalsCounter += 1
         other match {
-          case w: Wrap => s == w.s
-          case _       => false
+          case w: Wrap @unchecked => s == w.s
+          case _                  => false
         }
       }
     }
