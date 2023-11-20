@@ -36,7 +36,7 @@ inThisBuild(
 )
 
 val jsdomVersion   = "13.2.0"
-val colibriVersion = "0.8.1"
+val colibriVersion = "0.8.2"
 
 val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
 lazy val commonSettings = Seq(
@@ -44,6 +44,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalatest" %%% "scalatest" % "3.2.17" % Test,
   ),
+  Test / scalacOptions --= Seq("-Xlint:infer-any"), // does not work well with Env type
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 
   libraryDependencies ++= (if (isDotty.value) Nil
