@@ -97,7 +97,6 @@ jobs:
           path: "**/target"
           key: ${{ runner.os }}-scala-target-${{ github.sha }}
 
-      - uses: olafurpg/setup-gpg@v3
       - name: Publish
         run: sbt version "git status" ci-release "git status"
         env:
