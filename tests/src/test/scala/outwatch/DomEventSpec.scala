@@ -600,8 +600,8 @@ class DomEventSpec extends JSDomAsyncSpec {
 
     val node = div(
       idAttr := "click",
-      onClick.filter(_ => true).preventDefault.map(_ => 4).discard,
-      onClick.preventDefault.map(_ => 3).discard,
+      onClick.filter(_ => true).preventDefault.map(_ => 4).done,
+      onClick.preventDefault.map(_ => 3).done,
     )
 
     for {

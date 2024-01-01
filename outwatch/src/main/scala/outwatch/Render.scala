@@ -17,18 +17,6 @@ trait Render[-T] {
 trait RenderLowPrio1 {
   import RenderOps._
 
-  implicit val IOUnitRender: Render[IO[Unit]] = new Render[IO[Unit]] {
-    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
-  }
-
-  implicit val IORender: Render[IO[VMod]] = new Render[IO[VMod]] {
-    @inline def render(effect: IO[VMod]) = effectToModifier(effect)
-  }
-}
-
-trait RenderLowPrio0 extends RenderLowPrio1 {
-  import RenderOps._
-
   @inline implicit def EffectRender[F[_]: RunEffect]: Render[F[VMod]] = new EffectRenderClass[F]
   @inline private class EffectRenderClass[F[_]: RunEffect] extends Render[F[VMod]] {
     @inline def render(effect: F[VMod]) = effectToModifier(effect)
@@ -39,23 +27,9 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
     @inline def render(effect: F[T]) = effectToModifierRender(effect)
   }
 
-  implicit val SyncIOUnitRender: Render[SyncIO[Unit]] = new Render[SyncIO[Unit]] {
-    @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
-  }
-
-  @inline implicit def IOUnitRenderIORuntime(implicit ioRuntime: unsafe.IORuntime): Render[IO[Unit]] =
-    new IOUnitRenderIORuntimeClass
-  @inline private class IOUnitRenderIORuntimeClass(implicit ioRuntime: unsafe.IORuntime) extends Render[IO[Unit]] {
-    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
-  }
-
   @inline implicit def EffectUnitRender[F[_]: RunEffect]: Render[F[Unit]] = new EffectUnitRenderClass[F]
   @inline private class EffectUnitRenderClass[F[_]: RunEffect] extends Render[F[Unit]] {
     @inline def render(source: F[Unit]) = VMod.managedSubscribe(Observable.fromEffect(source))
-  }
-
-  implicit val ObservableUnitRender: Render[Observable[Unit]] = new Render[Observable[Unit]] {
-    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
   }
 
   @inline implicit def SourceUnitRender[F[_]: Source]: Render[F[Unit]] = new SourceUnitRenderClass[F]
@@ -64,8 +38,34 @@ trait RenderLowPrio0 extends RenderLowPrio1 {
   }
 }
 
+trait RenderLowPrio0 extends RenderLowPrio1 {
+  import RenderOps._
+
+  implicit val SyncIOUnitRender: Render[SyncIO[Unit]] = new Render[SyncIO[Unit]] {
+    @inline def render(effect: SyncIO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit val IOUnitRender: Render[IO[Unit]] = new Render[IO[Unit]] {
+    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
+
+  implicit val IORender: Render[IO[VMod]] = new Render[IO[VMod]] {
+    @inline def render(effect: IO[VMod]) = effectToModifier(effect)
+  }
+
+  implicit val ObservableUnitRender: Render[Observable[Unit]] = new Render[Observable[Unit]] {
+    @inline def render(source: Observable[Unit]) = VMod.managedSubscribe(source)
+  }
+}
+
 trait RenderLowPrio extends RenderLowPrio0 {
   import RenderOps._
+
+  @inline implicit def IOUnitRenderIORuntime(implicit ioRuntime: unsafe.IORuntime): Render[IO[Unit]] =
+    new IOUnitRenderIORuntimeClass
+  @inline private class IOUnitRenderIORuntimeClass(implicit ioRuntime: unsafe.IORuntime) extends Render[IO[Unit]] {
+    @inline def render(effect: IO[Unit]) = VMod.managedSubscribe(Observable.fromEffect(effect))
+  }
 
   @inline implicit def JsArrayModifierAs[T: Render]: Render[js.Array[T]] = new JsArrayRenderAsClass[T]
   @inline private class JsArrayRenderAsClass[T: Render] extends Render[js.Array[T]] {

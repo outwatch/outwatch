@@ -2447,8 +2447,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       override def equals(other: Any) = {
         equalsCounter += 1
         other match {
-          case w: Wrap => s == w.s
-          case _       => false
+          case w: Wrap @unchecked => s == w.s
+          case _                  => false
         }
       }
     }
@@ -3677,13 +3677,9 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
   it should "configure modifier with different RenderConfig" in {
 
-    val outerRenderConfig = RenderConfig(
-      error => div(s"outer: $error")
-    )
+    val outerRenderConfig = RenderConfig(error => div(s"outer: $error"))
 
-    val innerRenderConfig = RenderConfig(
-      error => div(s"inner: $error")
-    )
+    val innerRenderConfig = RenderConfig(error => div(s"inner: $error"))
 
     case class MyException(value: String) extends Throwable {
       override def toString() = value
@@ -3695,7 +3691,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     val node = div(
       idAttr := "strings",
       VMod.raiseError(outerException),
-      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig)
+      VMod.configured(VMod.raiseError(innerException))(_ => innerRenderConfig),
     )
 
     var errors = List.empty[Throwable]
@@ -3854,7 +3850,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
     } yield succeed
   }
 
-  "Rx component" should "work" in Owned(SyncIO {
+  "Rx component" should "work" in {
 
     var liveCounter = 0
 
@@ -3891,44 +3887,42 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       _ = element.innerHTML shouldBe "2. du"
       _ = liveCounter shouldBe 3
     } yield succeed
-  }).unsafeRunSync()
+  }
 
   "Nested rx component" should "work" in {
     case class Modal(val content: String, val size: Option[Int])
-    Owned(SyncIO {
 
-      val modal: Var[Modal] = Var(Modal("hallo", None))
+    val modal: Var[Modal] = Var(Modal("hallo", None))
 
-      val content = modal.map(_.content)
+    val content = modal.map(_.content)
 
-      val size = modal.map(_.size match {
-        case Some(w) => VMod(w)
-        case None    => VMod.empty
-      })
+    val size = modal.map(_.size match {
+      case Some(w) => VMod(w)
+      case None    => VMod.empty
+    })
 
-      val node = div(
-        idAttr := "test",
-        content.map(str => div(str, size)),
-      )
+    val node = div(
+      idAttr := "test",
+      content.map(str => div(str, size)),
+    )
 
-      for {
-        _ <- Outwatch.renderInto[IO]("#app", node)
+    for {
+      _ <- Outwatch.renderInto[IO]("#app", node)
 
-        element <- IO(document.getElementById("test"))
+      element <- IO(document.getElementById("test"))
 
-        _ = element.innerHTML shouldBe """<div>hallo</div>"""
+      _ = element.innerHTML shouldBe """<div>hallo</div>"""
 
-        _  = modal.set(Modal("hallo", Some(1)))
-        _ <- IO.cede
+      _  = modal.set(Modal("hallo", Some(1)))
+      _ <- IO.cede
 
-        _ = element.innerHTML shouldBe """<div>hallo1</div>"""
+      _ = element.innerHTML shouldBe """<div>hallo1</div>"""
 
-        _  = modal.set(Modal("huhu", None))
-        _ <- IO.cede
+      _  = modal.set(Modal("huhu", None))
+      _ <- IO.cede
 
-        _ = element.innerHTML shouldBe """<div>huhu</div>"""
-      } yield succeed
-    }).unsafeRunSync()
+      _ = element.innerHTML shouldBe """<div>huhu</div>"""
+    } yield succeed
   }
 
   it should "work complex" in {
@@ -3936,7 +3930,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
 
     val currentModal: Var[Option[Modal]] = Var(None)
 
-    val node = Owned(
+    val node =
       div(
         idAttr := "test",
         currentModal.sequence.map {
@@ -3952,8 +3946,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             content.map(str => div(str, size))
           }
         },
-      ),
-    )
+      )
 
     for {
       _ <- Outwatch.renderInto[IO]("#app", node)

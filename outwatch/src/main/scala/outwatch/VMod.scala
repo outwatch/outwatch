@@ -109,11 +109,11 @@ object VMod {
   @inline def delay[T: Render](modifier: => T): VMod     = eval(modifier)
   @inline def eval[T: Render](modifier: => T): VMod      = SyncEffectModifier(() => modifier)
   @inline def composite(modifiers: Iterable[VMod]): VMod = CompositeModifier(modifiers.toJSArray)
-  @inline def raiseError[T](error: Throwable): VMod      = ErrorModifier(error)
+  @inline def raiseError(error: Throwable): VMod         = ErrorModifier(error)
 
-  @inline def catchError[T](modifier: VMod)(recover: Throwable => VMod): VMod =
+  @inline def catchError(modifier: VMod)(recover: Throwable => VMod): VMod =
     configured(modifier)(_.copy(errorModifier = recover))
-  @inline def configured[T](modifier: VMod)(configure: RenderConfig => RenderConfig): VMod =
+  @inline def configured(modifier: VMod)(configure: RenderConfig => RenderConfig): VMod =
     ConfiguredModifier(modifier, configure)
 
   @deprecated("Use VMod.when(condition)(...) instead", "")
@@ -217,7 +217,7 @@ object VNode {
   @inline def html(name: String): VNode = HtmlVNode(name, emptyModifierArray)
   @inline def svg(name: String): VNode  = SvgVNode(name, emptyModifierArray)
 
-  @inline def raiseError[T](error: Throwable): VNode = dsl.div(VMod.raiseError(error))
+  @inline def raiseError(error: Throwable): VNode = dsl.div(VMod.raiseError(error))
 
   @inline def fromEither(modifier: Either[Throwable, VNode]): VNode    = modifier.fold(raiseError(_), identity)
   @inline def evalEither(modifier: => Either[Throwable, VNode]): VNode = SyncEffectVNode(() => fromEither(modifier))
