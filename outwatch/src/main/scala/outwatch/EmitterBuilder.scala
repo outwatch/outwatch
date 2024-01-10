@@ -2,6 +2,7 @@ package outwatch
 
 import cats.{Bifunctor, Functor, Monoid}
 import cats.effect.{IO, Sync, SyncIO}
+import cats.implicits._
 import colibri._
 import colibri.effect._
 
@@ -169,7 +170,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
 
   @deprecated("Use .asFuture(value) instead", "")
   @inline final def useFuture[T](value: => Future[T]): EmitterBuilder[T, R] = asFuture(value)
-  @inline final def asFuture[T](value: => Future[T]): EmitterBuilder[T, R] = mapFuture(_ => value)
+  @inline final def asFuture[T](value: => Future[T]): EmitterBuilder[T, R]  = mapFuture(_ => value)
   @inline final def withFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
     mapFuture(x => value.map(x -> _)(ExecutionContext.parasitic))
 
@@ -243,14 +244,14 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
 
   @deprecated("Use .asScan(seed)(f) instead", "")
   @inline final def useScan[T](seed: T)(f: T => T): EmitterBuilder[T, R] = asScan(seed)(f)
-  @inline final def asScan[T](seed: T)(f: T => T): EmitterBuilder[T, R] = scan(seed)((t, _) => f(t))
+  @inline final def asScan[T](seed: T)(f: T => T): EmitterBuilder[T, R]  = scan(seed)((t, _) => f(t))
 
   def scan0[T](seed: T)(f: (T, O) => T): EmitterBuilder[T, R] =
     transform[T](source => source.scan0(seed)(f))
 
   @deprecated("Use .asScan0(seed)(f) instead", "")
   @inline final def useScan0[T](seed: T)(f: T => T): EmitterBuilder[T, R] = asScan0(seed)(f)
-  @inline final def asScan0[T](seed: T)(f: T => T): EmitterBuilder[T, R] = scan0(seed)((t, _) => f(t))
+  @inline final def asScan0[T](seed: T)(f: T => T): EmitterBuilder[T, R]  = scan0(seed)((t, _) => f(t))
 
   def debounce(duration: FiniteDuration): EmitterBuilder[O, R] =
     transform[O](source => source.debounce(duration))
@@ -611,7 +612,24 @@ trait EventDispatcher[-T] {
   def dispatch(source: Observable[T]): Observable[Unit]
 }
 object EventDispatcher {
-  def ofModelUpdate[M, T](subject: Subject[M], update: (T, M) => M) = new EventDispatcher[T] {
-    def dispatch(source: Observable[T]) = source.withLatestMap(subject)(update).to(subject)
+  trait Callback[T] extends EventDispatcher[T] {
+    def dispatchOne(value: T): Unit
+    final def dispatch(source: Observable[T]) = source.map(dispatchOne)
+  }
+  trait CallbackIO[T] extends EventDispatcher[T] {
+    def dispatchOne(value: T): IO[Unit]
+    final def dispatch(source: Observable[T]) = source.mapEffect(dispatchOne)
+  }
+  trait ModelUpdate[M, T] extends EventDispatcher[T] {
+    def model: Subject[M]
+    def modelUpdate(current: M, value: T): M
+    final def dispatch(source: Observable[T]) =
+      source.withLatestMap(model)((value, current) => modelUpdate(current, value)).to(model)
+  }
+  trait ModelUpdateIO[M, T] extends EventDispatcher[T] {
+    def model: Subject[M]
+    def modelUpdate(current: M, value: T): IO[M]
+    final def dispatch(source: Observable[T]) =
+      source.withLatest(model).mapEffect { case (value, current) => modelUpdate(current, value) }.to(model)
   }
 }

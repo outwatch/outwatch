@@ -4,7 +4,7 @@ import outwatch.helpers.NativeHelpers._
 import snabbdom.{DataObject, VNodeProxy}
 import colibri._
 import colibri.effect._
-import cats.{Monoid, MonoidK}
+import cats.{Functor, Monoid, MonoidK}
 import cats.syntax.functor._
 import cats.effect.Sync
 import org.scalajs.dom
@@ -19,6 +19,8 @@ sealed trait VModM[-Env] {
 
   def provide(env: Env): VModM[Any]
   def provideSome[R](map: R => Env): VModM[R]
+  final def provideSomeF[F[+_]: Functor, R](map: R => F[Env])(implicit render: Render[Any, F[VMod]]): VModM[R] =
+    AccessEnvModifier[R](env => render.render(map(env).map(provide(_))))
 }
 
 object VModM {
