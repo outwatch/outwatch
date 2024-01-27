@@ -76,7 +76,6 @@ Add the outwatch dependencies to your `build.sbt`:
 enablePlugins(ScalaJSPlugin)
 enablePlugins(ScalaJSBundlerPlugin)
 
-resolvers += "jitpack" at "https://jitpack.io"
 val outwatchVersion = "<latest outwatch version>"
 libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % outwatchVersion,
