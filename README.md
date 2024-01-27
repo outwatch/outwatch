@@ -83,7 +83,7 @@ libraryDependencies ++= Seq(
   // optional dependencies:
   "com.github.cornerman" %%% "colibri-zio"       % "0.7.6", // zio support
   "com.github.cornerman" %%% "colibri-fs2"       % "0.7.6", // fs2 support
-  "com.github.cornerman" %%% "colibri-airstream" % "0.7.6", // sirstream support
+  "com.github.cornerman" %%% "colibri-airstream" % "0.7.6", // airstream support
   "com.github.cornerman" %%% "colibri-rx"        % "0.7.6", // scala.rx support
   "com.github.cornerman" %%% "colibri-router"    % "0.7.6", // Url Router support
 )
