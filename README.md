@@ -76,14 +76,13 @@ Add the outwatch dependencies to your `build.sbt`:
 enablePlugins(ScalaJSPlugin)
 enablePlugins(ScalaJSBundlerPlugin)
 
-resolvers += "jitpack" at "https://jitpack.io"
 val outwatchVersion = "<latest outwatch version>"
 libraryDependencies ++= Seq(
   "io.github.outwatch"   %%% "outwatch"          % outwatchVersion,
   // optional dependencies:
   "com.github.cornerman" %%% "colibri-zio"       % "0.7.6", // zio support
   "com.github.cornerman" %%% "colibri-fs2"       % "0.7.6", // fs2 support
-  "com.github.cornerman" %%% "colibri-airstream" % "0.7.6", // sirstream support
+  "com.github.cornerman" %%% "colibri-airstream" % "0.7.6", // airstream support
   "com.github.cornerman" %%% "colibri-rx"        % "0.7.6", // scala.rx support
   "com.github.cornerman" %%% "colibri-router"    % "0.7.6", // Url Router support
 )
