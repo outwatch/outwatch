@@ -28,38 +28,57 @@ Changes to the code will trigger a recompile and automatically refresh the page 
 
 
 ### Create a project from scratch
+
 Make sure that `java`, `sbt`, `nodejs` and `yarn` are installed.
-Create a new SBT project and add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
+
+Create a new SBT project and add outwatch to your library dependencies in your `build.sbt`:
+```sbt
+libraryDependencies ++= Seq(
+  "io.github.outwatch"   %%% "outwatch"          % "<latest outwatch version>",
+  // optional dependencies:
+  "com.github.cornerman" %%% "colibri-zio"       % "x.x.x", // zio support
+  "com.github.cornerman" %%% "colibri-fs2"       % "x.x.x", // fs2 support
+  "com.github.cornerman" %%% "colibri-airstream" % "x.x.x", // airstream support
+  "com.github.cornerman" %%% "colibri-rx"        % "x.x.x", // scala.rx support
+  "com.github.cornerman" %%% "colibri-router"    % "x.x.x", // Url Router support
+)
+```
+
+You may decide whether you want to use vite or webpack for bundling and post processing your javascript project.
+
+#### vite (recommended)
+
+TODO
+
+#### webpack with scalajs-bundler
+
+Add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
 ```scala
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.x.x")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "x.x.x")
 ```
 
-Add the outwatch dependencies to your `build.sbt`:
+Setup scalajs-bundler in your `build.sbt`:
 ```scala
-libraryDependencies ++= Seq(
-  "io.github.outwatch"   %%% "outwatch"          % "@VERSION@",
-  // optional dependencies:
-  "com.github.cornerman" %%% "colibri-zio"       % "0.5.0", // zio support
-  "com.github.cornerman" %%% "colibri-fs2"       % "0.5.0", // fs2 support
-  "com.github.cornerman" %%% "colibri-airstream" % "0.5.0", // sirstream support
-  "com.github.cornerman" %%% "colibri-rx"        % "0.5.0", // scala.rx support
-  "com.github.cornerman" %%% "colibri-router"    % "0.5.0", // Url Router support
-)
-
+enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+useYarn := true // Makes scalajs-bundler use yarn instead of npm
+scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)) // configure Scala.js to emit a JavaScript module instead of a top-level script
+scalaJSUseMainModuleInitializer := true // On Startup, call the main function
 ```
 
-Enable the `scalajs-bundler` plugin:
-```scala
-enablePlugins(ScalaJSPlugin)
-enablePlugins(ScalaJSBundlerPlugin)
+Now you can compile your scala code to javascript and bundle it together with their javascript dependencies:
+```bash
+sbt fastOptJS/webpack # development build
+sbt fullOptJS/webpack # production build
 ```
+
+You will find the resulting javascript files here: `target/scala-*/scalajs-bundler/main/webapp-fastopt.js` and `webapp-opt.js`.
+
+See here for further documentation: https://github.com/scalacenter/scalajs-bundler
 
 To configure hot reloading with webpack devserver, check out [build.sbt](https://github.com/Outwatch/seed.g8/blob/master/src/main/g8/build.sbt) and [webpack.config.dev.js](https://github.com/Outwatch/seed.g8/blob/master/src/main/g8/webpack.config.dev.js) from the [g8 template](https://github.com/Outwatch/seed.g8).
 
 If anything is not working, cross-check how things are done in the template.
-
-We're using [JitPack](https://jitpack.io) to release the libraries. With JitPack you can easily try the latest features from specific commits on `master`, other branches or PRs. Just point `outwatchVersion` to a specific commit.
 
 ### Use common javascript libraries with Outwatch
 
