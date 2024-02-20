@@ -1669,14 +1669,14 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
           div(
             i,
             onSnabbdomPostPatch.doAction { patched += 1 },
-            onSnabbdomInsert.doAction { inserted += 1 },
+            onSnabbdomInsert.doAction { inserted   += 1 },
             onSnabbdomDestroy.doAction { destroyed += 1 },
           ),
       ),
       div(
         "heinz",
-        onSnabbdomPostPatch.doAction { patchedHeinz += 1 },
-        onSnabbdomInsert.doAction { insertedHeinz += 1 },
+        onSnabbdomPostPatch.doAction { patchedHeinz  += 1 },
+        onSnabbdomInsert.doAction { insertedHeinz    += 1 },
         onSnabbdomDestroy.doAction { uninsertedHeinz += 1 },
       ),
       handler2.map(i =>
@@ -1684,15 +1684,15 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
         else
           div(
             i,
-            onSnabbdomPostPatch.doAction { patched2 += 1 },
-            onSnabbdomInsert.doAction { inserted2 += 1 },
+            onSnabbdomPostPatch.doAction { patched2  += 1 },
+            onSnabbdomInsert.doAction { inserted2    += 1 },
             onSnabbdomDestroy.doAction { uninserted2 += 1 },
           ),
       ),
       div(
         "klara",
-        onSnabbdomPostPatch.doAction { patchedKlara += 1 },
-        onSnabbdomInsert.doAction { insertedKlara += 1 },
+        onSnabbdomPostPatch.doAction { patchedKlara  += 1 },
+        onSnabbdomInsert.doAction { insertedKlara    += 1 },
         onSnabbdomDestroy.doAction { uninsertedKlara += 1 },
       ),
     )
@@ -2383,10 +2383,10 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
           VMod(
             cls := "b",
             myString,
-            onDomMount.doAction { mountCount += 1 },
+            onDomMount.doAction { mountCount         += 1 },
             onDomPreUpdate.doAction { preupdateCount += 1 },
-            onDomUpdate.doAction { updateCount += 1 },
-            onDomUnmount.doAction { unmountCount += 1 },
+            onDomUpdate.doAction { updateCount       += 1 },
+            onDomUnmount.doAction { unmountCount     += 1 },
           )
         }
       },
