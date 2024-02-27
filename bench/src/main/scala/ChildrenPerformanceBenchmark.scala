@@ -31,8 +31,7 @@ object ChildrenPerformance {
     import scala.concurrent.duration._
     setupJsDom()
 
-    bench.util.runComparison(childrenBenchmark, List(100), 5.minutes)
-    ()
+    bench.util.runComparison(childrenBenchmark, List(100), 5.minutes): Unit
   }
 
   val childrenBenchmark = Comparison(
@@ -74,8 +73,7 @@ object ChildrenPerformance {
     // prepare body with <div id="app"></div>
     val root = document.createElement("div")
     root.id = "app"
-    document.body.appendChild(root)
-    ()
+    document.body.appendChild(root): Unit
   }
 
   def runChildren(size: Int): Unit = {
@@ -117,7 +115,7 @@ object ChildrenPerformance {
     )
 
     val node = document.createElement("div")
-    document.body.appendChild(node)
+    document.body.appendChild(node): Unit
 
     Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
@@ -167,7 +165,7 @@ object ChildrenPerformance {
     )
 
     val node = document.createElement("div")
-    document.body.appendChild(node)
+    document.body.appendChild(node): Unit
 
     Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
@@ -208,7 +206,7 @@ object ChildrenPerformance {
     )
 
     val node = document.createElement("div")
-    document.body.appendChild(node)
+    document.body.appendChild(node): Unit
 
     Outwatch.renderInto[SyncIO](node, vtree).unsafeRunSync()
 
