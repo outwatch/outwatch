@@ -25,6 +25,11 @@ trait AttrBuilder[-T, +A] extends Any {
   final def :=?(value: Option[T]): Option[A] = :=(value)
   @deprecated("Use <-- instead", "")
   final def <--?[F[_]: Source, T2 <: Option[T]](source: F[T2]): Observable[Option[A]] = <--(source)
+
+  @inline final def asFunctionOf[R](value: R): AttrBuilder[R => T, A] = AttrBuilder(f => assign(f(value)))
+
+  @inline final def mapAttr[RA](f: A => RA): AttrBuilder[T, RA] = AttrBuilder(t => f(assign(t)))
+  // @inline final def contramap[S](f: S => T): AttrBuilder[S, A]    = AttrBuilder(s => assign(f(s)))
 }
 
 object AttrBuilder {
@@ -32,9 +37,36 @@ object AttrBuilder {
     def assign(value: T): A = create(value)
   }
 
-  @inline def ofModifier[T](create: T => VMod): AttrBuilder[T, VMod] = apply[T, VMod](create)
+  @inline def ofModifier[T](create: T => VMod): AttrBuilder[T, VMod]                   = ofModifierM[Any, T](create)
+  @inline def ofVNode[T](create: T => VNode): AttrBuilder[T, VNode]                    = ofVNodeM[Any, T](create)
+  @inline def ofModifierM[Env, T](create: T => VModM[Env]): AttrBuilder[T, VModM[Env]] = apply(create)
+  @inline def ofVNodeM[Env, T](create: T => VNodeM[Env]): AttrBuilder[T, VNodeM[Env]]  = apply(create)
 
-  @inline def ofNode[T](create: T => VNode): AttrBuilder[T, VNode] = apply[T, VNode](create)
+  @inline def access[Env] = new PartiallyAppliedAccess[Env]
+  @inline class PartiallyAppliedAccess[Env] {
+    @inline def apply[T, A[-_]](
+      builder: Env => AttrBuilder[T, A[Any]],
+    )(implicit acc: AccessEnvironment[A]): AttrBuilder[T, A[Env]] =
+      AttrBuilder[T, A[Env]](t => AccessEnvironment[A].access[Env](env => builder(env).assign(t)))
+  }
+  @inline def accessM[Env] = new PartiallyAppliedAccessM[Env]
+  @inline class PartiallyAppliedAccessM[Env] {
+    @inline def apply[R, T, A[-_]](builder: Env => AttrBuilder[T, A[R]])(implicit
+      acc: AccessEnvironment[A],
+    ): AttrBuilder[T, A[Env with R]] = access(env => builder(env).provide(env))
+  }
+
+  @inline implicit class AccessEnvironmentOperations[Env, T, A[-_]](builder: AttrBuilder[T, A[Env]])(implicit
+    acc: AccessEnvironment[A],
+  ) {
+    @inline final def provide(env: Env): AttrBuilder[T, A[Any]] =
+      builder.mapAttr(r => AccessEnvironment[A].provide(r)(env))
+    @inline final def provideSome[REnv](map: REnv => Env): AttrBuilder[T, A[REnv]] =
+      builder.mapAttr(r => AccessEnvironment[A].provideSome(r)(map))
+
+    @inline final def asAccessFunction[REnv]: AttrBuilder[REnv => T, A[Env with REnv]] =
+      AttrBuilder.accessM[REnv](builder.asFunctionOf)
+  }
 
   // Attr
 

@@ -32,7 +32,7 @@ object ChildCommand {
 
   def stream(valueStream: Observable[Seq[ChildCommand]], config: RenderConfig): VMod = VMod.eval {
     val children         = new js.Array[VNodeProxyNode]
-    val childrenModifier = VMod.composite(children)
+    val childrenModifier = VMod.composite[Any](children)
 
     def isSaneIndex(index: Int): Boolean = index >= 0 && index < children.length
 

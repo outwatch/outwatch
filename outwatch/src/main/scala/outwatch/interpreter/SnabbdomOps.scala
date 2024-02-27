@@ -58,6 +58,7 @@ private[outwatch] object SnabbdomOps {
     case n: ThunkVNode       => getBaseNode(n.baseNode)
     case n: ConditionalVNode => getBaseNode(n.baseNode)
     case n: SyncEffectVNode  => getBaseNode(n.unsafeRun())
+    case n: AccessEnvVNode   => getBaseNode(n.node(()))
   }
 
   def getNamespace(node: BasicVNode): js.UndefOr[String] = node match {
@@ -88,6 +89,8 @@ private[outwatch] object SnabbdomOps {
       )
     case node: SyncEffectVNode =>
       toSnabbdom(node.unsafeRun(), config)
+    case node: AccessEnvVNode =>
+      toSnabbdom(node.node(()), config)
   }
 
   private val newNodeId: () => Int = {
