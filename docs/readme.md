@@ -6,26 +6,15 @@ We hope you enjoy this documentation. If you find something that can be improved
 ## Getting started
 
 ### Start with a template
-For a quick start, install `java`, `sbt`, `nodejs`, `yarn` and `github-cli` (optionally) and use the following github template:
 
-```shell
-# create new repo on github based on this template
-gh repo create my-first-outwatch-project --template outwatch/example --public --clone
+#### Scala3 + Mill + Vite
 
-# if you want to just get the template locally without creating a github repo:
-git clone --depth 1 https://github.com/outwatch/example my-first-outwatch-project
+https://github.com/outwatch/example-mill-vite
 
-```
 
-In your newly created project folder, run:
-```bash
-sbt dev
-```
+#### Scala3 + SBT + ScalaJSBundler
 
-Now point your browser to http://localhost:12345.
-
-Changes to the code will trigger a recompile and automatically refresh the page in the browser.
-
+https://github.com/outwatch/example
 
 ### Create a project from scratch
 
@@ -48,9 +37,9 @@ You may decide whether you want to use vite or webpack for bundling and post pro
 
 #### vite (recommended)
 
-TODO
+Have a look at this example: https://github.com/outwatch/example-mill-vite
 
-#### webpack with scalajs-bundler
+#### webpack with scalajs-bundler (legacy)
 
 Add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
 ```scala
