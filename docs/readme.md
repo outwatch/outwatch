@@ -12,7 +12,7 @@ We hope you enjoy this documentation. If you find something that can be improved
 https://github.com/outwatch/example-mill-vite
 
 
-#### Scala3 + SBT + ScalaJSBundler
+#### Scala2 + SBT + ScalaJSBundler
 
 https://github.com/outwatch/example
 
