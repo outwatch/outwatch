@@ -201,7 +201,7 @@ final case class StringVNode(text: String)                                      
 final case class ConfiguredModifier(modifier: VMod, configure: RenderConfig => RenderConfig) extends VMod
 
 sealed trait VNode extends VMod {
-  def apply(args: VMod*): VNode
+  @inline final def apply(args: VMod*): VNode = append(args: _*)
   def append(args: VMod*): VNode
   def prepend(args: VMod*): VNode
 
@@ -246,7 +246,6 @@ sealed trait BasicVNode extends VNode {
   arguments: js.Array[Any],
   renderFn: () => VMod,
 ) extends VNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(baseNode = baseNode(args: _*))
   @inline def prepend(args: VMod*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
@@ -256,22 +255,18 @@ sealed trait BasicVNode extends VNode {
   shouldRender: Boolean,
   renderFn: () => VMod,
 ) extends VNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(baseNode = baseNode(args: _*))
   @inline def prepend(args: VMod*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VMod]) extends BasicVNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(modifiers = appendSeq(modifiers, args))
   @inline def prepend(args: VMod*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VMod]) extends BasicVNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(modifiers = appendSeq(modifiers, args))
   @inline def prepend(args: VMod*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SyncEffectVNode(unsafeRun: () => VNode) extends VNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = SyncEffectVNode(() => unsafeRun().append(args))
   @inline def prepend(args: VMod*): VNode = SyncEffectVNode(() => unsafeRun().prepend(args))
 }
