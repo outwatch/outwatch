@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        scalaVersion: ["2.13.12", "3.3.3"]
+        scalaVersion: ["2.13.13", "3.3.3"]
     runs-on: ubuntu-20.04
     env:
       JAVA_OPTS: -Xms4096M -Xmx4096M -Xss6M
