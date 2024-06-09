@@ -4,7 +4,7 @@ inThisBuild(
   Seq(
     organization       := "io.github.outwatch",
     scalaVersion       := crossScalaVersions.value.last,
-    crossScalaVersions := Seq("2.13.12", "3.3.1"),
+    crossScalaVersions := Seq("2.13.13", "3.3.3"),
     licenses           += ("Apache 2", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
     homepage           := Some(url("https://outwatch.github.io/")),
     scmInfo := Some(
@@ -36,20 +36,20 @@ inThisBuild(
 )
 
 val jsdomVersion   = "13.2.0"
-val colibriVersion = "0.8.1"
+val colibriVersion = "0.8.4"
 
 val isDotty = Def.setting(CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3))
 lazy val commonSettings = Seq(
   useYarn := true,
   libraryDependencies ++= Seq(
-    "org.scalatest" %%% "scalatest" % "3.2.17" % Test,
+    "org.scalatest" %%% "scalatest" % "3.2.18" % Test,
   ),
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 
   libraryDependencies ++= (if (isDotty.value) Nil
                            else
                              Seq(
-                               compilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.2").cross(CrossVersion.full)),
+                               compilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.3").cross(CrossVersion.full)),
                              )),
 )
 
