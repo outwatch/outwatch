@@ -89,12 +89,10 @@ private[outwatch] object SeparatedModifiers {
       case VNodeProxyNode(proxy) =>
         hasOnlyTextChildren = hasOnlyTextChildren && proxy.data.isEmpty && proxy.text.isDefined
         val proxies = assureProxies()
-        proxies += proxy
-        ()
+        (proxies += proxy): Unit
       case a: BasicAttr =>
         val attrs = assureAttrs()
         attrs(a.title) = a.value
-        ()
       case a: AccumAttr =>
         val attrs                        = assureAttrs()
         val attr: js.UndefOr[Attr.Value] = attrs.raw(a.title)
@@ -103,24 +101,18 @@ private[outwatch] object SeparatedModifiers {
         } { (attr: Attr.Value) =>
           attrs(a.title) = config.accumAttrHook(a, attr)
         }
-        ()
       case p: Prop =>
         val props = assureProps()
         props(p.title) = p.value
-        ()
       case s: BasicStyle =>
         val styles = assureStyles()
         styles(s.title) = s.value
-        ()
       case s: DelayedStyle =>
         setSpecialStyle(StyleKey.delayed)(s.title, s.value)
-        ()
       case s: RemoveStyle =>
         setSpecialStyle(StyleKey.remove)(s.title, s.value)
-        ()
       case s: DestroyStyle =>
         setSpecialStyle(StyleKey.destroy)(s.title, s.value)
-        ()
       case a: AccumStyle =>
         val styles = assureStyles()
         val style  = styles.raw(a.title)
@@ -129,15 +121,12 @@ private[outwatch] object SeparatedModifiers {
         } { style =>
           styles(a.title) = a.accum(style.asInstanceOf[String], a.value): DataObject.StyleValue
         }
-        ()
       case k: Key =>
         keyOption = k.value
-        ()
       case e: Emitter =>
         val emitters = assureEmitters()
         val emitter  = emitters.raw(e.eventType)
         emitters(e.eventType) = createHooksSingle(emitter, e.trigger)
-        ()
       case h: DomMountHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
         postPatchHook = createHooksPair[VNodeProxy](
@@ -148,11 +137,9 @@ private[outwatch] object SeparatedModifiers {
             }
           },
         )
-        ()
       case h: DomUnmountHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
         domUnmountHook = createHooksSingle(domUnmountHook, h.trigger)
-        ()
       case h: DomUpdateHook =>
         postPatchHook = createHooksPair[VNodeProxy](
           postPatchHook,
@@ -162,7 +149,6 @@ private[outwatch] object SeparatedModifiers {
             }
           },
         )
-        ()
       case h: DomPreUpdateHook =>
         prePatchHook = createHooksPair[VNodeProxy](
           prePatchHook,
@@ -172,29 +158,21 @@ private[outwatch] object SeparatedModifiers {
             }
           },
         )
-        ()
       case h: InitHook =>
         initHook = createHooksSingle(initHook, h.trigger)
-        ()
       case h: InsertHook =>
         insertHook = createHooksSingle(insertHook, h.trigger)
-        ()
       case h: PrePatchHook =>
         prePatchHook = createHooksPair(prePatchHook, h.trigger)
-        ()
       case h: UpdateHook =>
         updateHook = createHooksPair(updateHook, h.trigger)
-        ()
       case h: PostPatchHook =>
         postPatchHook = createHooksPair(postPatchHook, h.trigger)
-        ()
       case h: DestroyHook =>
         destroyHook = createHooksSingle(destroyHook, h.trigger)
-        ()
       case n: NextVMod =>
         val nextModifiers = assureNextModifiers()
-        nextModifiers += n.modifier
-        ()
+        (nextModifiers += n.modifier): Unit
     }
 
     prependModifiers.foreach(_.foreach(append))

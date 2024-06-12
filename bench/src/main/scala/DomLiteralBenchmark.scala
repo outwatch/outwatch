@@ -9,8 +9,7 @@ object DomLiteralBenchmark {
   def main(@annotation.unused args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
-    bench.util.runComparison(domLiterals, List(1), 60.seconds)
-    ()
+    bench.util.runComparison(domLiterals, List(1), 60.seconds): Unit
   }
 
   val domLiterals = Comparison(
