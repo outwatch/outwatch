@@ -2,6 +2,7 @@ package outwatch
 
 import cats.{Bifunctor, Functor, Monoid}
 import cats.effect.{IO, Sync, SyncIO}
+import cats.implicits._
 import colibri._
 import colibri.effect._
 
@@ -375,6 +376,17 @@ object EmitterBuilder {
     @inline def forwardTo[F[_]: Sink, O2 >: O](sink: F[O2]): R = forwardToInTransform(base, transformF, sink)
   }
 
+  @inline final class Access[-Env, +O, R[-_]](base: Env => EmitterBuilder[O, R[Any]])(implicit
+    acc: AccessEnvironment[R],
+  ) extends EmitterBuilder[O, R[Env]] {
+    @inline def transformSink[T](f: Observer[T] => Observer[O]): EmitterBuilder[T, R[Env]] =
+      new Access(env => base(env).transformSink(f))
+    @inline def transform[T](f: Observable[O] => Observable[T]): EmitterBuilder[T, R[Env]] =
+      new Access(env => base(env).transform(f))
+    @inline def forwardTo[F[_]: Sink, O2 >: O](sink: F[O2]): R[Env] =
+      AccessEnvironment[R].access(env => base(env).forwardTo(sink))
+  }
+
   // TODO: we requiring Monoid here, but actually just want an empty. Would allycats be better with Empty?
   @inline def emptyOf[R: Monoid]: EmitterBuilder[Nothing, R] = new Empty[R](Monoid[R].empty)
 
@@ -386,10 +398,13 @@ object EmitterBuilder {
   ): EmitterBuilder[E, R] = new Stream[E, R](Observable.lift(source), Monoid[R].empty)
 
   // shortcuts for modifiers with less type ascriptions
-  @inline def empty: EmitterBuilder[Nothing, VMod] = emptyOf[VMod]
-  @inline def ofModifier[E](create: Observer[E] => VMod): EmitterBuilder[E, VMod] =
-    apply[E, VMod](create)
-  @inline def ofNode[E](create: Observer[E] => VNode): EmitterBuilder[E, VNode] = apply[E, VNode](create)
+  @inline def empty: EmitterBuilder[Nothing, VMod]                                = emptyOf[VMod]
+  @inline def ofModifier[E](create: Observer[E] => VMod): EmitterBuilder[E, VMod] = apply[E, VMod](create)
+  @inline def ofNode[E](create: Observer[E] => VNode): EmitterBuilder[E, VNode]   = apply[E, VNode](create)
+  @inline def ofModifierM[Env, E](create: Observer[E] => VModM[Env]): EmitterBuilder[E, VModM[Env]] =
+    apply[E, VModM[Env]](create)
+  @inline def ofVNodeM[Env, E](create: Observer[E] => VNodeM[Env]): EmitterBuilder[E, VNodeM[Env]] =
+    apply[E, VNodeM[Env]](create)
   @inline def fromSource[F[_]: Source, E](source: F[E]): EmitterBuilder[E, VMod] =
     fromSourceOf[F, E, VMod](source)
 
@@ -420,6 +435,20 @@ object EmitterBuilder {
   @deprecated("Use EmitterBuilder[E, O] instead", "0.11.0")
   @inline def custom[E, R: SubscriptionOwner: SyncEmbed](create: Observer[E] => R): EmitterBuilder[E, R] =
     apply[E, R](create)
+
+  @inline def access[Env] = new PartiallyAppliedAccess[Env]
+  @inline class PartiallyAppliedAccess[Env] {
+    @inline def apply[O, T[-_]](emitter: Env => EmitterBuilder[O, T[Any]])(implicit
+      acc: AccessEnvironment[T],
+    ): EmitterBuilder[O, T[Env]] = new Access(env => emitter(env))
+  }
+  @inline def accessM[Env] = new PartiallyAppliedAccessM[Env]
+  @inline class PartiallyAppliedAccessM[Env] {
+    @inline def apply[R, O, T[-_]](emitter: Env => EmitterBuilder[O, T[R]])(implicit
+      acc: AccessEnvironment[T],
+    ): EmitterBuilder[O, T[Env with R]] =
+      access[Env with R][O, T](env => emitter(env).provide(env))
+  }
 
   implicit def monoid[T, R: SubscriptionOwner: SyncEmbed: Monoid]: Monoid[EmitterBuilder[T, R]] =
     new Monoid[EmitterBuilder[T, R]] {
@@ -480,6 +509,23 @@ object EmitterBuilder {
 
     @inline def merge[T >: O](emitter: EmitterBuilder[T, R]): EmitterBuilder[T, R] =
       EmitterBuilder.merge(builder, emitter)
+  }
+
+  @inline implicit final class AccessEnvironmentOperations[Env, O, R[-_]](val builder: EmitterBuilder[O, R[Env]])(
+    implicit acc: AccessEnvironment[R],
+  ) {
+    @inline def provide(env: Env): EmitterBuilder[O, R[Any]] =
+      builder.mapResult(r => AccessEnvironment[R].provide(r)(env))
+    @inline def provideSome[REnv](map: REnv => Env): EmitterBuilder[O, R[REnv]] =
+      builder.mapResult(r => AccessEnvironment[R].provideSome(r)(map))
+
+    @inline def asAccess[REnv]: EmitterBuilder[REnv, R[Env with REnv]] =
+      EmitterBuilder.accessM[REnv](builder.as(_))
+    @inline def withAccess[REnv]: EmitterBuilder[(O, REnv), R[Env with REnv]] =
+      EmitterBuilder.accessM[REnv](env => builder.map(_ -> env))
+
+    @inline def dispatch: R[Env with EventDispatcher[O]] =
+      acc.accessM[EventDispatcher[O], Env with EventDispatcher[O]](builder.dispatchWith(_))
   }
 
   @inline implicit class EventActions[O <: dom.Event, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
@@ -563,10 +609,27 @@ object EmitterBuilder {
 }
 
 trait EventDispatcher[-T] {
-  def dispatch(source: Observable[T]): Observable[Any]
+  def dispatch(source: Observable[T]): Observable[Unit]
 }
 object EventDispatcher {
-  def ofModelUpdate[M, T](subject: Subject[M], update: (T, M) => M) = new EventDispatcher[T] {
-    def dispatch(source: Observable[T]) = source.withLatestMap(subject)(update).via(subject)
+  trait Callback[T] extends EventDispatcher[T] {
+    def dispatchOne(value: T): Unit
+    final def dispatch(source: Observable[T]) = source.map(dispatchOne)
+  }
+  trait CallbackIO[T] extends EventDispatcher[T] {
+    def dispatchOne(value: T): IO[Unit]
+    final def dispatch(source: Observable[T]) = source.mapEffect(dispatchOne)
+  }
+  trait ModelUpdate[M, T] extends EventDispatcher[T] {
+    def model: Subject[M]
+    def modelUpdate(current: M, value: T): M
+    final def dispatch(source: Observable[T]) =
+      source.withLatestMap(model)((value, current) => modelUpdate(current, value)).to(model)
+  }
+  trait ModelUpdateIO[M, T] extends EventDispatcher[T] {
+    def model: Subject[M]
+    def modelUpdate(current: M, value: T): IO[M]
+    final def dispatch(source: Observable[T]) =
+      source.withLatest(model).mapEffect { case (value, current) => modelUpdate(current, value) }.to(model)
   }
 }

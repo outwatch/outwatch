@@ -3975,8 +3975,8 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
   it should "render types that have a `Render` and a `Show` implementation using `Render`" in {
     case class Foo(bar: String)
     object Foo {
-      implicit val renderFoo: Render[Foo] = (foo: Foo) => span(foo.bar)
-      implicit val showFoo: Show[Foo]     = (foo: Foo) => foo.bar
+      implicit val renderFoo: Render[Any, Foo] = (foo: Foo) => span(foo.bar)
+      implicit val showFoo: Show[Foo]          = (foo: Foo) => foo.bar
     }
 
     val node = div(

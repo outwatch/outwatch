@@ -44,6 +44,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalatest" %%% "scalatest" % "3.2.18" % Test,
   ),
+  Test / scalacOptions --= Seq("-Xlint:infer-any"), // does not work well with Env type
   Test / scalacOptions --= Seq("-Xfatal-warnings"), // allow usage of deprecated calls in tests
 
   libraryDependencies ++= (if (isDotty.value) Nil
