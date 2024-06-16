@@ -66,7 +66,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline def doAsync[G[_]: RunEffect](action: G[Unit]): R = doEffect(action)
 
   @inline def foreachEffect[G[_]: RunEffect](action: O => G[Unit]): R = mapEffect(action).done
-  @inline def doEffect[G[_]: RunEffect](action: G[Unit]): R           = foreachEffect(_ => action)
+  @inline def doEffect[G[_]: RunEffect](action: => G[Unit]): R        = foreachEffect(_ => action)
 
   @inline def foreachFuture(action: O => Future[Unit]): R = mapFuture(action).done
   @inline def doFuture(action: => Future[Unit]): R        = foreachFuture(_ => action)
