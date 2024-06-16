@@ -25,8 +25,6 @@ private object CodecBuilder {
     // encodes true as "" and false as null, whereas snabbdom needs true/false
     // of type boolean (not string) for toggling the presence of the attribute.
     case _: codecs.BooleanAsAttrPresenceCodec.type => identity
-    case _: codecs.IntAsStringCodec.type           => identity
-    case _: codecs.DoubleAsStringCodec.type        => identity
     case _                                         => codec.encode
   }
 }

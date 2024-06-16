@@ -30,7 +30,8 @@ object VMod {
 
   @inline def apply(modifier: VMod, modifier2: VMod, modifier3: VMod): VMod =
     CompositeModifier(js.Array(modifier, modifier2, modifier3))
-  @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString: Attr.Value) =
+  @inline final def attr[T: ToAttrValue](key: String): AttrBuilder.ToBasicAttr[T] = attr[T](key, ToAttrValue[T].convert(_))
+  @inline final def attr[T](key: String, convert: T => Attr.Value): AttrBuilder.ToBasicAttr[T] =
     new AttrBuilder.ToBasicAttr[T](key, convert)
   @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) =
     new AttrBuilder.ToProp[T](key, convert)
