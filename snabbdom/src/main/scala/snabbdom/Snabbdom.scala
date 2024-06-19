@@ -37,7 +37,7 @@ trait DataObject extends js.Object {
 object DataObject {
 
   type PropValue  = Any
-  type AttrValue  = String | Boolean | Double | Int
+  type AttrValue  = String | Boolean
   type StyleValue = String | js.Dictionary[String]
   type KeyValue   = String | Double | Int // https://github.com/snabbdom/snabbdom#key--string--number
 

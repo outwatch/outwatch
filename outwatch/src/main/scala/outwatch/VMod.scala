@@ -30,7 +30,7 @@ object VMod {
 
   @inline def apply(modifier: VMod, modifier2: VMod, modifier3: VMod): VMod =
     CompositeModifier(js.Array(modifier, modifier2, modifier3))
-  @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString: Attr.Value) =
+  @inline final def attr[T](key: String, convert: T => Attr.Value = Attr.toValue): AttrBuilder.ToBasicAttr[T] =
     new AttrBuilder.ToBasicAttr[T](key, convert)
   @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) =
     new AttrBuilder.ToProp[T](key, convert)
@@ -157,6 +157,10 @@ final case class Emitter(eventType: String, trigger: js.Function1[dom.Event, Uni
 sealed trait Attr extends StaticVMod
 object Attr {
   type Value = DataObject.AttrValue
+  val toValue: Any => Value = {
+    case boolean: Boolean => boolean
+    case any              => any.toString
+  }
 }
 final case class BasicAttr(title: String, value: Attr.Value)                                                extends Attr
 final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value) => Attr.Value) extends Attr

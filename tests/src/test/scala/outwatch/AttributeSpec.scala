@@ -102,7 +102,7 @@ class AttributeSpec extends JSDomSpec {
     val node = SnabbdomOps.toSnabbdom(
       VNode.html("input")(
         VMod.attr("foo")                                       := "foo",
-        VMod.attr[Boolean]("boo", identity)                    := true,
+        VMod.attr[Boolean]("boo")                              := true,
         VMod.attr[Boolean]("yoo", x => if (x) "yes" else "no") := true,
         VMod.prop("bar")                                       := "bar",
         VMod.prop("num")                                       := 12,
