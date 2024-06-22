@@ -44,7 +44,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def -->(sink: Observer[O]): R                                                     = forwardTo(sink)
   @inline final def -->[F[_]: Sink, O2 >: O](sink: F[O2], @annotation.nowarn dummy: Unit = ()): R = forwardTo(sink)
 
-  @inline final def done: R    = forwardTo(Observer.empty)
+  @inline final def done: R = forwardTo(Observer.empty)
 
   @inline final def foreach(action: O => Unit): R = forwardTo(Observer.create(action))
   @inline final def doAction(action: => Unit): R  = foreach(_ => action)
