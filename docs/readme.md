@@ -1011,10 +1011,10 @@ VMod.managedElement.asSvg { (elem: svg.Element) => ???; Cancelable(() => ???) }
 
 ### Custom EmitterBuilders
 
-You can `combine`, `map`, `collect`, `filter` and `transform` `EmitterBuilder`:
+You can `merge`, `map`, `collect`, `filter` and `transform` `EmitterBuilder`:
 
 ```scala mdoc:js:compile-only
-button(EmitterBuilder.combine(onMouseUp.as(false), onMouseDown.as(true)).foreach { isDown => println("Button is down? " + isDown) })
+button(EmitterBuilder.merge(onMouseUp.as(false), onMouseDown.as(true)).foreach { isDown => println("Button is down? " + isDown) })
 // this is the same as: button(EmitterBuilder.combine(onMouseUp.map(_ => false), onMouseDown.map(_ => true)).foreach { isDown => println("Button is down? " + isDown })
 ```
 
