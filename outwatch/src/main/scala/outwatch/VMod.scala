@@ -44,9 +44,7 @@ object VMod {
     Source[F].unsafeSubscribe(source)(Observer.empty),
   )
 
-  @deprecated("Use managedEval(subscription) instead", "")
-  @inline def managedFunction[T: CanCancel](subscription: () => T): VMod = managedEval(subscription())
-  def managedEval[T: CanCancel](subscription: => T): VMod                = CancelableModifier(() => Cancelable.lift(subscription))
+  def managedEval[T: CanCancel](subscription: => T): VMod = CancelableModifier(() => Cancelable.lift(subscription))
 
   object managedElement {
     def apply[T: CanCancel](subscription: dom.Element => T): VMod = VMod.eval {
@@ -105,8 +103,6 @@ object VMod {
   @inline def fromEither[T: Render](modifier: Either[Throwable, T]): VMod = modifier.fold(raiseError(_), apply(_))
   @inline def evalEither[T: Render](modifier: => Either[Throwable, T]): VMod =
     SyncEffectModifier(() => fromEither(modifier))
-  @deprecated("Use VMod.eval instead", "1.0.0")
-  @inline def delay[T: Render](modifier: => T): VMod     = eval(modifier)
   @inline def eval[T: Render](modifier: => T): VMod      = SyncEffectModifier(() => modifier)
   @inline def composite(modifiers: Iterable[VMod]): VMod = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError(error: Throwable): VMod         = ErrorModifier(error)
@@ -116,10 +112,6 @@ object VMod {
   @inline def configured(modifier: VMod)(configure: RenderConfig => RenderConfig): VMod =
     ConfiguredModifier(modifier, configure)
 
-  @deprecated("Use VMod.when(condition)(...) instead", "")
-  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = when(condition)
-  @deprecated("Use VMod.whenNot(condition)(...) instead", "")
-  @inline def ifNot(condition: Boolean): ModifierBooleanOps   = whenNot(condition)
   @inline def when(condition: Boolean): ModifierBooleanOps    = new ModifierBooleanOps(condition)
   @inline def whenNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
