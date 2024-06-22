@@ -120,7 +120,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
 
   @inline final def void: EmitterBuilder[Unit, R] = as(())
 
-  @inline final def asEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] = mapEffect(_ => value)
+  @inline final def asEffect[G[_]: RunEffect, T](value: => G[T]): EmitterBuilder[T, R] = mapEffect(_ => value)
   @inline final def withEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
     mapEffect(x => Functor[G].map(value)(x -> _))
 
@@ -128,7 +128,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def withFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
     mapFuture(x => value.map(x -> _)(ExecutionContext.parasitic))
 
-  @inline final def asSingleEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+  @inline final def asSingleEffect[G[_]: RunEffect, T](value: => G[T]): EmitterBuilder[T, R] =
     singleMapEffect(_ => value)
   @inline final def withSingleEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
     singleMapEffect(x => Functor[G].map(value)(x -> _))
@@ -138,7 +138,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def withSingleFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
     withSingleEffect(IO.fromFuture(IO(value)))
 
-  @inline final def asSwitchEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+  @inline final def asSwitchEffect[G[_]: RunEffect, T](value: => G[T]): EmitterBuilder[T, R] =
     switchMapEffect(_ => value)
   @inline final def withSwitchEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
     switchMapEffect(x => Functor[G].map(value)(x -> _))
@@ -148,7 +148,7 @@ trait EmitterBuilder[+O, +R] extends AttrBuilder[O => Unit, R] {
   @inline final def withSwitchFuture[T](value: => Future[T]): EmitterBuilder[(O, T), R] =
     withSwitchEffect(IO.fromFuture(IO(value)))
 
-  @inline final def asParEffect[G[_]: RunEffect, T](value: G[T]): EmitterBuilder[T, R] =
+  @inline final def asParEffect[G[_]: RunEffect, T](value: => G[T]): EmitterBuilder[T, R] =
     parMapEffect(_ => value)
   @inline final def withParEffect[G[_]: RunEffect: Functor, T](value: G[T]): EmitterBuilder[(O, T), R] =
     parMapEffect(x => Functor[G].map(value)(x -> _))
