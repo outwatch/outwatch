@@ -1,53 +1,33 @@
 queue_rules:
-  - name: default
-    conditions:
-      # Conditions to get out of the queue (= merged)
-      - check-success~=build \(2\.13\.\d+\)
-      - check-success~=build \(3\.\d+\.\d+\)
-
-pull_request_rules:
-  - name: Label Scala Steward PRs
-    conditions:
-      - author=scala-steward
-    actions:
-      label:
-        add: [dependencies, scala]
-
   - name: Merge dependency-update PRs
-    conditions:
-      - base=master
+    queue_conditions:
       - label=dependencies
-      - check-success~=build \(2\.13\.\d+\)
-      - check-success~=build \(3\.\d+\.\d+\)
-    actions:
-      queue:
-        name: default
-        method: squash
+      - base=master
+    merge_conditions: []
+    merge_method: squash
 
-
-  - name: Merge PRs (rebase) which are ready to merge
-    conditions:
+  - name: Merge PRs using label (rebase)
+    queue_conditions:
       - label=ready-to-merge-rebase
       - base=master
-      - check-success~=build \(2\.13\.\d+\)
-      - check-success~=build \(3\.\d+\.\d+\)
       - "#review-requested=0"
       - "#changes-requested-reviews-by=0"
-    actions:
-      queue:
-        name: default
-        method: rebase
+      - "#review-threads-unresolved=0"
+    merge_conditions: []
+    merge_method: rebase
 
-
-  - name: Merge PRs (squash) which are ready to merge
-    conditions:
+  - name: Merge PRs using label (squash)
+    queue_conditions:
       - label=ready-to-merge-squash
       - base=master
-      - check-success~=build \(2\.13\.\d+\)
-      - check-success~=build \(3\.\d+\.\d+\)
       - "#review-requested=0"
       - "#changes-requested-reviews-by=0"
+      - "#review-threads-unresolved=0"
+    merge_conditions: []
+    merge_method: squash
+
+pull_request_rules:
+  - name: All PRs into queue
+    conditions: []
     actions:
       queue:
-        name: default
-        method: squash
