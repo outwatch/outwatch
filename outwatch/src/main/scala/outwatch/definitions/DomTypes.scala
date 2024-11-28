@@ -25,8 +25,6 @@ private object CodecBuilder {
     // encodes true as "" and false as null, whereas snabbdom needs true/false
     // of type boolean (not string) for toggling the presence of the attribute.
     case _: codecs.BooleanAsAttrPresenceCodec.type => identity
-    case _: codecs.IntAsStringCodec.type           => identity
-    case _: codecs.DoubleAsStringCodec.type        => identity
     case _                                         => codec.encode
   }
 }
@@ -48,17 +46,13 @@ trait Tags
     extends tags.EmbedTags[BuilderTypes.HtmlTag] with tags.GroupingTags[BuilderTypes.HtmlTag]
     with tags.TextTags[BuilderTypes.HtmlTag] with tags.FormTags[BuilderTypes.HtmlTag]
     with tags.SectionTags[BuilderTypes.HtmlTag] with tags.TableTags[BuilderTypes.HtmlTag] with TagBuilder
-    with TagHelpers with EmbedTagDeprecations[BuilderTypes.HtmlTag]
 
-trait TagsExtra
-    extends tags.DocumentTags[BuilderTypes.HtmlTag] with tags.MiscTags[BuilderTypes.HtmlTag] with TagBuilder
-    with DocumentTagDeprecations[BuilderTypes.HtmlTag]
+trait TagsExtra extends tags.DocumentTags[BuilderTypes.HtmlTag] with tags.MiscTags[BuilderTypes.HtmlTag] with TagBuilder
 
 trait SvgTags extends tags.SvgTags[BuilderTypes.SvgTag] with TagBuilder
 
 // all Attributes
-trait Attributes
-    extends HtmlAttrs with Events with AttributeHelpers with OutwatchAttributes with HtmlAttributeDeprecations
+trait Attributes extends HtmlAttrs with Events with AdditionalAttributes with OutwatchAttributes
 
 // Html Attrs
 trait HtmlAttrs
@@ -111,9 +105,7 @@ trait HtmlAttrs
 }
 
 // Svg Attrs
-trait SvgAttrs
-    extends attrs.SvgAttrs[BuilderTypes.Attribute] with builders.SvgAttrBuilder[BuilderTypes.Attribute]
-    with SvgAttributeDeprecations {
+trait SvgAttrs extends attrs.SvgAttrs[BuilderTypes.Attribute] with builders.SvgAttrBuilder[BuilderTypes.Attribute] {
 
   // According to snabbdom documentation, the namespace can be ignore as it is handled automatically.
   override protected final def svgAttr[V](

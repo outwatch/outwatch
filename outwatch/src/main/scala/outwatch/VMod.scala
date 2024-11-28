@@ -30,7 +30,7 @@ object VMod {
 
   @inline def apply(modifier: VMod, modifier2: VMod, modifier3: VMod): VMod =
     CompositeModifier(js.Array(modifier, modifier2, modifier3))
-  @inline final def attr[T](key: String, convert: T => Attr.Value = (t: T) => t.toString: Attr.Value) =
+  @inline final def attr[T](key: String, convert: T => Attr.Value = Attr.toValue): AttrBuilder.ToBasicAttr[T] =
     new AttrBuilder.ToBasicAttr[T](key, convert)
   @inline final def prop[T](key: String, convert: T => Prop.Value = (t: T) => t) =
     new AttrBuilder.ToProp[T](key, convert)
@@ -44,9 +44,7 @@ object VMod {
     Source[F].unsafeSubscribe(source)(Observer.empty),
   )
 
-  @deprecated("Use managedEval(subscription) instead", "")
-  @inline def managedFunction[T: CanCancel](subscription: () => T): VMod = managedEval(subscription())
-  def managedEval[T: CanCancel](subscription: => T): VMod                = CancelableModifier(() => Cancelable.lift(subscription))
+  def managedEval[T: CanCancel](subscription: => T): VMod = CancelableModifier(() => Cancelable.lift(subscription))
 
   object managedElement {
     def apply[T: CanCancel](subscription: dom.Element => T): VMod = VMod.eval {
@@ -105,8 +103,6 @@ object VMod {
   @inline def fromEither[T: Render](modifier: Either[Throwable, T]): VMod = modifier.fold(raiseError(_), apply(_))
   @inline def evalEither[T: Render](modifier: => Either[Throwable, T]): VMod =
     SyncEffectModifier(() => fromEither(modifier))
-  @deprecated("Use VMod.eval instead", "1.0.0")
-  @inline def delay[T: Render](modifier: => T): VMod     = eval(modifier)
   @inline def eval[T: Render](modifier: => T): VMod      = SyncEffectModifier(() => modifier)
   @inline def composite(modifiers: Iterable[VMod]): VMod = CompositeModifier(modifiers.toJSArray)
   @inline def raiseError(error: Throwable): VMod         = ErrorModifier(error)
@@ -116,10 +112,6 @@ object VMod {
   @inline def configured(modifier: VMod)(configure: RenderConfig => RenderConfig): VMod =
     ConfiguredModifier(modifier, configure)
 
-  @deprecated("Use VMod.when(condition)(...) instead", "")
-  @inline def ifTrue(condition: Boolean): ModifierBooleanOps = when(condition)
-  @deprecated("Use VMod.whenNot(condition)(...) instead", "")
-  @inline def ifNot(condition: Boolean): ModifierBooleanOps   = whenNot(condition)
   @inline def when(condition: Boolean): ModifierBooleanOps    = new ModifierBooleanOps(condition)
   @inline def whenNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
 
@@ -157,6 +149,10 @@ final case class Emitter(eventType: String, trigger: js.Function1[dom.Event, Uni
 sealed trait Attr extends StaticVMod
 object Attr {
   type Value = DataObject.AttrValue
+  val toValue: Any => Value = {
+    case boolean: Boolean => boolean
+    case any              => any.toString
+  }
 }
 final case class BasicAttr(title: String, value: Attr.Value)                                                extends Attr
 final case class AccumAttr(title: String, value: Attr.Value, accum: (Attr.Value, Attr.Value) => Attr.Value) extends Attr
@@ -201,7 +197,7 @@ final case class StringVNode(text: String)                                      
 final case class ConfiguredModifier(modifier: VMod, configure: RenderConfig => RenderConfig) extends VMod
 
 sealed trait VNode extends VMod {
-  def apply(args: VMod*): VNode
+  @inline final def apply(args: VMod*): VNode = append(args: _*)
   def append(args: VMod*): VNode
   def prepend(args: VMod*): VNode
 
@@ -246,7 +242,6 @@ sealed trait BasicVNode extends VNode {
   arguments: js.Array[Any],
   renderFn: () => VMod,
 ) extends VNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(baseNode = baseNode(args: _*))
   @inline def prepend(args: VMod*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
@@ -256,22 +251,18 @@ sealed trait BasicVNode extends VNode {
   shouldRender: Boolean,
   renderFn: () => VMod,
 ) extends VNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(baseNode = baseNode(args: _*))
   @inline def prepend(args: VMod*): VNode = copy(baseNode = baseNode.prepend(args: _*))
 }
 @inline final case class HtmlVNode(nodeType: String, modifiers: js.Array[VMod]) extends BasicVNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(modifiers = appendSeq(modifiers, args))
   @inline def prepend(args: VMod*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SvgVNode(nodeType: String, modifiers: js.Array[VMod]) extends BasicVNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = copy(modifiers = appendSeq(modifiers, args))
   @inline def prepend(args: VMod*): VNode = copy(modifiers = prependSeq(modifiers, args))
 }
 @inline final case class SyncEffectVNode(unsafeRun: () => VNode) extends VNode {
-  @inline def apply(args: VMod*): VNode   = append(args: _*)
   @inline def append(args: VMod*): VNode  = SyncEffectVNode(() => unsafeRun().append(args))
   @inline def prepend(args: VMod*): VNode = SyncEffectVNode(() => unsafeRun().prepend(args))
 }

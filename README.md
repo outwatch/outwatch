@@ -38,58 +38,6 @@ You will find interactive examples and explanations in our [documentation](https
 
 ## [Documentation](https://outwatch.github.io/docs/readme.html)
 
-## Quickstart
-
-### Template
-
-The quickest way to play with outwatch is to use our template.
-
-Make sure that `java`, `sbt`, `nodejs`, `yarn` and `github-cli` (optionally) are installed.
-
-```shell
-# create new repo on github based on this template
-gh repo create my-first-outwatch-project --template outwatch/example --public --clone
-
-# if you want to just get the template locally without creating a github repo:
-git clone --depth 1 https://github.com/outwatch/example my-first-outwatch-project
-
-```
-
-In your newly created project directory, run:
-
-```bash
-sbt dev
-```
-
-and point your browser to http://localhost:12345.
-
-### Manual setup
-
-Add the `scalajs` and `scalajs-bundler` plugins to your `project/plugins.sbt`:
-```scala
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.x.x")
-addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "x.x.x")
-```
-
-Add the outwatch dependencies to your `build.sbt`:
-```scala
-enablePlugins(ScalaJSPlugin)
-enablePlugins(ScalaJSBundlerPlugin)
-
-resolvers += "jitpack" at "https://jitpack.io"
-val outwatchVersion = "<latest outwatch version>"
-libraryDependencies ++= Seq(
-  "io.github.outwatch"   %%% "outwatch"          % outwatchVersion,
-  // optional dependencies:
-  "com.github.cornerman" %%% "colibri-zio"       % "0.7.6", // zio support
-  "com.github.cornerman" %%% "colibri-fs2"       % "0.7.6", // fs2 support
-  "com.github.cornerman" %%% "colibri-airstream" % "0.7.6", // sirstream support
-  "com.github.cornerman" %%% "colibri-rx"        % "0.7.6", // scala.rx support
-  "com.github.cornerman" %%% "colibri-router"    % "0.7.6", // Url Router support
-)
-
-```
-
 ## Bugs and Feedback
 For bugs, questions and discussions please use [GitHub Issues](https://github.com/outwatch/outwatch/issues).
 
