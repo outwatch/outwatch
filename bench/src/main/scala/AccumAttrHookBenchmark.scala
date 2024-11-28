@@ -10,8 +10,7 @@ object AccumAttrHookBenchmark {
   def main(@annotation.unused args: Array[String]): Unit = {
     import scala.concurrent.duration._
 
-    bench.util.runComparison(accumAttrs, List(1), 60.seconds)
-    ()
+    bench.util.runComparison(accumAttrs, List(1), 60.seconds): Unit
   }
 
   val accumAttrs = Comparison(

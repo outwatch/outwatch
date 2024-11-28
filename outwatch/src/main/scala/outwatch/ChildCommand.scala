@@ -55,8 +55,7 @@ object ChildCommand {
 
     def removeByIndex(index: Int): Unit = {
       if (isSaneIndex(index)) {
-        children.remove(index)
-        ()
+        children.remove(index): Unit
       }
     }
 
@@ -74,14 +73,13 @@ object ChildCommand {
     valueStream.map { cmds =>
       cmds foreach {
         case Append(node) =>
-          children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config)))
-          ()
+          children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config))): Unit
         case Prepend(node) =>
           children.prepend(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config)))
         case ReplaceAll(list) =>
           children.clear()
           list.foreach { node =>
-            children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config)))
+            children.push(VNodeProxyNode(SnabbdomOps.toSnabbdom(node, config))): Unit
           }
         case Insert(index, node) =>
           insertByIndex(index, node)
