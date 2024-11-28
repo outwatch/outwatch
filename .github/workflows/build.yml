@@ -50,7 +50,7 @@ jobs:
         if: startsWith(matrix.scalaVersion, '2.13.')
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true # optional (default = false)
+          fail_ci_if_error: false # optional (default = false)
           verbose: true # optional (default = false)
 
       # - name: Debug over SSH (tmate)
