@@ -2459,7 +2459,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
       myString.map { myString =>
         b(idAttr := "bla").thunk("component")(new Wrap(myString)) {
           renderFnCounter += 1
-          Seq[VMod](cls   := "b", myString)
+          Seq[VMod](cls := "b", myString)
         }
       },
       b("something else"),
@@ -2923,7 +2923,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             .map[VNode](s => div(s, mountHooks))
             .prepend(b(idAttr <-- myId).thunk("component")(myString) {
               renderFnCounter += 1
-              VMod(cls        := "b", myString, mountHooks, thunkContent)
+              VMod(cls := "b", myString, mountHooks, thunkContent)
             })
       },
       myOther,
@@ -3097,7 +3097,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
             .map[VNode](s => div(s, mountHooks))
             .prepend(b(idAttr <-- myId).thunk("component")(myString) {
               renderFnCounter += 1
-              VMod(cls        := "b", myString, mountHooks, thunkContent)
+              VMod(cls := "b", myString, mountHooks, thunkContent)
             })
       },
       myOther,
@@ -3272,7 +3272,7 @@ class OutwatchDomSpec extends JSDomAsyncSpec {
               .map[VNode](s => div(s, mountHooks))
               .prepend(b(idAttr <-- myId).thunk("component")(myString) {
                 renderFnCounter += 1
-                VMod(cls        := "b", myString, mountHooks, thunkContent)
+                VMod(cls := "b", myString, mountHooks, thunkContent)
               }),
           )
       },
