@@ -42,15 +42,14 @@ private[outwatch] final class MutableNestedArray[T] {
     false
   }
 
-  @inline def push(value: T | MutableNestedArray[T]): Unit = { array.push(value); () }
+  @inline def push(value: T | MutableNestedArray[T]): Unit = array.push(value): Unit
   @inline def clear(): Unit                                = array.clear()
   @inline def isEmpty: Boolean                             = array.isEmpty
 
   def toFlatArray: js.Array[T] = {
     val flatArray = new js.Array[T]
     foreach { t =>
-      flatArray.push(t)
-      ()
+      flatArray.push(t): Unit
     }
     flatArray
   }
