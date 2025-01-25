@@ -48,7 +48,7 @@ trait OutwatchSpec extends Matchers with BeforeAndAfterEach with LocalStorageMoc
 
 }
 
-abstract class JSDomSpec      extends AnyFlatSpec with OutwatchSpec
+abstract class JSDomSpec extends AnyFlatSpec with OutwatchSpec
 abstract class JSDomAsyncSpec extends AsyncFlatSpec with OutwatchSpec {
   // This deadlocks somehow
   // implicit private val ioRuntime: unsafe.IORuntime = unsafe.IORuntime.global
