@@ -31,3 +31,12 @@ pull_request_rules:
     conditions: []
     actions:
       queue:
+priority_rules:
+  - name: priority for queue `Merge dependency-update PRs`
+    conditions:
+      - label=dependencies
+    priority: 2500
+  - name: priority for queue `Merge PRs using label (rebase)`
+    conditions:
+      - label=ready-to-merge-rebase
+    priority: 2250
