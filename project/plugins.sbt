@@ -13,4 +13,4 @@ addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.0")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.2.2")
 
-addSbtPlugin("com.thoughtworks.sbt-scala-js-map" % "sbt-scala-js-map" % "4.1.1")
+addSbtPlugin("com.thoughtworks.sbt-scala-js-map" % "sbt-scala-js-map" % "4.1.2")
